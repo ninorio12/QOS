@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { login } from './actions'
-import { QorpoLogo } from '@/components/QorpoLogo'
+import Image from 'next/image'
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -29,7 +29,14 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="flex flex-col items-center mb-10">
-          <QorpoLogo size={40} bg="#0A0A0A" />
+          <Image
+            src="/logo.png"
+            alt="Qorpo"
+            width={160}
+            height={56}
+            priority
+            className="object-contain"
+          />
           <p className="text-[#8896AB] text-sm mt-3">Operating System</p>
         </div>
 

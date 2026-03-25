@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Search, Plus, ChevronDown } from 'lucide-react'
+import Image from 'next/image'
 
 const tabs = [
   { href: '/pipeline',      label: 'Pipeline' },
@@ -58,7 +59,14 @@ export default function Header() {
           Nouveau lead
         </button>
         <button className="flex items-center gap-2 text-sm text-[#8896AB] hover:text-white transition-colors">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#C8F135] to-[#8ab520] flex items-center justify-center text-[#121721] text-xs font-bold">Q</div>
+          <Image
+            src="/logo-icon.png"
+            alt="Qorpo"
+            width={28}
+            height={28}
+            className="object-contain rounded-full"
+          />
+          <span className="font-semibold text-white text-sm">QOS</span>
           <ChevronDown size={13} />
         </button>
       </div>

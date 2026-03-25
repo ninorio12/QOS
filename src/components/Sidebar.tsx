@@ -13,7 +13,7 @@ import {
   Settings,
   Bell,
 } from 'lucide-react'
-import { QorpoIcon } from '@/components/QorpoLogo'
+import Image from 'next/image'
 
 const navItems = [
   { href: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
@@ -32,7 +32,14 @@ export default function Sidebar() {
     <aside className="fixed left-0 top-0 h-full w-16 bg-[#1C2333] border-r border-[#232D3F] flex flex-col items-center py-5 z-50">
       {/* Logo */}
       <Link href="/dashboard" className="mb-8 flex-shrink-0">
-        <QorpoIcon size={34} bg="#1C2333" />
+        <Image
+          src="/logo-icon.png"
+          alt="Qorpo"
+          width={34}
+          height={34}
+          priority
+          className="object-contain"
+        />
       </Link>
 
       {/* Nav */}
