@@ -13,6 +13,7 @@ export type Conversation = {
   // joined fields (from mock or query)
   contact_name?: string
   contact_company?: string
+  contact_phone?: string | null
   last_message?: string
   last_message_at?: string
   unread?: number

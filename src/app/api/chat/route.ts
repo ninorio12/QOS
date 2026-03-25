@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { SYSTEM_PROMPT_DEFAULT } from '@/lib/agent-config'
 import { createClient } from '@/lib/supabase/server'
+import { sendWhatsApp } from '@/lib/twilio'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -9,7 +10,7 @@ export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
   try {
-    const { conversationId, message, contactName, systemPrompt } = await req.json()
+    const { conversationId, message, contactName, contactPhone, systemPrompt } = await req.json()
 
     if (!message?.trim()) {
       return Response.json({ error: 'Message vide' }, { status: 400 })
@@ -102,6 +103,15 @@ export async function POST(req: NextRequest) {
               content: fullResponse,
               metadata: { model: 'claude-opus-4-6' },
             })
+          }
+
+          // 6. Envoyer via WhatsApp si le contact a un numéro
+          if (contactPhone && fullResponse) {
+            try {
+              await sendWhatsApp(contactPhone, fullResponse)
+            } catch (waErr) {
+              console.error('[chat] Erreur envoi WhatsApp:', waErr)
+            }
           }
 
           controller.close()

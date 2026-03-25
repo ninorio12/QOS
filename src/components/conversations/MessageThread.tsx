@@ -131,6 +131,11 @@ export default function MessageThread({ conversation }: { conversation: Conversa
     setStreamingContent('') // show streaming bubble immediately
 
     try {
+      // Envoyer via WhatsApp uniquement si la conversation est de type whatsapp et que le contact a un numéro
+      const contactPhone = conversation.channel === 'whatsapp' && conversation.contact_phone
+        ? conversation.contact_phone
+        : undefined
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -138,6 +143,7 @@ export default function MessageThread({ conversation }: { conversation: Conversa
           conversationId: conversation.id,
           message: content,
           contactName: conversation.contact_name,
+          contactPhone,
         }),
       })
 
