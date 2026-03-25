@@ -16,12 +16,14 @@ export async function POST(req: NextRequest) {
     const rawBody  = await req.text()
     const formData = parseFormData(rawBody)
 
-    // Valider la signature Twilio
+    // Valider la signature Twilio (désactivé en dev local pour ngrok)
     const twilioSignature = req.headers.get('X-Twilio-Signature') ?? ''
-    const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/twilio`
     const authToken = process.env.TWILIO_AUTH_TOKEN ?? ''
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+    const isDev = appUrl.includes('localhost') || appUrl.includes('127.0.0.1')
 
-    if (authToken && twilioSignature) {
+    if (authToken && twilioSignature && !isDev) {
+      const url = `${appUrl}/api/webhooks/twilio`
       const isValid = twilio.validateRequest(authToken, twilioSignature, url, formData)
       if (!isValid) {
         console.warn('[Twilio] Signature invalide')

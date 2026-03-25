@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Send, Bot, Loader2, Sparkles, Zap } from 'lucide-react'
+import { Send, Bot, Loader2, Sparkles, Zap, Smartphone } from 'lucide-react'
 import { type Conversation, type Message, CHANNEL_META, MOCK_MESSAGES } from './types'
 import { getMessages } from '@/app/conversations/actions'
+import { createClient } from '@/lib/supabase/client'
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
@@ -86,9 +87,11 @@ export default function MessageThread({ conversation }: { conversation: Conversa
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
   const [streamingContent, setStreamingContent] = useState<string | null>(null)
+  const [whatsappSent, setWhatsappSent] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const channel = CHANNEL_META[conversation.channel]
+  const isWhatsApp = conversation.channel === 'whatsapp'
 
   // Load messages
   useEffect(() => {
@@ -99,13 +102,42 @@ export default function MessageThread({ conversation }: { conversation: Conversa
     const load = async () => {
       const result = await getMessages(conversation.id)
       if (result.messages && result.messages.length > 0) {
-        setMessages(result.messages)
+        setMessages(result.messages as Message[])
       } else {
         setMessages(MOCK_MESSAGES[conversation.id] ?? [])
       }
       setIsLoading(false)
     }
     load()
+  }, [conversation.id])
+
+  // Supabase Realtime — messages WhatsApp entrants apparaissent live
+  useEffect(() => {
+    const supabase = createClient()
+    const subscription = supabase
+      .channel(`messages:${conversation.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversation.id}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as Message
+          setMessages(prev => {
+            // Évite les doublons (message déjà ajouté en optimiste)
+            if (prev.some(m => m.id === newMsg.id)) return prev
+            return [...prev, newMsg]
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(subscription)
+    }
   }, [conversation.id])
 
   // Auto-scroll
@@ -174,6 +206,12 @@ export default function MessageThread({ conversation }: { conversation: Conversa
       }
       setMessages(prev => [...prev, aiMsg])
       setStreamingContent(null)
+
+      // Indicateur WhatsApp envoyé
+      if (contactPhone) {
+        setWhatsappSent(true)
+        setTimeout(() => setWhatsappSent(false), 3000)
+      }
     } catch (err) {
       console.error('Chat error:', err)
       const errMsg: Message = {
@@ -303,9 +341,23 @@ export default function MessageThread({ conversation }: { conversation: Conversa
               Agent IA actif · <span className="text-[#C8F135]">Claude Opus 4.6</span>
             </span>
           </div>
-          <div className="flex items-center gap-1 text-[10px] text-[#3D4F6B]">
-            <Zap size={9} />
-            Qualification automatique
+          <div className="flex items-center gap-2">
+            {whatsappSent && (
+              <span className="flex items-center gap-1 text-[10px] text-[#22c55e] animate-pulse">
+                <Smartphone size={9} />
+                WhatsApp envoyé
+              </span>
+            )}
+            {isWhatsApp && !whatsappSent && conversation.contact_phone && (
+              <span className="flex items-center gap-1 text-[10px] text-[#3D4F6B]">
+                <Smartphone size={9} />
+                {conversation.contact_phone}
+              </span>
+            )}
+            <div className="flex items-center gap-1 text-[10px] text-[#3D4F6B]">
+              <Zap size={9} />
+              Qualification automatique
+            </div>
           </div>
         </div>
       </div>
