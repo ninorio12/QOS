@@ -28,6 +28,11 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
+  // Les routes API (webhooks, chat, whatsapp) ne nécessitent pas d'auth session
+  if (pathname.startsWith('/api/')) {
+    return supabaseResponse
+  }
+
   if (!user && pathname !== '/login') {
     return NextResponse.redirect(new URL('/login', request.url))
   }
