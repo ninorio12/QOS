@@ -75,6 +75,7 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
         fullText += dec.decode(value, { stream: true })
         setSummary(fullText)
       }
+      fullText += dec.decode()
 
       // Parse score from response — format attendu: "SCORE:72\n..."
       const scoreMatch = fullText.match(/SCORE:(\d+)/)
@@ -109,6 +110,7 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
         suggText += dec.decode(value, { stream: true })
         setSuggestion(suggText)
       }
+      suggText += dec.decode()
 
       // ─── 3. Prochaine action ──────────────────────────────────
       setStreamingField('action')
@@ -134,6 +136,7 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
         actionText += dec.decode(value, { stream: true })
         setNextAction(actionText)
       }
+      actionText += dec.decode()
 
       setStreamingField(null)
       setState('done')
