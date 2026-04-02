@@ -2,6 +2,21 @@ export type Channel = 'email' | 'phone' | 'sms' | 'whatsapp' | 'meeting' | 'note
 
 export type LeadStage = 'hot' | 'vip' | 'new' | 'payments' | 'client' | 'cold' | null
 
+export type OpportunityStatus = 'open' | 'won' | 'lost' | 'abandoned' | null
+
+export type ConversationSource = 'meta' | 'manual' | 'ghl' | null
+
+export type PipelineStage = {
+  id: string
+  name: string
+}
+
+export type Pipeline = {
+  id: string
+  name: string
+  stages: PipelineStage[]
+}
+
 export type Conversation = {
   id: string
   user_id: string
@@ -20,6 +35,12 @@ export type Conversation = {
   last_message_at?: string
   unread?: number
   lead_stage?: LeadStage
+  // V2 fields
+  ai_enabled?: boolean
+  source?: ConversationSource
+  pipeline_stage_id?: string | null
+  opportunity_status?: OpportunityStatus
+  assigned_to?: string | null
 }
 
 export type Message = {
