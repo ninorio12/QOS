@@ -1,9 +1,7 @@
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { type GHLContact } from '@/lib/ghl'
-import { getAvatarColor } from './types'
-
-type Attribution = { ghl_contact_id: string; created_by: string; created_at: string }
+import { getAvatarColor, type ContactAttribution } from './types'
 
 const BOT_COLORS: Record<string, string> = {
   Mia: '#8B5CF6', Kai: '#3462EE', Luc: '#F97316', Eva: '#EC4899',
@@ -56,7 +54,7 @@ export default function ContactDetailPage({
   attribution,
 }: {
   contact:     GHLContact
-  attribution: Attribution | null
+  attribution: ContactAttribution | null
 }) {
   const name    = contact.contactName || `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim() || '—'
   const address = [contact.address1, contact.city, contact.postalCode, contact.country].filter(Boolean).join(', ')
