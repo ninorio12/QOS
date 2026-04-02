@@ -1,235 +1,318 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Search, Plus, SlidersHorizontal } from 'lucide-react'
-import {
-  type Contact,
-  getInitials, getAvatarColor, getContactTags, MOCK_CONTACTS,
-} from './types'
-import ContactPanel from './ContactPanel'
+import { useRouter } from 'next/navigation'
+import { Search, Plus, Download, SlidersHorizontal, ArrowUpDown, Settings2 } from 'lucide-react'
+import { type GHLContact } from '@/lib/ghl'
+import { getAvatarColor, formatDate, formatRelative, type ContactAttribution } from './types'
 import NewContactModal from './NewContactModal'
+import ImportModal from './ImportModal'
 
-const FILTERS = ['Tous', 'Décideurs', 'Techniques', 'Nouveaux']
+const COL_HEADER = 'px-4 py-3 text-left text-[11px] font-semibold text-[#6B7280] uppercase tracking-wide whitespace-nowrap'
 
-function filterContacts(contacts: Contact[], query: string, filter: string): Contact[] {
-  let result = contacts
-
-  if (query) {
-    const q = query.toLowerCase()
-    result = result.filter(c =>
-      `${c.first_name} ${c.last_name} ${c.company ?? ''} ${c.job_title ?? ''} ${c.email ?? ''}`
-        .toLowerCase().includes(q)
-    )
-  }
-
-  if (filter === 'Décideurs') {
-    result = result.filter(c => {
-      const t = (c.job_title ?? '').toLowerCase()
-      return t.includes('directeur') || t.includes('président') || t.includes('ceo') || t.includes('dg') || t.includes('gérant')
-    })
-  } else if (filter === 'Techniques') {
-    result = result.filter(c => {
-      const t = (c.job_title ?? '').toLowerCase()
-      return t.includes('technique') || t.includes('conducteur') || t.includes('ingénieur')
-    })
-  } else if (filter === 'Nouveaux') {
-    const weekAgo = Date.now() - 7 * 86400000
-    result = result.filter(c => new Date(c.created_at).getTime() > weekAgo)
-  }
-
-  return result
+// ─── Avatar ────────────────────────────────────────────────────
+function Avatar({ contact }: { contact: GHLContact }) {
+  const name     = contact.contactName || `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim()
+  const initials = (name.split(' ').map((w: string) => w[0]).join('').slice(0, 2) || '?').toUpperCase()
+  const color    = getAvatarColor(initials)
+  const isDark   = color === '#C8F135' || color === '#EFE347'
+  return (
+    <div
+      className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+      style={{ background: color, color: isDark ? '#111111' : '#ffffff' }}
+    >
+      {initials}
+    </div>
+  )
 }
 
-// ─── Contact Row ─────────────────────────────────────────────
+// ─── Tag pill ──────────────────────────────────────────────────
+function TagPill({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#F5F5F0] text-[#6B7280] border border-[#E5E7EB] whitespace-nowrap">
+      {label}
+    </span>
+  )
+}
+
+// ─── Origin badge ─────────────────────────────────────────────
+const BOT_COLORS: Record<string, string> = {
+  Mia: '#8B5CF6', Kai: '#3462EE', Luc: '#F97316', Eva: '#EC4899',
+}
+
+function OriginBadge({ createdBy }: { createdBy: string | undefined }) {
+  if (!createdBy) return <span className="text-sm text-[#D1D5DB]">—</span>
+  const isBot = createdBy !== 'Thomas' && createdBy !== 'Toi'
+  const color = isBot ? (BOT_COLORS[createdBy] ?? '#6B7280') : '#111111'
+  return (
+    <span
+      className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap"
+      style={{ background: color + '18', color }}
+    >
+      {isBot ? '🤖 ' : ''}{createdBy}
+    </span>
+  )
+}
+
+// ─── Table row ────────────────────────────────────────────────
 function ContactRow({
   contact,
-  isSelected,
+  checked,
+  onCheck,
+  createdBy,
   onClick,
 }: {
-  contact: Contact
-  isSelected: boolean
-  onClick: () => void
+  contact:   GHLContact
+  checked:   boolean
+  onCheck:   (id: string) => void
+  createdBy: string | undefined
+  onClick:   () => void
 }) {
-  const initials = getInitials(contact)
-  const avatarColor = getAvatarColor(initials)
-  const tags = getContactTags(contact)
-  const isDark = avatarColor === '#C8F135' || avatarColor === '#EFE347'
-
+  const name = contact.contactName || `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim() || '—'
   return (
-    <button
+    <tr
+      className="border-b border-[#F0F0EE] hover:bg-[#FAFAF8] transition-colors group cursor-pointer"
       onClick={onClick}
-      className={`
-        w-full text-left px-4 py-3.5 flex items-start gap-3 transition-colors border-b border-[#1A2235] last:border-0
-        ${isSelected ? 'bg-[#1A2235]' : 'hover:bg-[#1A2235]/50'}
-      `}
     >
-      {/* Avatar */}
-      <div className="relative flex-shrink-0">
-        <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold"
-          style={{
-            background: `linear-gradient(135deg, ${avatarColor}, ${avatarColor}bb)`,
-            color: isDark ? '#121721' : 'white',
-          }}
-        >
-          {initials}
-        </div>
-        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#22c55e] border-2 border-[#121721] rounded-full" />
-      </div>
+      {/* Checkbox */}
+      <td className="pl-4 pr-2 py-3 w-10" onClick={e => e.stopPropagation()}>
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={() => onCheck(contact.id)}
+          className="w-4 h-4 rounded border-[#D1D5DB] accent-[#111111] cursor-pointer"
+        />
+      </td>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2 mb-0.5">
-          <p className="text-sm font-semibold text-white truncate">
-            {contact.first_name} {contact.last_name}
-          </p>
-          {isSelected && (
-            <span className="w-1.5 h-1.5 rounded-full bg-[#3462EE] flex-shrink-0" />
-          )}
+      {/* Nom */}
+      <td className="px-4 py-3 min-w-[180px]">
+        <div className="flex items-center gap-2.5">
+          <Avatar contact={contact} />
+          <span className="text-sm font-semibold text-[#111111] truncate">{name}</span>
         </div>
+      </td>
 
-        {contact.job_title && (
-          <p className="text-[11px] text-[#8896AB] truncate leading-tight">
-            {contact.job_title}{contact.company ? ` · ${contact.company}` : ''}
-          </p>
-        )}
+      {/* Téléphone */}
+      <td className="px-4 py-3 min-w-[140px]">
+        {contact.phone
+          ? <span className="text-sm text-[#374151]">{contact.phone}</span>
+          : <span className="text-sm text-[#D1D5DB]">—</span>}
+      </td>
 
-        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-          {contact.email && (
-            <span className="text-[10px] text-[#3D4F6B] truncate max-w-[130px]">{contact.email}</span>
-          )}
-          {contact.phone && (
-            <span className="text-[10px] text-[#3D4F6B]">{contact.phone}</span>
-          )}
+      {/* E-mail */}
+      <td className="px-4 py-3 min-w-[200px]">
+        {contact.email
+          ? <span className="text-sm text-[#374151]">{contact.email}</span>
+          : <span className="text-sm text-[#D1D5DB]">—</span>}
+      </td>
+
+      {/* Entreprise */}
+      <td className="px-4 py-3 min-w-[160px]">
+        {contact.companyName
+          ? <span className="text-sm text-[#374151] truncate">{contact.companyName}</span>
+          : <span className="text-sm text-[#D1D5DB]">—</span>}
+      </td>
+
+      {/* Origine */}
+      <td className="px-4 py-3 min-w-[120px]">
+        <OriginBadge createdBy={createdBy} />
+      </td>
+
+      {/* Créé */}
+      <td className="px-4 py-3 min-w-[130px]">
+        <span className="text-sm text-[#6B7280]">{formatDate(contact.dateAdded)}</span>
+      </td>
+
+      {/* Dernière activité */}
+      <td className="px-4 py-3 min-w-[150px]">
+        <span className="text-sm text-[#6B7280]">{formatRelative(contact.dateUpdated ?? contact.dateAdded)}</span>
+      </td>
+
+      {/* Tags */}
+      <td className="px-4 py-3 min-w-[160px]">
+        <div className="flex items-center gap-1 flex-wrap">
+          {contact.tags.map(t => <TagPill key={t} label={t} />)}
         </div>
-
-        {/* Tags */}
-        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-          {tags.map(tag => (
-            <span key={tag.label}
-              className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-              style={{ color: tag.color, background: tag.bg }}>
-              {tag.label}
-            </span>
-          ))}
-        </div>
-      </div>
-    </button>
+      </td>
+    </tr>
   )
 }
 
-// ─── Main View ───────────────────────────────────────────────
-export default function ContactsView({ dbContacts }: { dbContacts: Contact[] }) {
-  // Merge real DB contacts (first) + mock contacts with different IDs
-  const allContacts = useMemo(() => {
-    const realIds = new Set(dbContacts.map(c => c.id))
-    const mocks = MOCK_CONTACTS.filter(m => !realIds.has(m.id))
-    return [...dbContacts, ...mocks]
-  }, [dbContacts])
+// ─── Main view ───────────────────────────────────────────────
+export default function ContactsView({
+  contacts: initial,
+  attributions,
+}: {
+  contacts:     GHLContact[]
+  attributions: Map<string, string>
+}) {
+  const router = useRouter()
+  const [contacts,   setContacts]   = useState<GHLContact[]>(initial)
+  const [checked,    setChecked]    = useState<Set<string>>(new Set())
+  const [query,      setQuery]      = useState('')
+  const [showModal,  setShowModal]  = useState(false)
+  const [showImport, setShowImport] = useState(false)
+  const [allChecked, setAllChecked] = useState(false)
 
-  const [selected, setSelected] = useState<Contact | null>(allContacts[0] ?? null)
-  const [query, setQuery] = useState('')
-  const [filter, setFilter] = useState('Tous')
-  const [showModal, setShowModal] = useState(false)
+  const filtered = useMemo(() => {
+    if (!query.trim()) return contacts
+    const q = query.toLowerCase()
+    return contacts.filter(c =>
+      `${c.contactName} ${c.firstName ?? ''} ${c.lastName ?? ''} ${c.email ?? ''} ${c.phone ?? ''} ${c.companyName ?? ''} ${c.tags.join(' ')}`
+        .toLowerCase().includes(q)
+    )
+  }, [contacts, query])
 
-  const filtered = useMemo(
-    () => filterContacts(allContacts, query, filter),
-    [allContacts, query, filter]
-  )
+  function toggleCheck(id: string) {
+    setChecked(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    if (allChecked) {
+      setChecked(new Set())
+      setAllChecked(false)
+    } else {
+      setChecked(new Set(filtered.map(c => c.id)))
+      setAllChecked(true)
+    }
+  }
+
+  function handleAdd(c: GHLContact) {
+    setContacts(prev => [c, ...prev])
+  }
 
   return (
-    <div className="flex h-[calc(100vh-56px)] overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden bg-[#EEF0EB]">
+      {/* ── Header ─────────────────────────────────────────── */}
+      <div className="px-6 pt-6 pb-3 flex-shrink-0 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-black text-[#111111]">Contacts</h1>
+          <span className="bg-[#E2FF8D] text-[#111111] text-xs font-bold px-2.5 py-1 rounded-full">
+            {contacts.length} contacts
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowImport(true)}
+            className="flex items-center gap-1.5 bg-white border border-[#E5E7EB] text-[#6B7280] text-xs font-semibold px-3.5 py-2 rounded-full hover:bg-[#F5F5F0] transition-colors"
+          >
+            <Download size={12} />
+            Importer
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-1.5 bg-[#111111] hover:bg-[#2a2a2a] text-white text-xs font-semibold px-3.5 py-2 rounded-full transition-colors"
+          >
+            <Plus size={12} />
+            Ajouter Contact
+          </button>
+        </div>
+      </div>
 
-      {/* ── Left: List ── */}
-      <div className="flex flex-col w-[380px] flex-shrink-0 border-r border-[#1A2235]">
-
-        {/* Header */}
-        <div className="px-4 pt-5 pb-3 border-b border-[#1A2235]">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h1 className="text-base font-bold text-white">Contacts</h1>
-              <p className="text-xs text-[#8896AB]">{allContacts.length} contacts</p>
-            </div>
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-1.5 bg-[#3462EE] hover:bg-[#2a50d4] text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <Plus size={13} />
-              Nouveau
-            </button>
-          </div>
-
-          {/* Search */}
-          <div className="flex items-center gap-2 bg-[#1A2235] border border-[#232D3F] rounded-lg px-3 py-2 mb-3">
-            <Search size={13} className="text-[#3D4F6B] flex-shrink-0" />
+      {/* ── Filter bar ─────────────────────────────────────── */}
+      <div className="px-6 pb-3 flex-shrink-0 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <button className="flex items-center gap-1.5 text-xs font-semibold text-[#6B7280] bg-white border border-[#E5E7EB] px-3 py-1.5 rounded-full hover:bg-[#F5F5F0] transition-colors">
+            <SlidersHorizontal size={11} />
+            Filtres avancés
+          </button>
+          <button className="flex items-center gap-1.5 text-xs font-semibold text-[#6B7280] bg-white border border-[#E5E7EB] px-3 py-1.5 rounded-full hover:bg-[#F5F5F0] transition-colors">
+            <ArrowUpDown size={11} />
+            Trier
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-white border border-[#E5E7EB] rounded-full px-3 py-1.5">
+            <Search size={12} className="text-[#9CA3AF] flex-shrink-0" />
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Rechercher un contact..."
-              className="flex-1 bg-transparent text-sm text-white placeholder-[#3D4F6B] outline-none"
+              placeholder="Rechercher contacts..."
+              className="bg-transparent text-sm text-[#111111] placeholder-[#9CA3AF] outline-none w-44"
             />
-            <button className="text-[#3D4F6B] hover:text-white transition-colors">
-              <SlidersHorizontal size={13} />
-            </button>
           </div>
-
-          {/* Filters */}
-          <div className="flex gap-1 overflow-x-auto scrollbar-none">
-            {FILTERS.map(f => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`
-                  flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors
-                  ${filter === f
-                    ? 'bg-[#3462EE]/20 text-[#3462EE]'
-                    : 'text-[#8896AB] hover:text-white hover:bg-[#1A2235]'
-                  }
-                `}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* List */}
-        <div className="flex-1 overflow-y-auto">
-          {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-40 gap-2">
-              <p className="text-sm text-[#3D4F6B]">Aucun contact trouvé</p>
-            </div>
-          ) : (
-            filtered.map(contact => (
-              <ContactRow
-                key={contact.id}
-                contact={contact}
-                isSelected={selected?.id === contact.id}
-                onClick={() => setSelected(contact)}
-              />
-            ))
-          )}
+          <button className="flex items-center gap-1.5 text-xs font-semibold text-[#6B7280] bg-white border border-[#E5E7EB] px-3 py-1.5 rounded-full hover:bg-[#F5F5F0] transition-colors">
+            <Settings2 size={11} />
+            Gérer les champs
+          </button>
         </div>
       </div>
 
-      {/* ── Right: Detail Panel ── */}
-      <div className="flex-1 overflow-hidden relative">
-        {selected ? (
-          <div className="h-full w-full max-w-sm bg-[#1A2235] border-r border-[#232D3F] overflow-y-auto relative">
-            <ContactPanel contact={selected} onClose={() => setSelected(null)} />
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#1A2235] flex items-center justify-center">
-              <Search size={20} className="text-[#3D4F6B]" />
-            </div>
-            <p className="text-sm text-[#3D4F6B]">Sélectionnez un contact</p>
-          </div>
-        )}
+      {/* ── Table ──────────────────────────────────────────── */}
+      <div className="flex-1 overflow-auto mx-6 mb-6 bg-white rounded-2xl border border-[#E5E7EB] shadow-sm">
+        <table className="w-full border-collapse">
+          <thead className="sticky top-0 bg-white z-10 border-b border-[#E5E7EB]">
+            <tr>
+              <th className="pl-4 pr-2 py-3 w-10">
+                <input
+                  type="checkbox"
+                  checked={allChecked}
+                  onChange={toggleAll}
+                  className="w-4 h-4 rounded border-[#D1D5DB] accent-[#111111] cursor-pointer"
+                />
+              </th>
+              {[
+                'Nom de Contact',
+                'Téléphone',
+                'E-mail',
+                "Nom de l'entreprise",
+                'Origine',
+                'Créé',
+                'Dernière activité',
+                'Balises',
+              ].map(col => (
+                <th key={col} className={COL_HEADER}>
+                  <span className="flex items-center gap-1">
+                    {col}
+                    <ArrowUpDown size={10} className="text-[#D1D5DB]" />
+                  </span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="px-4 py-16 text-center text-sm text-[#9CA3AF]">
+                  Aucun contact trouvé
+                </td>
+              </tr>
+            ) : (
+              filtered.map(contact => (
+                <ContactRow
+                  key={contact.id}
+                  contact={contact}
+                  checked={checked.has(contact.id)}
+                  onCheck={toggleCheck}
+                  createdBy={attributions.get(contact.id)}
+                  onClick={() => router.push(`/contacts/${contact.id}`)}
+                />
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* Modal */}
-      {showModal && <NewContactModal onClose={() => setShowModal(false)} />}
+      {showModal && (
+        <NewContactModal
+          onClose={() => setShowModal(false)}
+          onAdd={handleAdd}
+        />
+      )}
+
+      {showImport && (
+        <ImportModal
+          onClose={() => setShowImport(false)}
+          onImported={count => {
+            setShowImport(false)
+            if (count > 0) window.location.reload()
+          }}
+        />
+      )}
     </div>
   )
 }
