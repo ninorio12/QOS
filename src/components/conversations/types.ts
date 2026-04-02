@@ -1,5 +1,7 @@
 export type Channel = 'email' | 'phone' | 'sms' | 'whatsapp' | 'meeting' | 'note'
 
+export type LeadStage = 'hot' | 'vip' | 'new' | 'payments' | 'client' | 'cold' | null
+
 export type Conversation = {
   id: string
   user_id: string
@@ -10,13 +12,14 @@ export type Conversation = {
   summary: string | null
   created_at: string
   updated_at: string
-  // joined fields (from mock or query)
+  // joined fields
   contact_name?: string
   contact_company?: string
   contact_phone?: string | null
   last_message?: string
   last_message_at?: string
   unread?: number
+  lead_stage?: LeadStage
 }
 
 export type Message = {
@@ -28,16 +31,25 @@ export type Message = {
   created_at: string
 }
 
-export const CHANNEL_META: Record<Channel, { label: string; color: string; bg: string; emoji: string }> = {
-  email:    { label: 'Email',    color: '#4A91A8', bg: '#4A91A8' + '18', emoji: '✉️' },
-  phone:    { label: 'Appel',   color: '#C8F135', bg: '#C8F135' + '18', emoji: '📞' },
-  sms:      { label: 'SMS',     color: '#8896AB', bg: '#8896AB' + '18', emoji: '💬' },
-  whatsapp: { label: 'WhatsApp',color: '#22c55e', bg: '#22c55e' + '18', emoji: '💚' },
-  meeting:  { label: 'Réunion', color: '#EFE347', bg: '#EFE347' + '18', emoji: '🤝' },
-  note:     { label: 'Note',    color: '#3D4F6B', bg: '#3D4F6B' + '18', emoji: '📝' },
+export const CHANNEL_META: Record<Channel, { label: string; color: string; bg: string }> = {
+  email:    { label: 'Email',    color: '#4A91A8', bg: '#4A91A8' + '18' },
+  phone:    { label: 'Appel',   color: '#6B7280', bg: '#6B7280' + '18' },
+  sms:      { label: 'SMS',     color: '#8896AB', bg: '#8896AB' + '18' },
+  whatsapp: { label: 'WhatsApp',color: '#22c55e', bg: '#22c55e' + '18' },
+  meeting:  { label: 'Réunion', color: '#3462EE', bg: '#3462EE' + '18' },
+  note:     { label: 'Note',    color: '#6B7280', bg: '#6B7280' + '18' },
 }
 
-// AI mock responses for different contexts
+export const LEAD_STAGE_LABEL: Record<NonNullable<LeadStage>, string> = {
+  hot:      'Hot Lead',
+  vip:      'VIP Lead',
+  new:      'Nouveau Lead',
+  payments: 'Paiements',
+  client:   'Client',
+  cold:     'Cold Lead',
+}
+
+// AI mock responses
 export const AI_RESPONSES = [
   "Bonjour, j'ai bien analysé votre dossier. Ce projet de rénovation présente un potentiel intéressant. Je recommande d'envoyer un devis détaillé sous 48h pour maintenir l'intérêt du prospect.",
   "Suite à notre échange, j'ai identifié 3 points clés à aborder lors du prochain contact : le budget global, le calendrier des travaux, et les garanties décennales.",
@@ -58,7 +70,7 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     created_at: '2025-03-22T09:00:00Z', updated_at: '2025-03-22T14:30:00Z',
     contact_name: 'Thomas Mercier', contact_company: 'Bouygues Immobilier',
     last_message: "Pouvez-vous me confirmer le délai de livraison du devis ?",
-    last_message_at: '2025-03-22T14:30:00Z', unread: 2,
+    last_message_at: '2025-03-22T14:30:00Z', unread: 2, lead_stage: 'hot',
   },
   {
     id: 'c2', user_id: 'u1', lead_id: 'l2', contact_id: null,
@@ -67,7 +79,7 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     created_at: '2025-03-21T11:00:00Z', updated_at: '2025-03-21T16:00:00Z',
     contact_name: 'Sophie Laurent', contact_company: 'Vinci Construction',
     last_message: "OK pour le RDV vendredi à 14h sur le chantier.",
-    last_message_at: '2025-03-21T16:00:00Z', unread: 0,
+    last_message_at: '2025-03-21T16:00:00Z', unread: 0, lead_stage: 'vip',
   },
   {
     id: 'c3', user_id: 'u1', lead_id: null, contact_id: null,
@@ -76,7 +88,7 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     created_at: '2025-03-20T10:30:00Z', updated_at: '2025-03-20T10:45:00Z',
     contact_name: 'Pierre Moreau', contact_company: 'Moreau BTP',
     last_message: "Rappeler lundi pour discuter du projet.",
-    last_message_at: '2025-03-20T10:45:00Z', unread: 0,
+    last_message_at: '2025-03-20T10:45:00Z', unread: 0, lead_stage: 'new',
   },
   {
     id: 'c4', user_id: 'u1', lead_id: 'l3', contact_id: null,
@@ -85,7 +97,7 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     created_at: '2025-03-19T14:00:00Z', updated_at: '2025-03-19T15:30:00Z',
     contact_name: 'Claire Fontaine', contact_company: 'Fontaine & Fils',
     last_message: "CR réunion : validation des plans, démarrage semaine 14.",
-    last_message_at: '2025-03-19T15:30:00Z', unread: 0,
+    last_message_at: '2025-03-19T15:30:00Z', unread: 0, lead_stage: 'client',
   },
   {
     id: 'c5', user_id: 'u1', lead_id: null, contact_id: null,
@@ -94,7 +106,7 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     created_at: '2025-03-18T08:00:00Z', updated_at: '2025-03-18T08:00:00Z',
     contact_name: 'Lucas Girard', contact_company: 'Girard Immobilier',
     last_message: "Suite à notre échange du 15 mars, je reviens vers vous...",
-    last_message_at: '2025-03-18T08:00:00Z', unread: 1,
+    last_message_at: '2025-03-18T08:00:00Z', unread: 1, lead_stage: 'cold',
   },
   {
     id: 'c6', user_id: 'u1', lead_id: 'l4', contact_id: null,
@@ -103,7 +115,7 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     created_at: '2025-03-17T16:00:00Z', updated_at: '2025-03-17T16:00:00Z',
     contact_name: 'Emma Petit', contact_company: 'Petit & Associés',
     last_message: "Client intéressé par lot électricité. Budget : 45k€.",
-    last_message_at: '2025-03-17T16:00:00Z', unread: 0,
+    last_message_at: '2025-03-17T16:00:00Z', unread: 0, lead_stage: 'payments',
   },
 ]
 
@@ -121,15 +133,15 @@ export const MOCK_MESSAGES: Record<string, Message[]> = {
     { id: 'm8', conversation_id: 'c2', role: 'assistant', content: "OK pour le RDV vendredi à 14h sur le chantier.", created_at: '2025-03-21T16:00:00Z' },
   ],
   c3: [
-    { id: 'm9', conversation_id: 'c3', role: 'user', content: "📞 Appel entrant — Pierre Moreau — 10 min\n\nNotes : Intéressé par une collaboration sur leur prochain chantier à Nantes. Budget estimé 56k€. Rappeler lundi pour discuter du projet.", created_at: '2025-03-20T10:45:00Z' },
+    { id: 'm9', conversation_id: 'c3', role: 'user', content: "Appel entrant — Pierre Moreau — 10 min\n\nNotes : Intéressé par une collaboration sur leur prochain chantier à Nantes. Budget estimé 56k€. Rappeler lundi pour discuter du projet.", created_at: '2025-03-20T10:45:00Z' },
   ],
   c4: [
-    { id: 'm10', conversation_id: 'c4', role: 'user', content: "🤝 Compte-rendu réunion chantier — 19 mars 2025\n\n**Présents :** Claire Fontaine, Jean-Luc Martin (architecte), équipe Qorpo\n\n**Décisions :**\n- Plans validés ✓\n- Démarrage semaine 14 (7 avril)\n- Budget confirmé : 142 000€ HT\n- Réunion de chantier hebdomadaire le mardi 9h", created_at: '2025-03-19T15:30:00Z' },
+    { id: 'm10', conversation_id: 'c4', role: 'user', content: "Compte-rendu réunion chantier — 19 mars 2025\n\n**Présents :** Claire Fontaine, Jean-Luc Martin (architecte), équipe Qorpo\n\n**Décisions :**\n- Plans validés\n- Démarrage semaine 14 (7 avril)\n- Budget confirmé : 142 000€ HT\n- Réunion de chantier hebdomadaire le mardi 9h", created_at: '2025-03-19T15:30:00Z' },
   ],
   c5: [
     { id: 'm11', conversation_id: 'c5', role: 'assistant', content: "Objet : Suite à notre échange du 15 mars\n\nBonjour Lucas,\n\nSuite à notre échange du 15 mars, je reviens vers vous concernant votre projet de rénovation. Avez-vous eu le temps d'étudier notre proposition ?\n\nJe reste disponible pour tout renseignement complémentaire.\n\nCordialement", created_at: '2025-03-18T08:00:00Z' },
   ],
   c6: [
-    { id: 'm12', conversation_id: 'c6', role: 'user', content: "📝 Note interne\n\nClient intéressé par lot électricité. Budget annoncé : 45k€. Elle souhaite 3 devis comparatifs. Envoyer notre offre avant le 25 mars pour rester dans la course.", created_at: '2025-03-17T16:00:00Z' },
+    { id: 'm12', conversation_id: 'c6', role: 'user', content: "Note interne\n\nClient intéressé par lot électricité. Budget annoncé : 45k€. Elle souhaite 3 devis comparatifs. Envoyer notre offre avant le 25 mars pour rester dans la course.", created_at: '2025-03-17T16:00:00Z' },
   ],
 }
