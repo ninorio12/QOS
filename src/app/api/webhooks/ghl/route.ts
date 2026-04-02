@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       .from('calendar_event_links')
       .select('google_event_id')
       .eq('ghl_appointment_id', appointmentId)
-      .single()
+      .maybeSingle()
 
     if (link?.google_event_id && isGoogleConfigured()) {
       try {
