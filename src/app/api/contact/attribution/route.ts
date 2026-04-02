@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 export async function GET(req: NextRequest) {
   const ids = req.nextUrl.searchParams.get('ids')?.split(',').filter(Boolean) ?? []
   if (ids.length === 0) return NextResponse.json({ attributions: [] })
+  if (ids.length > 200) return NextResponse.json({ error: 'Too many ids' }, { status: 400 })
 
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -28,6 +29,7 @@ export async function POST(req: NextRequest) {
   if (!ghlContactId || !createdBy) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
+  if (createdBy.length > 100) return NextResponse.json({ error: 'createdBy too long' }, { status: 400 })
 
   const supabase = await createClient()
   const { error } = await supabase

@@ -63,17 +63,17 @@ export type GHLContact = {
   dateUpdated:      string | null
   tags:             string[]
   // Extended GHL fields
-  source:           string | null
-  assignedTo:       string | null
-  address1:         string | null
-  city:             string | null
-  state:            string | null
-  postalCode:       string | null
-  country:          string | null
-  website:          string | null
-  customFields:     { id: string; value: string | null }[]
-  dnd:              boolean
-  type:             string | null
+  source?:        string | null
+  assignedTo?:    string | null
+  address1?:      string | null
+  city?:          string | null
+  state?:         string | null
+  postalCode?:    string | null
+  country?:       string | null
+  website?:       string | null
+  customFields?:  { id: string; value: string | null }[]
+  dnd?:           boolean
+  type?:          string | null
 }
 
 export type GHLOpportunity = {

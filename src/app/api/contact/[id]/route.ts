@@ -8,6 +8,10 @@ export async function GET(
   const baseUrl = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'
   const { id }  = params
 
+  if (!id || typeof id !== 'string') {
+    return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
+  }
+
   const res = await fetch(`${baseUrl}/contacts/${id}`, {
     headers: {
       Authorization:  `Bearer ${apiKey}`,
