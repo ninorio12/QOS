@@ -26,7 +26,7 @@ export async function DELETE(
     .from('calendar_event_links')
     .select('google_event_id')
     .eq('ghl_appointment_id', id)
-    .single()
+    .maybeSingle()
 
   // 2. Delete from Google Calendar if linked
   if (link?.google_event_id && isGoogleConfigured()) {
@@ -40,15 +40,7 @@ export async function DELETE(
     }
   }
 
-  // 3. Delete mapping row
-  if (link) {
-    await supabase
-      .from('calendar_event_links')
-      .delete()
-      .eq('ghl_appointment_id', id)
-  }
-
-  // 4. Delete from GHL
+  // 3. Delete from GHL
   const res = await fetch(`${BASE()}/calendars/events/${id}`, {
     method:  'DELETE',
     headers: ghlHeaders(),
@@ -58,6 +50,15 @@ export async function DELETE(
   if (!res.ok) {
     const err = await res.text()
     return NextResponse.json({ error: err }, { status: res.status })
+  }
+
+  // 4. Delete mapping row (only if GHL delete succeeded)
+  if (link) {
+    const { error: delErr } = await supabase
+      .from('calendar_event_links')
+      .delete()
+      .eq('ghl_appointment_id', id)
+    if (delErr) console.error('[calendar-event/delete] Mapping delete failed:', delErr)
   }
 
   return NextResponse.json({ success: true })

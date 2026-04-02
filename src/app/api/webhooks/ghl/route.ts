@@ -13,7 +13,17 @@ export async function POST(req: NextRequest) {
     const eventType     = body.type ?? ''
     const appointmentId = body.appointmentId ?? body.id ?? ''
 
+    const ghlSecret = process.env.GHL_WEBHOOK_SECRET
+    if (ghlSecret) {
+      const receivedSecret = req.headers.get('x-wc-webhook-secret') ?? req.headers.get('x-ghl-secret') ?? ''
+      if (receivedSecret !== ghlSecret) {
+        console.warn('[ghl-webhook] Invalid secret')
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+    }
+
     if (eventType !== 'AppointmentDelete' || !appointmentId) {
+      if (eventType) console.log(`[ghl-webhook] Ignored event type: ${eventType}`)
       return NextResponse.json({ ok: true })
     }
 
@@ -39,10 +49,11 @@ export async function POST(req: NextRequest) {
 
     // Clean up mapping
     if (link) {
-      await supabase
+      const { error: delErr } = await supabase
         .from('calendar_event_links')
         .delete()
         .eq('ghl_appointment_id', appointmentId)
+      if (delErr) console.error('[ghl-webhook] Mapping delete failed:', delErr)
     }
 
     return NextResponse.json({ ok: true })
