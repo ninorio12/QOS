@@ -24,3 +24,7 @@ create table if not exists contact_attribution (
   created_by      text not null,
   created_at      timestamptz default now()
 );
+
+-- Index for efficient lookups by created_by user
+create index if not exists idx_contact_attribution_created_by
+  on contact_attribution (created_by);
