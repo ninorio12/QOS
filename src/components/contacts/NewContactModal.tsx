@@ -39,16 +39,17 @@ export default function NewContactModal({
       })
       const data = await res.json() as { contact?: { id: string; dateAdded: string }; error?: string }
       if (!res.ok || data.error) throw new Error(data.error ?? 'Erreur création')
+      if (!data.contact) throw new Error('Réponse invalide du serveur')
 
       const newContact: GHLContact = {
-        id:          data.contact!.id,
+        id:          data.contact.id,
         contactName: `${form.firstName} ${form.lastName}`.trim(),
         firstName:   form.firstName || null,
         lastName:    form.lastName  || null,
         email:       form.email      || null,
         phone:       form.phone      || null,
         companyName: form.companyName || null,
-        dateAdded:   data.contact!.dateAdded,
+        dateAdded:   data.contact.dateAdded,
         dateUpdated: null,
         tags:        [],
       }
