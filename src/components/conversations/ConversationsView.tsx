@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { type Conversation, MOCK_CONVERSATIONS } from './types'
 import InboxNav, { type InboxFilter } from './InboxNav'
 import ConversationList from './ConversationList'
@@ -18,6 +18,10 @@ export default function ConversationsView({ dbConversations }: { dbConversations
   const [activeFilter, setActiveFilter] = useState<InboxFilter>('all')
 
   const totalUnread = allConversations.reduce((sum, c) => sum + (c.unread ?? 0), 0)
+
+  useEffect(() => {
+    setSelected(null)
+  }, [activeFilter])
 
   return (
     <div className="flex h-[calc(100vh-56px)] overflow-hidden">

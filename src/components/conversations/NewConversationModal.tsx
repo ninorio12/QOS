@@ -1,9 +1,18 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { X } from 'lucide-react'
+import { X, Mail, Phone, MessageSquare, MessageCircle, Users2, FileText } from 'lucide-react'
 import { createConversation } from '@/app/conversations/actions'
 import { CHANNEL_META, type Channel } from './types'
+
+const CHANNEL_ICON_MAP: Record<Channel, React.ElementType> = {
+  email:    Mail,
+  phone:    Phone,
+  sms:      MessageSquare,
+  whatsapp: MessageCircle,
+  meeting:  Users2,
+  note:     FileText,
+}
 
 const CHANNELS: Channel[] = ['email', 'phone', 'whatsapp', 'sms', 'meeting', 'note']
 
@@ -30,16 +39,16 @@ export default function NewConversationModal({
     })
   }
 
-  const inputCls = 'w-full bg-[#121721] border border-[#232D3F] rounded-lg px-3 py-2.5 text-sm text-white placeholder-[#3D4F6B] focus:outline-none focus:border-[#3462EE] transition-colors'
-  const labelCls = 'block text-xs font-medium text-[#8896AB] mb-1.5'
+  const inputCls = 'w-full bg-[#EEF0EB] border border-[#E5E7EB] rounded-lg px-3 py-2.5 text-sm text-[#111111] placeholder-[#3D4F6B] focus:outline-none focus:border-[#3462EE] transition-colors'
+  const labelCls = 'block text-xs font-medium text-[#6B7280] mb-1.5'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[#1A2235] border border-[#232D3F] rounded-2xl w-full max-w-md shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#232D3F]">
-          <h2 className="text-white font-semibold">Nouvelle conversation</h2>
-          <button onClick={onClose} className="text-[#3D4F6B] hover:text-white transition-colors">
+      <div className="relative bg-white border border-[#E5E7EB] rounded-2xl w-full max-w-md shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
+          <h2 className="text-[#111111] font-semibold">Nouvelle conversation</h2>
+          <button onClick={onClose} className="text-[#9CA3AF] hover:text-white transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -61,11 +70,11 @@ export default function NewConversationModal({
                       flex flex-col items-center gap-1.5 py-2.5 rounded-xl border text-xs font-medium transition-all
                       ${active
                         ? 'border-[#3462EE] bg-[#3462EE]/10 text-white'
-                        : 'border-[#232D3F] text-[#8896AB] hover:border-[#3D4F6B] hover:text-white'
+                        : 'border-[#E5E7EB] text-[#6B7280] hover:border-[#3D4F6B] hover:text-white'
                       }
                     `}
                   >
-                    <span className="text-base">{meta.emoji}</span>
+                    {(() => { const Icon = CHANNEL_ICON_MAP[c]; return <Icon size={16} style={{ color: meta.color }} /> })()}
                     {meta.label}
                   </button>
                 )
@@ -87,7 +96,7 @@ export default function NewConversationModal({
 
           <div className="flex gap-3">
             <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-lg border border-[#232D3F] text-sm text-[#8896AB] hover:text-white hover:border-[#3D4F6B] transition-colors">
+              className="flex-1 py-2.5 rounded-lg border border-[#E5E7EB] text-sm text-[#6B7280] hover:text-white hover:border-[#3D4F6B] transition-colors">
               Annuler
             </button>
             <button type="submit" disabled={isPending}

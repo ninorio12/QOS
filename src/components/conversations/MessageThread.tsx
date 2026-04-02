@@ -96,6 +96,11 @@ export default function MessageThread({ conversation }: { conversation: Conversa
     load()
   }, [conversation.id])
 
+  // Reset tab when conversation changes
+  useEffect(() => {
+    setTab('messages')
+  }, [conversation.id])
+
   // Supabase Realtime
   useEffect(() => {
     const supabase = createClient()
