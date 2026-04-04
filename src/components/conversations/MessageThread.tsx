@@ -79,6 +79,7 @@ export default function MessageThread({ conversation }: { conversation: Conversa
   type SendChannel = 'WhatsApp' | 'SMS' | 'Email'
 
   const channelToSend = (): SendChannel => {
+    if (conversation.channel === 'whatsapp') return 'WhatsApp'
     if (conversation.channel === 'sms') return 'SMS'
     if (conversation.channel === 'email') return 'Email'
     return 'WhatsApp'
@@ -178,15 +179,20 @@ export default function MessageThread({ conversation }: { conversation: Conversa
 
     try {
       // Manual send via GHL channel selector
-      await fetch('/api/send-message', {
+      const sendRes = await fetch('/api/send-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversationId: conversation.id,
           message: content,
           type: sendChannel,
+          ...(sendChannel === 'Email' && conversation.subject ? { subject: conversation.subject } : {}),
         }),
       })
+      if (!sendRes.ok) {
+        const body = await sendRes.json().catch(() => ({}))
+        throw new Error((body as { error?: string }).error ?? `Erreur envoi HTTP ${sendRes.status}`)
+      }
 
       // Kai auto-respond (only if ai_enabled)
       if (aiEnabled) {
