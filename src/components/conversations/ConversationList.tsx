@@ -62,7 +62,7 @@ function ConvRow({
             <p className={`text-sm font-semibold truncate ${closedColor !== 'transparent' && !isSelected ? 'text-[#6B7280]' : 'text-[#111111]'}`}>
               {conv.contact_name ?? 'Contact inconnu'}
             </p>
-            {closedColor !== 'transparent' && (
+            {closedColor !== 'transparent' && !isSelected && (
               <span
                 className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: closedColor }}
