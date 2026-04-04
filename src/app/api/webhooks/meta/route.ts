@@ -182,6 +182,8 @@ async function processMetaLead(leadData: {
       contact_id: contactId,
       channel,
       subject:    `Qualification — ${firstName} ${lastName}`,
+      source:     'meta',
+      ai_enabled: true,
     })
     .select('id')
     .single()
