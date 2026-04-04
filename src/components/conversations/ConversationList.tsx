@@ -21,6 +21,12 @@ function getInitials(name?: string) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
+function getClosedBorderColor(conv: Conversation): string {
+  if (conv.opportunity_status === 'won') return '#22c55e'
+  if (conv.opportunity_status === 'lost' || conv.opportunity_status === 'abandoned') return '#EF4444'
+  return 'transparent'
+}
+
 function ConvRow({
   conv,
   isSelected,
@@ -30,19 +36,19 @@ function ConvRow({
   isSelected: boolean
   onClick: () => void
 }) {
-  const initials = getInitials(conv.contact_name)
+  const initials   = getInitials(conv.contact_name)
   const stageLabel = conv.lead_stage ? LEAD_STAGE_LABEL[conv.lead_stage] : null
+  const closedColor = getClosedBorderColor(conv)
+  const borderColor = isSelected ? '#3462EE' : closedColor
 
   return (
     <button
       onClick={onClick}
       className={`
         w-full text-left px-4 py-3.5 flex items-start gap-3 transition-colors border-b border-[#EBEBEA] last:border-0
-        ${isSelected
-          ? 'bg-white border-l-2 border-l-[#3462EE]'
-          : 'hover:bg-[#EFEFED] border-l-2 border-l-transparent'
-        }
+        ${isSelected ? 'bg-white' : 'hover:bg-[#EFEFED]'}
       `}
+      style={{ borderLeft: `2px solid ${borderColor}` }}
     >
       {/* Avatar */}
       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#3462EE] to-[#4A91A8] flex items-center justify-center text-xs font-bold text-white flex-shrink-0 mt-0.5">
@@ -52,9 +58,17 @@ function ConvRow({
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-1 mb-0.5">
-          <p className="text-sm font-semibold text-[#111111] truncate">
-            {conv.contact_name ?? 'Contact inconnu'}
-          </p>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <p className={`text-sm font-semibold truncate ${closedColor !== 'transparent' && !isSelected ? 'text-[#6B7280]' : 'text-[#111111]'}`}>
+              {conv.contact_name ?? 'Contact inconnu'}
+            </p>
+            {closedColor !== 'transparent' && (
+              <span
+                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: closedColor }}
+              />
+            )}
+          </div>
           <span className="text-[10px] text-[#9CA3AF] flex-shrink-0">
             {conv.last_message_at ? timeAgo(conv.last_message_at) : ''}
           </span>
@@ -64,6 +78,11 @@ function ConvRow({
           {stageLabel && (
             <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[#3462EE]/10 text-[#3462EE]">
               {stageLabel}
+            </span>
+          )}
+          {conv.source === 'meta' && (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[#3462EE]/10 text-[#3462EE]">
+              Meta
             </span>
           )}
         </div>
@@ -83,24 +102,40 @@ function ConvRow({
   )
 }
 
+function getFilterLabel(filter: InboxFilter): string {
+  if (filter === 'all')        return 'Toutes les conversations'
+  if (filter === 'unassigned') return 'Non assignées'
+  if (filter === 'closed')     return 'Fermées'
+  if (typeof filter === 'object') {
+    if (filter.type === 'pipeline_stage') return 'Pipeline'
+    if (filter.type === 'source')         return filter.source === 'meta' ? 'Meta Ads' : filter.source ?? 'Source'
+  }
+  return 'Conversations'
+}
+
+function applyFilter(conversations: Conversation[], filter: InboxFilter): Conversation[] {
+  if (filter === 'all') return conversations
+  if (filter === 'unassigned') return conversations.filter(c => !c.assigned_to)
+  if (filter === 'closed') return conversations.filter(c =>
+    c.opportunity_status === 'won' || c.opportunity_status === 'lost' || c.opportunity_status === 'abandoned'
+  )
+  if (typeof filter === 'object') {
+    if (filter.type === 'pipeline_stage') {
+      return conversations.filter(c => c.pipeline_stage_id === filter.stageId)
+    }
+    if (filter.type === 'source') {
+      return conversations.filter(c => c.source === filter.source)
+    }
+  }
+  return conversations
+}
+
 interface Props {
   conversations: Conversation[]
   selected: Conversation | null
   onSelect: (c: Conversation) => void
   activeFilter: InboxFilter
   onConversationCreated: () => void
-}
-
-const FILTER_LABEL: Record<string, string> = {
-  all: 'Toutes les conversations',
-  unassigned: 'Non assignées',
-  closed: 'Fermées',
-  hot: 'Hot Lead',
-  vip: 'VIP Lead',
-  new: 'Nouveau Lead',
-  payments: 'Paiements',
-  client: 'Client',
-  cold: 'Cold Lead',
 }
 
 export default function ConversationList({
@@ -110,25 +145,17 @@ export default function ConversationList({
   activeFilter,
   onConversationCreated,
 }: Props) {
-  const [query, setQuery] = useState('')
+  const [query, setQuery]         = useState('')
   const [showModal, setShowModal] = useState(false)
 
   const filtered = useMemo(() => {
-    let result = conversations
-
-    // Apply lifecycle filter
-    if (activeFilter !== 'all' && activeFilter !== 'unassigned' && activeFilter !== 'closed' && activeFilter !== null) {
-      result = result.filter(c => c.lead_stage === activeFilter)
-    }
-
-    // Apply search
+    let result = applyFilter(conversations, activeFilter)
     if (query.trim()) {
       const q = query.toLowerCase()
       result = result.filter(c =>
         `${c.contact_name ?? ''} ${c.last_message ?? ''}`.toLowerCase().includes(q)
       )
     }
-
     return result
   }, [conversations, activeFilter, query])
 
@@ -138,7 +165,7 @@ export default function ConversationList({
       <div className="px-4 pt-5 pb-3 border-b border-[#E5E7EB]">
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-semibold text-[#111111]">
-            {FILTER_LABEL[activeFilter ?? 'all'] ?? 'Conversations'}
+            {getFilterLabel(activeFilter)}
           </p>
           <button
             onClick={() => setShowModal(true)}
@@ -147,8 +174,6 @@ export default function ConversationList({
             + Nouveau
           </button>
         </div>
-
-        {/* Search */}
         <input
           value={query}
           onChange={e => setQuery(e.target.value)}
