@@ -131,11 +131,12 @@ export default function MessageThread({ conversation }: { conversation: Conversa
     const next = !aiEnabled
     setAiEnabled(next) // optimistic update
     try {
-      await fetch(`/api/conversation/${conversation.id}/ai`, {
+      const res = await fetch(`/api/conversation/${conversation.id}/ai`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ai_enabled: next }),
       })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
     } catch {
       setAiEnabled(!next) // rollback on error
     }
