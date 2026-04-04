@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Send, Loader2, Smartphone, Zap } from 'lucide-react'
+import { Send, Loader2 } from 'lucide-react'
 import { type Conversation, type Message, CHANNEL_META, MOCK_MESSAGES } from './types'
 import { getMessages } from '@/app/conversations/actions'
 import { createClient } from '@/lib/supabase/client'
@@ -74,7 +74,7 @@ export default function MessageThread({ conversation }: { conversation: Conversa
   const [isLoading, setIsLoading]       = useState(true)
   const [isSending, setIsSending]       = useState(false)
   const [streamingContent, setStreaming] = useState<string | null>(null)
-  const [whatsappSent, setWhatsappSent] = useState(false)
+  const [aiEnabled, setAiEnabled] = useState<boolean>(conversation.ai_enabled ?? true)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLTextAreaElement>(null)
   const channel   = CHANNEL_META[conversation.channel]
@@ -101,6 +101,11 @@ export default function MessageThread({ conversation }: { conversation: Conversa
     setTab('messages')
   }, [conversation.id])
 
+  // Sync aiEnabled when conversation changes
+  useEffect(() => {
+    setAiEnabled(conversation.ai_enabled ?? true)
+  }, [conversation.id, conversation.ai_enabled])
+
   // Supabase Realtime
   useEffect(() => {
     const supabase = createClient()
@@ -121,6 +126,20 @@ export default function MessageThread({ conversation }: { conversation: Conversa
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, streamingContent])
+
+  async function toggleAI() {
+    const next = !aiEnabled
+    setAiEnabled(next) // optimistic update
+    try {
+      await fetch(`/api/conversation/${conversation.id}/ai`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ai_enabled: next }),
+      })
+    } catch {
+      setAiEnabled(!next) // rollback on error
+    }
+  }
 
   async function handleSend() {
     const content = input.trim()
@@ -174,11 +193,6 @@ export default function MessageThread({ conversation }: { conversation: Conversa
       }
       setMessages(prev => [...prev, aiMsg])
       setStreaming(null)
-
-      if (contactPhone) {
-        setWhatsappSent(true)
-        setTimeout(() => setWhatsappSent(false), 3000)
-      }
     } catch (err) {
       console.error('Chat error:', err)
       setMessages(prev => [...prev, {
@@ -229,12 +243,28 @@ export default function MessageThread({ conversation }: { conversation: Conversa
             )}
           </div>
         </div>
-        <span
-          className="text-xs font-medium px-2.5 py-1 rounded-full border"
-          style={{ color: channel.color, borderColor: channel.color + '40', background: channel.bg }}
-        >
-          {channel.label}
-        </span>
+        <div className="flex items-center gap-3">
+          <span
+            className="text-xs font-medium px-2.5 py-1 rounded-full border"
+            style={{ color: channel.color, borderColor: channel.color + '40', background: channel.bg }}
+          >
+            {channel.label}
+          </span>
+          <button
+            onClick={toggleAI}
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors"
+            style={aiEnabled
+              ? { color: '#111111', borderColor: '#22c55e40', background: '#22c55e10' }
+              : { color: '#9CA3AF', borderColor: '#9CA3AF40', background: 'transparent' }
+            }
+          >
+            <span
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: aiEnabled ? '#22c55e' : '#9CA3AF' }}
+            />
+            {aiEnabled ? 'Kai ON' : 'Kai OFF'}
+          </button>
+        </div>
       </div>
 
       {/* Tab bar */}
@@ -327,23 +357,10 @@ export default function MessageThread({ conversation }: { conversation: Conversa
             </div>
 
             {/* Status bar */}
-            <div className="flex items-center justify-between mt-2 px-1">
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
-                <span className="text-[10px] text-[#6B7280]">Kai actif</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {whatsappSent && (
-                  <span className="flex items-center gap-1 text-[10px] text-[#22c55e]">
-                    <Smartphone size={9} />
-                    WhatsApp envoyé
-                  </span>
-                )}
-                <div className="flex items-center gap-1 text-[10px] text-[#9CA3AF]">
-                  <Zap size={9} />
-                  Qualification auto
-                </div>
-              </div>
+            <div className="flex items-center mt-2 px-1">
+              <span className="text-[10px] text-[#6B7280]">
+                {aiEnabled ? 'Kai répond automatiquement' : 'Kai désactivé — réponse manuelle uniquement'}
+              </span>
             </div>
           </div>
         </>
