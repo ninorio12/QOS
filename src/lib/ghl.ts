@@ -39,6 +39,36 @@ export async function getConversations(limit = 50) {
   return (data.conversations ?? []) as GHLConversation[]
 }
 
+export async function sendGHLMessage(
+  conversationId: string,
+  message: string,
+  type: 'WhatsApp' | 'SMS' | 'Email',
+  subject?: string,
+) {
+  const apiKey  = process.env.GHL_API_KEY!
+  const baseUrl = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'
+
+  const payload: Record<string, string> = {
+    type,
+    conversationId,
+    message,
+  }
+  if (subject) payload.subject = subject
+
+  const res = await fetch(`${baseUrl}/conversations/messages`, {
+    method: 'POST',
+    headers: {
+      Authorization:  `Bearer ${apiKey}`,
+      Version:        '2021-07-28',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+    cache: 'no-store',
+  })
+  if (!res.ok) throw new Error(`GHL sendMessage ${res.status}: ${await res.text()}`)
+  return res.json()
+}
+
 export async function getCalendars() {
   const data = await ghlFetch(`/calendars/?locationId=${ghlLocationId()}`)
   return (data.calendars ?? []) as GHLCalendar[]
@@ -134,4 +164,5 @@ export type GHLConversation = {
   lastMessageDate: number | null  // Unix ms timestamp
   dateAdded: number               // Unix ms timestamp
   dateUpdated: number             // Unix ms timestamp
+  assignedTo?: string | null
 }
