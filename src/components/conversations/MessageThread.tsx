@@ -75,6 +75,18 @@ export default function MessageThread({ conversation }: { conversation: Conversa
   const [isSending, setIsSending]       = useState(false)
   const [streamingContent, setStreaming] = useState<string | null>(null)
   const [aiEnabled, setAiEnabled] = useState<boolean>(conversation.ai_enabled ?? true)
+
+  type SendChannel = 'WhatsApp' | 'SMS' | 'Email'
+
+  const channelToSend = (): SendChannel => {
+    if (conversation.channel === 'sms') return 'SMS'
+    if (conversation.channel === 'email') return 'Email'
+    return 'WhatsApp'
+  }
+
+  const [sendChannel, setSendChannel] = useState<SendChannel>(channelToSend())
+  const [channelOpen, setChannelOpen] = useState(false)
+
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLTextAreaElement>(null)
   const channel   = CHANNEL_META[conversation.channel]
@@ -105,6 +117,13 @@ export default function MessageThread({ conversation }: { conversation: Conversa
   useEffect(() => {
     setAiEnabled(conversation.ai_enabled ?? true)
   }, [conversation.id, conversation.ai_enabled])
+
+  // Reset sendChannel when conversation changes
+  useEffect(() => {
+    setSendChannel(channelToSend())
+    setChannelOpen(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversation.id, conversation.channel])
 
   // Supabase Realtime
   useEffect(() => {
@@ -156,51 +175,65 @@ export default function MessageThread({ conversation }: { conversation: Conversa
       created_at: new Date().toISOString(),
     }
     setMessages(prev => [...prev, userMsg])
-    setStreaming('')
 
     try {
-      const contactPhone = conversation.channel === 'whatsapp' && conversation.contact_phone
-        ? conversation.contact_phone : undefined
-
-      const res = await fetch('/api/chat', {
+      // Manual send via GHL channel selector
+      await fetch('/api/send-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversationId: conversation.id,
           message: content,
-          contactName: conversation.contact_name,
-          contactPhone,
+          type: sendChannel,
         }),
       })
-      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
 
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let fullText = ''
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        fullText += decoder.decode(value, { stream: true })
-        setStreaming(fullText)
-      }
-      fullText += decoder.decode()
+      // Kai auto-respond (only if ai_enabled)
+      if (aiEnabled) {
+        setStreaming('')
+        const contactPhone = conversation.channel === 'whatsapp' && conversation.contact_phone
+          ? conversation.contact_phone : undefined
 
-      const aiMsg: Message = {
-        id: crypto.randomUUID(),
-        conversation_id: conversation.id,
-        role: 'assistant',
-        content: fullText,
-        created_at: new Date().toISOString(),
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: conversation.id,
+            message: content,
+            contactName: conversation.contact_name,
+            contactPhone,
+          }),
+        })
+
+        if (res.ok && res.body) {
+          const reader  = res.body.getReader()
+          const decoder = new TextDecoder()
+          let fullText  = ''
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            fullText += decoder.decode(value, { stream: true })
+            setStreaming(fullText)
+          }
+          fullText += decoder.decode()
+
+          setMessages(prev => [...prev, {
+            id: crypto.randomUUID(),
+            conversation_id: conversation.id,
+            role: 'assistant',
+            content: fullText,
+            created_at: new Date().toISOString(),
+          }])
+          setStreaming(null)
+        }
       }
-      setMessages(prev => [...prev, aiMsg])
-      setStreaming(null)
     } catch (err) {
-      console.error('Chat error:', err)
+      console.error('Send error:', err)
       setMessages(prev => [...prev, {
         id: crypto.randomUUID(),
         conversation_id: conversation.id,
         role: 'assistant',
-        content: "Erreur. Vérifiez votre clé API Anthropic.",
+        content: "Erreur lors de l'envoi.",
         created_at: new Date().toISOString(),
       }])
       setStreaming(null)
@@ -334,6 +367,29 @@ export default function MessageThread({ conversation }: { conversation: Conversa
           {/* Input */}
           <div className="flex-shrink-0 px-4 pb-4 pt-3 border-t border-[#E5E7EB] bg-white">
             <div className="flex items-end gap-2 border border-[#E5E7EB] rounded-xl px-3 py-2 focus-within:border-[#3462EE] transition-colors">
+              {/* Channel selector */}
+              <div className="relative flex-shrink-0 self-center">
+                <button
+                  onClick={() => setChannelOpen(o => !o)}
+                  className="text-xs font-medium px-2 py-1 rounded-md bg-[#F8F8F6] text-[#6B7280] hover:bg-[#EFEFED] transition-colors"
+                >
+                  {sendChannel}
+                </button>
+                {channelOpen && (
+                  <div className="absolute bottom-full left-0 mb-1 bg-white border border-[#E5E7EB] rounded-lg shadow-lg z-10 min-w-[90px]">
+                    {(['WhatsApp', 'SMS', 'Email'] as SendChannel[]).map(ch => (
+                      <button
+                        key={ch}
+                        onClick={() => { setSendChannel(ch); setChannelOpen(false) }}
+                        className={`w-full text-left text-xs px-3 py-2 hover:bg-[#F8F8F6] transition-colors ${ch === sendChannel ? 'text-[#111111] font-medium' : 'text-[#6B7280]'}`}
+                      >
+                        {ch}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <textarea
                 ref={inputRef}
                 value={input}
@@ -357,7 +413,6 @@ export default function MessageThread({ conversation }: { conversation: Conversa
               </button>
             </div>
 
-            {/* Status bar */}
             <div className="flex items-center mt-2 px-1">
               <span className="text-[10px] text-[#6B7280]">
                 {aiEnabled ? 'Kai répond automatiquement' : 'Kai désactivé — réponse manuelle uniquement'}
