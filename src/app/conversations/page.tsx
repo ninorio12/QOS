@@ -1,29 +1,89 @@
-import { createClient } from '@/lib/supabase/server'
 import ConversationsView from '@/components/conversations/ConversationsView'
-import { type Conversation } from '@/components/conversations/types'
+import { type Conversation, type Channel, type OpportunityStatus, type Pipeline } from '@/components/conversations/types'
+import { getConversations, getOpportunities, getPipelines } from '@/lib/ghl'
+
+export const dynamic   = 'force-dynamic'
+export const revalidate = 0
+
+function mapGHLType(type: string): Channel {
+  switch (type) {
+    case 'TYPE_EMAIL':    return 'email'
+    case 'TYPE_SMS':      return 'sms'
+    case 'TYPE_WHATSAPP': return 'whatsapp'
+    case 'TYPE_PHONE':    return 'phone'
+    case 'TYPE_CALL':     return 'phone'
+    default:              return 'note'
+  }
+}
+
+function tsToISO(ts: number | null): string {
+  if (!ts) return new Date().toISOString()
+  return new Date(ts).toISOString()
+}
 
 export default async function ConversationsPage() {
-  const supabase = await createClient()
+  let dbConversations: Conversation[] = []
+  let pipelines: Pipeline[] = []
 
-  const { data, error } = await supabase
-    .from('conversations')
-    .select('*, contacts(first_name, last_name, phone, company)')
-    .order('updated_at', { ascending: false })
+  try {
+    const [ghlConvs, ghlOpps, ghlPipelines] = await Promise.all([
+      getConversations(100),
+      getOpportunities(200),
+      getPipelines(),
+    ])
 
-  type RawRow = Record<string, unknown> & {
-    contacts?: { first_name?: string; last_name?: string; phone?: string | null; company?: string | null } | null
+    // Map pipeline stages flat for quick lookup: stageId → pipelineId
+    pipelines = ghlPipelines.map(p => {
+      return { id: p.id, name: p.name, stages: p.stages.map(s => ({ id: s.id, name: s.name })) }
+    })
+
+    // Build contactId → opportunity info map (first opportunity wins)
+    const contactOppMap: Record<string, { pipelineStageId: string; opportunityStatus: OpportunityStatus }> = {}
+    for (const opp of ghlOpps) {
+      const cid = opp.contact?.id
+      if (cid && !contactOppMap[cid]) {
+        contactOppMap[cid] = {
+          pipelineStageId: opp.pipelineStageId,
+          opportunityStatus: opp.status as OpportunityStatus,
+        }
+      }
+    }
+
+    dbConversations = ghlConvs.map((c): Conversation => {
+      const channel     = mapGHLType(c.type)
+      const contactName = c.fullName ?? c.contactName ?? c.email ?? 'Contact inconnu'
+      const channelLabel: Record<Channel, string> = {
+        email: 'Email', phone: 'Appel', sms: 'SMS', whatsapp: 'WhatsApp', meeting: 'Réunion', note: 'Note',
+      }
+      const subject = `${channelLabel[channel]} — ${contactName}`
+      const opp = contactOppMap[c.contactId]
+
+      return {
+        id:                  c.id,
+        user_id:             'ghl',
+        lead_id:             null,
+        contact_id:          c.contactId,
+        channel,
+        subject,
+        summary:             null,
+        created_at:          tsToISO(c.dateAdded),
+        updated_at:          tsToISO(c.dateUpdated),
+        contact_name:        contactName,
+        contact_company:     c.companyName ?? undefined,
+        contact_phone:       c.phone ?? null,
+        last_message:        undefined,
+        last_message_at:     tsToISO(c.lastMessageDate),
+        unread:              c.unreadCount ?? 0,
+        assigned_to:         c.assignedTo ?? null,
+        pipeline_stage_id:   opp?.pipelineStageId ?? null,
+        opportunity_status:  opp?.opportunityStatus ?? null,
+        ai_enabled:          true,
+        source:              null,
+      }
+    })
+  } catch (err) {
+    console.error('[Conversations] fetch failed:', err)
   }
-  const dbConversations: Conversation[] = error ? [] : (data ?? []).map((row: RawRow) => {
-    const contact = row.contacts ?? null
-    const { contacts: _c, ...rest } = row
-    void _c
-    return {
-      ...rest,
-      contact_name: contact ? `${contact.first_name ?? ''} ${contact.last_name ?? ''}`.trim() || undefined : undefined,
-      contact_company: contact?.company ?? undefined,
-      contact_phone: contact?.phone ?? null,
-    } as Conversation
-  })
 
-  return <ConversationsView dbConversations={dbConversations} />
+  return <ConversationsView dbConversations={dbConversations} pipelines={pipelines} />
 }
