@@ -235,6 +235,8 @@ export default function MessageThread({ conversation }: { conversation: Conversa
       }
     } catch (err) {
       console.error('Send error:', err)
+      // Remove the optimistic message, then show error
+      setMessages(prev => prev.filter(m => m.id !== userMsg.id))
       setMessages(prev => [...prev, {
         id: crypto.randomUUID(),
         conversation_id: conversation.id,
