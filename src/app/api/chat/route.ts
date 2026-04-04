@@ -18,6 +18,19 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClient()
 
+    // Check ai_enabled if conversationId provided
+    if (conversationId) {
+      const { data: conv } = await supabase
+        .from('conversations')
+        .select('ai_enabled')
+        .eq('id', conversationId)
+        .single()
+
+      if (conv && conv.ai_enabled === false) {
+        return new Response(null, { status: 204 })
+      }
+    }
+
     // 1. Save user message to Supabase
     if (conversationId) {
       await supabase.from('messages').insert({
