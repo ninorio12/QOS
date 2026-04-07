@@ -16,6 +16,9 @@ import { makeWebhooksRouter }     from './routes/webhooks'
 import { makeSessionsRouter }     from './routes/sessions'
 import { makeEventsRouter }       from './routes/events'
 import { makeSoulRouter }         from './routes/soul'
+import { ghlPipelineTool, ghlStaleLeadsTool, ghlUpdateStageTool } from './skills/ghl'
+import { twilioSmsTool } from './skills/twilio'
+import { initScheduler } from './cron/scheduler'
 
 async function main() {
   // ── Init 3 agent sessions ────────────────────────────────────
@@ -66,6 +69,16 @@ async function main() {
     }
   )
 
+  // ── Register agent-specific skills ───────────────────────────
+  // Soren: GHL pipeline visibility
+  sessions.soren.registerTool(ghlPipelineTool.name, ghlPipelineTool.definition, ghlPipelineTool.executor)
+  sessions.soren.registerTool(ghlStaleLeadsTool.name, ghlStaleLeadsTool.definition, ghlStaleLeadsTool.executor)
+
+  // Kai: GHL lead management + Twilio SMS
+  sessions.kai.registerTool(ghlPipelineTool.name, ghlPipelineTool.definition, ghlPipelineTool.executor)
+  sessions.kai.registerTool(ghlUpdateStageTool.name, ghlUpdateStageTool.definition, ghlUpdateStageTool.executor)
+  sessions.kai.registerTool(twilioSmsTool.name, twilioSmsTool.definition, twilioSmsTool.executor)
+
   // ── Register Telegram webhooks (production only) ─────────────
   if (config.vpsDomain && process.env.NODE_ENV === 'production') {
     await Promise.all([
@@ -75,6 +88,9 @@ async function main() {
     ])
     console.log('[gateway] Telegram webhooks registered')
   }
+
+  // ── Initialize cron scheduler ────────────────────────────────
+  initScheduler(sessions)
 
   // ── Express app ──────────────────────────────────────────────
   const app = express()
