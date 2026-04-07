@@ -148,7 +148,6 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }, [periodOpps, pipelineOpps, stageNames])
 
   // ── Bar chart ────────────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const chartData = useMemo(() => Array.from({ length: periodDays }, (_, i) => {
     const d = new Date(Date.now() - (periodDays - 1 - i) * 86400000)
     const dateStr = d.toISOString().slice(0, 10)
@@ -363,6 +362,61 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
               <p className="text-[9px] text-[#555]">{kpi.sub}</p>
             </div>
           ))}
+        </div>
+
+        {/* ── Section 3 : Leads par jour + Leads par heure ── */}
+        <div className="flex gap-3">
+
+          {/* Leads par jour */}
+          <div className="flex-1 bg-[#2E2E2E] rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[11px] font-bold text-white">Leads par jour</span>
+              <span className="text-[9px] text-[#555]">{periodDays} derniers jours</span>
+            </div>
+            {chartData.every(d => d.count === 0) ? (
+              <div className="flex items-center justify-center h-28">
+                <p className="text-[11px] text-[#555]">Aucun lead sur la période</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={120}>
+                <BarChart data={chartData} barCategoryGap="30%">
+                  <XAxis dataKey="label" tick={{ fill: '#555', fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                  <Bar dataKey="count" fill="#E2FF8D" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Leads par heure */}
+          <div className="bg-[#2E2E2E] rounded-2xl p-4" style={{ width: 280 }}>
+            <span className="text-[11px] font-bold text-white block mb-4">Leads par heure</span>
+            <ResponsiveContainer width="100%" height={120}>
+              <BarChart data={hourlyData} barCategoryGap="20%">
+                <XAxis
+                  dataKey="hour"
+                  tick={{ fill: '#555', fontSize: 8 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(h: number) => [0, 6, 12, 18].includes(h) ? `${h}h` : ''}
+                />
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null
+                    return (
+                      <div className="bg-[#1a1a1a] border border-[#333] rounded-xl px-3 py-2 shadow-lg">
+                        <p className="text-[10px] text-[#777] mb-0.5">{label}h</p>
+                        <p className="text-sm font-bold text-white">{payload[0].value} lead{Number(payload[0].value) !== 1 ? 's' : ''}</p>
+                      </div>
+                    )
+                  }}
+                  cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                />
+                <Bar dataKey="count" fill="#E2FF8D" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
         </div>
 
       </div>
