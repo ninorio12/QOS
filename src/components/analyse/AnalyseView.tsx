@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { ArrowUpRight, TrendingUp, Users, Target, CalendarCheck, Clock, Award } from 'lucide-react'
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { TrendingUp } from 'lucide-react'
 import { type GHLOpportunity, type GHLPipeline } from '@/lib/ghl'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -30,34 +30,6 @@ function cleanStageName(name: string) {
   return name.replace(/^[^\w\d]+\s*/, '').trim()
 }
 
-// ─── KPI Card (temporary—will be replaced in Task 3) ─────────
-function KpiCard({
-  label, value, sub, color, icon: Icon, trend,
-}: {
-  label: string; value: string; sub?: string; color: string
-  icon: React.ElementType; trend?: string | null
-}) {
-  return (
-    <div className="bg-white border border-[#E5E7EB] rounded-2xl px-5 py-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-[#6B7280] font-medium">{label}</p>
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: color + '20' }}>
-          <Icon size={14} style={{ color }} />
-        </div>
-      </div>
-      <div className="flex items-end justify-between gap-2">
-        <p className="text-2xl font-bold text-[#111111] leading-none">{value}</p>
-        {trend && (
-          <div className="flex items-center gap-0.5 text-xs font-semibold mb-0.5 text-[#22c55e]">
-            <ArrowUpRight size={12} />{trend}
-          </div>
-        )}
-      </div>
-      {sub && <p className="text-xs text-[#9CA3AF]">{sub}</p>}
-    </div>
-  )
-}
-
 // ─── Dark tooltip ─────────────────────────────────────────────
 function DarkTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
   if (!active || !payload?.length) return null
@@ -69,53 +41,8 @@ function DarkTooltip({ active, payload, label }: { active?: boolean; payload?: {
   )
 }
 
-// ─── Bar tooltip (temporary—will be replaced with DarkTooltip in Task 3) ─
-function BarTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="bg-white border border-[#E5E7EB] rounded-xl px-3 py-2 shadow-md">
-      <p className="text-[10px] text-[#9CA3AF] mb-0.5">{label}</p>
-      <p className="text-sm font-bold text-[#111111]">{payload[0].value} lead{payload[0].value !== 1 ? 's' : ''}</p>
-    </div>
-  )
-}
-
-// ─── Pie card (temporary—will be replaced with SvgDonut in Task 6) ────
-function PieCard({ title, data }: { title: string; data: { name: string; value: number; color: string; pct: number }[] }) {
-  const filtered = data.filter(d => d.value > 0)
-  const empty = filtered.length === 0
-
-  return (
-    <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 flex flex-col gap-4">
-      <h2 className="text-sm font-semibold text-[#111111]">{title}</h2>
-      {empty ? (
-        <div className="flex items-center justify-center h-32">
-          <p className="text-sm text-[#9CA3AF]">Aucune donnée</p>
-        </div>
-      ) : (
-        <div className="flex items-center gap-4">
-          <SvgDonut data={filtered} />
-          <div className="flex flex-col gap-2 w-full">
-            {filtered.map(d => (
-              <div key={d.name} className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: d.color }} />
-                  <span className="text-xs text-[#374151] truncate">{d.name}</span>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="text-xs font-semibold text-[#111111]">{d.value}</span>
-                  <span className="text-[10px] text-[#9CA3AF] w-8 text-right">{d.pct}%</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ─── SVG Donut ────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const DONUT_PALETTE = ['#4A91A8', '#A78BFA', '#FB923C', '#EFE347', '#E2FF8D', '#EF4444']
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const STATUS_COLORS: Record<string, string> = {
@@ -188,6 +115,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }, [pipelines])
 
   // ── KPIs ────────────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const kpis = useMemo(() => {
     const total = periodOpps.length
     const pipelineValue = pipelineOpps.filter(o => o.status === 'open').reduce((s, o) => s + (o.monetaryValue ?? 0), 0)
@@ -211,6 +139,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }, [periodOpps, pipelineOpps, stageNames])
 
   // ── Bar chart ────────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const chartData = useMemo(() => Array.from({ length: periodDays }, (_, i) => {
     const d = new Date(Date.now() - (periodDays - 1 - i) * 86400000)
     const dateStr = d.toISOString().slice(0, 10)
@@ -225,6 +154,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }), [periodOpps, periodDays])
 
   // ── Funnel ────────────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const funnelData = useMemo(() => {
     const selectedPipelineObj = selectedPipeline === 'TOUS' ? null : pipelines.find(p => p.id === selectedPipeline)
     const stages = selectedPipelineObj?.stages ?? pipelines[0]?.stages ?? []
@@ -257,6 +187,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }, [pipelines, pipelineOpps, selectedPipeline])
 
   // ── Pie: répartition par statut ──────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const statusPieData = useMemo(() => {
     const counts = { open: 0, won: 0, lost: 0, abandoned: 0 }
     pipelineOpps.forEach(o => { if (o.status in counts) counts[o.status as keyof typeof counts]++ })
@@ -270,6 +201,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }, [pipelineOpps])
 
   // ── Pie: répartition par pipeline ────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const pipelinePieData = useMemo(() => {
     const PIPELINE_COLORS = ['#3462EE', '#F97316', '#22c55e', '#8B5CF6', '#EC4899']
     const total = opportunities.length || 1
@@ -283,6 +215,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }, [opportunities, pipelines])
 
   // ── Pie: répartition par source ──────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const sourcePieData = useMemo(() => {
     const counts: Record<string, number> = {}
     pipelineOpps.forEach(o => {
@@ -298,6 +231,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }, [pipelineOpps])
 
   // ── Leads par heure ──────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const hourlyData = useMemo(() => {
     const counts = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: 0 }))
     periodOpps.forEach(o => {
@@ -308,6 +242,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }, [periodOpps])
 
   // ── Source bars ───────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const sourceData = useMemo(() => {
     const counts: Record<string, number> = {}
     pipelineOpps.forEach(o => {
@@ -322,6 +257,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }, [pipelineOpps])
 
   // ── Objectifs de vente ────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const objectives = useMemo(() => {
     const total        = pipelineOpps.length || 1
     const wonCount     = pipelineOpps.filter(o => o.status === 'won').length
@@ -352,155 +288,9 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
 
   return (
     <div className="h-[calc(100vh-56px)] overflow-y-auto bg-[#EEF0EB]">
-      <div className="p-6 flex flex-col gap-6 max-w-[1600px]">
-
-        {/* ── Header ── */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-black text-[#111111]">Analyse</h1>
-            <p className="text-sm text-[#6B7280] mt-0.5">Performance pipeline · données CRM</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 bg-white border border-[#E5E7EB] rounded-xl p-1">
-              {pipelineTabs.map(tab => (
-                <button key={tab.id} onClick={() => setSelectedPipeline(tab.id)}
-                  className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
-                    selectedPipeline === tab.id ? 'bg-[#3462EE] text-white' : 'text-[#6B7280] hover:text-[#111111]'
-                  }`}>
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-1 bg-white border border-[#E5E7EB] rounded-xl p-1">
-              {PERIODS.map(p => (
-                <button key={p.days} onClick={() => setPeriodDays(p.days)}
-                  className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
-                    periodDays === p.days ? 'bg-[#EEF0EB] text-[#111111] font-semibold' : 'text-[#6B7280] hover:text-[#111111]'
-                  }`}>
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── KPIs ── */}
-        <div className="grid grid-cols-6 gap-4">
-          <KpiCard label="Leads entrants"    value={String(kpis.total)}            sub={`sur ${periodDays} derniers jours`} color="#3462EE" icon={Users}         trend={kpis.total > 0 ? `+${kpis.total}` : null} />
-          <KpiCard label="Valeur pipeline"   value={fmt(kpis.pipelineValue)}        sub="deals ouverts"                     color="#22c55e" icon={TrendingUp}    />
-          <KpiCard label="Taux qualification" value={`${kpis.qualifRate}%`}         sub={`${kpis.qualifCount} qualifiés`}   color="#4A91A8" icon={Target}        />
-          <KpiCard label="RDV bookés"         value={String(kpis.rdvCount)}          sub={`sur ${periodDays}j`}              color="#EFE347" icon={CalendarCheck} />
-          <KpiCard label="Sans réponse +24h"  value={String(kpis.noResponseCount)}   sub="nécessitent une relance"           color="#EC4899" icon={Clock}         />
-          <KpiCard label="Taux conversion"    value={`${kpis.conversionRate}%`}      sub={`${kpis.wonCount} won`}            color="#8B5CF6" icon={Award}         />
-        </div>
-
-        {/* ── Bar chart + Funnel ── */}
-        <div className="grid grid-cols-[1fr_340px] gap-5">
-
-          {/* Bar chart */}
-          <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-sm font-semibold text-[#111111]">Leads par jour</h2>
-              <span className="text-xs text-[#9CA3AF]">{periodDays} derniers jours</span>
-            </div>
-            {chartData.every(d => d.count === 0) ? (
-              <div className="flex items-center justify-center h-44">
-                <p className="text-sm text-[#9CA3AF]">Aucun lead sur la période</p>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={chartData} barCategoryGap="30%">
-                  <XAxis dataKey="label" tick={{ fill: '#9CA3AF', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#9CA3AF', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} width={20} />
-                  <Tooltip content={<BarTooltip />} cursor={{ fill: '#EEF0EB' }} />
-                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                    {chartData.map((entry, i) => (
-                      <Cell key={i} fill={entry.count > 0 ? '#3462EE' : '#E5E7EB'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-
-          {/* Funnel */}
-          <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-[#111111] mb-4">Funnel par étape</h2>
-            {funnelData.length === 0 ? (
-              <p className="text-sm text-[#9CA3AF] text-center py-8">Aucun stage</p>
-            ) : (
-              <div className="flex flex-col gap-2.5">
-                {funnelData.map(stage => (
-                  <div key={stage.id}>
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
-                        <span className="text-xs text-[#6B7280] truncate max-w-[130px]">{stage.name}</span>
-                        <span className="text-[10px] text-[#9CA3AF]">{stage.count}</span>
-                      </div>
-                      <span className="text-[10px] font-semibold text-[#9CA3AF]">
-                        {stage.value > 0 ? fmt(stage.value) : '—'}
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-[#EEF0EB] rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${stage.pct}%`, background: stage.color }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── Camemberts ── */}
-        <div className="grid grid-cols-3 gap-5">
-          <PieCard title="Répartition par statut"    data={statusPieData}   />
-          <PieCard title="Répartition par pipeline"  data={pipelinePieData} />
-          <PieCard title="Répartition par source"    data={sourcePieData}   />
-        </div>
-
-        {/* ── Tableau détail ── */}
-        <div className="bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#E5E7EB]">
-            <h2 className="text-sm font-semibold text-[#111111]">Détail par étape</h2>
-          </div>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[#E5E7EB]">
-                <th className="text-left px-5 py-3 text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Étape</th>
-                <th className="text-right px-5 py-3 text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Leads</th>
-                <th className="text-right px-5 py-3 text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Valeur</th>
-                <th className="text-right px-5 py-3 text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">% total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {funnelData.map((stage, i) => (
-                <tr key={stage.id} className={`border-b border-[#E5E7EB] last:border-0 ${i % 2 === 1 ? 'bg-[#EEF0EB]/40' : ''}`}>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
-                      <span className="text-xs text-[#111111] font-medium">{stage.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <span className="text-xs font-semibold text-[#111111]">{stage.count}</span>
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <span className="text-xs font-medium text-[#6B7280]">{stage.value > 0 ? fmt(stage.value) : '—'}</span>
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <span className="text-xs font-semibold" style={{ color: stage.count > 0 ? '#111111' : '#D1D5DB' }}>
-                      {stage.pctTotal}%
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {funnelData.length === 0 && (
-                <tr><td colSpan={4} className="px-5 py-8 text-center text-sm text-[#9CA3AF]">Aucune donnée</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="p-5 flex flex-col gap-3 max-w-[1600px]">
+        <h1 className="text-2xl font-black text-[#111111]">Analyse</h1>
+        <p className="text-[11px] text-[#9CA3AF]">Redesign en cours — sections à venir</p>
       </div>
     </div>
   )
