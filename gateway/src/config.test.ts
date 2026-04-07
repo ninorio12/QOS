@@ -32,6 +32,11 @@ vi.stubEnv('SUPABASE_URL', 'https://test.supabase.co')
 vi.stubEnv('SUPABASE_SERVICE_KEY', 'svc-key')
 vi.stubEnv('VPS_DOMAIN', 'test.example.com')
 vi.stubEnv('PORT', '18789')
+vi.stubEnv('GHL_API_KEY', 'ghl-key')
+vi.stubEnv('GHL_LOCATION_ID', 'loc-123')
+vi.stubEnv('TWILIO_ACCOUNT_SID', 'ACtest')
+vi.stubEnv('TWILIO_AUTH_TOKEN', 'auth-test')
+vi.stubEnv('TWILIO_FROM_NUMBER', '+33100000000')
 
 describe('config', () => {
   it('loads gateway port from json', async () => {
