@@ -58,4 +58,18 @@ describe('SessionManager', () => {
     expect(result).toBe('Done')
     expect(mockCreate).toHaveBeenCalledTimes(2)
   })
+
+  it('updateSoul changes the system prompt used in subsequent calls', async () => {
+    mockCreate.mockResolvedValueOnce({
+      stop_reason: 'end_turn',
+      content: [{ type: 'text', text: 'New soul response' }],
+    })
+    const { SessionManager } = await import('./SessionManager')
+    const sm = new SessionManager('kai')
+    sm.updateSoul('You are a NEW version of Kai')
+    await sm.send('Test')
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+      system: 'You are a NEW version of Kai',
+    }))
+  })
 })

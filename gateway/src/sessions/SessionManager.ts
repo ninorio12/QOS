@@ -97,4 +97,9 @@ export class SessionManager {
       this.history = this.history.slice(-maxExchanges * 2)
     }
   }
+
+  /** Replace this agent's SOUL.md content live — used by weekly self-improvement */
+  updateSoul(newContent: string): void {
+    this.agentCfg = { ...this.agentCfg, soul: newContent }
+  }
 }
