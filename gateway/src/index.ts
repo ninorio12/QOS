@@ -16,6 +16,7 @@ import { makeWebhooksRouter }     from './routes/webhooks'
 import { makeSessionsRouter }     from './routes/sessions'
 import { makeEventsRouter }       from './routes/events'
 import { makeSoulRouter }         from './routes/soul'
+import { makeToolsRouter }        from './routes/tools'
 import { ghlPipelineTool, ghlStaleLeadsTool, ghlUpdateStageTool } from './skills/ghl'
 import { twilioSmsTool } from './skills/twilio'
 import { initScheduler } from './cron/scheduler'
@@ -100,9 +101,23 @@ async function main() {
   app.use('/sessions', makeSessionsRouter(sessions))
   app.use('/events',   makeEventsRouter())
   app.use('/agents',   makeSoulRouter(sessions))
+  app.use('/agents',   makeToolsRouter(sessions))
 
   app.get('/health', (_req, res) => {
-    res.json({ ok: true, agents: Object.keys(sessions), uptime: process.uptime() })
+    const agentStatuses = Object.fromEntries(
+      (Object.keys(sessions) as AgentName[]).map(name => [
+        name,
+        {
+          online:      true,
+          activeTools: sessions[name].getActiveToolNames(),
+        },
+      ])
+    )
+    res.json({
+      ok:     true,
+      uptime: process.uptime(),
+      agents: agentStatuses,
+    })
   })
 
   app.listen(config.port, () => {
