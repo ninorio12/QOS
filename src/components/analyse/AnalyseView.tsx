@@ -289,7 +289,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
     const counts = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: 0 }))
     periodOpps.forEach(o => {
       const h = new Date(o.createdAt).getHours()
-      counts[h].count++
+      if (h >= 0 && h <= 23) counts[h].count++
     })
     return counts
   }, [periodOpps])
