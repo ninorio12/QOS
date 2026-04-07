@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getCalendarClient, isGoogleConfigured } from '@/lib/google'
 
@@ -56,6 +57,9 @@ export async function POST(req: NextRequest) {
       if (delErr) console.error('[ghl-webhook] Mapping delete failed:', delErr)
     }
 
+    revalidateTag('ghl-contacts')
+    revalidateTag('ghl-opportunities')
+    revalidateTag('ghl-conversations')
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('[ghl-webhook] Error:', err)

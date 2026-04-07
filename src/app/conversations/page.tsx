@@ -3,7 +3,6 @@ import { type Conversation, type Channel, type OpportunityStatus, type Pipeline 
 import { getConversations, getOpportunities, getPipelines } from '@/lib/ghl'
 
 export const dynamic   = 'force-dynamic'
-export const revalidate = 0
 
 function mapGHLType(type: string): Channel {
   switch (type) {
@@ -28,7 +27,7 @@ export default async function ConversationsPage() {
   try {
     const [ghlConvs, ghlOpps, ghlPipelines] = await Promise.all([
       getConversations(100),
-      getOpportunities(200),
+      getOpportunities(100),
       getPipelines(),
     ])
 

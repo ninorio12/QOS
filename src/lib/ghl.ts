@@ -1,3 +1,5 @@
+import { unstable_cache } from 'next/cache'
+
 async function ghlFetch(path: string) {
   const apiKey   = process.env.GHL_API_KEY!
   const baseUrl  = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'
@@ -17,27 +19,43 @@ function ghlLocationId() {
   return process.env.GHL_LOCATION_ID!
 }
 
-export async function getContacts(limit = 100) {
-  const data = await ghlFetch(`/contacts/?locationId=${ghlLocationId()}&limit=${limit}`)
-  return { contacts: (data.contacts ?? []) as GHLContact[], total: (data.meta?.total ?? 0) as number }
-}
+export const getContacts = unstable_cache(
+  async (limit = 100) => {
+    const data = await ghlFetch(`/contacts/?locationId=${ghlLocationId()}&limit=${limit}`)
+    return { contacts: (data.contacts ?? []) as GHLContact[], total: (data.meta?.total ?? 0) as number }
+  },
+  ['ghl-contacts'],
+  { revalidate: 120, tags: ['ghl-contacts'] }
+)
 
-export async function getOpportunities(limit = 50, pipelineId?: string) {
-  let url = `/opportunities/search?location_id=${ghlLocationId()}&limit=${limit}`
-  if (pipelineId) url += `&pipeline_id=${pipelineId}`
-  const data = await ghlFetch(url)
-  return (data.opportunities ?? []) as GHLOpportunity[]
-}
+export const getOpportunities = unstable_cache(
+  async (limit = 50, pipelineId?: string) => {
+    let url = `/opportunities/search?location_id=${ghlLocationId()}&limit=${limit}`
+    if (pipelineId) url += `&pipeline_id=${pipelineId}`
+    const data = await ghlFetch(url)
+    return (data.opportunities ?? []) as GHLOpportunity[]
+  },
+  ['ghl-opportunities'],
+  { revalidate: 120, tags: ['ghl-opportunities'] }
+)
 
-export async function getPipelines() {
-  const data = await ghlFetch(`/opportunities/pipelines?locationId=${ghlLocationId()}`)
-  return (data.pipelines ?? []) as GHLPipeline[]
-}
+export const getPipelines = unstable_cache(
+  async () => {
+    const data = await ghlFetch(`/opportunities/pipelines?locationId=${ghlLocationId()}`)
+    return (data.pipelines ?? []) as GHLPipeline[]
+  },
+  ['ghl-pipelines'],
+  { revalidate: 600, tags: ['ghl-pipelines'] }
+)
 
-export async function getConversations(limit = 50) {
-  const data = await ghlFetch(`/conversations/search?locationId=${ghlLocationId()}&limit=${limit}`)
-  return (data.conversations ?? []) as GHLConversation[]
-}
+export const getConversations = unstable_cache(
+  async (limit = 50) => {
+    const data = await ghlFetch(`/conversations/search?locationId=${ghlLocationId()}&limit=${limit}`)
+    return (data.conversations ?? []) as GHLConversation[]
+  },
+  ['ghl-conversations'],
+  { revalidate: 60, tags: ['ghl-conversations'] }
+)
 
 export async function sendGHLMessage(
   conversationId: string,
@@ -69,10 +87,14 @@ export async function sendGHLMessage(
   return res.json()
 }
 
-export async function getCalendars() {
-  const data = await ghlFetch(`/calendars/?locationId=${ghlLocationId()}`)
-  return (data.calendars ?? []) as GHLCalendar[]
-}
+export const getCalendars = unstable_cache(
+  async () => {
+    const data = await ghlFetch(`/calendars/?locationId=${ghlLocationId()}`)
+    return (data.calendars ?? []) as GHLCalendar[]
+  },
+  ['ghl-calendars'],
+  { revalidate: 300, tags: ['ghl-calendars'] }
+)
 
 export async function getCalendarEvents(calendarId: string, startMs: number, endMs: number) {
   const data = await ghlFetch(
