@@ -162,7 +162,6 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }), [periodOpps, periodDays])
 
   // ── Funnel ────────────────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const funnelData = useMemo(() => {
     const selectedPipelineObj = selectedPipeline === 'TOUS' ? null : pipelines.find(p => p.id === selectedPipeline)
     const stages = selectedPipelineObj?.stages ?? pipelines[0]?.stages ?? []
@@ -250,7 +249,6 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }, [periodOpps])
 
   // ── Source bars ───────────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const sourceData = useMemo(() => {
     const counts: Record<string, number> = {}
     pipelineOpps.forEach(o => {
@@ -415,6 +413,61 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
                 <Bar dataKey="count" fill="#E2FF8D" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+
+        </div>
+
+        {/* ── Section 4 : Entonnoir + Source ── */}
+        <div className="flex gap-3">
+
+          {/* Entonnoir */}
+          <div className="flex-1 bg-[#2E2E2E] rounded-2xl p-4">
+            <span className="text-[11px] font-bold text-white block mb-4">Funnel par étape</span>
+            {funnelData.length === 0 ? (
+              <p className="text-[11px] text-[#555] text-center py-6">Aucun stage</p>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {funnelData.map(stage => (
+                  <div key={stage.id}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
+                        <span className="text-[10px] text-[#999] truncate max-w-[160px]">{stage.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-[10px] font-bold text-white">{stage.count}</span>
+                        {stage.value > 0 && <span className="text-[9px] text-[#555]">{fmt(stage.value)}</span>}
+                      </div>
+                    </div>
+                    <div className="h-1.5 bg-[#3A3A3A] rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${stage.pct}%`, background: stage.color }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Leads par source */}
+          <div className="bg-[#2E2E2E] rounded-2xl p-4" style={{ width: 280 }}>
+            <span className="text-[11px] font-bold text-white block mb-4">Leads par source</span>
+            {sourceData.length === 0 ? (
+              <p className="text-[11px] text-[#555] text-center py-6">Aucune donnée</p>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {sourceData.map(src => (
+                  <div key={src.name} className="flex items-center gap-2">
+                    <span className="text-[9px] text-[#888] flex-shrink-0" style={{ width: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {src.name}
+                    </span>
+                    <div className="flex-1 h-1.5 bg-[#3A3A3A] rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-[#E2FF8D]" style={{ width: `${src.pct}%` }} />
+                    </div>
+                    <span className="text-[9px] font-bold text-white flex-shrink-0 w-5 text-right">{src.count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
         </div>
