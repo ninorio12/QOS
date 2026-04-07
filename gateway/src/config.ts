@@ -47,6 +47,16 @@ export const config = {
       skills: rawConfig.skills.mia as string[],
     },
   },
+  ghl: {
+    apiKey:     require_env('GHL_API_KEY'),
+    locationId: require_env('GHL_LOCATION_ID'),
+    baseUrl:    process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com',
+  },
+  twilio: {
+    accountSid: require_env('TWILIO_ACCOUNT_SID'),
+    authToken:  require_env('TWILIO_AUTH_TOKEN'),
+    fromNumber: require_env('TWILIO_FROM_NUMBER'),
+  },
 } as const
 
 export type AgentName = 'soren' | 'kai' | 'mia'
