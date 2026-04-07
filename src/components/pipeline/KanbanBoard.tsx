@@ -15,7 +15,9 @@ import {
 } from '@dnd-kit/core'
 import { Plus, MoreHorizontal } from 'lucide-react'
 import { type Lead, type Column, type ColumnId, COLUMNS, SOURCE_COLORS, INITIAL_LEADS } from './types'
-import NewLeadModal from './NewLeadModal'
+import dynamic from 'next/dynamic'
+
+const NewLeadModal = dynamic(() => import('./NewLeadModal'), { ssr: false })
 
 // ─── Avatar ───────────────────────────────────────────────────
 function Avatar({ initials }: { initials: string }) {

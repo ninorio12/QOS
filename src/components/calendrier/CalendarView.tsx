@@ -15,7 +15,9 @@ import {
 import { useDraggable } from '@dnd-kit/core'
 import { type Appointment, STATUS_META } from './types'
 import { type GHLCalendar } from '@/lib/ghl'
-import NewAppointmentModal from './NewAppointmentModal'
+import dynamic from 'next/dynamic'
+
+const NewAppointmentModal = dynamic(() => import('./NewAppointmentModal'), { ssr: false })
 
 const DAYS_SHORT = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 const MONTHS_FR  = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',

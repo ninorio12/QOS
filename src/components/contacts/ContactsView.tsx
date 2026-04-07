@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation'
 import { Search, Plus, Download, SlidersHorizontal, ArrowUpDown, Settings2 } from 'lucide-react'
 import { type GHLContact } from '@/lib/ghl'
 import { getAvatarColor, formatDate, formatRelative, type ContactAttribution } from './types'
-import NewContactModal from './NewContactModal'
-import ImportModal from './ImportModal'
+import dynamic from 'next/dynamic'
+
+const NewContactModal = dynamic(() => import('./NewContactModal'), { ssr: false })
+const ImportModal     = dynamic(() => import('./ImportModal'),     { ssr: false })
 
 const COL_HEADER = 'px-4 py-3 text-left text-[11px] font-semibold text-[#6B7280] uppercase tracking-wide whitespace-nowrap'
 
