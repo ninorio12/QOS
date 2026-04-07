@@ -257,10 +257,59 @@ export default function KnowledgeView() {
         </div>
       )}
 
-      {/* ── Éditeur (placeholder) ── */}
+      {/* ── Éditeur ── */}
       {selected && (
-        <div className="flex-1 bg-white rounded-2xl border border-[#E5E7EB] min-h-0 flex items-center justify-center text-[11px] text-[#9CA3AF]">
-          Éditeur — {selected.path}
+        <div className="flex-1 bg-white rounded-2xl overflow-hidden flex flex-col border border-[#E5E7EB] min-h-0">
+          {/* Header éditeur */}
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[#F3F4F6] flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-[#111111]">{selected.path}</span>
+              <div className="flex gap-1.5">
+                {selected.agents.map(a => (
+                  <AgentChip key={a} id={a} />
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPreview(p => !p)}
+                className="flex items-center gap-1.5 text-[10px] font-medium px-3 py-1.5 rounded-lg transition-colors"
+                style={
+                  preview
+                    ? { background: '#111111', color: '#fff' }
+                    : { background: '#F3F4F6', color: '#9CA3AF' }
+                }
+              >
+                <Eye size={11} />
+                Aperçu
+              </button>
+              <button
+                onClick={handleSave}
+                className="flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg text-white transition-colors"
+                style={{ background: saved ? '#22c55e' : accentColor }}
+              >
+                <Save size={11} />
+                {saved ? 'Sauvegardé' : 'Sauvegarder'}
+              </button>
+            </div>
+          </div>
+
+          {/* Corps éditeur */}
+          {preview ? (
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              {renderMarkdown(content, accentColor)}
+            </div>
+          ) : (
+            <textarea
+              value={content}
+              onChange={e => {
+                setContent(e.target.value)
+                setSaved(false)
+              }}
+              className="flex-1 bg-[#FAFAF8] text-sm text-[#374151] font-mono leading-7 px-5 py-4 outline-none resize-none"
+              spellCheck={false}
+            />
+          )}
         </div>
       )}
     </div>
