@@ -77,7 +77,6 @@ function SvgDonut({ data }: { data: { name: string; value: number; color: string
           stroke={s.color} strokeWidth={SW}
           strokeDasharray={`${s.dash} ${s.gap}`}
           strokeDashoffset={circumference / 4 - s.offset}
-          style={{ transform: 'rotate(-90deg)', transformOrigin: `${CX}px ${CY}px` }}
         />
       ))}
       <text x={CX} y={CY + 4} textAnchor="middle" fontSize={11} fontWeight={900} fill="#fff">
