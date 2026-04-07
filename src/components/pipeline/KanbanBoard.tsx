@@ -14,7 +14,7 @@ import {
   useDraggable,
 } from '@dnd-kit/core'
 import { Plus, MoreHorizontal } from 'lucide-react'
-import { type Lead, type Column, type ColumnId, COLUMNS, SOURCE_COLORS, INITIAL_LEADS } from './types'
+import { type Lead, type Column, type ColumnId, type Opportunity, COLUMNS, SOURCE_COLORS, INITIAL_LEADS } from './types'
 import dynamic from 'next/dynamic'
 
 const NewLeadModal = dynamic(() => import('./NewLeadModal'), { ssr: false })
@@ -193,8 +193,10 @@ export default function KanbanBoard() {
     )
   }
 
-  function handleAddLead(lead: Lead) {
-    setLeads(prev => [lead, ...prev])
+  function handleAddLead(lead: Lead | Opportunity) {
+    if ('columnId' in lead) {
+      setLeads(prev => [lead as Lead, ...prev])
+    }
   }
 
   const totalPipeline = leads

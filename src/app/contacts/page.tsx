@@ -59,5 +59,5 @@ export default async function ContactsPage() {
     console.error('[Contacts] pipeline fetch failed:', err)
   }
 
-  return <ContactsView contacts={contacts} attributions={attributions} pipelineInfo={pipelineInfo} />
+  return <ContactsView contacts={contacts} attributions={attributions} />
 }

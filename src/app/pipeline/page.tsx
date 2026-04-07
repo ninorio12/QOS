@@ -94,7 +94,7 @@ export default async function PipelinePage() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <KanbanBoard pipelines={pipelines} opportunities={opportunities} />
+      <KanbanBoard />
     </div>
   )
 }

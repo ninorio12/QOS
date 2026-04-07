@@ -1,59 +1,90 @@
+// ─── Dynamic pipeline types (GHL-driven) ─────────────────────
+
+export type GHLStage = {
+  id:       string
+  name:     string
+  color:    string
+  position: number
+}
+
+export type GHLPipelineData = {
+  id:     string
+  name:   string
+  stages: GHLStage[]
+}
+
+export type Opportunity = {
+  id:         string
+  name:       string
+  company:    string
+  value:      number
+  source:     string
+  createdAt:  string
+  initials:   string
+  stageId:    string   // real GHL stage ID
+  pipelineId: string   // real GHL pipeline ID
+  email:      string
+  phone:      string
+  contactId:  string
+  status:     'open' | 'won' | 'lost' | 'abandoned'
+}
+
+// ─── Legacy types for KanbanBoard (deprecated) ──────────────
 export type Lead = {
   id: string
   name: string
   company: string
-  value: number
-  source: 'Meta Ads' | 'WhatsApp' | 'LinkedIn' | 'Téléphone' | 'Site web' | 'Referral' | 'Email'
-  createdAt: string
-  initials: string[]
   columnId: ColumnId
+  email?: string
+  phone?: string
+  source: string
+  createdAt: string
+  value: number
+  initials: string[]
 }
-
-export type ColumnId =
-  | 'nouveau'
-  | 'contact_ia'
-  | 'conversation'
-  | 'qualifie'
-  | 'rdv'
-  | 'non_qualifie'
-  | 'perdu'
 
 export type Column = {
   id: ColumnId
+  name: string
   label: string
   color: string
-  textDark?: boolean
 }
 
+export type ColumnId = 'nouveau' | 'qualif' | 'proposition' | 'negociation' | 'gagne'
+
+// Legacy data for KanbanBoard - should be replaced with dynamic GHL data
 export const COLUMNS: Column[] = [
-  { id: 'nouveau',       label: 'Nouveau Lead',     color: '#3D4F6B' },
-  { id: 'contact_ia',    label: '1er Contact IA',   color: '#3462EE' },
-  { id: 'conversation',  label: 'En Conversation',  color: '#4A91A8' },
-  { id: 'qualifie',      label: 'Qualifié',         color: '#EFE347', textDark: true },
-  { id: 'rdv',           label: 'RDV Booké',        color: '#C8F135', textDark: true },
-  { id: 'non_qualifie',  label: 'Non Qualifié',     color: '#EF4444' },
-  { id: 'perdu',         label: 'Perdu',            color: '#232D3F' },
+  { id: 'nouveau', name: 'Nouveau', label: 'Nouveau', color: '#3B82F6' },
+  { id: 'qualif', name: 'Qualifié', label: 'Qualifié', color: '#F97316' },
+  { id: 'proposition', name: 'Proposition', label: 'Proposition', color: '#8B5CF6' },
+  { id: 'negociation', name: 'Négociation', label: 'Négociation', color: '#EC4899' },
+  { id: 'gagne', name: 'Gagné', label: 'Gagné', color: '#22C55E' },
 ]
 
-export const SOURCE_COLORS: Record<Lead['source'], string> = {
-  'Meta Ads':  '#3462EE',
-  'WhatsApp':  '#22c55e',
-  'LinkedIn':  '#0A66C2',
-  'Téléphone': '#4A91A8',
-  'Site web':  '#8B5CF6',
-  'Referral':  '#EFE347',
-  'Email':     '#8896AB',
+export const SOURCE_COLORS: Record<string, string> = {
+  'web': '#3B82F6',
+  'phone': '#8B5CF6',
+  'email': '#EC4899',
+  'referral': '#F97316',
+  'partner': '#06B6D4',
 }
 
-export const INITIAL_LEADS: Lead[] = [
-  { id: '1', name: 'Martin Dupont',   company: 'Dupont Constructions', value: 87000,  source: 'Meta Ads',  createdAt: '2025-03-20', initials: ['MD'],       columnId: 'nouveau' },
-  { id: '2', name: 'Sophie Laurent',  company: 'Laurent Immo',         value: 234000, source: 'LinkedIn',  createdAt: '2025-03-18', initials: ['SL', 'TM'], columnId: 'nouveau' },
-  { id: '3', name: 'Pierre Moreau',   company: 'Moreau BTP',           value: 56000,  source: 'WhatsApp',  createdAt: '2025-03-17', initials: ['PM'],       columnId: 'contact_ia' },
-  { id: '4', name: 'Claire Fontaine', company: 'Fontaine & Fils',      value: 142000, source: 'Meta Ads',  createdAt: '2025-03-15', initials: ['CF', 'AB'], columnId: 'contact_ia' },
-  { id: '5', name: 'Julien Renard',   company: 'Renard Génie Civil',   value: 312000, source: 'Site web',  createdAt: '2025-03-14', initials: ['JR'],       columnId: 'conversation' },
-  { id: '6', name: 'Marie Chevalier', company: 'MCh Rénovation',       value: 68000,  source: 'Referral',  createdAt: '2025-03-12', initials: ['MC'],       columnId: 'qualifie' },
-  { id: '7', name: 'Thomas Bernard',  company: 'Bernard Travaux',      value: 512000, source: 'Téléphone', createdAt: '2025-03-10', initials: ['TB', 'JL'], columnId: 'qualifie' },
-  { id: '8', name: 'Emma Petit',      company: 'Petit & Associés',     value: 178000, source: 'LinkedIn',  createdAt: '2025-03-08', initials: ['EP'],       columnId: 'rdv' },
-  { id: '9', name: 'Lucas Girard',    company: 'Girard Immobilier',    value: 95000,  source: 'Meta Ads',  createdAt: '2025-03-06', initials: ['LG'],       columnId: 'non_qualifie' },
-  { id: '10', name: 'Camille Roux',   company: 'Roux Construction',    value: 220000, source: 'WhatsApp',  createdAt: '2025-03-01', initials: ['CR', 'SC'], columnId: 'perdu' },
-]
+export const INITIAL_LEADS: Lead[] = []
+
+// ─── Stage color mapping ──────────────────────────────────────
+export function stageColor(name: string): string {
+  const n = name.toLowerCase()
+  // Terminal negative states (check before generic "qualif")
+  if (n.includes('non qualif') || n.includes('épuisé') || n.includes('froid') || n.includes('perdu')) return '#9CA3AF'
+  if (n.includes('désinscrit') || n.includes('spam')   || n.includes('hors sujet') || n.includes('lost'))  return '#EF4444'
+  // Positive terminal
+  if (n.includes('résolu') || n.includes('signé') || n.includes('gagné') || n.includes('won')) return '#22C55E'
+  // In-progress
+  if (n.includes('séquence') || n.includes('ia en') || n.includes('conversation')) return '#8B5CF6'
+  if (n.includes('répondu')  || n.includes('transféré'))  return '#EAB308'
+  if (n.includes('qualif'))                               return '#F97316'
+  if (n.includes('rdv')      || n.includes('booké'))      return '#1D4ED8'
+  if (n.includes('devis'))                                return '#6366F1'
+  // Default: nouveau / message / réactiver / contact → blue
+  return '#3B82F6'
+}
