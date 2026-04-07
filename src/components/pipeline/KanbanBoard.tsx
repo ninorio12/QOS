@@ -194,9 +194,21 @@ export default function KanbanBoard() {
   }
 
   function handleAddLead(lead: Lead | Opportunity) {
-    if ('columnId' in lead) {
-      setLeads(prev => [lead as Lead, ...prev])
-    }
+    const asLead: Lead = 'columnId' in lead
+      ? (lead as Lead)
+      : {
+          id:        lead.id,
+          name:      lead.name,
+          company:   lead.company,
+          columnId:  'nouveau' as ColumnId,
+          source:    lead.source,
+          createdAt: lead.createdAt,
+          value:     lead.value,
+          initials:  [lead.initials],
+          email:     lead.email,
+          phone:     lead.phone,
+        }
+    setLeads(prev => [asLead, ...prev])
   }
 
   const totalPipeline = leads
