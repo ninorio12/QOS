@@ -42,7 +42,7 @@ export default function CalendrierLoading() {
               <div className="w-14 flex-shrink-0 flex items-start pt-1 px-2">
                 <div className="h-2 w-8 bg-[#E5E7EB] rounded" />
               </div>
-              <div className="flex-1 flex">
+              <div className="flex-1 flex gap-px">
                 {DAYS.map((_, i) => (
                   <div key={i} className="flex-1 border-l border-[#F3F4F6]" />
                 ))}

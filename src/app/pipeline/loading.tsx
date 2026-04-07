@@ -1,6 +1,4 @@
 export default function PipelineLoading() {
-  const columns = [0, 1, 2, 3]
-
   return (
     <div className="h-full flex flex-col overflow-hidden animate-pulse">
       {/* Header */}
@@ -14,7 +12,7 @@ export default function PipelineLoading() {
 
       {/* Kanban columns */}
       <div className="flex-1 flex gap-3 px-6 pb-6 overflow-hidden">
-        {columns.map((colIdx) => (
+        {Array.from({ length: 4 }).map((_, colIdx) => (
           <div
             key={colIdx}
             className="flex-1 min-w-[220px] flex flex-col bg-white/50 rounded-2xl p-3 border border-[#E5E7EB]"
