@@ -2,7 +2,9 @@ import { NextRequest } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-// ─── Event templates ───────────────────────────────────────────
+const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL
+
+// ─── Mock event templates (fallback for local dev) ─────────────
 const EVENT_TEMPLATES = [
   { type: 'webhook',  from: 'Meta Ads', to: 'Gateway', msg: 'Nouveau lead — Jean Dupont, façade 20-50k€' },
   { type: 'delegate', from: 'Soren',    to: 'Kai',     msg: 'Délégation lead #2891 — priorité haute' },
@@ -14,12 +16,22 @@ const EVENT_TEMPLATES = [
   { type: 'qualify',  from: 'Kai',      to: 'Soren',   msg: 'Relance J+2 planifiée — Inès Duprez, pas de réponse' },
 ]
 
-// ─── SSE Route ─────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
-  // TODO: Replace mock stream with real OpenClaw gateway SSE:
-  // const upstream = await fetch('http://localhost:18789/events', { signal: req.signal })
-  // return new Response(upstream.body, { headers: { 'Content-Type': 'text/event-stream' } })
+  // If real gateway URL is configured, proxy it
+  if (GATEWAY_URL) {
+    const upstream = await fetch(`${GATEWAY_URL}/events`, {
+      signal: req.signal,
+    })
+    return new Response(upstream.body, {
+      headers: {
+        'Content-Type':  'text/event-stream',
+        'Cache-Control': 'no-cache, no-store',
+        Connection:      'keep-alive',
+      },
+    })
+  }
 
+  // Fallback: mock stream for local development
   const encoder = new TextEncoder()
   let eventId = 0
   let intervalId: ReturnType<typeof setInterval>
@@ -31,17 +43,11 @@ export async function GET(req: NextRequest) {
         controller.enqueue(encoder.encode(payload))
       }
 
-      // Immediately send connected event
       send({ type: 'connected', msg: 'OpenClaw SSE stream connected (mock)' })
 
-      // Send mock events every 8-14 seconds
       intervalId = setInterval(() => {
         const tpl = EVENT_TEMPLATES[Math.floor(Math.random() * EVENT_TEMPLATES.length)]
-        send({
-          ...tpl,
-          timestamp: new Date().toISOString(),
-          id: eventId,
-        })
+        send({ ...tpl, timestamp: new Date().toISOString(), id: eventId })
       }, 8000 + Math.random() * 6000)
 
       req.signal.addEventListener('abort', () => {
@@ -56,9 +62,9 @@ export async function GET(req: NextRequest) {
 
   return new Response(stream, {
     headers: {
-      'Content-Type': 'text/event-stream',
+      'Content-Type':  'text/event-stream',
       'Cache-Control': 'no-cache, no-store',
-      Connection: 'keep-alive',
+      Connection:      'keep-alive',
     },
   })
 }
