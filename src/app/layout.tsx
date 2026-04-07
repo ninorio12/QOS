@@ -1,18 +1,30 @@
 import type { Metadata } from 'next'
+import { Fraunces, Inter } from 'next/font/google'
 import './globals.css'
 
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  weight: ['700', '800', '900'],
+  axes: ['opsz'],
+  variable: '--font-fraunces',
+  display: 'swap',
+})
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
-  title: 'QOS — Qorpo Operating System',
-  description: 'CRM intelligent pour l\'acquisition client dans le bâtiment',
+  title: "Soren - Infrastructure d'Acquisition Organisationnelle",
+  description: 'Plateforme agentique pour la gestion des leads et workflows BTP',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
+    <html lang="fr" className={`${fraunces.variable} ${inter.variable}`}>
       <body>{children}</body>
     </html>
   )

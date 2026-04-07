@@ -9,22 +9,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        qos: {
-          bg: '#121721',
-          sidebar: '#0C1017',
-          card: '#1A2235',
-          border: '#232D3F',
-          blue: '#3462EE',
-          yellow: '#EFE347',
-          teal: '#4A91A8',
-          sage: '#EAF0DC',
-          green: '#C8F135',
-          muted: '#8896AB',
-          subtle: '#3D4F6B',
+        soren: {
+          app:     '#EEF0EB',
+          bg:      '#EEF0EB',
+          sidebar: '#111111',
+          card:    '#FFFFFF',
+          border:  '#E5E7EB',
+          accent:  '#E2FF8D',
+          text:    '#111111',
+          muted:   '#6B7280',
+          subtle:  '#9CA3AF',
         },
       },
       fontFamily: {
-        sans: ['Plus Jakarta Sans', 'Lufga', 'system-ui', 'sans-serif'],
+        sans:     ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        fraunces: ['var(--font-fraunces)', 'Georgia', 'serif'],
+      },
+      borderRadius: {
+        '4xl': '2rem',
       },
     },
   },
