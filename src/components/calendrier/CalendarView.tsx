@@ -13,9 +13,13 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { useDraggable } from '@dnd-kit/core'
+import dynamic from 'next/dynamic'
 import { type Appointment, STATUS_META } from './types'
 import { type GHLCalendar } from '@/lib/ghl'
-import NewAppointmentModal from './NewAppointmentModal'
+
+const NewAppointmentModal = dynamic(() => import('./NewAppointmentModal'), {
+  ssr: false,
+})
 
 const DAYS_SHORT = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 const MONTHS_FR  = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -375,7 +379,7 @@ function computeOverlapLayout(appts: Appointment[]): Map<string, { leftPct: numb
   const sorted = [...appts].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
   for (const appt of sorted) {
     const used = new Set<number>()
-    for (const id of overlaps.get(appt.id)!) { if (cols.has(id)) used.add(cols.get(id)!) }
+    for (const id of Array.from(overlaps.get(appt.id)!)) { if (cols.has(id)) used.add(cols.get(id)!) }
     let c = 0; while (used.has(c)) c++
     cols.set(appt.id, c)
   }
@@ -384,7 +388,7 @@ function computeOverlapLayout(appts: Appointment[]): Map<string, { leftPct: numb
   for (const appt of appts) {
     const myCol = cols.get(appt.id)!
     let maxCol = myCol
-    for (const id of overlaps.get(appt.id)!) maxCol = Math.max(maxCol, cols.get(id) ?? 0)
+    for (const id of Array.from(overlaps.get(appt.id)!)) maxCol = Math.max(maxCol, cols.get(id) ?? 0)
     const numCols = maxCol + 1
     result.set(appt.id, { leftPct: (myCol / numCols) * 100, widthPct: (1 / numCols) * 100 })
   }
@@ -730,7 +734,7 @@ function DetailCard({
           <span
             className="w-2 h-2 rounded-full flex-shrink-0 mt-0.5"
             style={{ background: dotColor }}
-            title={isGoogle ? 'Google Calendar' : 'GHL'}
+            title={isGoogle ? 'Google Calendar' : 'CRM'}
           />
           <p className="text-[13px] font-bold text-white leading-snug truncate">{appt.title}</p>
         </div>
@@ -915,7 +919,7 @@ export default function CalendarView({
       const googleId = id.replace('google-', '')
       fetch(`/api/google-events/${googleId}`, { method: 'DELETE' }).catch(console.error)
     } else {
-      // GHL (or unknown source — try GHL)
+      // CRM (or unknown source — try CRM)
       fetch(`/api/calendar-event/${id}`, { method: 'DELETE' }).catch(console.error)
     }
   }
@@ -934,18 +938,21 @@ export default function CalendarView({
             <div className="flex items-center gap-1">
               <button
                 onClick={goToday}
+                data-tooltip="Aujourd'hui"
                 className="px-2.5 py-1 text-[11px] font-semibold rounded-full bg-white border border-[#E5E7EB] text-[#6B7280] hover:bg-[#F5F5F0] hover:text-[#111111] transition-colors whitespace-nowrap"
               >
                 Aujourd'hui
               </button>
               <button
                 onClick={prevPeriod}
+                data-tooltip="Précédent"
                 className="w-6 h-6 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:bg-[#F5F5F0] transition-colors"
               >
                 <ChevronLeft size={12} />
               </button>
               <button
                 onClick={nextPeriod}
+                data-tooltip="Suivant"
                 className="w-6 h-6 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:bg-[#F5F5F0] transition-colors"
               >
                 <ChevronRight size={12} />
@@ -980,7 +987,7 @@ export default function CalendarView({
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              title="Rafraîchir"
+              data-tooltip="Rafraîchir"
               className="w-7 h-7 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:bg-[#F5F5F0] disabled:opacity-50 transition-colors"
             >
               <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
@@ -1002,6 +1009,7 @@ export default function CalendarView({
             {/* New button */}
             <button
               onClick={() => setShowModal(true)}
+              data-tooltip="Nouveau RDV"
               className="flex items-center gap-1.5 bg-[#111111] hover:bg-[#2a2a2a] text-white text-[13px] font-semibold px-3.5 py-2 rounded-full transition-colors whitespace-nowrap"
             >
               <Plus size={12} />
