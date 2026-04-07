@@ -10,7 +10,12 @@ export function makeToolsRouter(sessions: Record<AgentName, SessionManager>): Ro
   router.post('/:agent/tools/:tool/toggle', (req, res) => {
     const agent = req.params.agent as AgentName
     const tool  = req.params.tool
-    const { enabled } = req.body as { enabled: boolean }
+    const { enabled } = req.body as { enabled: unknown }
+
+    if (typeof enabled !== 'boolean') {
+      res.status(400).json({ error: '`enabled` must be a boolean' })
+      return
+    }
 
     if (!sessions[agent]) {
       res.status(404).json({ error: 'Unknown agent' })
