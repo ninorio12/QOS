@@ -114,9 +114,11 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }, [pipelines])
 
   // ── KPIs ────────────────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const kpis = useMemo(() => {
-    const total = periodOpps.length
+    const total       = periodOpps.length
+    const wonOpps     = pipelineOpps.filter(o => o.status === 'won')
+    const wonCount    = wonOpps.length
+    const activeCount = pipelineOpps.filter(o => o.status === 'open').length
     const pipelineValue = pipelineOpps.filter(o => o.status === 'open').reduce((s, o) => s + (o.monetaryValue ?? 0), 0)
     const qualifCount = periodOpps.filter(o => {
       const n = (stageNames[o.pipelineStageId] ?? '').toLowerCase()
@@ -131,10 +133,18 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
       const n = (stageNames[o.pipelineStageId] ?? '').toLowerCase()
       return o.status === 'open' && (n.includes('sans') || n.includes('réponse')) && new Date(o.updatedAt).getTime() < h24ago
     }).length
-    const wonCount = pipelineOpps.filter(o => o.status === 'won').length
     const conversionRate = pipelineOpps.length > 0 ? Math.round((wonCount / pipelineOpps.length) * 100) : 0
     const qualifRate = total > 0 ? Math.round((qualifCount / total) * 100) : 0
-    return { total, pipelineValue, qualifCount, qualifRate, rdvCount, noResponseCount, wonCount, conversionRate }
+    const avgDays = wonOpps.length > 0
+      ? Math.round(wonOpps.reduce((s, o) => {
+          const diff = new Date(o.updatedAt).getTime() - new Date(o.createdAt).getTime()
+          return s + diff / 86400000
+        }, 0) / wonOpps.length)
+      : 0
+    const avgValue = pipelineOpps.length > 0
+      ? Math.round(pipelineOpps.reduce((s, o) => s + (o.monetaryValue ?? 0), 0) / pipelineOpps.length)
+      : 0
+    return { total, pipelineValue, qualifCount, qualifRate, rdvCount, noResponseCount, wonCount, conversionRate, avgDays, activeCount, avgValue }
   }, [periodOpps, pipelineOpps, stageNames])
 
   // ── Bar chart ────────────────────────────────────────────────
@@ -256,7 +266,6 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }, [pipelineOpps])
 
   // ── Objectifs de vente ────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const objectives = useMemo(() => {
     const total        = pipelineOpps.length || 1
     const wonCount     = pipelineOpps.filter(o => o.status === 'won').length
@@ -288,8 +297,74 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   return (
     <div className="h-[calc(100vh-56px)] overflow-y-auto bg-[#EEF0EB]">
       <div className="p-5 flex flex-col gap-3 max-w-[1600px]">
-        <h1 className="text-2xl font-black text-[#111111]">Analyse</h1>
-        <p className="text-[11px] text-[#9CA3AF]">Redesign en cours — sections à venir</p>
+
+        {/* ── Header + Filtres ── */}
+        <div className="flex items-center justify-between gap-4 mb-1">
+          <div>
+            <h1 className="text-2xl font-black text-[#111111]">Analyse</h1>
+            <p className="text-[11px] text-[#9CA3AF] mt-0.5">Performance pipeline · données CRM</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-white border border-[#E5E7EB] rounded-xl p-1">
+              {pipelineTabs.map(tab => (
+                <button key={tab.id} onClick={() => setSelectedPipeline(tab.id)}
+                  className={`text-[11px] font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                    selectedPipeline === tab.id ? 'bg-[#111] text-white font-bold' : 'text-[#6B7280] hover:text-[#111]'
+                  }`}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1 bg-white border border-[#E5E7EB] rounded-xl p-1">
+              {PERIODS.map(p => (
+                <button key={p.days} onClick={() => setPeriodDays(p.days)}
+                  className={`text-[11px] font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                    periodDays === p.days ? 'bg-[#111] text-white font-bold' : 'text-[#6B7280] hover:text-[#111]'
+                  }`}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Section 1 : Objectifs de vente ── */}
+        <div className="grid grid-cols-3 gap-3">
+          {objectives.map(obj => (
+            <div key={obj.label} className="bg-[#2E2E2E] rounded-2xl p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-[#777] uppercase tracking-wider">{obj.label}</span>
+                <span className="text-[10px] font-bold" style={{ color: obj.color }}>{obj.pct}%</span>
+              </div>
+              <div className="h-1.5 bg-[#3A3A3A] rounded-full overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${obj.pct}%`, background: obj.color }} />
+              </div>
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl font-black text-white">{obj.current}</span>
+                <span className="text-[11px] text-[#555]">/ {obj.target}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Section 2 : KPI cards ── */}
+        <div className="grid grid-cols-6 gap-3">
+          {[
+            { label: 'Leads entrants',   value: String(kpis.total),          sub: `sur ${periodDays}j` },
+            { label: 'Valeur pipeline',  value: fmt(kpis.pipelineValue),      sub: 'deals ouverts' },
+            { label: 'Taux conversion',  value: `${kpis.conversionRate}%`,    sub: `${kpis.wonCount} won` },
+            { label: 'Durée moy.',       value: `${kpis.avgDays}j`,           sub: 'leads gagnés' },
+            { label: 'Leads actifs',     value: String(kpis.activeCount),     sub: 'status open' },
+            { label: 'Valeur moy.',      value: fmt(kpis.avgValue),           sub: 'par lead' },
+          ].map(kpi => (
+            <div key={kpi.label} className="bg-[#2E2E2E] rounded-2xl p-4 flex flex-col gap-2">
+              <p className="text-[9px] text-[#777] uppercase tracking-wider">{kpi.label}</p>
+              <p className="text-xl font-black text-white leading-none">{kpi.value}</p>
+              <p className="text-[9px] text-[#555]">{kpi.sub}</p>
+            </div>
+          ))}
+        </div>
+
       </div>
     </div>
   )
