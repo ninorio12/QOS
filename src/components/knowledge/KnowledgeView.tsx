@@ -164,5 +164,105 @@ function DocCard({
 }
 
 export default function KnowledgeView() {
-  return <div>TODO</div>
+  const [activeTab, setActiveTab] = useState<DocType>('instructions')
+  const [selected, setSelected]   = useState<KBFile | null>(null)
+  const [content, setContent]     = useState('')
+  const [preview, setPreview]     = useState(false)
+  const [saved, setSaved]         = useState(false)
+
+  const filtered = useMemo(
+    () => KB_FILES.filter(f => f.type === activeTab),
+    [activeTab],
+  )
+
+  function handleSelect(file: KBFile) {
+    setSelected(file)
+    setPreview(false)
+    setSaved(false)
+    try {
+      setContent(localStorage.getItem(`kb_${file.id}`) ?? file.content)
+    } catch {
+      setContent(file.content)
+    }
+  }
+
+  function handleSave() {
+    if (!selected) return
+    try {
+      localStorage.setItem(`kb_${selected.id}`, content)
+    } catch {}
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  const accentColor = selected ? AGENT_META[selected.agents[0]].color : '#111111'
+
+  return (
+    <div
+      className="flex flex-col bg-[#EEF0EB] px-8 py-5 overflow-hidden"
+      style={{ height: 'calc(100vh - 56px)' }}
+    >
+      {/* ── En-tête ── */}
+      <div className="flex items-center justify-between mb-5 flex-shrink-0">
+        <div>
+          <h1 className="text-sm font-bold text-[#111111]">Base de connaissance</h1>
+          <p className="text-[10px] text-[#9CA3AF] mt-0.5">
+            Instructions et mémoire de vos agents
+          </p>
+        </div>
+        <button
+          disabled
+          className="text-[11px] font-bold bg-[#111111] text-white px-3 py-1.5 rounded-xl opacity-40 cursor-not-allowed"
+        >
+          + Nouveau
+        </button>
+      </div>
+
+      {/* ── Onglets ── */}
+      <div className="flex gap-2 mb-5 flex-shrink-0">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => {
+              setActiveTab(tab.id)
+              setSelected(null)
+            }}
+            className="text-[9px] font-bold tracking-wide px-4 py-1.5 rounded-full transition-colors"
+            style={
+              activeTab === tab.id
+                ? { background: '#111111', color: '#fff' }
+                : { background: '#fff', color: '#9CA3AF', border: '1px solid #E5E7EB' }
+            }
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Grille de cartes ── */}
+      {filtered.length > 0 ? (
+        <div className="grid grid-cols-3 gap-3 mb-5 flex-shrink-0">
+          {filtered.map(file => (
+            <DocCard
+              key={file.id}
+              file={file}
+              isSelected={selected?.id === file.id}
+              onClick={() => handleSelect(file)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="flex items-center justify-center py-12 text-[11px] text-[#C8CBD0] mb-5 flex-shrink-0">
+          Aucune configuration disponible
+        </div>
+      )}
+
+      {/* ── Éditeur (placeholder) ── */}
+      {selected && (
+        <div className="flex-1 bg-white rounded-2xl border border-[#E5E7EB] min-h-0 flex items-center justify-center text-[11px] text-[#9CA3AF]">
+          Éditeur — {selected.path}
+        </div>
+      )}
+    </div>
+  )
 }
