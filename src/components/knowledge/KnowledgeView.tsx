@@ -81,6 +81,87 @@ const KB_FILES: KBFile[] = [
   },
 ]
 
+// ─── Markdown renderer ────────────────────────────────────────
+function renderMarkdown(text: string, accentColor: string) {
+  const lines = text.split('\n')
+  return lines.map((line, i) => {
+    if (line.startsWith('# '))
+      return (
+        <p key={i} className="text-sm font-bold text-[#111111] mb-2">
+          {line.slice(2)}
+        </p>
+      )
+    if (line.startsWith('## '))
+      return (
+        <p key={i} className="text-xs font-bold text-[#374151] mt-3 mb-1 pb-0.5 border-b border-[#E5E7EB]">
+          {line.slice(3)}
+        </p>
+      )
+    if (line.startsWith('- ') || line.startsWith('* '))
+      return (
+        <div key={i} className="flex items-start gap-1.5 text-xs text-[#374151] leading-6">
+          <span
+            className="mt-2 w-1 h-1 rounded-full flex-shrink-0"
+            style={{ background: accentColor }}
+          />
+          <span>{line.slice(2)}</span>
+        </div>
+      )
+    if (line.trim() === '')
+      return <div key={i} className="h-2" />
+    return (
+      <p key={i} className="text-xs text-[#374151] leading-6">
+        {line}
+      </p>
+    )
+  })
+}
+
+// ─── Agent chip ───────────────────────────────────────────────
+function AgentChip({ id }: { id: AgentId }) {
+  const { label, color, bg } = AGENT_META[id]
+  return (
+    <span
+      className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
+      style={{ color, background: bg }}
+    >
+      {label}
+    </span>
+  )
+}
+
+// ─── Doc card ─────────────────────────────────────────────────
+function DocCard({
+  file,
+  isSelected,
+  onClick,
+}: {
+  file: KBFile
+  isSelected: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="bg-white rounded-2xl p-4 text-left transition-all w-full hover:shadow-sm"
+      style={{
+        border: isSelected ? '1.5px solid #111111' : '1px solid #E5E7EB',
+      }}
+    >
+      <div className="font-bold text-[13px] text-[#111111] truncate">{file.name}</div>
+      <div className="text-[10px] text-[#9CA3AF] mt-0.5">{file.description}</div>
+      <div className="flex flex-wrap gap-1.5 mt-3">
+        {file.agents.map(a => (
+          <AgentChip key={a} id={a} />
+        ))}
+      </div>
+      <div className="text-[9px] text-[#C8CBD0] mt-3">
+        {file.lastModified} · {file.size}
+      </div>
+    </button>
+  )
+}
+
 export default function KnowledgeView() {
   return <div>TODO</div>
 }
