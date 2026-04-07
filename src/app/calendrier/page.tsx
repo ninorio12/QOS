@@ -56,9 +56,10 @@ async function fetchGoogleAppointments(): Promise<Appointment[]> {
 
 export default async function CalendrierPage() {
   let appointments: Appointment[] = []
+  let calendars: Awaited<ReturnType<typeof getCalendars>> = []
 
   try {
-    const calendars = await getCalendars()
+    calendars = await getCalendars()
 
     if (calendars.length > 0) {
       const now    = Date.now()
@@ -96,11 +97,10 @@ export default async function CalendrierPage() {
   const googleAppts = await fetchGoogleAppointments()
   appointments = [...appointments, ...googleAppts]
 
-  const calendarsForView = await getCalendars().catch(() => [])
   return (
     <CalendarView
       appointments={appointments}
-      calendars={calendarsForView}
+      calendars={calendars}
       googleConfigured={isGoogleConfigured()}
     />
   )
