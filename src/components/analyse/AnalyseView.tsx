@@ -1,10 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-  PieChart, Pie, Tooltip as PieTooltip,
-} from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { ArrowUpRight, TrendingUp, Users, Target, CalendarCheck, Clock, Award } from 'lucide-react'
 import { type GHLOpportunity, type GHLPipeline } from '@/lib/ghl'
 
@@ -33,7 +30,7 @@ function cleanStageName(name: string) {
   return name.replace(/^[^\w\d]+\s*/, '').trim()
 }
 
-// ─── KPI Card ─────────────────────────────────────────────────
+// ─── KPI Card (temporary—will be replaced in Task 3) ─────────
 function KpiCard({
   label, value, sub, color, icon: Icon, trend,
 }: {
@@ -61,7 +58,18 @@ function KpiCard({
   )
 }
 
-// ─── Bar tooltip ─────────────────────────────────────────────
+// ─── Dark tooltip ─────────────────────────────────────────────
+function DarkTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="bg-[#1a1a1a] border border-[#333] rounded-xl px-3 py-2 shadow-lg">
+      <p className="text-[10px] text-[#777] mb-0.5">{label}</p>
+      <p className="text-sm font-bold text-white">{payload[0].value} lead{payload[0].value !== 1 ? 's' : ''}</p>
+    </div>
+  )
+}
+
+// ─── Bar tooltip (temporary—will be replaced with DarkTooltip in Task 3) ─
 function BarTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
   if (!active || !payload?.length) return null
   return (
@@ -72,42 +80,7 @@ function BarTooltip({ active, payload, label }: { active?: boolean; payload?: { 
   )
 }
 
-// ─── Pie tooltip ─────────────────────────────────────────────
-function CustomPieTooltip({ active, payload }: { active?: boolean; payload?: { name: string; value: number; payload: { color: string } }[] }) {
-  if (!active || !payload?.length) return null
-  const item = payload[0]
-  return (
-    <div className="bg-white border border-[#E5E7EB] rounded-xl px-3 py-2 shadow-md">
-      <div className="flex items-center gap-1.5 mb-0.5">
-        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: item.payload.color }} />
-        <p className="text-[10px] text-[#9CA3AF]">{item.name}</p>
-      </div>
-      <p className="text-sm font-bold text-[#111111]">{item.value} lead{item.value !== 1 ? 's' : ''}</p>
-    </div>
-  )
-}
-
-// ─── Pie legend row ───────────────────────────────────────────
-function PieLegend({ data }: { data: { name: string; value: number; color: string; pct: number }[] }) {
-  return (
-    <div className="flex flex-col gap-2 w-full">
-      {data.map(d => (
-        <div key={d.name} className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: d.color }} />
-            <span className="text-xs text-[#374151] truncate">{d.name}</span>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-xs font-semibold text-[#111111]">{d.value}</span>
-            <span className="text-[10px] text-[#9CA3AF] w-8 text-right">{d.pct}%</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// ─── Pie card ─────────────────────────────────────────────────
+// ─── Pie card (temporary—will be replaced with SvgDonut in Task 6) ────
 function PieCard({ title, data }: { title: string; data: { name: string; value: number; color: string; pct: number }[] }) {
   const filtered = data.filter(d => d.value > 0)
   const empty = filtered.length === 0
@@ -121,29 +94,69 @@ function PieCard({ title, data }: { title: string; data: { name: string; value: 
         </div>
       ) : (
         <div className="flex items-center gap-4">
-          <div className="flex-shrink-0">
-            <PieChart width={130} height={130}>
-              <Pie
-                data={filtered}
-                cx={60}
-                cy={60}
-                innerRadius={38}
-                outerRadius={60}
-                paddingAngle={2}
-                dataKey="value"
-                stroke="none"
-              >
-                {filtered.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} />
-                ))}
-              </Pie>
-              <PieTooltip content={<CustomPieTooltip />} />
-            </PieChart>
+          <SvgDonut data={filtered} />
+          <div className="flex flex-col gap-2 w-full">
+            {filtered.map(d => (
+              <div key={d.name} className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: d.color }} />
+                  <span className="text-xs text-[#374151] truncate">{d.name}</span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-xs font-semibold text-[#111111]">{d.value}</span>
+                  <span className="text-[10px] text-[#9CA3AF] w-8 text-right">{d.pct}%</span>
+                </div>
+              </div>
+            ))}
           </div>
-          <PieLegend data={filtered} />
         </div>
       )}
     </div>
+  )
+}
+
+// ─── SVG Donut ────────────────────────────────────────────────
+const DONUT_PALETTE = ['#4A91A8', '#A78BFA', '#FB923C', '#EFE347', '#E2FF8D', '#EF4444']
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const STATUS_COLORS: Record<string, string> = {
+  open: '#3462EE', won: '#E2FF8D', lost: '#EF4444', abandoned: '#6B7280',
+}
+
+function SvgDonut({ data }: { data: { name: string; value: number; color: string; pct: number }[] }) {
+  const filtered = data.filter(d => d.value > 0)
+  if (filtered.length === 0) {
+    return (
+      <div className="flex items-center justify-center" style={{ width: 80, height: 80 }}>
+        <span className="text-[10px] text-[#555]">—</span>
+      </div>
+    )
+  }
+  const R = 36; const SW = 10; const CX = 44; const CY = 44
+  const circumference = 2 * Math.PI * R
+  const total = filtered.reduce((s, d) => s + d.value, 0) || 1
+  let offset = 0
+  const slices = filtered.map(d => {
+    const dash = (d.value / total) * circumference
+    const gap  = circumference - dash
+    const slice = { ...d, dash, gap, offset }
+    offset += dash
+    return slice
+  })
+  return (
+    <svg width={88} height={88} viewBox="0 0 88 88">
+      <circle cx={CX} cy={CY} r={R} fill="none" stroke="#3A3A3A" strokeWidth={SW} />
+      {slices.map((s, i) => (
+        <circle key={i} cx={CX} cy={CY} r={R} fill="none"
+          stroke={s.color} strokeWidth={SW}
+          strokeDasharray={`${s.dash} ${s.gap}`}
+          strokeDashoffset={circumference / 4 - s.offset}
+          style={{ transform: 'rotate(-90deg)', transformOrigin: `${CX}px ${CY}px` }}
+        />
+      ))}
+      <text x={CX} y={CY + 4} textAnchor="middle" fontSize={11} fontWeight={900} fill="#fff">
+        {total}
+      </text>
+    </svg>
   )
 }
 
