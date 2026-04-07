@@ -83,6 +83,7 @@ const KB_FILES: KBFile[] = [
 
 // ─── Markdown renderer ────────────────────────────────────────
 function renderMarkdown(text: string, accentColor: string) {
+  if (!text) return null
   const lines = text.split('\n')
   return lines.map((line, i) => {
     if (line.startsWith('# '))
@@ -119,7 +120,7 @@ function renderMarkdown(text: string, accentColor: string) {
 
 // ─── Agent chip ───────────────────────────────────────────────
 function AgentChip({ id }: { id: AgentId }) {
-  const { label, color, bg } = AGENT_META[id]
+  const { label, color, bg } = AGENT_META[id] ?? { label: id, color: '#9CA3AF', bg: '#9CA3AF15' }
   return (
     <span
       className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
