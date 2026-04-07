@@ -42,9 +42,7 @@ function DarkTooltip({ active, payload, label }: { active?: boolean; payload?: {
 }
 
 // ─── SVG Donut ────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const DONUT_PALETTE = ['#4A91A8', '#A78BFA', '#FB923C', '#EFE347', '#E2FF8D', '#EF4444']
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const STATUS_COLORS: Record<string, string> = {
   open: '#3462EE', won: '#E2FF8D', lost: '#EF4444', abandoned: '#6B7280',
 }
@@ -194,7 +192,6 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }, [pipelines, pipelineOpps, selectedPipeline])
 
   // ── Pie: répartition par statut ──────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const statusPieData = useMemo(() => {
     const counts = { open: 0, won: 0, lost: 0, abandoned: 0 }
     pipelineOpps.forEach(o => { if (o.status in counts) counts[o.status as keyof typeof counts]++ })
@@ -208,7 +205,6 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }, [pipelineOpps])
 
   // ── Pie: répartition par pipeline ────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const pipelinePieData = useMemo(() => {
     const PIPELINE_COLORS = ['#3462EE', '#F97316', '#22c55e', '#8B5CF6', '#EC4899']
     const total = opportunities.length || 1
@@ -221,24 +217,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
     })
   }, [opportunities, pipelines])
 
-  // ── Pie: répartition par source ──────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const sourcePieData = useMemo(() => {
-    const counts: Record<string, number> = {}
-    pipelineOpps.forEach(o => {
-      // GHL source field may not be populated — group as 'Non défini'
-      const src = (o as unknown as { source?: string }).source || 'Non défini'
-      counts[src] = (counts[src] || 0) + 1
-    })
-    const total = pipelineOpps.length || 1
-    const COLORS = ['#3462EE', '#4A91A8', '#E2FF8D', '#F97316', '#8B5CF6', '#EC4899', '#22c55e', '#9CA3AF']
-    return Object.entries(counts).map(([name, value], i) => ({
-      name, value, color: COLORS[i % COLORS.length], pct: Math.round(value / total * 100),
-    })).sort((a, b) => b.value - a.value)
-  }, [pipelineOpps])
-
   // ── Leads par heure ──────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const hourlyData = useMemo(() => {
     const counts = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: 0 }))
     periodOpps.forEach(o => {
@@ -470,6 +449,81 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
             )}
           </div>
 
+        </div>
+
+        {/* ── Section 5 : Donuts ── */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            {
+              title: 'Par statut',
+              data: statusPieData,
+            },
+            {
+              title: 'Par pipeline',
+              data: pipelinePieData.map((d, i) => ({ ...d, color: DONUT_PALETTE[i % DONUT_PALETTE.length] })),
+            },
+            {
+              title: 'Par source',
+              data: sourceData.map((d, i) => ({ name: d.name, value: d.count, pct: d.pct, color: DONUT_PALETTE[i % DONUT_PALETTE.length] })),
+            },
+          ].map(card => (
+            <div key={card.title} className="bg-[#2E2E2E] rounded-2xl p-4">
+              <span className="text-[11px] font-bold text-white block mb-4">{card.title}</span>
+              <div className="flex items-center gap-3">
+                <SvgDonut data={card.data} />
+                <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                  {card.data.filter(d => d.value > 0).map(d => (
+                    <div key={d.name} className="flex items-center justify-between gap-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: d.color }} />
+                        <span className="text-[9px] text-[#888] truncate">{d.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <span className="text-[9px] font-bold text-white">{d.value}</span>
+                        <span className="text-[9px] text-[#555]">{d.pct}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Section 6 : Table ── */}
+        <div className="bg-[#2E2E2E] rounded-2xl overflow-hidden">
+          <div className="flex items-center px-4 py-2.5 border-b border-[#323232]">
+            <span className="text-[8px] font-bold text-[#555] uppercase tracking-wider flex-1">Étape</span>
+            <span className="text-[8px] font-bold text-[#555] uppercase tracking-wider w-32">Volume</span>
+            <span className="text-[8px] font-bold text-[#555] uppercase tracking-wider w-14 text-right">Leads</span>
+            <span className="text-[8px] font-bold text-[#555] uppercase tracking-wider w-20 text-right">Valeur</span>
+            <span className="text-[8px] font-bold text-[#555] uppercase tracking-wider w-10 text-right">%</span>
+          </div>
+          {funnelData.length === 0 ? (
+            <p className="text-[11px] text-[#555] text-center py-6">Aucune donnée</p>
+          ) : (
+            funnelData.map((stage, i) => (
+              <div key={stage.id}
+                className="flex items-center px-4 py-2.5 border-b border-[#323232] last:border-0"
+                style={{ background: i % 2 === 1 ? '#282828' : undefined }}
+              >
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: stage.color }} />
+                  <span className="text-[10px] text-[#999] truncate">{stage.name}</span>
+                </div>
+                <div className="w-32 pr-3">
+                  <div className="h-1 bg-[#3A3A3A] rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${stage.pct}%`, background: stage.color }} />
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-white w-14 text-right">{stage.count}</span>
+                <span className="text-[10px] text-[#555] w-20 text-right">{stage.value > 0 ? fmt(stage.value) : '—'}</span>
+                <span className="text-[10px] font-bold w-10 text-right" style={{ color: stage.pctTotal > 30 ? '#E2FF8D' : '#fff' }}>
+                  {stage.pctTotal}%
+                </span>
+              </div>
+            ))
+          )}
         </div>
 
       </div>
