@@ -6,6 +6,8 @@ import { type GHLContact } from '@/lib/ghl'
 
 export const dynamic = 'force-dynamic'
 
+export type ContactPipelineInfo = { pipelineName: string; stageName: string; pipelineId: string }
+
 export default async function ContactsPage() {
   let contacts: GHLContact[] = []
   let attributions: Map<string, string> = new Map()
