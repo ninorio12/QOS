@@ -1,5 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
+import * as fs from 'fs'
+import path from 'path'
 import { config, type AgentName } from './config'
 import { eventBus }               from './EventBus'
 import { SessionManager }          from './sessions/SessionManager'
@@ -13,6 +15,7 @@ import { bots }                   from './telegram/bots'
 import { makeWebhooksRouter }     from './routes/webhooks'
 import { makeSessionsRouter }     from './routes/sessions'
 import { makeEventsRouter }       from './routes/events'
+import { makeSoulRouter }         from './routes/soul'
 
 async function main() {
   // ── Init 3 agent sessions ────────────────────────────────────
@@ -36,6 +39,33 @@ async function main() {
     session.registerTool('log_interaction', logTool.definition,       logTool.executor)
   }
 
+  // ── Soren-only: update_soul tool (used in weekly self-improvement) ──
+  const soulDir = path.join(__dirname, '../../.agents')
+  sessions.soren.registerTool(
+    'update_soul',
+    {
+      description: 'Apply an approved SOUL.md update to Kai or Mia — saves to disk and activates immediately',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          agent:   { type: 'string', enum: ['kai', 'mia'], description: 'Which agent to update' },
+          content: { type: 'string', description: 'Complete new SOUL.md content' },
+        },
+        required: ['agent', 'content'],
+      },
+    },
+    async (input) => {
+      const agent   = input.agent as 'kai' | 'mia'
+      const content = String(input.content)
+      fs.writeFileSync(path.join(soulDir, agent, 'SOUL.md'), content, 'utf-8')
+      sessions[agent].updateSoul(content)
+      const { createClient } = await import('@supabase/supabase-js')
+      const sb = createClient(config.supabase.url, config.supabase.serviceKey)
+      await sb.from('soul_versions').insert({ agent, content, author: 'soren' })
+      return { ok: true, agent, message: `${agent} SOUL.md updated and active` }
+    }
+  )
+
   // ── Register Telegram webhooks (production only) ─────────────
   if (config.vpsDomain && process.env.NODE_ENV === 'production') {
     await Promise.all([
@@ -53,6 +83,7 @@ async function main() {
   app.use('/webhooks', makeWebhooksRouter(sessions))
   app.use('/sessions', makeSessionsRouter(sessions))
   app.use('/events',   makeEventsRouter())
+  app.use('/agents',   makeSoulRouter(sessions))
 
   app.get('/health', (_req, res) => {
     res.json({ ok: true, agents: Object.keys(sessions), uptime: process.uptime() })
