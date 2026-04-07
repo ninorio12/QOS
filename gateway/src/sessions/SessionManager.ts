@@ -14,6 +14,7 @@ export class SessionManager {
   private client:  Anthropic
   private history: MessageParam[] = []
   private tools    = new Map<string, ToolEntry>()
+  private disabledTools = new Map<string, ToolEntry>()
   private agentCfg: { model: string; soul: string; skills: readonly string[] }
 
   constructor(private name: AgentName) {
@@ -101,5 +102,28 @@ export class SessionManager {
   /** Replace this agent's SOUL.md content live — used by weekly self-improvement */
   updateSoul(newContent: string): void {
     this.agentCfg = { ...this.agentCfg, soul: newContent }
+  }
+
+  /** Remove a tool from the active tools map (kept in disabledTools for re-enable) */
+  disableTool(name: string): void {
+    const entry = this.tools.get(name)
+    if (entry) {
+      this.disabledTools.set(name, entry)
+      this.tools.delete(name)
+    }
+  }
+
+  /** Restore a previously disabled tool */
+  enableTool(name: string): void {
+    const entry = this.disabledTools.get(name)
+    if (entry) {
+      this.tools.set(name, entry)
+      this.disabledTools.delete(name)
+    }
+  }
+
+  /** Returns names of all currently active (not disabled) tools */
+  getActiveToolNames(): string[] {
+    return Array.from(this.tools.keys())
   }
 }

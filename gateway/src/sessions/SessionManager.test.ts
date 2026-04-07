@@ -72,4 +72,30 @@ describe('SessionManager', () => {
       system: 'You are a NEW version of Kai',
     }))
   })
+
+  it('disableTool removes a tool from active tools', async () => {
+    const { SessionManager } = await import('./SessionManager')
+    const sm = new SessionManager('kai')
+    sm.registerTool(
+      'test_tool',
+      { description: 'test', input_schema: { type: 'object' as const, properties: {} } },
+      async () => ({})
+    )
+    expect(sm.getActiveToolNames()).toContain('test_tool')
+    sm.disableTool('test_tool')
+    expect(sm.getActiveToolNames()).not.toContain('test_tool')
+  })
+
+  it('enableTool restores a previously disabled tool', async () => {
+    const { SessionManager } = await import('./SessionManager')
+    const sm = new SessionManager('kai')
+    sm.registerTool(
+      'test_tool',
+      { description: 'test', input_schema: { type: 'object' as const, properties: {} } },
+      async () => ({})
+    )
+    sm.disableTool('test_tool')
+    sm.enableTool('test_tool')
+    expect(sm.getActiveToolNames()).toContain('test_tool')
+  })
 })
