@@ -1,9 +1,28 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { type Conversation, LEAD_STAGE_LABEL } from './types'
+import { type Conversation, LEAD_STAGE_LABEL, CHANNEL_META } from './types'
 import { type InboxFilter } from './InboxNav'
 import NewConversationModal from './NewConversationModal'
+import { getAvatarColor } from '@/components/contacts/types'
+import { Mail, Phone, MessageSquare, Bot } from 'lucide-react'
+
+function ChannelIcon({ channel }: { channel: Conversation['channel'] }) {
+  const meta = CHANNEL_META[channel]
+  if (channel === 'whatsapp') return (
+    <span className="text-[9px] font-bold px-1 py-0.5 rounded" style={{ background: meta.color + '20', color: meta.color }}>WA</span>
+  )
+  if (channel === 'sms') return (
+    <MessageSquare size={10} style={{ color: meta.color }} />
+  )
+  if (channel === 'email') return (
+    <Mail size={10} style={{ color: meta.color }} />
+  )
+  if (channel === 'phone') return (
+    <Phone size={10} style={{ color: meta.color }} />
+  )
+  return <span className="text-[9px] text-[#9CA3AF]">{meta.label}</span>
+}
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -16,16 +35,6 @@ function timeAgo(iso: string) {
   return "à l'instant"
 }
 
-function getInitials(name?: string) {
-  if (!name) return '??'
-  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
-}
-
-function getClosedBorderColor(conv: Conversation): string {
-  if (conv.opportunity_status === 'won') return '#22c55e'
-  if (conv.opportunity_status === 'lost' || conv.opportunity_status === 'abandoned') return '#EF4444'
-  return 'transparent'
-}
 
 function ConvRow({
   conv,
@@ -36,22 +45,26 @@ function ConvRow({
   isSelected: boolean
   onClick: () => void
 }) {
-  const initials   = getInitials(conv.contact_name)
-  const stageLabel = conv.lead_stage ? LEAD_STAGE_LABEL[conv.lead_stage] : null
-  const closedColor = getClosedBorderColor(conv)
+  const name      = conv.contact_name ?? 'Contact inconnu'
+  const initials  = (name.split(' ').map(w => w[0]).join('').slice(0, 2) || '??').toUpperCase()
+  const color     = getAvatarColor(initials)
+  const isDark    = color === '#C8F135' || color === '#EFE347'
+  const closedColor = conv.opportunity_status === 'won' ? '#22c55e'
+    : conv.opportunity_status === 'lost' || conv.opportunity_status === 'abandoned' ? '#EF4444'
+    : 'transparent'
   const borderColor = isSelected ? '#3462EE' : closedColor
 
   return (
     <button
       onClick={onClick}
-      className={`
-        w-full text-left px-4 py-3.5 flex items-start gap-3 transition-colors border-b border-[#EBEBEA] last:border-0
-        ${isSelected ? 'bg-white' : 'hover:bg-[#EFEFED]'}
-      `}
+      className={`w-full text-left px-4 py-3.5 flex items-start gap-3 transition-colors border-b border-[#EBEBEA] last:border-0 ${isSelected ? 'bg-white' : 'hover:bg-[#EFEFED]'}`}
       style={{ borderLeft: `2px solid ${borderColor}` }}
     >
       {/* Avatar */}
-      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#3462EE] to-[#4A91A8] flex items-center justify-center text-xs font-bold text-white flex-shrink-0 mt-0.5">
+      <div
+        className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5"
+        style={{ background: color, color: isDark ? '#111111' : '#ffffff' }}
+      >
         {initials}
       </div>
 
@@ -60,42 +73,31 @@ function ConvRow({
         <div className="flex items-center justify-between gap-1 mb-0.5">
           <div className="flex items-center gap-1.5 min-w-0">
             <p className={`text-sm font-semibold truncate ${closedColor !== 'transparent' && !isSelected ? 'text-[#6B7280]' : 'text-[#111111]'}`}>
-              {conv.contact_name ?? 'Contact inconnu'}
+              {name}
             </p>
-            {closedColor !== 'transparent' && !isSelected && (
-              <span
-                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: closedColor }}
-              />
-            )}
           </div>
-          <span className="text-[10px] text-[#9CA3AF] flex-shrink-0">
-            {conv.last_message_at ? timeAgo(conv.last_message_at) : ''}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1.5 mb-1">
-          {stageLabel && (
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[#3462EE]/10 text-[#3462EE]">
-              {stageLabel}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <ChannelIcon channel={conv.channel} />
+            <span className="text-[10px] text-[#9CA3AF]">
+              {conv.last_message_at ? timeAgo(conv.last_message_at) : ''}
             </span>
-          )}
-          {conv.source === 'meta' && (
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[#3462EE]/10 text-[#3462EE]">
-              Meta
-            </span>
-          )}
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs text-[#6B7280] truncate flex-1">
             {conv.last_message ?? 'Aucun message'}
           </p>
-          {(conv.unread ?? 0) > 0 && (
-            <span className="flex-shrink-0 w-4 h-4 rounded-full bg-[#3462EE] flex items-center justify-center text-[9px] font-bold text-white">
-              {conv.unread}
-            </span>
-          )}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {conv.ai_enabled && (
+              <Bot size={11} className="text-[#8B5CF6]" />
+            )}
+            {(conv.unread ?? 0) > 0 && (
+              <span className="w-4 h-4 rounded-full bg-[#3462EE] flex items-center justify-center text-[9px] font-bold text-white">
+                {conv.unread}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </button>
