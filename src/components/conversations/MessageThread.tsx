@@ -90,7 +90,7 @@ export default function MessageThread({ conversation, aiEnabled, onAiToggle }: P
     setIsLoading(true)
     setMessages([])
     setStreaming(null)
-    getMessages(conversation.id).then(result => {
+    void getMessages(conversation.id).then(result => {
       if (result.messages && result.messages.length > 0) {
         setMessages(result.messages as Message[])
       } else {
