@@ -179,7 +179,7 @@ export default function ComposerBar({ conversation, onMessageSent, onAiToggle, a
 
         {/* Send button */}
         <button
-          onClick={handleSend}
+          onClick={() => void handleSend()}
           disabled={!input.trim() || sending || disabled}
           className="flex-shrink-0 w-9 h-9 rounded-xl bg-[#111111] hover:bg-[#222] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
         >
