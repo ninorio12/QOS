@@ -6,6 +6,7 @@ import { Phone, ExternalLink, ChevronDown } from 'lucide-react'
 import { type Conversation, type Message, CHANNEL_META } from './types'
 import { getAvatarColor } from '@/components/contacts/types'
 import KaiAnalysis from './KaiAnalysis'
+import { useClickOutside } from '@/hooks/useClickOutside'
 
 const AGENT_OPTIONS = [
   { name: 'Kai',   color: '#3462EE' },
@@ -25,6 +26,7 @@ interface Props {
 export default function ConversationPanel({ conversation, messages, aiEnabled, onAiToggle }: Props) {
   const [agent,     setAgent]     = useState<AgentName>('Kai')
   const [agentOpen, setAgentOpen] = useState(false)
+  const agentDropdownRef = useClickOutside<HTMLDivElement>(() => setAgentOpen(false))
 
   const name     = conversation.contact_name ?? 'Contact inconnu'
   const initials = (name.split(' ').map(w => w[0]).join('').slice(0, 2) || '??').toUpperCase()
@@ -100,7 +102,7 @@ export default function ConversationPanel({ conversation, messages, aiEnabled, o
         <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wide mb-3">Agent IA</p>
 
         {/* Agent selector */}
-        <div className="relative mb-3">
+        <div ref={agentDropdownRef} className="relative mb-3">
           <button
             onClick={() => setAgentOpen(v => !v)}
             className="w-full flex items-center justify-between px-3 py-2 bg-[#F9F9F7] border border-[#E5E7EB] rounded-xl text-sm font-semibold transition-colors hover:border-[#D1D5DB]"
@@ -139,6 +141,8 @@ export default function ConversationPanel({ conversation, messages, aiEnabled, o
             onClick={() => onAiToggle(!aiEnabled)}
             className="relative w-10 h-5 rounded-full transition-colors flex-shrink-0"
             style={{ background: aiEnabled ? '#8B5CF6' : '#D1D5DB' }}
+            aria-label={aiEnabled ? 'Désactiver la réponse automatique' : 'Activer la réponse automatique'}
+            aria-pressed={aiEnabled}
           >
             <span
               className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"

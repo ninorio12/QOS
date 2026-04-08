@@ -82,6 +82,7 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
         setSummary(fullText)
       }
       fullText += dec.decode()
+      setSummary(fullText.replace(/SCORE:\d+\n?/, '').trim())
 
       // Parse score from response — format attendu: "SCORE:72\n..."
       const scoreMatch = fullText.match(/SCORE:(\d+)/)
@@ -117,6 +118,7 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
         setSuggestion(suggText)
       }
       suggText += dec.decode()
+      setSuggestion(suggText.trim())
 
       // ─── 3. Prochaine action ──────────────────────────────────
       setStreamingField('action')
@@ -143,21 +145,22 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
         setNextAction(actionText)
       }
       actionText += dec.decode()
+      setNextAction(actionText.trim())
 
       setStreamingField(null)
       setState('done')
     } catch (err) {
-      console.error('[KaiAnalysis]', err)
+      if (process.env.NODE_ENV !== 'production') console.error('[KaiAnalysis]', err)
       setState('error')
       setStreamingField(null)
     }
   }, [conversation, messages])
 
-  async function copySuggestion() {
+  const copySuggestion = useCallback(async () => {
     await navigator.clipboard.writeText(suggestion)
     setCopiedSuggestion(true)
     setTimeout(() => setCopiedSuggestion(false), 2000)
-  }
+  }, [suggestion])
 
   return (
     <div className="flex flex-col h-full overflow-y-auto px-5 py-5 gap-4">
@@ -167,7 +170,7 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
           <div>
             <p className="text-sm font-semibold text-[#111111]">Analyse Kai</p>
             <p className="text-xs text-[#6B7280]">
-              {conversation.contact_name ?? 'Contact'} · {conversation.contact_company ?? ''}
+              {conversation.contact_name ?? 'Contact'}{conversation.contact_company ? ` · ${conversation.contact_company}` : ''}
             </p>
           </div>
           <button
@@ -233,7 +236,7 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
                   {state === 'done' && (
                     <div className="flex gap-2">
                       <button
-                        onClick={copySuggestion}
+                        onClick={() => { copySuggestion().catch(() => {}) }}
                         className="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-[#E5E7EB] text-[#6B7280] hover:border-[#111111] hover:text-[#111111] transition-colors"
                       >
                         {copiedSuggestion ? 'Copié !' : 'Copier'}
