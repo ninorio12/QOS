@@ -31,7 +31,7 @@ export default async function WorkflowsPage() {
   return (
     <WorkflowsView
       workflows={workflows}
-      chatbot={{
+      escalade={{
         initialSystemPrompt: soul?.content ?? SYSTEM_PROMPT_DEFAULT,
         initialAutoResponse: (settings.auto_response as boolean) ?? true,
         initialBudgetMin:    (settings.budget_min as number) ?? 5000,
