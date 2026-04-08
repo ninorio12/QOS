@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { type Conversation, LEAD_STAGE_LABEL, CHANNEL_META } from './types'
+import { type Conversation, CHANNEL_META } from './types'
 import { type InboxFilter } from './InboxNav'
 import NewConversationModal from './NewConversationModal'
 import { getAvatarColor } from '@/components/contacts/types'
