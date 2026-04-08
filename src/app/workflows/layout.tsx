@@ -6,7 +6,7 @@ export default function WorkflowsLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen bg-[#EEF0EB]">
       <Sidebar />
       <Header />
-      <main className="ml-60 pt-14 h-screen overflow-hidden">
+      <main className="ml-60 pt-14 min-h-screen overflow-y-auto">
         {children}
       </main>
     </div>

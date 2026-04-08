@@ -32,7 +32,6 @@ const AGENTIQUE: NavItem[] = [
 
 const CONFIGURATION: NavItem[] = [
   { href: '/budget',     icon: Wallet,   label: 'Budget' },
-  { href: '/chatbot',    icon: Bot,      label: 'Chatbot' },
   { href: '/parametres', icon: Settings, label: 'Paramètres' },
 ]
 
