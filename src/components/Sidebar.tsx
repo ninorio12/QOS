@@ -3,86 +3,121 @@
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
-  LayoutDashboard,
-  GitMerge,
-  Users,
-  MessageSquare,
-  TrendingUp,
-  Bot,
-  FolderKanban,
-  Settings,
-  Bell,
+  LayoutDashboard, GitMerge, Users, MessageSquare, CalendarDays,
+  TrendingUp, BotMessageSquare, CheckSquare,
+  ScrollText, Database, Wallet, Settings, LogOut, GitBranch,
 } from 'lucide-react'
 import Image from 'next/image'
+import { logout } from '@/app/login/actions'
 
-const navItems = [
-  { href: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/pipeline',       icon: GitMerge,        label: 'Pipeline' },
-  { href: '/contacts',       icon: Users,           label: 'Contacts' },
-  { href: '/conversations',  icon: MessageSquare,   label: 'Conversations' },
-  { href: '/growth',         icon: TrendingUp,      label: 'Growth' },
-  { href: '/agent',          icon: Bot,             label: 'Agent IA' },
-  { href: '/projects',       icon: FolderKanban,    label: 'Projects' },
+type NavItem = { href: string; icon: React.ElementType; label: string; also?: string[] }
+
+const ACQUISITION: NavItem[] = [
+  { href: '/dashboard',     icon: LayoutDashboard, label: 'Tableau de bord' },
+  { href: '/pipeline',      icon: GitMerge,        label: 'Prospects' },
+  { href: '/contacts',      icon: Users,           label: 'Contacts' },
+  { href: '/conversations', icon: MessageSquare,   label: 'Conversations', also: ['/conversion'] },
+  { href: '/calendrier',    icon: CalendarDays,    label: 'Calendrier' },
+  { href: '/analyse',       icon: TrendingUp,      label: 'Analyse', also: ['/growth'] },
 ]
+
+const AGENTIQUE: NavItem[] = [
+  { href: '/equipe',     icon: BotMessageSquare, label: 'Équipe IA' },
+  { href: '/taches',     icon: CheckSquare,      label: 'Tâches' },
+  { href: '/logs',       icon: ScrollText,       label: 'Logs' },
+  { href: '/knowledge',  icon: Database,         label: 'Base de connaissance' },
+  { href: '/workflows',  icon: GitBranch,        label: 'Workflows' },
+]
+
+const CONFIGURATION: NavItem[] = [
+  { href: '/budget',     icon: Wallet,   label: 'Budget' },
+  { href: '/parametres', icon: Settings, label: 'Paramètres' },
+]
+
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 px-2.5 mt-4 mb-0.5">
+      {label}
+    </p>
+  )
+}
+
+function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+  const { href, icon: Icon, label, also = [] } = item
+  const active =
+    pathname === href ||
+    (href !== '/dashboard' && pathname.startsWith(href)) ||
+    also.some(a => pathname.startsWith(a))
+
+  return (
+    <Link
+      href={href}
+      className={`
+        flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl transition-all duration-150
+        ${active
+          ? 'bg-[#E2FF8D] text-[#111111] shadow-sm'
+          : 'text-white/50 hover:text-white/90 hover:bg-white/8'
+        }
+      `}
+    >
+      <Icon size={14} strokeWidth={active ? 2.5 : 1.8} className="flex-shrink-0" />
+      <span className={`text-[13px] truncate ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
+    </Link>
+  )
+}
 
 export default function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-16 bg-[#1C2333] border-r border-[#232D3F] flex flex-col items-center py-5 z-50">
+    <aside className="fixed left-3 top-3 bottom-3 w-56 bg-[#111111] rounded-2xl flex flex-col z-50 overflow-hidden shadow-xl">
       {/* Logo */}
-      <Link href="/dashboard" className="mb-8 flex-shrink-0">
+      <Link href="/dashboard" className="flex items-center gap-2.5 px-4 py-4 flex-shrink-0">
         <Image
-          src="/logo-icon.png"
-          alt="Qorpo"
-          width={34}
-          height={34}
+          src="/soren-logo.png"
+          alt="Soren"
+          width={28}
+          height={28}
           priority
-          className="object-contain"
+          className="object-contain rounded-lg flex-shrink-0"
         />
+        <span className="text-white font-bold text-[14px] tracking-tight">Soren</span>
       </Link>
 
       {/* Nav */}
-      <nav className="flex flex-col items-center gap-1 flex-1">
-        {navItems.map(({ href, icon: Icon, label }) => {
-          const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
-          return (
-            <Link
-              key={href}
-              href={href}
-              title={label}
-              className={`
-                w-10 h-10 rounded-xl flex items-center justify-center transition-all group relative
-                ${active
-                  ? 'bg-[#3462EE]/20 text-[#3462EE]'
-                  : 'text-[#3D4F6B] hover:text-[#8896AB] hover:bg-[#232D3F]'
-                }
-              `}
-            >
-              <Icon size={18} strokeWidth={active ? 2.5 : 1.8} />
-              {active && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#3462EE] rounded-r-full -ml-px" />
-              )}
-              {/* Tooltip */}
-              <span className="absolute left-14 bg-[#1A2235] text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap border border-[#232D3F] transition-opacity z-50">
-                {label}
-              </span>
-            </Link>
-          )
-        })}
+      <nav className="flex flex-col flex-1 px-2 pb-2 overflow-y-auto scrollbar-none">
+        <SectionLabel label="Acquisition" />
+        {ACQUISITION.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
+        <SectionLabel label="Agentique" />
+        {AGENTIQUE.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
+        <SectionLabel label="Configuration" />
+        {CONFIGURATION.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
       </nav>
+      {/* Bottom fade */}
+      <div
+        className="pointer-events-none absolute bottom-14 left-0 right-0 h-10"
+        style={{ background: 'linear-gradient(to bottom, transparent, #111111)' }}
+      />
 
-      {/* Bottom */}
-      <div className="flex flex-col items-center gap-1">
-        <button title="Notifications" className="w-10 h-10 rounded-xl flex items-center justify-center text-[#3D4F6B] hover:text-[#8896AB] hover:bg-[#232D3F] transition-all">
-          <Bell size={18} strokeWidth={1.8} />
-        </button>
-        <Link href="/settings" title="Paramètres" className="w-10 h-10 rounded-xl flex items-center justify-center text-[#3D4F6B] hover:text-[#8896AB] hover:bg-[#232D3F] transition-all">
-          <Settings size={18} strokeWidth={1.8} />
-        </Link>
-        {/* Avatar */}
-        <div className="mt-3 w-8 h-8 rounded-full bg-gradient-to-br from-[#3462EE] to-[#4A91A8] flex items-center justify-center text-xs font-bold text-white">
-          Q
+      {/* Avatar + Logout */}
+      <div className="px-3 pt-2 pb-3 flex-shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-[#E2FF8D] flex items-center justify-center text-[11px] font-bold text-[#111111] flex-shrink-0">
+            T
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-white text-[12px] font-semibold truncate">Thomas</p>
+            <p className="text-white/40 text-[10px]">Admin · Pro</p>
+          </div>
+          <form action={logout}>
+            <button
+              type="submit"
+              data-tooltip="Déconnexion"
+              className="w-6 h-6 flex items-center justify-center rounded-lg text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors"
+            >
+              <LogOut size={12} />
+            </button>
+          </form>
         </div>
       </div>
     </aside>

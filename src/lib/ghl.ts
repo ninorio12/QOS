@@ -39,6 +39,15 @@ export const getOpportunities = unstable_cache(
   { revalidate: 120, tags: ['ghl-opportunities'] }
 )
 
+export const getUsers = unstable_cache(
+  async () => {
+    const data = await ghlFetch(`/users/?locationId=${ghlLocationId()}`)
+    return (data.users ?? []) as GHLUser[]
+  },
+  ['ghl-users'],
+  { revalidate: 3600, tags: ['ghl-users'] }
+)
+
 export const getPipelines = unstable_cache(
   async () => {
     const data = await ghlFetch(`/opportunities/pipelines?locationId=${ghlLocationId()}`)
@@ -62,6 +71,7 @@ export async function sendGHLMessage(
   message: string,
   type: 'WhatsApp' | 'SMS' | 'Email',
   subject?: string,
+  contactId?: string,
 ) {
   const apiKey  = process.env.GHL_API_KEY!
   const baseUrl = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'
@@ -71,7 +81,8 @@ export async function sendGHLMessage(
     conversationId,
     message,
   }
-  if (subject) payload.subject = subject
+  if (subject)   payload.subject   = subject
+  if (contactId) payload.contactId = contactId
 
   const res = await fetch(`${baseUrl}/conversations/messages`, {
     method: 'POST',
@@ -128,16 +139,25 @@ export type GHLContact = {
   type?:          string | null
 }
 
+export type GHLUser = {
+  id:        string
+  name:      string
+  firstName: string | null
+  lastName:  string | null
+  email:     string
+}
+
 export type GHLOpportunity = {
   id: string
   name: string
   monetaryValue: number
   pipelineId: string
   pipelineStageId: string
+  assignedTo?: string | null
   status: 'open' | 'won' | 'lost' | 'abandoned'
   createdAt: string
   updatedAt: string
-  contact: { id: string; name: string; email: string | null; phone: string | null } | null
+  contact: { id: string; name: string; email: string | null; phone: string | null; tags?: string[] } | null
 }
 
 export type GHLPipelineStage = {
@@ -188,3 +208,20 @@ export type GHLConversation = {
   dateUpdated: number             // Unix ms timestamp
   assignedTo?: string | null
 }
+
+export type GHLWorkflow = {
+  id:        string
+  name:      string
+  status:    'published' | 'draft'
+  createdAt: string
+  updatedAt: string
+}
+
+export const getWorkflows = unstable_cache(
+  async () => {
+    const data = await ghlFetch(`/workflows/?locationId=${ghlLocationId()}`)
+    return (data.workflows ?? []) as GHLWorkflow[]
+  },
+  ['ghl-workflows'],
+  { revalidate: 300, tags: ['ghl-workflows'] }
+)
