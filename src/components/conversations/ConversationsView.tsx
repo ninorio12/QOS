@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { type Conversation, type Pipeline, MOCK_CONVERSATIONS } from './types'
+import { type Conversation, type Pipeline, type Message, MOCK_CONVERSATIONS } from './types'
 import ConversationList from './ConversationList'
 import MessageThread from './MessageThread'
 import ConversationPanel from './ConversationPanel'
-import { type Message } from './types'
 import { getMessages } from '@/app/conversations/actions'
 import { fetchJSON } from '@/lib/fetchJSON'
 
@@ -23,16 +22,23 @@ export default function ConversationsView({ dbConversations, pipelines }: Props)
   }, [dbConversations])
 
   const [selected,  setSelected]  = useState<Conversation | null>(allConversations[0] ?? null)
-  const [aiEnabled, setAiEnabled] = useState<boolean>(allConversations[0]?.ai_enabled ?? true)
+  const [aiEnabled, setAiEnabled] = useState(allConversations[0]?.ai_enabled ?? true)
   const [messages,  setMessages]  = useState<Message[]>([])
 
   // Sync aiEnabled and load messages when conversation changes
   useEffect(() => {
     if (!selected) return
     setAiEnabled(selected.ai_enabled ?? true)
+
+    let isMounted = true
     void getMessages(selected.id).then(result => {
-      setMessages((result.messages ?? []) as Message[])
+      if (!isMounted) return
+      setMessages(Array.isArray(result.messages) ? result.messages : [])
+    }).catch(() => {
+      if (isMounted) setMessages([])
     })
+
+    return () => { isMounted = false }
   }, [selected?.id])
 
   async function handleAiToggle(enabled: boolean) {
@@ -67,19 +73,19 @@ export default function ConversationsView({ dbConversations, pipelines }: Props)
       />
 
       {/* ── Col 2: Thread ── */}
-      <div className="flex-1 min-w-0 overflow-hidden">
+      <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
         {selected ? (
           <>
             {/* Header */}
             <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[#E5E7EB] bg-white flex-shrink-0">
               <div>
-                <p className="text-sm font-bold text-[#111111]">{selected.contact_name ?? 'Contact inconnu'}</p>
+                <h2 className="text-sm font-bold text-[#111111]">{selected.contact_name ?? 'Contact inconnu'}</h2>
                 {selected.contact_company && (
                   <p className="text-xs text-[#6B7280]">{selected.contact_company}</p>
                 )}
               </div>
             </div>
-            <div className="h-[calc(100%-57px)]">
+            <div className="flex-1 min-h-0">
               <MessageThread
                 conversation={selected}
                 aiEnabled={aiEnabled}
