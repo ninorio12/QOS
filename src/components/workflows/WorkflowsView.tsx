@@ -60,7 +60,7 @@ function WorkflowsTab({ workflows }: { workflows: GHLWorkflow[] }) {
         </div>
       )}
       <p className="mt-6 text-xs text-[#6B7280] text-center">
-        Les workflows se configurent directement dans GoHighLevel. Cette vue est en lecture seule.
+        Les workflows N8N connectés apparaîtront ici. Les automatisations GHL restent dans GoHighLevel.
       </p>
     </div>
   )
@@ -215,8 +215,8 @@ export default function WorkflowsView({ workflows, chatbot }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('workflows')
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: 'workflows', label: 'Workflows GHL', icon: Zap },
-    { id: 'chatbot',   label: 'Chatbot IA',    icon: Bot },
+    { id: 'workflows', label: 'Workflows N8N', icon: Zap },
+    { id: 'chatbot',   label: 'Escalade IA',   icon: Bot },
   ]
 
   return (
@@ -224,7 +224,7 @@ export default function WorkflowsView({ workflows, chatbot }: Props) {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#111111]">Automatisation</h1>
-        <p className="text-[#6B7280] text-sm mt-1">Workflows GHL et configuration du chatbot IA</p>
+        <p className="text-[#6B7280] text-sm mt-1">Workflows N8N et configuration de l'escalade IA</p>
       </div>
 
       {/* Tabs */}
