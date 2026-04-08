@@ -25,7 +25,7 @@ const ACQUISITION: NavItem[] = [
 const AGENTIQUE: NavItem[] = [
   { href: '/equipe',     icon: BotMessageSquare, label: 'Équipe IA' },
   { href: '/taches',     icon: CheckSquare,      label: 'Tâches' },
-  { href: '/logs',       icon: ScrollText,       label: 'Logs' },
+  { href: '/logs',       icon: ScrollText,       label: 'Activités' },
   { href: '/knowledge',  icon: Database,         label: 'Base de connaissance' },
   { href: '/workflows',  icon: GitBranch,        label: 'Workflows' },
 ]
