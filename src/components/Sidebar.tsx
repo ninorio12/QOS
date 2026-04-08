@@ -37,7 +37,7 @@ const CONFIGURATION: NavItem[] = [
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <p className="text-[9px] font-bold uppercase tracking-widest text-white/25 px-3 mt-5 mb-1">
+    <p className="text-[8.5px] font-bold uppercase tracking-widest text-white/25 px-3 mt-3 mb-0.5">
       {label}
     </p>
   )
@@ -54,15 +54,15 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
     <Link
       href={href}
       className={`
-        flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150
+        flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-150
         ${active
           ? 'bg-[#E2FF8D] text-[#111111] shadow-sm'
           : 'text-white/50 hover:text-white/90 hover:bg-white/8'
         }
       `}
     >
-      <Icon size={14} strokeWidth={active ? 2.5 : 1.8} className="flex-shrink-0" />
-      <span className={`text-[12.5px] truncate ${active ? 'font-semibold' : 'font-medium'}`}>{label}</span>
+      <Icon size={13} strokeWidth={active ? 2.5 : 1.8} className="flex-shrink-0" />
+      <span className={`text-[12px] truncate ${active ? 'font-semibold' : 'font-medium'}`}>{label}</span>
     </Link>
   )
 }
@@ -73,22 +73,22 @@ export default function Sidebar() {
   return (
     <aside className="fixed left-3 top-3 bottom-3 w-56 bg-[#111111] rounded-2xl flex flex-col z-50 overflow-hidden shadow-xl">
       {/* Logo */}
-      <Link href="/dashboard" className="flex items-center gap-2.5 px-4 pt-5 pb-3 flex-shrink-0">
+      <Link href="/dashboard" className="flex items-center gap-2.5 px-4 pt-4 pb-2.5 flex-shrink-0">
         <Image
           src="/soren-logo.png"
           alt="Soren"
-          width={26}
-          height={26}
+          width={24}
+          height={24}
           priority
           className="object-contain rounded-lg flex-shrink-0"
         />
-        <span className="text-white font-bold text-[15px] tracking-tight">Soren</span>
+        <span className="text-white font-bold text-[14px] tracking-tight">Soren</span>
       </Link>
 
       <div className="mx-3 h-px bg-white/8 flex-shrink-0" />
 
       {/* Nav */}
-      <nav className="flex flex-col flex-1 px-2 py-1 overflow-y-auto scrollbar-none">
+      <nav className="flex flex-col flex-1 px-2 py-1 overflow-hidden">
         <SectionLabel label="Acquisition" />
         {ACQUISITION.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
 
@@ -107,7 +107,7 @@ export default function Sidebar() {
 
       {/* Avatar + Logout */}
       <div className="mx-3 h-px bg-white/8 flex-shrink-0" />
-      <div className="px-3 py-3 flex-shrink-0">
+      <div className="px-3 py-2.5 flex-shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-full bg-[#E2FF8D] flex items-center justify-center text-[11px] font-bold text-[#111111] flex-shrink-0">
             T
