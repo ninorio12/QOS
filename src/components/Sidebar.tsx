@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   LayoutDashboard, GitMerge, Users, MessageSquare, CalendarDays,
   TrendingUp, BotMessageSquare, CheckSquare,
-  ScrollText, Database, Wallet, Settings, LogOut, GitBranch, Bot,
+  ScrollText, Database, Wallet, Settings, LogOut, GitBranch, Bot, FileText,
 } from 'lucide-react'
 import Image from 'next/image'
 import { logout } from '@/app/login/actions'
@@ -17,6 +17,7 @@ const ACQUISITION: NavItem[] = [
   { href: '/pipeline',      icon: GitMerge,        label: 'Prospects' },
   { href: '/contacts',      icon: Users,           label: 'Contacts' },
   { href: '/conversations', icon: MessageSquare,   label: 'Conversations', also: ['/conversion'] },
+  { href: '/devis',         icon: FileText,        label: 'Devis' },
   { href: '/calendrier',    icon: CalendarDays,    label: 'Calendrier' },
   { href: '/analyse',       icon: TrendingUp,      label: 'Analyse', also: ['/growth'] },
 ]
