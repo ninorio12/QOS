@@ -31,6 +31,8 @@ export type Conversation = {
   contact_name?: string
   contact_company?: string
   contact_phone?: string | null
+  contact_email?: string | null
+  pipeline_stage?: string | null
   last_message?: string
   last_message_at?: string
   unread?: number
@@ -86,83 +88,86 @@ export function getMockAiResponse(): string {
 export const MOCK_CONVERSATIONS: Conversation[] = [
   {
     id: 'c1', user_id: 'u1', lead_id: 'l1', contact_id: null,
-    channel: 'email', subject: 'Devis Résidence Les Chênes',
-    summary: 'Discussion sur le lot gros œuvre',
-    created_at: '2025-03-22T09:00:00Z', updated_at: '2025-03-22T14:30:00Z',
-    contact_name: 'Thomas Mercier', contact_company: 'Bouygues Immobilier',
+    channel: 'email', subject: 'Devis ravalement façade 800m²',
+    summary: 'Discussion sur le projet de rénovation façade',
+    created_at: '2026-04-05T09:00:00Z', updated_at: '2026-04-05T14:30:00Z',
+    contact_name: 'Martin Dupont', contact_company: 'Réno Pro Île-de-France',
     last_message: "Pouvez-vous me confirmer le délai de livraison du devis ?",
-    last_message_at: '2025-03-22T14:30:00Z', unread: 2, lead_stage: 'hot',
+    last_message_at: '2026-04-05T14:30:00Z', unread: 2, lead_stage: 'hot',
   },
   {
     id: 'c2', user_id: 'u1', lead_id: 'l2', contact_id: null,
-    channel: 'whatsapp', subject: 'Lot technique Vinci',
+    channel: 'whatsapp', subject: 'RDV chantier XL BTP',
     summary: 'Négociation en cours',
-    created_at: '2025-03-21T11:00:00Z', updated_at: '2025-03-21T16:00:00Z',
-    contact_name: 'Sophie Laurent', contact_company: 'Vinci Construction',
+    created_at: '2026-04-04T11:00:00Z', updated_at: '2026-04-04T16:00:00Z',
+    contact_name: 'Xavier Lambert', contact_company: 'XL BTP',
     last_message: "OK pour le RDV vendredi à 14h sur le chantier.",
-    last_message_at: '2025-03-21T16:00:00Z', unread: 0, lead_stage: 'vip',
+    last_message_at: '2026-04-04T16:00:00Z', unread: 0, lead_stage: 'vip',
   },
   {
     id: 'c3', user_id: 'u1', lead_id: null, contact_id: null,
-    channel: 'phone', subject: 'Premier contact — Moreau BTP',
+    channel: 'phone', subject: 'Premier contact — BatiSud SARL',
     summary: null,
-    created_at: '2025-03-20T10:30:00Z', updated_at: '2025-03-20T10:45:00Z',
-    contact_name: 'Pierre Moreau', contact_company: 'Moreau BTP',
-    last_message: "Rappeler lundi pour discuter du projet.",
-    last_message_at: '2025-03-20T10:45:00Z', unread: 0, lead_stage: 'new',
+    created_at: '2026-04-03T10:30:00Z', updated_at: '2026-04-03T10:45:00Z',
+    contact_name: 'Sophie Renard', contact_company: 'BatiSud SARL',
+    last_message: "Rappeler vendredi 10h pour discuter du projet de réhabilitation.",
+    last_message_at: '2026-04-03T10:45:00Z', unread: 0, lead_stage: 'new',
   },
   {
     id: 'c4', user_id: 'u1', lead_id: 'l3', contact_id: null,
-    channel: 'meeting', subject: 'Réunion chantier Haussmann',
-    summary: 'Compte-rendu de réunion',
-    created_at: '2025-03-19T14:00:00Z', updated_at: '2025-03-19T15:30:00Z',
-    contact_name: 'Claire Fontaine', contact_company: 'Fontaine & Fils',
-    last_message: "CR réunion : validation des plans, démarrage semaine 14.",
-    last_message_at: '2025-03-19T15:30:00Z', unread: 0, lead_stage: 'client',
+    channel: 'meeting', subject: 'Confirmation RDV visite technique',
+    summary: 'Compte-rendu de visite',
+    created_at: '2026-04-02T14:00:00Z', updated_at: '2026-04-02T15:30:00Z',
+    contact_name: 'Inès Duprez', contact_company: undefined,
+    last_message: "Parfait, je serai disponible. Envoyez-moi un rappel la veille.",
+    last_message_at: '2026-04-02T15:30:00Z', unread: 0, lead_stage: 'client',
   },
   {
     id: 'c5', user_id: 'u1', lead_id: null, contact_id: null,
-    channel: 'email', subject: 'Relance — Girard Immobilier',
+    channel: 'email', subject: 'Devis pose carrelage 85m²',
     summary: null,
-    created_at: '2025-03-18T08:00:00Z', updated_at: '2025-03-18T08:00:00Z',
-    contact_name: 'Lucas Girard', contact_company: 'Girard Immobilier',
-    last_message: "Suite à notre échange du 15 mars, je reviens vers vous...",
-    last_message_at: '2025-03-18T08:00:00Z', unread: 1, lead_stage: 'cold',
+    created_at: '2026-04-01T08:00:00Z', updated_at: '2026-04-01T08:00:00Z',
+    contact_name: 'Didier Fabre', contact_company: 'Fabre Électricité',
+    last_message: "Idéalement en juin, la maison sera disponible à ce moment-là.",
+    last_message_at: '2026-04-01T08:00:00Z', unread: 1, lead_stage: 'cold',
   },
   {
     id: 'c6', user_id: 'u1', lead_id: 'l4', contact_id: null,
-    channel: 'note', subject: 'Notes — Petit & Associés',
+    channel: 'note', subject: 'Notes — Colin Plomberie Chauffage',
     summary: null,
-    created_at: '2025-03-17T16:00:00Z', updated_at: '2025-03-17T16:00:00Z',
-    contact_name: 'Emma Petit', contact_company: 'Petit & Associés',
-    last_message: "Client intéressé par lot électricité. Budget : 45k€.",
-    last_message_at: '2025-03-17T16:00:00Z', unread: 0, lead_stage: 'payments',
+    created_at: '2026-03-31T16:00:00Z', updated_at: '2026-03-31T16:00:00Z',
+    contact_name: 'Marie Colin', contact_company: 'Colin Plomberie Chauffage',
+    last_message: "Cliente intéressée par remplacement chaudière + plomberie. Budget : 12k€.",
+    last_message_at: '2026-03-31T16:00:00Z', unread: 0, lead_stage: 'payments',
   },
 ]
 
 export const MOCK_MESSAGES: Record<string, Message[]> = {
   c1: [
-    { id: 'm1', conversation_id: 'c1', role: 'assistant', content: "Bonjour Thomas,\n\nSuite à notre appel de la semaine dernière, je vous transmets notre offre pour le lot gros œuvre de la Résidence Les Chênes.\n\nNous proposons une intervention complète comprenant fondations, élévation des murs et dalle béton pour un montant estimé à **87 000 € HT**.\n\nCordialement,\nÉquipe Qorpo", created_at: '2025-03-22T09:00:00Z' },
-    { id: 'm2', conversation_id: 'c1', role: 'user', content: "Merci pour votre offre. Le montant semble correct. Pouvez-vous me confirmer le délai de livraison du devis complet avec les plans ?", created_at: '2025-03-22T10:30:00Z' },
-    { id: 'm3', conversation_id: 'c1', role: 'assistant', content: "Bien entendu Thomas. Le devis détaillé avec les plans d'exécution sera disponible d'ici **jeudi 27 mars** au plus tard. Nous inclurons également les fiches techniques des matériaux préconisés.", created_at: '2025-03-22T11:00:00Z' },
-    { id: 'm4', conversation_id: 'c1', role: 'user', content: "Pouvez-vous me confirmer le délai de livraison du devis ?", created_at: '2025-03-22T14:30:00Z' },
+    { id: 'm1', conversation_id: 'c1', role: 'assistant', content: "Bonjour Martin,\n\nSuite à notre appel concernant votre projet de ravalement de façade à Nantes (800 m²), je vous transmets notre offre préliminaire.\n\nNous proposons une intervention complète avec isolation thermique par l'extérieur pour un montant estimé à **45 000 € HT**.\n\nCordialement,\nÉquipe Qorpo", created_at: '2026-04-05T09:00:00Z' },
+    { id: 'm2', conversation_id: 'c1', role: 'user', content: "Merci pour votre offre. Le montant semble en ligne avec notre budget. Pouvez-vous me confirmer le délai de livraison du devis détaillé ?", created_at: '2026-04-05T10:30:00Z' },
+    { id: 'm3', conversation_id: 'c1', role: 'assistant', content: "Bien entendu Martin. Le devis détaillé sera disponible **avant le 5 avril** comme convenu. Nous inclurons les fiches techniques et le planning d'intervention.", created_at: '2026-04-05T11:00:00Z' },
+    { id: 'm4', conversation_id: 'c1', role: 'user', content: "Pouvez-vous me confirmer le délai de livraison du devis ?", created_at: '2026-04-05T14:30:00Z' },
   ],
   c2: [
-    { id: 'm5', conversation_id: 'c2', role: 'user', content: "Bonjour Sophie, je vous contacte au sujet du lot technique du centre commercial Vinci. On peut se voir cette semaine ?", created_at: '2025-03-21T11:00:00Z' },
-    { id: 'm6', conversation_id: 'c2', role: 'assistant', content: "Bonjour ! Oui bien sûr. Jeudi ou vendredi vous convient ?", created_at: '2025-03-21T11:30:00Z' },
-    { id: 'm7', conversation_id: 'c2', role: 'user', content: "Vendredi c'est parfait. 14h sur le chantier ?", created_at: '2025-03-21T14:00:00Z' },
-    { id: 'm8', conversation_id: 'c2', role: 'assistant', content: "OK pour le RDV vendredi à 14h sur le chantier.", created_at: '2025-03-21T16:00:00Z' },
+    { id: 'm5', conversation_id: 'c2', role: 'user', content: "Bonjour Xavier, je vous contacte au sujet de vos 3 chantiers en cours. On peut se voir cette semaine pour discuter du partenariat électricité / plomberie ?", created_at: '2026-04-04T11:00:00Z' },
+    { id: 'm6', conversation_id: 'c2', role: 'assistant', content: "Bonjour ! Oui bien sûr. Jeudi ou vendredi vous convient ?", created_at: '2026-04-04T11:30:00Z' },
+    { id: 'm7', conversation_id: 'c2', role: 'user', content: "Vendredi c'est parfait. 14h sur le chantier ?", created_at: '2026-04-04T14:00:00Z' },
+    { id: 'm8', conversation_id: 'c2', role: 'assistant', content: "OK pour le RDV vendredi à 14h sur le chantier.", created_at: '2026-04-04T16:00:00Z' },
   ],
   c3: [
-    { id: 'm9', conversation_id: 'c3', role: 'user', content: "Appel entrant — Pierre Moreau — 10 min\n\nNotes : Intéressé par une collaboration sur leur prochain chantier à Nantes. Budget estimé 56k€. Rappeler lundi pour discuter du projet.", created_at: '2025-03-20T10:45:00Z' },
+    { id: 'm9', conversation_id: 'c3', role: 'user', content: "Appel entrant — Sophie Renard — 8 min\n\nNotes : Projet réhabilitation bâtiment industriel 1 200 m² → 12 logements à Bordeaux. Dépôt PC mai, démarrage travaux septembre. Budget 320 000 €. Rappeler vendredi 10h.", created_at: '2026-04-03T10:45:00Z' },
   ],
   c4: [
-    { id: 'm10', conversation_id: 'c4', role: 'user', content: "Compte-rendu réunion chantier — 19 mars 2025\n\n**Présents :** Claire Fontaine, Jean-Luc Martin (architecte), équipe Qorpo\n\n**Décisions :**\n- Plans validés\n- Démarrage semaine 14 (7 avril)\n- Budget confirmé : 142 000€ HT\n- Réunion de chantier hebdomadaire le mardi 9h", created_at: '2025-03-19T15:30:00Z' },
+    { id: 'm10', conversation_id: 'c4', role: 'assistant', content: "Bonjour Inès, je vous confirme votre RDV du 2 avril à 14h pour la visite technique de votre appartement.", created_at: '2026-04-02T14:00:00Z' },
+    { id: 'm11', conversation_id: 'c4', role: 'user', content: "Parfait, je serai disponible. Pouvez-vous m'envoyer un rappel la veille ?", created_at: '2026-04-02T14:30:00Z' },
+    { id: 'm12', conversation_id: 'c4', role: 'assistant', content: "Bien sûr, je programme un rappel pour le 1er avril en début de soirée.", created_at: '2026-04-02T15:30:00Z' },
   ],
   c5: [
-    { id: 'm11', conversation_id: 'c5', role: 'assistant', content: "Objet : Suite à notre échange du 15 mars\n\nBonjour Lucas,\n\nSuite à notre échange du 15 mars, je reviens vers vous concernant votre projet de rénovation. Avez-vous eu le temps d'étudier notre proposition ?\n\nJe reste disponible pour tout renseignement complémentaire.\n\nCordialement", created_at: '2025-03-18T08:00:00Z' },
+    { id: 'm13', conversation_id: 'c5', role: 'assistant', content: "Bonjour Didier,\n\nSuite à votre demande de devis pour la pose de carrelage dans votre maison (85 m²), pourriez-vous nous préciser le type de carrelage souhaité et l'état actuel du sol ?\n\nCordialement", created_at: '2026-04-01T08:00:00Z' },
+    { id: 'm14', conversation_id: 'c5', role: 'user', content: "Idéalement en juin, la maison sera disponible à ce moment-là.", created_at: '2026-04-01T08:30:00Z' },
   ],
   c6: [
-    { id: 'm12', conversation_id: 'c6', role: 'user', content: "Note interne\n\nClient intéressé par lot électricité. Budget annoncé : 45k€. Elle souhaite 3 devis comparatifs. Envoyer notre offre avant le 25 mars pour rester dans la course.", created_at: '2025-03-17T16:00:00Z' },
+    { id: 'm15', conversation_id: 'c6', role: 'user', content: "Note interne — Marie Colin\n\nCliente intéressée par remplacement chaudière + réfection plomberie. Budget : 12 000 €. Pas de réponse depuis 7 jours. Relancer avant fin de semaine.", created_at: '2026-03-31T16:00:00Z' },
   ],
 }

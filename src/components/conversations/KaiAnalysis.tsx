@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { type Conversation, type Message } from './types'
 
 interface Props {
@@ -35,6 +36,7 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
   const [nextAction, setNextAction] = useState('')
   const [streamingField, setStreamingField] = useState<'summary' | 'suggestion' | 'action' | null>(null)
   const [copiedSuggestion, setCopiedSuggestion] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
 
   const analyze = useCallback(async () => {
     setState('loading')
@@ -50,6 +52,10 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
       .join('\n\n')
 
     try {
+      // NOTE: All three calls below use raw fetch intentionally — they consume
+      // ReadableStream (SSE streaming). fetchJSON from @/lib/fetchJSON calls
+      // res.json() which consumes the body and cannot be used for streaming responses.
+
       // ─── 1. Score + résumé ────────────────────────────────────
       setStreamingField('summary')
       const resAnalysis = await fetch('/api/kai-analysis', {
@@ -188,58 +194,75 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
         )}
       </div>
 
-      {/* Summary */}
-      {(summary || streamingField === 'summary') && (
-        <div className="bg-white rounded-xl p-4 border border-[#E5E7EB]">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Résumé du lead</p>
-          <p className="text-sm text-[#374151] leading-relaxed whitespace-pre-wrap">
-            {summary}
-            {streamingField === 'summary' && (
-              <span className="inline-block w-0.5 h-3.5 bg-[#3462EE] ml-0.5 animate-pulse align-middle" />
-            )}
-          </p>
-        </div>
-      )}
+      {/* Analysis results — collapsible, open by default once analysis exists */}
+      {(summary || suggestion || nextAction || streamingField !== null) && (
+        <div>
+          <button
+            onClick={() => setCollapsed(c => !c)}
+            className="flex items-center gap-1 text-xs text-[#6B7280] mb-2"
+          >
+            {collapsed ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+            {collapsed ? "Afficher l'analyse" : 'Réduire'}
+          </button>
 
-      {/* Suggested message */}
-      {(suggestion || streamingField === 'suggestion') && (
-        <div className="bg-white rounded-xl p-4 border border-[#E5E7EB]">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Message suggéré</p>
-          <p className="text-sm text-[#374151] leading-relaxed whitespace-pre-wrap mb-3">
-            {suggestion}
-            {streamingField === 'suggestion' && (
-              <span className="inline-block w-0.5 h-3.5 bg-[#3462EE] ml-0.5 animate-pulse align-middle" />
-            )}
-          </p>
-          {state === 'done' && (
-            <div className="flex gap-2">
-              <button
-                onClick={copySuggestion}
-                className="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-[#E5E7EB] text-[#6B7280] hover:border-[#111111] hover:text-[#111111] transition-colors"
-              >
-                {copiedSuggestion ? 'Copié !' : 'Copier'}
-              </button>
-              <button
-                onClick={analyze}
-                className="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-[#E5E7EB] text-[#6B7280] hover:border-[#111111] hover:text-[#111111] transition-colors"
-              >
-                Regénérer
-              </button>
+          {!collapsed && (
+            <div className="flex flex-col gap-4">
+              {/* Summary */}
+              {(summary || streamingField === 'summary') && (
+                <div className="bg-white rounded-xl p-4 border border-[#E5E7EB]">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Résumé du lead</p>
+                  <p className="text-sm text-[#374151] leading-relaxed whitespace-pre-wrap">
+                    {summary}
+                    {streamingField === 'summary' && (
+                      <span className="inline-block w-0.5 h-3.5 bg-[#3462EE] ml-0.5 animate-pulse align-middle" />
+                    )}
+                  </p>
+                </div>
+              )}
+
+              {/* Suggested message */}
+              {(suggestion || streamingField === 'suggestion') && (
+                <div className="bg-white rounded-xl p-4 border border-[#E5E7EB]">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Message suggéré</p>
+                  <p className="text-sm text-[#374151] leading-relaxed whitespace-pre-wrap mb-3">
+                    {suggestion}
+                    {streamingField === 'suggestion' && (
+                      <span className="inline-block w-0.5 h-3.5 bg-[#3462EE] ml-0.5 animate-pulse align-middle" />
+                    )}
+                  </p>
+                  {state === 'done' && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={copySuggestion}
+                        className="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-[#E5E7EB] text-[#6B7280] hover:border-[#111111] hover:text-[#111111] transition-colors"
+                      >
+                        {copiedSuggestion ? 'Copié !' : 'Copier'}
+                      </button>
+                      <button
+                        onClick={analyze}
+                        className="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-[#E5E7EB] text-[#6B7280] hover:border-[#111111] hover:text-[#111111] transition-colors"
+                      >
+                        Regénérer
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Next action */}
+              {(nextAction || streamingField === 'action') && (
+                <div className="bg-white rounded-xl p-4 border border-[#E5E7EB]">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Prochaine action</p>
+                  <p className="text-sm text-[#374151] leading-relaxed whitespace-pre-wrap">
+                    {nextAction}
+                    {streamingField === 'action' && (
+                      <span className="inline-block w-0.5 h-3.5 bg-[#3462EE] ml-0.5 animate-pulse align-middle" />
+                    )}
+                  </p>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Next action */}
-      {(nextAction || streamingField === 'action') && (
-        <div className="bg-white rounded-xl p-4 border border-[#E5E7EB]">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Prochaine action</p>
-          <p className="text-sm text-[#374151] leading-relaxed whitespace-pre-wrap">
-            {nextAction}
-            {streamingField === 'action' && (
-              <span className="inline-block w-0.5 h-3.5 bg-[#3462EE] ml-0.5 animate-pulse align-middle" />
-            )}
-          </p>
         </div>
       )}
     </div>

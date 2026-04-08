@@ -72,6 +72,18 @@ export default function ConversationPanel({ conversation, messages, aiEnabled, o
           </a>
         )}
 
+        {conversation.contact_email && (
+          <a href={`mailto:${conversation.contact_email}`} className="text-sm text-[#6B7280] hover:text-[#111111] truncate">
+            {conversation.contact_email}
+          </a>
+        )}
+
+        {conversation.pipeline_stage && (
+          <span className="text-xs bg-[#EEF0EB] text-[#6B7280] px-2 py-0.5 rounded-full">
+            {conversation.pipeline_stage}
+          </span>
+        )}
+
         {conversation.contact_id && (
           <Link
             href={`/contacts/${conversation.contact_id}`}
