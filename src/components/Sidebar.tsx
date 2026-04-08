@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   LayoutDashboard, GitMerge, Users, MessageSquare, CalendarDays,
   TrendingUp, BotMessageSquare, CheckSquare,
-  ScrollText, Database, Wallet, Settings, LogOut, GitBranch,
+  ScrollText, Database, Wallet, Settings, LogOut, GitBranch, Bot,
 } from 'lucide-react'
 import Image from 'next/image'
 import { logout } from '@/app/login/actions'
@@ -31,6 +31,7 @@ const AGENTIQUE: NavItem[] = [
 
 const CONFIGURATION: NavItem[] = [
   { href: '/budget',     icon: Wallet,   label: 'Budget' },
+  { href: '/chatbot',    icon: Bot,      label: 'Chatbot' },
   { href: '/parametres', icon: Settings, label: 'Paramètres' },
 ]
 
