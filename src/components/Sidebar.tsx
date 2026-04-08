@@ -14,7 +14,7 @@ type NavItem = { href: string; icon: React.ElementType; label: string; also?: st
 
 const ACQUISITION: NavItem[] = [
   { href: '/dashboard',     icon: LayoutDashboard, label: 'Tableau de bord' },
-  { href: '/pipeline',      icon: GitMerge,        label: 'Prospects' },
+  { href: '/pipeline',      icon: GitMerge,        label: 'Pipeline' },
   { href: '/contacts',      icon: Users,           label: 'Contacts' },
   { href: '/conversations', icon: MessageSquare,   label: 'Conversations', also: ['/conversion'] },
   { href: '/devis',         icon: FileText,        label: 'Devis' },
