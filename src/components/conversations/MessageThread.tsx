@@ -1,14 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Send, Loader2 } from 'lucide-react'
 import { type Conversation, type Message, CHANNEL_META, MOCK_MESSAGES } from './types'
 import { getMessages } from '@/app/conversations/actions'
 import { createClient } from '@/lib/supabase/client'
-import KaiAnalysis from './KaiAnalysis'
-import VapiCall from './VapiCall'
+import ComposerBar from './ComposerBar'
 
-type Tab = 'messages' | 'kai' | 'vocal'
+type SendChannel = 'WhatsApp' | 'SMS' | 'Email'
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
@@ -28,14 +26,19 @@ function renderContent(text: string) {
   })
 }
 
-function MessageBubble({ message, contactName }: { message: Message; contactName?: string }) {
-  const isContact = message.role === 'user'
+function MessageBubble({
+  message,
+  channel,
+}: {
+  message:  Message
+  channel:  Conversation['channel']
+}) {
+  const isContact   = message.role === 'user'
+  const channelMeta = CHANNEL_META[channel]
+  const viaLabel    = (message.metadata as { channel?: string } | undefined)?.channel ?? channelMeta.label
 
   return (
     <div className={`flex flex-col gap-1 ${isContact ? 'items-start' : 'items-end'}`}>
-      <span className="text-[10px] text-[#9CA3AF] px-1">
-        {isContact ? (contactName ?? 'Contact') : 'Kai'} · {formatTime(message.created_at)}
-      </span>
       <div className={`
         max-w-[72%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap
         ${isContact
@@ -45,6 +48,9 @@ function MessageBubble({ message, contactName }: { message: Message; contactName
       `}>
         {renderContent(message.content)}
       </div>
+      <span className="text-[10px] text-[#9CA3AF] px-1">
+        {formatTime(message.created_at)} · Via {viaLabel}
+      </span>
     </div>
   )
 }
@@ -52,7 +58,6 @@ function MessageBubble({ message, contactName }: { message: Message; contactName
 function StreamingBubble({ content }: { content: string }) {
   return (
     <div className="flex flex-col gap-1 items-end">
-      <span className="text-[10px] text-[#9CA3AF] px-1">Kai</span>
       <div className="max-w-[72%] bg-[#111111] px-4 py-3 rounded-2xl rounded-tr-sm text-sm text-white leading-relaxed whitespace-pre-wrap">
         {content || (
           <span className="flex items-center gap-1.5">
@@ -63,68 +68,37 @@ function StreamingBubble({ content }: { content: string }) {
         )}
         {content && <span className="inline-block w-0.5 h-3.5 bg-white/60 ml-0.5 animate-pulse align-middle" />}
       </div>
+      <span className="text-[10px] text-[#9CA3AF] px-1">En cours…</span>
     </div>
   )
 }
 
-export default function MessageThread({ conversation }: { conversation: Conversation }) {
-  const [tab, setTab]                   = useState<Tab>('messages')
-  const [messages, setMessages]         = useState<Message[]>([])
-  const [input, setInput]               = useState('')
-  const [isLoading, setIsLoading]       = useState(true)
-  const [isSending, setIsSending]       = useState(false)
-  const [streamingContent, setStreaming] = useState<string | null>(null)
-  const [aiEnabled, setAiEnabled] = useState<boolean>(conversation.ai_enabled ?? true)
+interface Props {
+  conversation: Conversation
+  aiEnabled:    boolean
+  onAiToggle:   (enabled: boolean) => void
+}
 
-  type SendChannel = 'WhatsApp' | 'SMS' | 'Email'
-
-  const channelToSend = (): SendChannel => {
-    if (conversation.channel === 'whatsapp') return 'WhatsApp'
-    if (conversation.channel === 'sms') return 'SMS'
-    if (conversation.channel === 'email') return 'Email'
-    return 'WhatsApp'
-  }
-
-  const [sendChannel, setSendChannel] = useState<SendChannel>(channelToSend())
-  const [channelOpen, setChannelOpen] = useState(false)
-
+export default function MessageThread({ conversation, aiEnabled, onAiToggle }: Props) {
+  const [messages,  setMessages]  = useState<Message[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [streaming, setStreaming] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const inputRef  = useRef<HTMLTextAreaElement>(null)
-  const channel   = CHANNEL_META[conversation.channel]
 
   // Load messages
   useEffect(() => {
     setIsLoading(true)
     setMessages([])
     setStreaming(null)
-    const load = async () => {
-      const result = await getMessages(conversation.id)
+    getMessages(conversation.id).then(result => {
       if (result.messages && result.messages.length > 0) {
         setMessages(result.messages as Message[])
       } else {
         setMessages(MOCK_MESSAGES[conversation.id] ?? [])
       }
       setIsLoading(false)
-    }
-    load()
+    })
   }, [conversation.id])
-
-  // Reset tab when conversation changes
-  useEffect(() => {
-    setTab('messages')
-  }, [conversation.id])
-
-  // Sync aiEnabled when conversation changes
-  useEffect(() => {
-    setAiEnabled(conversation.ai_enabled ?? true)
-  }, [conversation.id, conversation.ai_enabled])
-
-  // Reset sendChannel when conversation changes
-  useEffect(() => {
-    setSendChannel(channelToSend())
-    setChannelOpen(false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversation.id, conversation.channel])
 
   // Supabase Realtime
   useEffect(() => {
@@ -145,116 +119,68 @@ export default function MessageThread({ conversation }: { conversation: Conversa
   // Auto-scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, streamingContent])
+  }, [messages, streaming])
 
-  async function toggleAI() {
-    const next = !aiEnabled
-    setAiEnabled(next) // optimistic update
-    try {
-      const res = await fetch(`/api/conversation/${conversation.id}/ai`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ai_enabled: next }),
-      })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    } catch {
-      setAiEnabled(!next) // rollback on error
+  function handleMessageSent(content: string, channel: SendChannel) {
+    const msg: Message = {
+      id:              crypto.randomUUID(),
+      conversation_id: conversation.id,
+      role:            'user',
+      content,
+      metadata:        { channel },
+      created_at:      new Date().toISOString(),
+    }
+    setMessages(prev => [...prev, msg])
+
+    if (aiEnabled) {
+      void triggerKaiResponse(content)
     }
   }
 
-  async function handleSend() {
-    const content = input.trim()
-    if (!content || isSending) return
-    setInput('')
-    setIsSending(true)
-
-    const userMsg: Message = {
-      id: crypto.randomUUID(),
-      conversation_id: conversation.id,
-      role: 'user',
-      content,
-      created_at: new Date().toISOString(),
-    }
-    setMessages(prev => [...prev, userMsg])
-
+  async function triggerKaiResponse(userMessage: string) {
+    setStreaming('')
     try {
-      // Manual send via GHL channel selector
-      const sendRes = await fetch('/api/send-message', {
-        method: 'POST',
+      const contactPhone = conversation.channel === 'whatsapp' && conversation.contact_phone
+        ? conversation.contact_phone : undefined
+
+      const res = await fetch('/api/chat', {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversationId: conversation.id,
-          message: content,
-          type: sendChannel,
-          ...(sendChannel === 'Email' && conversation.subject ? { subject: conversation.subject } : {}),
+          message:        userMessage,
+          contactName:    conversation.contact_name,
+          contactPhone,
         }),
       })
-      if (!sendRes.ok) {
-        const body = await sendRes.json().catch(() => ({}))
-        throw new Error((body as { error?: string }).error ?? `Erreur envoi HTTP ${sendRes.status}`)
-      }
 
-      // Kai auto-respond (only if ai_enabled)
-      if (aiEnabled) {
-        setStreaming('')
-        const contactPhone = conversation.channel === 'whatsapp' && conversation.contact_phone
-          ? conversation.contact_phone : undefined
-
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId: conversation.id,
-            message: content,
-            contactName: conversation.contact_name,
-            contactPhone,
-          }),
-        })
-
-        if (res.ok && res.body) {
-          const reader  = res.body.getReader()
-          const decoder = new TextDecoder()
-          let fullText  = ''
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-            fullText += decoder.decode(value, { stream: true })
-            setStreaming(fullText)
-          }
-          fullText += decoder.decode()
-
-          setMessages(prev => [...prev, {
-            id: crypto.randomUUID(),
-            conversation_id: conversation.id,
-            role: 'assistant',
-            content: fullText,
-            created_at: new Date().toISOString(),
-          }])
-          setStreaming(null)
+      if (res.ok && res.body) {
+        const reader  = res.body.getReader()
+        const decoder = new TextDecoder()
+        let fullText  = ''
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          fullText += decoder.decode(value, { stream: true })
+          setStreaming(fullText)
         }
+        fullText += decoder.decode()
+        setMessages(prev => [...prev, {
+          id:              crypto.randomUUID(),
+          conversation_id: conversation.id,
+          role:            'assistant',
+          content:         fullText,
+          created_at:      new Date().toISOString(),
+        }])
       }
     } catch (err) {
-      console.error('Send error:', err)
-      // Remove the optimistic message, then show error
-      setMessages(prev => prev.filter(m => m.id !== userMsg.id))
-      setMessages(prev => [...prev, {
-        id: crypto.randomUUID(),
-        conversation_id: conversation.id,
-        role: 'assistant',
-        content: "Erreur lors de l'envoi.",
-        created_at: new Date().toISOString(),
-      }])
-      setStreaming(null)
+      console.error('[Kai response]', err)
     } finally {
-      setIsSending(false)
-      inputRef.current?.focus()
+      setStreaming(null)
     }
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
-  }
-
+  // Group messages by date
   const grouped: { date: string; messages: Message[] }[] = []
   messages.forEach(msg => {
     const date = formatDate(msg.created_at)
@@ -263,172 +189,47 @@ export default function MessageThread({ conversation }: { conversation: Conversa
     else grouped.push({ date, messages: [msg] })
   })
 
-  const TABS: { id: Tab; label: string }[] = [
-    { id: 'messages', label: 'Messages'  },
-    { id: 'kai',      label: 'Kai IA'    },
-    { id: 'vocal',    label: 'Vocal'     },
-  ]
-
   return (
     <div className="flex flex-col h-full bg-[#EEF0EB]">
-
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#E5E7EB] bg-white flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#3462EE] to-[#4A91A8] flex items-center justify-center text-xs font-bold text-white">
-            {conversation.contact_name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() ?? '??'}
+      {/* Thread */}
+      <div className="flex-1 overflow-y-auto px-5 py-5">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="w-5 h-5 border-2 border-[#3462EE] border-t-transparent rounded-full animate-spin" />
           </div>
-          <div>
-            <p className="text-sm font-semibold text-[#111111]">{conversation.contact_name ?? 'Contact inconnu'}</p>
-            {conversation.contact_company && (
-              <p className="text-xs text-[#6B7280]">{conversation.contact_company}</p>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <span
-            className="text-xs font-medium px-2.5 py-1 rounded-full border"
-            style={{ color: channel.color, borderColor: channel.color + '40', background: channel.bg }}
-          >
-            {channel.label}
-          </span>
-          <button
-            onClick={toggleAI}
-            className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors"
-            style={aiEnabled
-              ? { color: '#111111', borderColor: '#22c55e40', background: '#22c55e10' }
-              : { color: '#9CA3AF', borderColor: '#9CA3AF40', background: 'transparent' }
-            }
-          >
-            <span
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: aiEnabled ? '#22c55e' : '#9CA3AF' }}
-            />
-            {aiEnabled ? 'Kai ON' : 'Kai OFF'}
-          </button>
-        </div>
-      </div>
-
-      {/* Tab bar */}
-      <div className="flex gap-6 px-5 bg-white border-b border-[#E5E7EB] flex-shrink-0">
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`py-2.5 text-sm transition-colors border-b-2 -mb-px ${
-              tab === t.id
-                ? 'text-[#111111] font-semibold border-[#3462EE]'
-                : 'text-[#9CA3AF] border-transparent hover:text-[#6B7280]'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab content */}
-      {tab === 'kai' && (
-        <div className="flex-1 overflow-hidden">
-          <KaiAnalysis conversation={conversation} messages={messages} />
-        </div>
-      )}
-
-      {tab === 'vocal' && (
-        <div className="flex-1 overflow-hidden">
-          <VapiCall conversation={conversation} />
-        </div>
-      )}
-
-      {tab === 'messages' && (
-        <>
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-4">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <Loader2 size={18} className="text-[#9CA3AF] animate-spin" />
+        ) : (
+          <>
+            {grouped.map(group => (
+              <div key={group.date}>
+                <div className="flex items-center gap-3 my-4">
+                  <div className="flex-1 h-px bg-[#E5E7EB]" />
+                  <span className="text-[10px] text-[#9CA3AF] font-medium">{group.date}</span>
+                  <div className="flex-1 h-px bg-[#E5E7EB]" />
+                </div>
+                <div className="flex flex-col gap-4">
+                  {group.messages.map(msg => (
+                    <MessageBubble
+                      key={msg.id}
+                      message={msg}
+                      channel={conversation.channel}
+                    />
+                  ))}
+                </div>
               </div>
-            ) : (
-              <>
-                {grouped.map(group => (
-                  <div key={group.date} className="flex flex-col gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 h-px bg-[#E5E7EB]" />
-                      <span className="text-[10px] text-[#9CA3AF]">{group.date}</span>
-                      <div className="flex-1 h-px bg-[#E5E7EB]" />
-                    </div>
-                    {group.messages.map(msg => (
-                      <MessageBubble key={msg.id} message={msg} contactName={conversation.contact_name} />
-                    ))}
-                  </div>
-                ))}
-                {streamingContent !== null && <StreamingBubble content={streamingContent} />}
-                {messages.length === 0 && streamingContent === null && !isLoading && (
-                  <div className="flex items-center justify-center h-24">
-                    <p className="text-sm text-[#9CA3AF]">Envoyez le premier message.</p>
-                  </div>
-                )}
-              </>
-            )}
+            ))}
+            {streaming !== null && <StreamingBubble content={streaming} />}
             <div ref={bottomRef} />
-          </div>
+          </>
+        )}
+      </div>
 
-          {/* Input */}
-          <div className="flex-shrink-0 px-4 pb-4 pt-3 border-t border-[#E5E7EB] bg-white">
-            <div className="flex items-end gap-2 border border-[#E5E7EB] rounded-xl px-3 py-2 focus-within:border-[#3462EE] transition-colors">
-              {/* Channel selector */}
-              <div className="relative flex-shrink-0 self-center">
-                <button
-                  onClick={() => setChannelOpen(o => !o)}
-                  className="text-xs font-medium px-2 py-1 rounded-md bg-[#F8F8F6] text-[#6B7280] hover:bg-[#EFEFED] transition-colors"
-                >
-                  {sendChannel}
-                </button>
-                {channelOpen && (
-                  <div className="absolute bottom-full left-0 mb-1 bg-white border border-[#E5E7EB] rounded-lg shadow-lg z-10 min-w-[90px]">
-                    {(['WhatsApp', 'SMS', 'Email'] as SendChannel[]).map(ch => (
-                      <button
-                        key={ch}
-                        onClick={() => { setSendChannel(ch); setChannelOpen(false) }}
-                        className={`w-full text-left text-xs px-3 py-2 hover:bg-[#F8F8F6] transition-colors ${ch === sendChannel ? 'text-[#111111] font-medium' : 'text-[#6B7280]'}`}
-                      >
-                        {ch}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Écrire un message..."
-                rows={1}
-                disabled={isSending}
-                className="flex-1 bg-transparent text-sm text-[#111111] placeholder-[#9CA3AF] outline-none resize-none leading-relaxed py-1 disabled:opacity-50"
-                style={{ maxHeight: 120, overflowY: 'auto' }}
-              />
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || isSending}
-                className="w-8 h-8 rounded-lg bg-[#111111] hover:bg-[#222] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors flex-shrink-0 mb-0.5"
-              >
-                {isSending
-                  ? <Loader2 size={14} className="text-white animate-spin" />
-                  : <Send size={14} className="text-white" />
-                }
-              </button>
-            </div>
-
-            <div className="flex items-center mt-2 px-1">
-              <span className="text-[10px] text-[#6B7280]">
-                {aiEnabled ? 'Kai répond automatiquement' : 'Kai désactivé — réponse manuelle uniquement'}
-              </span>
-            </div>
-          </div>
-        </>
-      )}
+      {/* Composer */}
+      <ComposerBar
+        conversation={conversation}
+        onMessageSent={handleMessageSent}
+        onAiToggle={onAiToggle}
+        aiEnabled={aiEnabled}
+      />
     </div>
   )
 }
