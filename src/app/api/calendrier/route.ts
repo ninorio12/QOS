@@ -8,6 +8,13 @@ export const dynamic = 'force-dynamic'
 const APPOINTMENT_COLORS = ['#3462EE', '#4A91A8', '#E2FF8D', '#EFE347', '#8B5CF6', '#EC4899']
 const GOOGLE_COLOR       = '#34A853'
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+  ])
+}
+
 function mapStatus(raw: string): string {
   const s = raw?.toLowerCase() ?? ''
   if (s === 'cancelled' || s === 'canceled') return 'cancelled'
@@ -20,7 +27,7 @@ export async function GET() {
   if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const now   = Date.now()
-  const RANGE = 90 * 24 * 60 * 60 * 1000
+  const RANGE = 30 * 24 * 60 * 60 * 1000
 
   try {
     const calendars = await getCalendars()
@@ -49,14 +56,14 @@ export async function GET() {
     if (isGoogleConfigured()) {
       try {
         const cal    = getCalendarClient()
-        const res    = await cal.events.list({
+        const res    = await withTimeout(cal.events.list({
           calendarId:   process.env.GOOGLE_CALENDAR_ID || 'primary',
           timeMin:      new Date(now - RANGE).toISOString(),
           timeMax:      new Date(now + RANGE).toISOString(),
           singleEvents: true,
           orderBy:      'startTime',
           maxResults:   500,
-        })
+        }), 2000).catch(() => ({ data: { items: [] } }))
         const googleAppts = (res.data.items ?? [] as GoogleEvent[]).map((ev): unknown => ({
           id:           `google-${ev.id}`,
           calendarId:   'google',

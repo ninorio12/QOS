@@ -203,12 +203,16 @@ export async function getConversationMessages(conversationId: string, limit = 40
   }
 }
 
-export async function getCalendarEvents(calendarId: string, startMs: number, endMs: number) {
-  const data = await ghlFetch(
-    `/calendars/events?calendarId=${calendarId}&startTime=${startMs}&endTime=${endMs}`
-  )
-  return (data.events ?? []) as GHLCalendarEvent[]
-}
+export const getCalendarEvents = unstable_cache(
+  async (calendarId: string, startMs: number, endMs: number) => {
+    const data = await ghlFetch(
+      `/calendars/events?calendarId=${calendarId}&startTime=${startMs}&endTime=${endMs}`
+    )
+    return (data.events ?? []) as GHLCalendarEvent[]
+  },
+  ['ghl-calendar-events'],
+  { revalidate: 60, tags: ['ghl-calendar-events'] }
+)
 
 export type GHLContact = {
   id:               string
