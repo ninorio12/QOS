@@ -15,13 +15,20 @@ type DashData = {
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashData | null>(null)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     fetch('/api/dashboard')
       .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json() })
       .then(setData)
-      .catch(() => setData(null))
+      .catch(() => setError(true))
   }, [])
+
+  if (error) return (
+    <div className="h-full flex items-center justify-center text-sm text-[#6B7280]">
+      Impossible de charger le dashboard. Actualise la page.
+    </div>
+  )
 
   if (!data) return <DashboardLoading />
 
