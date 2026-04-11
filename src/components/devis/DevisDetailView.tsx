@@ -150,7 +150,9 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
       setDirty(false)
       toast('Devis sauvegardé', 'success')
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Erreur')
+      const msg = e instanceof Error ? e.message : 'Erreur sauvegarde'
+      setError(msg)
+      toast(msg, 'error')
     } finally {
       setSaving(false)
     }

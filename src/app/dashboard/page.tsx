@@ -33,7 +33,7 @@ export default function DashboardPage() {
   if (!data) return <DashboardLoading />
 
   return (
-    <div className="h-full flex flex-col p-5 overflow-hidden">
+    <div className="h-full flex flex-col p-5 overflow-hidden page-fade-in">
       <DashboardClient
         activeLeads={data.metrics.activeDeals}
         pipelineValue={data.metrics.pipelineValue}

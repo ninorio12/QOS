@@ -6,7 +6,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen bg-[#EEF0EB]">
       <Sidebar />
       <Header />
-      <main className="ml-60 pt-14 h-screen overflow-hidden page-fade-in">
+      <main className="ml-60 pt-14 h-screen overflow-hidden">
         {children}
       </main>
     </div>
