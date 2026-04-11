@@ -82,6 +82,6 @@ export async function GET() {
     return NextResponse.json({ conversations, pipelines })
   } catch (err) {
     console.error('[Conversations API]', err)
-    return NextResponse.json({ conversations: [], pipelines: [] })
+    return NextResponse.json({ conversations: [], pipelines: [] }, { status: 500 })
   }
 }

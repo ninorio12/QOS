@@ -12,7 +12,7 @@ export default function ConversationsPage() {
 
   useEffect(() => {
     fetch('/api/conversations/list')
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json() })
       .then((d: ConvData) => setData(d))
       .catch(() => setData({ conversations: [], pipelines: [] }))
   }, [])
