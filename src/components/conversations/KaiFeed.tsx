@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { type Channel, CHANNEL_META } from './types'
+import { getAvatarColor } from '@/components/contacts/types'
 
 type FeedMessage = {
   id: string
@@ -41,13 +42,18 @@ function FeedCard({ message }: { message: FeedMessage }) {
   const conv = message.conversations
   if (!conv) return null
   const channelMeta = CHANNEL_META[conv.channel]
+  const initials = (conv.contact_name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()) ?? '??'
+  const avatarColor = getAvatarColor(initials)
 
   return (
     <div className="bg-white rounded-xl p-4 border border-[#E5E7EB]">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#3462EE] to-[#4A91A8] flex items-center justify-center text-[10px] font-bold text-white">
-            {conv.contact_name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() ?? '??'}
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold"
+            style={{ background: avatarColor + '22', color: avatarColor }}
+          >
+            {initials}
           </div>
           <span className="text-sm font-semibold text-[#111111]">
             {conv.contact_name ?? 'Contact inconnu'}

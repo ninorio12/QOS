@@ -38,7 +38,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     contactName:     devis.contact_name ?? 'Client',
     contactEmail:    devis.contact_email,
     contactPhone:    devis.contact_phone,
-    contactAddress:  null,
+    contactAddress:  devis.adresse_client ?? null,
     lignes,
     notes:           devis.notes,
     date,

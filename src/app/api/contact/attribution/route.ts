@@ -1,9 +1,13 @@
 // src/app/api/contact/attribution/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getAuthContext } from '@/lib/auth-context'
 
 // GET /api/contact/attribution?ids=id1,id2,id3
 export async function GET(req: NextRequest) {
+  const ctx = await getAuthContext()
+  if (!ctx) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
   const ids = req.nextUrl.searchParams.get('ids')?.split(',').filter(Boolean) ?? []
   if (ids.length === 0) return NextResponse.json({ attributions: [] })
   if (ids.length > 200) return NextResponse.json({ error: 'Too many ids' }, { status: 400 })
@@ -21,6 +25,9 @@ export async function GET(req: NextRequest) {
 // POST /api/contact/attribution
 // Body: { ghlContactId: string, createdBy: string }
 export async function POST(req: NextRequest) {
+  const ctx = await getAuthContext()
+  if (!ctx) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
   const { ghlContactId, createdBy } = await req.json() as {
     ghlContactId?: string
     createdBy?: string

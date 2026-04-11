@@ -80,47 +80,18 @@ function randomLog(agentId: string): string {
 }
 
 // ─── SVG connection lines ─────────────────────────────────────
-function ConnectionLines({ lines, active }: { lines: Line[]; active: boolean }) {
+function ConnectionLines({ lines }: { lines: Line[] }) {
   if (!lines.length) return null
   return (
     <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible' }}>
-      <defs>
-        {lines.map((_, i) => (
-          <linearGradient key={i} id={`grad${i}`} gradientUnits="userSpaceOnUse"
-            x1={lines[i].from.x} y1={lines[i].from.y} x2={lines[i].to.x} y2={lines[i].to.y}>
-            <stop offset="0%" stopColor={active ? '#3462EE' : '#2D3748'} stopOpacity="0.9" />
-            <stop offset="100%" stopColor={active ? '#4A91A8' : '#2D3748'} stopOpacity="0.5" />
-          </linearGradient>
-        ))}
-      </defs>
       {lines.map((line, i) => {
         const dy = (line.to.y - line.from.y) * 0.5
         const d  = `M ${line.from.x} ${line.from.y} C ${line.from.x} ${line.from.y + dy}, ${line.to.x} ${line.to.y - dy}, ${line.to.x} ${line.to.y}`
-        const pathId = `path${i}`
         return (
           <g key={i}>
-            {/* Base path */}
-            <path
-              d={d}
-              fill="none"
-              stroke={active ? `url(#grad${i})` : '#2D3748'}
-              strokeWidth="1.5"
-              strokeDasharray={active ? '6 4' : '4 6'}
-              opacity={active ? 0.8 : 0.4}
-            />
-            {/* Animated data packet */}
-            {active && (
-              <>
-                <path id={pathId} d={d} fill="none" />
-                <circle r="3.5" fill="#E2FF8D" opacity="0.9">
-                  <animateMotion dur={`${3 + i * 0.8}s`} repeatCount="indefinite" rotate="auto">
-                    <mpath href={`#${pathId}`} />
-                  </animateMotion>
-                </circle>
-              </>
-            )}
-            <circle cx={line.from.x} cy={line.from.y} r="3" fill={active ? '#3462EE' : '#3D4F6B'} />
-            <circle cx={line.to.x}   cy={line.to.y}   r="3" fill={active ? '#4A91A8' : '#3D4F6B'} />
+            <path d={d} fill="none" stroke="#D4D8D0" strokeWidth="1.5" />
+            <circle cx={line.from.x} cy={line.from.y} r="2.5" fill="#D4D8D0" />
+            <circle cx={line.to.x}   cy={line.to.y}   r="2.5" fill="#D4D8D0" />
           </g>
         )
       })}
@@ -128,118 +99,152 @@ function ConnectionLines({ lines, active }: { lines: Line[]; active: boolean }) 
   )
 }
 
-// ─── Agent card ───────────────────────────────────────────────
+// ─── Communication badge per agent ───────────────────────────
+const AGENT_COMMS: Record<string, { label: string; type: 'telegram' | 'internal' }> = {
+  soren: { label: 'Telegram', type: 'telegram' },
+  kai:   { label: 'Interne',  type: 'internal' },
+  mia:   { label: 'Interne',  type: 'internal' },
+}
+
+// ─── Compact agent card ───────────────────────────────────────
 function AgentCard({
-  agent,
-  runState,
-  isChief = false,
-  isSelected,
-  onClick,
-  cardRef,
-  onStart,
-  onStop,
+  agent, runState, isChief = false, isSelected, onClick, cardRef, onStart, onStop,
 }: {
-  agent: EquipeAgent
-  runState: AgentRunState
-  isChief?: boolean
+  agent:      EquipeAgent
+  runState:   AgentRunState
+  isChief?:   boolean
   isSelected: boolean
-  onClick: () => void
-  cardRef: React.RefObject<HTMLDivElement>
-  onStart: () => void
-  onStop: () => void
+  onClick:    () => void
+  cardRef:    React.RefObject<HTMLDivElement>
+  onStart:    () => void
+  onStop:     () => void
 }) {
-  const Icon     = ICON_MAP[agent.icon]
-  const isOnline = runState.status === 'online'
-  const isStart  = runState.status === 'starting'
-  const w        = isChief ? 'w-[300px]' : 'w-[240px]'
+  const Icon      = ICON_MAP[agent.icon]
+  const isOnline  = runState.status === 'online'
+  const isStart   = runState.status === 'starting'
+  const lightAccent = agent.accentColor === '#C8F135' || agent.accentColor === '#EFE347'
+  const headerText  = lightAccent ? '#111111' : '#ffffff'
+  const comms     = AGENT_COMMS[agent.id]
+
+  // role parts: "CEO / Orchestrateur Système" → title = "CEO", subtitle = "Orchestrateur Système"
+  const [roleTitle, ...roleParts] = agent.role.split(' / ')
+  const roleDetail = roleParts.join(' / ')
 
   return (
     <div
       ref={cardRef}
       onClick={onClick}
-      className={`${w} relative rounded-2xl border bg-[#111111] cursor-pointer select-none transition-all duration-200 ${
+      className={`relative rounded-2xl overflow-hidden bg-white cursor-pointer select-none transition-all duration-200 ${
+        isChief ? 'w-[215px]' : 'w-[188px]'
+      } ${
         isSelected
-          ? 'shadow-[0_0_0_1.5px_var(--accent),0_8px_24px_rgba(0,0,0,0.5)]'
-          : 'hover:border-[#3D4F6B] hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)]'
+          ? 'shadow-[0_0_0_2px_var(--accent),0_8px_24px_rgba(0,0,0,0.14)]'
+          : 'shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.12)]'
       }`}
-      style={{ '--accent': agent.accentColor, borderColor: isSelected ? agent.accentColor : '#2D3A4A' } as React.CSSProperties}
+      style={{ '--accent': agent.accentColor } as React.CSSProperties}
     >
-      {/* accent bar */}
-      <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: agent.accentColor }} />
+      {/* Thin colored chapeau */}
+      <div className="h-[5px] w-full" style={{ background: agent.accentColor }} />
 
-      <div className={`${isChief ? 'p-5' : 'p-4'} pt-6`}>
-        {/* icon + status */}
-        <div className="flex items-start justify-between mb-3">
+      {/* Card body */}
+      <div className={`${isChief ? 'px-4 pt-3.5 pb-3' : 'px-3.5 pt-3 pb-3'}`}>
+        {/* Icon + status dot */}
+        <div className="flex items-start justify-between mb-2.5">
           <div
-            className={`${isChief ? 'w-11 h-11' : 'w-9 h-9'} rounded-xl flex items-center justify-center`}
-            style={{ background: agent.accentColor + '18', border: `1px solid ${agent.accentColor}35` }}
+            className={`${isChief ? 'w-9 h-9' : 'w-8 h-8'} rounded-xl flex items-center justify-center`}
+            style={{ background: agent.accentColor + '18', border: `1px solid ${agent.accentColor}30` }}
           >
-            <Icon size={isChief ? 20 : 16} style={{ color: agent.accentColor }} />
+            <Icon size={isChief ? 17 : 15} style={{ color: agent.accentColor }} />
           </div>
-          <div className="flex items-center gap-1.5">
+          {/* Status dot */}
+          <div className="flex-shrink-0 mt-1">
             {isStart ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-[#EFE347] animate-pulse" />
-                <span className="text-[10px] font-bold text-[#EFE347]">DÉMARRAGE</span>
-              </>
+              <span className="w-2 h-2 rounded-full block bg-[#EFE347] animate-pulse" />
             ) : isOnline ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-[#22c55e] shadow-[0_0_6px_#22c55e] animate-pulse" />
-                <span className="text-[10px] font-bold text-[#22c55e]">EN LIGNE</span>
-              </>
+              <span className="w-2 h-2 rounded-full block bg-[#84CC16] shadow-[0_0_8px_#84CC16cc] animate-pulse" />
             ) : (
-              <>
-                <span className="w-2 h-2 rounded-full bg-[#3D4F6B]" />
-                <span className="text-[10px] font-bold text-[#9CA3AF]">HORS LIGNE</span>
-              </>
+              <span className="w-2 h-2 rounded-full block bg-[#D1D5DB]" />
             )}
           </div>
         </div>
 
-        {/* name + role */}
-        <p className={`${isChief ? 'text-lg' : 'text-sm'} font-bold text-white leading-tight`}>{agent.name}</p>
-        <p className="text-[9px] font-bold uppercase tracking-widest mt-1" style={{ color: agent.accentColor }}>
-          {agent.roleShort}
+        {/* Name */}
+        <p className={`${isChief ? 'text-[15px]' : 'text-[13px]'} font-black leading-tight`} style={{ color: agent.accentColor }}>
+          {agent.name}
         </p>
+        {/* Role title */}
+        <p className="text-[9px] font-bold uppercase tracking-widest mt-0.5" style={{ color: agent.accentColor, opacity: 0.7 }}>
+          {roleTitle}
+        </p>
+        {/* Role detail */}
+        {roleDetail && (
+          <p className="text-[9px] text-[#9CA3AF] mt-0.5 leading-tight truncate">{roleDetail}</p>
+        )}
 
-        <div className="border-t border-white/10 my-3" />
+        <div className="border-t border-[#F3F4F6] my-2.5" />
+
+        {/* Status row */}
+        <div className="flex items-center justify-between mb-2">
+          {isStart ? (
+            <span className="text-[8.5px] font-bold text-[#92750C] bg-[#FFFBEB] border border-[#FDE68A] px-1.5 py-0.5 rounded-full">DÉMARRAGE</span>
+          ) : isOnline ? (
+            <span className="text-[8.5px] font-bold text-[#16a34a] bg-[#22c55e]/10 border border-[#22c55e]/20 px-1.5 py-0.5 rounded-full">EN LIGNE</span>
+          ) : (
+            <span className="text-[8.5px] font-bold text-[#9CA3AF] bg-[#F3F4F6] border border-[#E5E7EB] px-1.5 py-0.5 rounded-full">HORS LIGNE</span>
+          )}
+          {/* Comms badge */}
+          {comms && (
+            <span className={`flex items-center gap-1 text-[8.5px] font-semibold px-1.5 py-0.5 rounded-full border ${
+              comms.type === 'telegram'
+                ? 'text-[#2AABEE] bg-[#2AABEE]/8 border-[#2AABEE]/25'
+                : 'text-[#6B7280] bg-[#F3F4F6] border-[#E5E7EB]'
+            }`}>
+              {comms.type === 'telegram' ? (
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.17 13.857l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.978.702z"/></svg>
+              ) : (
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+              )}
+              {comms.label}
+            </span>
+          )}
+        </div>
 
         {/* model + heartbeat */}
-        <div className="space-y-1.5">
+        <div className="space-y-1 mb-2.5">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-white/40">Modèle</span>
-            <span className="text-[10px] font-mono text-white/60 truncate max-w-[120px]">
-              {agent.model.replace('claude-', '')}
+            <span className="text-[9px] text-[#9CA3AF]">Modèle</span>
+            <span className="text-[9px] font-mono text-[#6B7280] truncate max-w-[95px]">
+              {agent.model.replace('claude-', '').replace(/-20\d{6}$/, '')}
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-white/40">Heartbeat</span>
-            <span className="text-[10px] text-white/60">{runState.lastHeartbeat}</span>
+            <span className="text-[9px] text-[#9CA3AF]">Heartbeat</span>
+            <span className="text-[9px] text-[#6B7280]">{runState.lastHeartbeat}</span>
           </div>
         </div>
 
         {/* start / stop button */}
-        <div className="mt-3" onClick={e => e.stopPropagation()}>
+        <div onClick={e => e.stopPropagation()}>
           {isOnline ? (
             <button
               onClick={onStop}
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl border border-[#EF4444]/30 text-[#EF4444] text-[11px] font-semibold hover:bg-[#EF4444]/10 transition-colors"
+              className="w-full flex items-center justify-center gap-1 py-1 rounded-xl border border-[#FCA5A5] text-[#EF4444] text-[10px] font-semibold hover:bg-[#FEF2F2] transition-colors"
             >
-              <Square size={10} />
+              <Square size={9} />
               Arrêter
             </button>
           ) : isStart ? (
-            <div className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl border border-[#EFE347]/30 text-[#EFE347] text-[11px] font-semibold">
-              <RefreshCw size={10} className="animate-spin" />
+            <div className="w-full flex items-center justify-center gap-1 py-1 rounded-xl border border-[#FDE68A] text-[#92750C] text-[10px] font-semibold bg-[#FFFBEB]">
+              <RefreshCw size={9} className="animate-spin" />
               Initialisation…
             </div>
           ) : (
             <button
               onClick={onStart}
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-bold transition-colors"
-              style={{ background: agent.accentColor + '20', color: agent.accentColor, border: `1px solid ${agent.accentColor}40` }}
+              className="w-full flex items-center justify-center gap-1 py-1 rounded-xl text-[10px] font-bold transition-colors"
+              style={{ background: agent.accentColor + '18', color: agent.accentColor, border: `1px solid ${agent.accentColor}35` }}
             >
-              <Play size={10} />
+              <Play size={9} />
               Démarrer
             </button>
           )}
@@ -248,9 +253,6 @@ function AgentCard({
     </div>
   )
 }
-
-
-
 
 // ─── Main view ────────────────────────────────────────────────
 export default function EquipeView() {
@@ -262,14 +264,12 @@ export default function EquipeView() {
   const gatewayEvents = useGatewayEvents()
   const agentStatus   = useAgentStatus()
 
-  // Runtime state per agent (client-side simulation)
   const [runStates, setRunStates] = useState<Record<string, AgentRunState>>({
     soren: { status: 'online', lastHeartbeat: new Date().toLocaleTimeString('fr-FR'), logs: BOOT_LOGS.soren },
     kai:   { status: 'online', lastHeartbeat: new Date().toLocaleTimeString('fr-FR'), logs: BOOT_LOGS.kai },
     mia:   { status: 'offline', lastHeartbeat: 'Jamais', logs: [] },
   })
 
-  // Simulate periodic heartbeat for online agents (20s to reduce re-renders)
   useEffect(() => {
     const interval = setInterval(() => {
       setRunStates(prev => {
@@ -278,11 +278,10 @@ export default function EquipeView() {
         for (const [id, state] of Object.entries(prev)) {
           if (state.status === 'online') {
             changed = true
-            const newLog = randomLog(id)
             next[id] = {
               status: 'online',
               lastHeartbeat: new Date().toLocaleTimeString('fr-FR'),
-              logs: [...state.logs.slice(-14), newLog],
+              logs: [...state.logs.slice(-14), randomLog(id)],
             }
           } else {
             next[id] = state
@@ -294,41 +293,25 @@ export default function EquipeView() {
     return () => clearInterval(interval)
   }, [])
 
-  // Sync real gateway status into local runStates
   useEffect(() => {
     setRunStates(prev => {
       const updated = { ...prev }
       for (const [id, data] of Object.entries(agentStatus)) {
-        if (updated[id]) {
-          updated[id] = { ...updated[id], status: data.online ? 'online' : 'offline' }
-        }
+        if (updated[id]) updated[id] = { ...updated[id], status: data.online ? 'online' : 'offline' }
       }
       return updated
     })
   }, [agentStatus])
 
-  function startAgent(agentId: string) {
-    setRunStates(prev => ({
-      ...prev,
-      [agentId]: { ...prev[agentId], status: 'starting', lastHeartbeat: '…' },
-    }))
+  function startAgent(id: string) {
+    setRunStates(prev => ({ ...prev, [id]: { ...prev[id], status: 'starting', lastHeartbeat: '…' } }))
     setTimeout(() => {
-      setRunStates(prev => ({
-        ...prev,
-        [agentId]: {
-          status: 'online',
-          lastHeartbeat: new Date().toLocaleTimeString('fr-FR'),
-          logs: BOOT_LOGS[agentId] ?? [],
-        },
-      }))
+      setRunStates(prev => ({ ...prev, [id]: { status: 'online', lastHeartbeat: new Date().toLocaleTimeString('fr-FR'), logs: BOOT_LOGS[id] ?? [] } }))
     }, 2200)
   }
 
-  function stopAgent(agentId: string) {
-    setRunStates(prev => ({
-      ...prev,
-      [agentId]: { status: 'offline', lastHeartbeat: prev[agentId].lastHeartbeat, logs: prev[agentId].logs },
-    }))
+  function stopAgent(id: string) {
+    setRunStates(prev => ({ ...prev, [id]: { ...prev[id], status: 'offline' } }))
   }
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -353,137 +336,148 @@ export default function EquipeView() {
   }, [])
 
   useEffect(() => {
-    measureLines()
+    const raf = requestAnimationFrame(() => measureLines())
     window.addEventListener('resize', measureLines)
-    return () => window.removeEventListener('resize', measureLines)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', measureLines)
+    }
   }, [measureLines])
 
   const anyOnline = Object.values(runStates).some(s => s.status === 'online')
-
-  const agentColorMap: Record<string, string> = Object.fromEntries(
-    EQUIPE_AGENTS.map(a => [a.id, a.accentColor])
-  )
+  const agentColorMap: Record<string, string> = Object.fromEntries(EQUIPE_AGENTS.map(a => [a.id, a.accentColor]))
   const agentIds = new Set(['soren', 'kai', 'mia'])
-  const interAgentEvents = gatewayEvents
-    .filter(e => agentIds.has(e.from) && agentIds.has(e.to))
-    .slice(-6)
-    .reverse()
+  const interAgentEvents = gatewayEvents.filter(e => agentIds.has(e.from) && agentIds.has(e.to)).slice(-4).reverse()
 
   return (
-    <div className="flex flex-col items-center min-h-[calc(100vh-56px)] bg-[#EEF0EB] px-8 py-10">
+    <div className="flex flex-col bg-[#EEF0EB] px-8 py-5 overflow-hidden" style={{ height: 'calc(100vh - 56px)' }}>
 
-      {/* Module tabs */}
-      <div className="w-full max-w-3xl mb-6">
-      <div className="flex items-center gap-1 bg-white border border-[#E5E7EB] rounded-xl p-1 w-fit">
-        <Link href="/equipe" className="px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-[#111111] text-white transition-all">
-          Équipe IA
-        </Link>
-        <Link href="/architecture" className="px-3 py-1.5 rounded-lg text-[12px] font-semibold text-[#6B7280] hover:text-[#111111] transition-all">
-          Architecture
-        </Link>
-      </div>
-      </div>
-
-      {/* Page header */}
-      <div className="w-full max-w-3xl mb-8 flex items-start justify-between">
+      {/* Header row */}
+      <div className="flex items-start justify-between mb-4 flex-shrink-0">
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-1">Infrastructure IA</p>
-          <h1 className="text-lg font-bold text-[#111111]">Équipe IA</h1>
-          <p className="text-xs text-[#6B7280] mt-0.5">Vos agents autonomes et leur organisation</p>
+          <h1 className="text-xl font-black text-[#111111] leading-none">Équipe IA</h1>
+          <p className="text-xs text-[#9CA3AF] mt-0.5 mb-2">Vos agents autonomes et leur organisation</p>
         </div>
-        <div className="flex items-center gap-2">
-          {anyOnline && (
-            <span className="flex items-center gap-1.5 text-[11px] font-bold text-[#22c55e] bg-[#22c55e]/10 px-3 py-1.5 rounded-full border border-[#22c55e]/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
-              Système opérationnel
-            </span>
-          )}
-        </div>
+        {anyOnline && (
+          <span className="flex items-center gap-1.5 text-[10px] font-bold text-[#16a34a] bg-[#22c55e]/10 px-2.5 py-1 rounded-full border border-[#22c55e]/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
+            Système opérationnel
+          </span>
+        )}
       </div>
 
-      {/* Diagram */}
-      <div ref={containerRef} className="relative w-full max-w-3xl" style={{ minHeight: 320 }}>
-        <ConnectionLines lines={lines} active={anyOnline} />
+      {/* Content: diagram + comms side by side */}
+      <div className="flex gap-5 flex-1 min-h-0">
 
-        {/* Soren top center */}
-        <div className="flex justify-center mb-10">
-          <AgentCard
-            agent={soren}
-            runState={runStates.soren}
-            isChief
-            isSelected={selectedAgent?.id === soren.id}
-            onClick={() => setSelectedAgent(soren)}
-            cardRef={sorenRef}
-            onStart={() => startAgent('soren')}
-            onStop={() => stopAgent('soren')}
-          />
-        </div>
+        {/* Diagram */}
+        <div ref={containerRef} className="relative flex-1 flex flex-col items-center justify-center">
+          <ConnectionLines lines={lines} />
 
-        {/* Kai + Mia bottom */}
-        <div className="flex justify-center gap-12">
-          <AgentCard
-            agent={kai}
-            runState={runStates.kai}
-            isSelected={selectedAgent?.id === kai.id}
-            onClick={() => setSelectedAgent(kai)}
-            cardRef={kaiRef}
-            onStart={() => startAgent('kai')}
-            onStop={() => stopAgent('kai')}
-          />
-          <AgentCard
-            agent={mia}
-            runState={runStates.mia}
-            isSelected={selectedAgent?.id === mia.id}
-            onClick={() => setSelectedAgent(mia)}
-            cardRef={miaRef}
-            onStart={() => startAgent('mia')}
-            onStop={() => stopAgent('mia')}
-          />
-        </div>
-      </div>
-
-      {/* Agent drawer */}
-      {selectedAgent && (
-        <AgentDrawer
-          agent={selectedAgent}
-          events={gatewayEvents}
-          status={agentStatus[selectedAgent.id]}
-          onClose={() => setSelectedAgent(null)}
-        />
-      )}
-
-      {/* Inter-agent comms feed */}
-      <div className="w-full max-w-3xl mt-6 mb-10">
-        <div className="bg-[#111111] border border-white/10 rounded-2xl overflow-hidden">
-          <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-white/10">
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#3462EE] animate-pulse" />
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">Communications inter-agents</p>
-            </div>
-            {anyOnline && (
-              <span className="ml-auto text-[9px] font-bold text-[#22c55e] px-1.5 py-0.5 rounded-full bg-[#22c55e]/10">
-                LIVE
-              </span>
-            )}
+          {/* Soren (top) */}
+          <div className="flex justify-center mb-6">
+            <AgentCard agent={soren} runState={runStates.soren} isChief
+              isSelected={selectedAgent?.id === 'soren'} onClick={() => setSelectedAgent(soren)}
+              cardRef={sorenRef} onStart={() => startAgent('soren')} onStop={() => stopAgent('soren')} />
           </div>
-          <div className="divide-y divide-white/5">
-            {interAgentEvents.length === 0 ? (
-              <p className="px-5 py-6 text-xs italic text-white/25 text-center">
-                {anyOnline ? 'En attente de communications…' : 'Démarrez un agent pour activer le réseau'}
-              </p>
-            ) : interAgentEvents.map((evt, i) => (
-              <div key={i} className="flex items-center gap-3 px-5 py-2.5">
-                <span className="text-[10px] font-bold flex-shrink-0" style={{ color: agentColorMap[evt.from] ?? '#fff' }}>{evt.from}</span>
-                <span className="text-[9px] text-white/20">→</span>
-                <span className="text-[10px] font-bold flex-shrink-0" style={{ color: agentColorMap[evt.to] ?? '#fff' }}>{evt.to}</span>
-                <span className="text-[10px] text-white/50 flex-1 truncate">{evt.msg}</span>
-                <span className="text-[9px] text-white/20 flex-shrink-0">
-                  {new Date(evt.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                </span>
+
+          {/* Kai + Mia (bottom) */}
+          <div className="flex justify-center gap-10">
+            <AgentCard agent={kai} runState={runStates.kai}
+              isSelected={selectedAgent?.id === 'kai'} onClick={() => setSelectedAgent(kai)}
+              cardRef={kaiRef} onStart={() => startAgent('kai')} onStop={() => stopAgent('kai')} />
+            <AgentCard agent={mia} runState={runStates.mia}
+              isSelected={selectedAgent?.id === 'mia'} onClick={() => setSelectedAgent(mia)}
+              cardRef={miaRef} onStart={() => startAgent('mia')} onStop={() => stopAgent('mia')} />
+          </div>
+        </div>
+
+        {/* Agent detail panel */}
+        <div className="w-[420px] flex-shrink-0 flex flex-col">
+          <div className="bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden shadow-sm flex flex-col flex-1">
+            {/* Accent top strip */}
+            <div className="h-[4px] w-full flex-shrink-0" style={{ background: selectedAgent?.accentColor ?? soren.accentColor }} />
+
+            <div className="flex flex-col flex-1 overflow-y-auto px-5 py-4 gap-4">
+
+              {/* Description */}
+              <div>
+                <div className="flex items-start justify-between mb-2">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-[#9CA3AF]">Description</p>
+                  {(() => {
+                    const agent = selectedAgent ?? soren
+                    const Icon  = ICON_MAP[agent.icon]
+                    return (
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: agent.accentColor + '18', border: `1px solid ${agent.accentColor}30` }}>
+                        <Icon size={15} style={{ color: agent.accentColor }} />
+                      </div>
+                    )
+                  })()}
+                </div>
+                <p className="text-[13px] text-[#111111] leading-relaxed font-medium">
+                  {(selectedAgent ?? soren).description}
+                </p>
               </div>
-            ))}
+
+              <div className="border-t border-[#F3F4F6]" />
+
+              {/* Modèle + Heartbeat */}
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-1">Modèle utilisé</p>
+                  <span className="text-[11px] font-mono text-[#374151] bg-[#F3F4F6] px-2 py-1 rounded-lg inline-block">
+                    {(selectedAgent ?? soren).model}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-1">Dernier heartbeat</p>
+                  <span className="text-[11px] text-[#374151] flex items-center gap-1.5">
+                    <span className="text-[#9CA3AF]">⏱</span>
+                    {runStates[(selectedAgent ?? soren).id]?.lastHeartbeat ?? 'Jamais'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="border-t border-[#F3F4F6]" />
+
+              {/* Outils */}
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Outils disponibles</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(selectedAgent ?? soren).tools.map(tool => (
+                    <span key={tool}
+                      className="text-[9px] font-mono font-medium px-2 py-1 rounded-lg border"
+                      style={{
+                        color: (selectedAgent ?? soren).accentColor,
+                        background: (selectedAgent ?? soren).accentColor + '10',
+                        borderColor: (selectedAgent ?? soren).accentColor + '30',
+                      }}
+                    >
+                      {tool}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-[#F3F4F6]" />
+
+              {/* Logs récents */}
+              <div className="flex-1 min-h-0">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Logs récents</p>
+                <div className="space-y-1">
+                  {(runStates[(selectedAgent ?? soren).id]?.logs ?? []).slice(-5).reverse().map((log, i) => (
+                    <p key={i} className="text-[9.5px] font-mono text-[#6B7280] leading-relaxed">{log}</p>
+                  ))}
+                  {(runStates[(selectedAgent ?? soren).id]?.logs ?? []).length === 0 && (
+                    <p className="text-[10px] italic text-[#9CA3AF]">Aucun log — agent hors ligne</p>
+                  )}
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   )

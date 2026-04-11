@@ -6,7 +6,7 @@ export default function DevisLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-[#EEF0EB]">
       <Sidebar />
       <Header />
-      <main className="ml-60 pt-14 h-screen overflow-hidden">
+      <main className="ml-60 pt-14 h-[calc(100vh-3px)] overflow-hidden">
         {children}
       </main>
     </div>

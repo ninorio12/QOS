@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Loader2, Check, Search, ChevronDown } from 'lucide-react'
+import { X, Loader2, Check, Search, ChevronDown, AlertTriangle } from 'lucide-react'
 import { type Appointment } from './types'
 import { type GHLCalendar, type GHLContact } from '@/lib/ghl'
 
@@ -346,7 +346,7 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated }: P
 
           {warning && (
             <div className="bg-[#FFFBEB] rounded-xl px-4 py-2.5 flex items-start gap-2">
-              <span className="text-[#F59E0B] text-xs mt-0.5">⚠</span>
+              <AlertTriangle size={13} className="text-[#F59E0B] mt-0.5 shrink-0" />
               <p className="text-xs text-[#92400E]">{warning}</p>
             </div>
           )}

@@ -3,10 +3,10 @@ import Header from '@/components/Header'
 
 export default function PipelineLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#121721]">
+    <div className="h-screen overflow-hidden bg-[#EEF0EB]">
       <Sidebar />
       <Header />
-      <main className="ml-16 pt-14 min-h-screen">
+      <main className="ml-60 pt-14 h-screen overflow-hidden flex flex-col">
         {children}
       </main>
     </div>

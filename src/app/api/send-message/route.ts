@@ -6,7 +6,7 @@ export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
   try {
-    const { conversationId, message, type, subject } = await req.json()
+    const { conversationId, message, type, subject, contactId } = await req.json()
 
     if (!conversationId || !message?.trim() || !type) {
       return NextResponse.json({ error: 'conversationId, message et type requis' }, { status: 400 })
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Send via GHL
-    await sendGHLMessage(conversationId, message, type as 'WhatsApp' | 'SMS' | 'Email', subject)
+    await sendGHLMessage(conversationId, message, type as 'WhatsApp' | 'SMS' | 'Email', subject, contactId)
 
     // Save to Supabase as user message (manual send)
     const supabase = await createClient()

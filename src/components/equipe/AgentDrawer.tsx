@@ -8,16 +8,18 @@ import { LiveTab }      from './tabs/LiveTab'
 import { SoulTab }      from './tabs/SoulTab'
 import { SkillsTab }    from './tabs/SkillsTab'
 import { PromptLabTab } from './tabs/PromptLabTab'
+import { ChatTab }      from './tabs/ChatTab'
 
 const ICON_MAP = { cpu: Cpu, users: Users, database: Database } as const
 
-type Tab = 'live' | 'soul' | 'skills' | 'prompt'
+type Tab = 'chat' | 'live' | 'soul' | 'skills' | 'prompt'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'live',   label: 'Live'       },
-  { id: 'soul',   label: 'SOUL.md'    },
-  { id: 'skills', label: 'Skills'     },
-  { id: 'prompt', label: 'Prompt Lab' },
+  { id: 'chat',  label: 'Chat'       },
+  { id: 'live',  label: 'Live'       },
+  { id: 'soul',  label: 'SOUL.md'    },
+  { id: 'skills',label: 'Skills'     },
+  { id: 'prompt',label: 'Prompt Lab' },
 ]
 
 interface AgentDrawerProps {
@@ -28,41 +30,26 @@ interface AgentDrawerProps {
 }
 
 export function AgentDrawer({ agent, events, status, onClose }: AgentDrawerProps) {
-  const [tab,       setTab]       = useState<Tab>('live')
+  const [tab,       setTab]       = useState<Tab>('chat')
   const [soulCache, setSoulCache] = useState('')
   const Icon = ICON_MAP[agent.icon as keyof typeof ICON_MAP] ?? Cpu
 
   async function handleToolToggle(tool: string, enabled: boolean) {
     const res = await fetch(
       `/api/openclaw/agents/${agent.id}/tools/${tool}/toggle`,
-      {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ enabled }),
-      }
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }) }
     )
     if (!res.ok) throw new Error('Toggle failed')
   }
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/30 z-40 backdrop-blur-[2px]"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/30 z-40 backdrop-blur-[2px]" onClick={onClose} />
 
-      {/* Drawer */}
       <div className="fixed right-0 top-0 bottom-0 w-[480px] bg-[#0D1117] border-l border-white/10 z-50 flex flex-col shadow-2xl">
         {/* Header */}
-        <div
-          className="flex items-center gap-3 px-5 py-4 border-b border-white/10"
-          style={{ borderTopColor: agent.accentColor, borderTopWidth: 3 }}
-        >
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: agent.accentColor + '18', border: `1px solid ${agent.accentColor}35` }}
-          >
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10" style={{ borderTopColor: agent.accentColor, borderTopWidth: 3 }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: agent.accentColor + '18', border: `1px solid ${agent.accentColor}35` }}>
             <Icon size={16} style={{ color: agent.accentColor }} />
           </div>
           <div className="flex-1 min-w-0">
@@ -71,10 +58,7 @@ export function AgentDrawer({ agent, events, status, onClose }: AgentDrawerProps
           </div>
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${status?.online ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-            >
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
               <X size={16} />
             </button>
           </div>
@@ -88,9 +72,7 @@ export function AgentDrawer({ agent, events, status, onClose }: AgentDrawerProps
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  tab === t.id
-                    ? 'bg-white/10 text-white'
-                    : 'text-gray-400 hover:text-gray-200'
+                  tab === t.id ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-gray-200'
                 }`}
               >
                 {t.label}
@@ -100,22 +82,12 @@ export function AgentDrawer({ agent, events, status, onClose }: AgentDrawerProps
         </div>
 
         {/* Tab content */}
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          {tab === 'live' && (
-            <LiveTab agentId={agent.id} events={events} status={status} />
-          )}
-          {tab === 'soul' && (
-            <SoulTab
-              agentId={agent.id}
-              onLoad={setSoulCache}
-            />
-          )}
-          {tab === 'skills' && (
-            <SkillsTab agentId={agent.id} status={status} onToggle={handleToolToggle} />
-          )}
-          {tab === 'prompt' && (
-            <PromptLabTab agentId={agent.id} currentSoul={soulCache} />
-          )}
+        <div className={`flex-1 px-4 py-4 min-h-0 ${tab === 'chat' ? 'flex flex-col' : 'overflow-y-auto'}`}>
+          {tab === 'chat'   && <ChatTab agentId={agent.id} accentColor={agent.accentColor} />}
+          {tab === 'live'   && <LiveTab agentId={agent.id} events={events} status={status} />}
+          {tab === 'soul'   && <SoulTab agentId={agent.id} onLoad={setSoulCache} />}
+          {tab === 'skills' && <SkillsTab agentId={agent.id} status={status} onToggle={handleToolToggle} />}
+          {tab === 'prompt' && <PromptLabTab agentId={agent.id} currentSoul={soulCache} />}
         </div>
       </div>
     </>

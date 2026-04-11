@@ -1,11 +1,18 @@
 import { unstable_cache } from 'next/cache'
+import { env } from './env'
 
-async function ghlFetch(path: string) {
-  const apiKey   = process.env.GHL_API_KEY!
-  const baseUrl  = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'
-  const res = await fetch(`${baseUrl}${path}`, {
+// ── Credentials GHL par organisation ─────────────────────────────────────────
+export type GHLCreds = { apiKey: string; locationId: string }
+
+function defaultCreds(): GHLCreds {
+  return { apiKey: env.ghlApiKey(), locationId: env.ghlLocationId() }
+}
+
+// Fetch avec credentials explicites (pour les routes multi-tenant)
+export async function ghlFetchWith(path: string, creds: GHLCreds) {
+  const res = await fetch(`${env.ghlBaseUrl()}${path}`, {
     headers: {
-      Authorization:    `Bearer ${apiKey}`,
+      Authorization:    `Bearer ${creds.apiKey}`,
       Version:          '2021-07-28',
       'Content-Type':   'application/json',
     },
@@ -15,8 +22,79 @@ async function ghlFetch(path: string) {
   return res.json()
 }
 
+// Fetch avec env vars (pour les fonctions cachées existantes)
+async function ghlFetch(path: string) {
+  return ghlFetchWith(path, defaultCreds())
+}
+
+export async function ghlMutate(path: string, method: 'POST' | 'PATCH' | 'PUT', body: unknown) {
+  const apiKey  = env.ghlApiKey()
+  const baseUrl = env.ghlBaseUrl()
+  const res = await fetch(`${baseUrl}${path}`, {
+    method,
+    headers: {
+      Authorization:  `Bearer ${apiKey}`,
+      Version:        '2021-07-28',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+    cache: 'no-store',
+  })
+  if (!res.ok) throw new Error(`GHL ${method} ${res.status}: ${path} — ${await res.text()}`)
+  return res.json()
+}
+
 function ghlLocationId() {
-  return process.env.GHL_LOCATION_ID!
+  return env.ghlLocationId()
+}
+
+// ── Version mutate avec credentials explicites ────────────────────────────────
+export async function ghlMutateWith(
+  path: string,
+  method: 'POST' | 'PATCH' | 'PUT' | 'DELETE',
+  body: unknown,
+  creds: GHLCreds
+) {
+  const res = await fetch(`${env.ghlBaseUrl()}${path}`, {
+    method,
+    headers: {
+      Authorization:  `Bearer ${creds.apiKey}`,
+      Version:        '2021-07-28',
+      'Content-Type': 'application/json',
+    },
+    body: body != null ? JSON.stringify(body) : undefined,
+    cache: 'no-store',
+  })
+  if (!res.ok) throw new Error(`GHL ${method} ${res.status}: ${path} — ${await res.text()}`)
+  return res.json()
+}
+
+// ── Fonctions live (non cachées) pour le multi-tenant ─────────────────────────
+// Usage : const contacts = await getContactsLive(100, ctx.ghlCreds())
+export async function getContactsLive(limit = 100, creds?: GHLCreds) {
+  const c = creds ?? defaultCreds()
+  const data = await ghlFetchWith(`/contacts/?locationId=${c.locationId}&limit=${limit}`, c)
+  return { contacts: (data.contacts ?? []) as GHLContact[], total: (data.meta?.total ?? 0) as number }
+}
+
+export async function getConversationsLive(limit = 100, creds?: GHLCreds) {
+  const c = creds ?? defaultCreds()
+  const data = await ghlFetchWith(`/conversations/?locationId=${c.locationId}&limit=${limit}`, c)
+  return (data.conversations ?? []) as GHLConversation[]
+}
+
+export async function getOpportunitiesLive(limit = 50, pipelineId?: string, creds?: GHLCreds) {
+  const c = creds ?? defaultCreds()
+  let url = `/opportunities/search?location_id=${c.locationId}&limit=${limit}`
+  if (pipelineId) url += `&pipeline_id=${pipelineId}`
+  const data = await ghlFetchWith(url, c)
+  return (data.opportunities ?? []) as GHLOpportunity[]
+}
+
+export async function getPipelinesLive(creds?: GHLCreds) {
+  const c = creds ?? defaultCreds()
+  const data = await ghlFetchWith(`/opportunities/pipelines?locationId=${c.locationId}`, c)
+  return (data.pipelines ?? []) as GHLPipeline[]
 }
 
 export const getContacts = unstable_cache(
@@ -107,6 +185,24 @@ export const getCalendars = unstable_cache(
   { revalidate: 300, tags: ['ghl-calendars'] }
 )
 
+export type GHLMessage = {
+  id:          string
+  body:        string
+  direction:   'inbound' | 'outbound'
+  dateAdded:   string
+  source?:     string
+  contentType?: string
+}
+
+export async function getConversationMessages(conversationId: string, limit = 40): Promise<GHLMessage[]> {
+  try {
+    const data = await ghlFetch(`/conversations/${conversationId}/messages?limit=${limit}`)
+    return (data.messages ?? []) as GHLMessage[]
+  } catch {
+    return []
+  }
+}
+
 export async function getCalendarEvents(calendarId: string, startMs: number, endMs: number) {
   const data = await ghlFetch(
     `/calendars/events?calendarId=${calendarId}&startTime=${startMs}&endTime=${endMs}`
@@ -155,6 +251,7 @@ export type GHLOpportunity = {
   pipelineStageId: string
   assignedTo?: string | null
   status: 'open' | 'won' | 'lost' | 'abandoned'
+  source?: string | null
   createdAt: string
   updatedAt: string
   contact: { id: string; name: string; email: string | null; phone: string | null; tags?: string[] } | null
@@ -209,12 +306,26 @@ export type GHLConversation = {
   assignedTo?: string | null
 }
 
+export type GHLWorkflowAction = {
+  id:          string
+  type:        string
+  name?:       string
+}
+
+export type GHLWorkflowTrigger = {
+  type:        string
+  filters?:    Record<string, unknown>[]
+}
+
 export type GHLWorkflow = {
-  id:        string
-  name:      string
-  status:    'published' | 'draft'
-  createdAt: string
-  updatedAt: string
+  id:          string
+  name:        string
+  status:      'published' | 'draft'
+  createdAt:   string
+  updatedAt:   string
+  description?: string
+  triggers?:   GHLWorkflowTrigger[]
+  actions?:    GHLWorkflowAction[]
 }
 
 export const getWorkflows = unstable_cache(

@@ -2,100 +2,155 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { login } from './actions'
+import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
     setLoading(true)
-    setError(null)
-    const result = await login(formData)
-    if (result?.error) {
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
       setError('Email ou mot de passe incorrect')
       setLoading(false)
-    } else {
-      router.push('/dashboard')
-      router.refresh()
+      return
     }
+    router.push('/dashboard')
+    router.refresh()
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-[#EEF0EB] p-8">
+      <div className="flex w-full max-w-[860px] rounded-[28px] overflow-hidden shadow-2xl" style={{ height: '560px' }}>
 
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-10">
-          <Image
-            src="/logo.png"
-            alt="Qorpo"
-            width={160}
-            height={56}
-            priority
-            className="object-contain"
-          />
-          <p className="text-[#8896AB] text-sm mt-3">Operating System</p>
-        </div>
+        {/* ── Gauche : formulaire ── */}
+        <div className="w-[420px] flex-shrink-0 flex flex-col justify-between px-10 py-9 bg-white">
 
-        {/* Card */}
-        <div className="bg-[#111111] border border-[#2A2A2A] rounded-2xl p-8">
-          <h1 className="text-white text-xl font-semibold mb-1">Connexion</h1>
-          <p className="text-[#666666] text-sm mb-8">Accédez à votre espace CRM</p>
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <Image src="/soren-logo.png" alt="Soren" width={34} height={34} className="object-contain rounded-xl" />
+            <span className="text-[#111111] font-bold text-[17px] tracking-tight">Soren</span>
+          </div>
 
-          <form action={handleSubmit} className="space-y-5">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-[#999999] mb-2">
-                Email
-              </label>
+          {/* Contenu central */}
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#E2FF8D] bg-[#111111] rounded-full px-3 py-1 w-fit mb-5">
+              Connexion
+            </p>
+            <h1 className="text-[#111111] font-bold text-[24px] leading-snug mb-1">
+              Bon retour !
+            </h1>
+            <p className="text-[#111111]/35 text-[13px] mb-7">
+              Accédez à votre espace Soren
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-3">
               <input
-                id="email"
-                name="email"
                 type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-4 py-3 text-white text-sm placeholder-[#444444] focus:outline-none focus:border-[#39FF14] focus:ring-1 focus:ring-[#39FF14] transition-colors"
-                placeholder="vous@qorpo.fr"
+                placeholder="Adresse email"
+                className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3 text-[#111111] text-[13px] placeholder-[#111111]/25 focus:outline-none focus:border-[#E2FF8D] transition-colors"
               />
-            </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[#999999] mb-2">
-                Mot de passe
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                autoComplete="current-password"
-                className="w-full bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-4 py-3 text-white text-sm placeholder-[#444444] focus:outline-none focus:border-[#39FF14] focus:ring-1 focus:ring-[#39FF14] transition-colors"
-                placeholder="••••••••"
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
-                <p className="text-red-400 text-sm">{error}</p>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  placeholder="Mot de passe"
+                  className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3 pr-11 text-[#111111] text-[13px] placeholder-[#111111]/25 focus:outline-none focus:border-[#E2FF8D] transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#111111]/25 hover:text-[#111111]/50 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
               </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#39FF14] hover:bg-[#32e612] disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-lg px-4 py-3 text-sm transition-colors mt-2"
-              style={{ boxShadow: loading ? 'none' : '0 0 20px rgba(57, 255, 20, 0.25)' }}
-            >
-              {loading ? 'Connexion...' : 'Se connecter'}
-            </button>
-          </form>
+              {error && (
+                <p className="text-red-500 text-[12px] bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#111111] hover:bg-[#222222] disabled:opacity-40 text-[#E2FF8D] font-semibold text-[13px] py-3 rounded-2xl transition-colors"
+              >
+                {loading ? 'Connexion…' : 'Se connecter →'}
+              </button>
+            </form>
+          </div>
+
+          {/* Footer */}
+          <p className="text-[#111111]/20 text-[11px]">
+            Soren — Propulsé par Qorpo
+          </p>
         </div>
 
-        <p className="text-center text-[#444444] text-xs mt-8">
-          © 2025 Qorpo. Tous droits réservés.
-        </p>
+        {/* ── Droite : visuel ── */}
+        <div className="flex-1 relative bg-[#111111] overflow-hidden">
+          {/* Blobs */}
+          <div
+            className="absolute top-[-30%] right-[-20%] w-[500px] h-[500px] rounded-full opacity-25"
+            style={{ background: 'radial-gradient(circle, #E2FF8D 0%, transparent 65%)' }}
+          />
+          <div
+            className="absolute bottom-[-20%] left-[-10%] w-[350px] h-[350px] rounded-full opacity-15"
+            style={{ background: 'radial-gradient(circle, #E2FF8D 0%, transparent 65%)' }}
+          />
+
+          {/* Grille */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage: 'linear-gradient(rgba(226,255,141,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(226,255,141,0.05) 1px, transparent 1px)',
+              backgroundSize: '40px 40px',
+            }}
+          />
+
+          {/* Contenu */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-10 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-[#E2FF8D] flex items-center justify-center mb-6 shadow-lg">
+              <Image src="/soren-logo.png" alt="Soren" width={30} height={30} className="object-contain" />
+            </div>
+            <h2 className="text-white font-bold text-[20px] leading-tight mb-3">
+              Votre infrastructure<br />agentique opérationnelle
+            </h2>
+            <p className="text-white/35 text-[12.5px] max-w-[220px] leading-relaxed">
+              Leads, suivis, agents IA — tout au même endroit.
+            </p>
+
+            {/* Stats déco */}
+            <div className="flex gap-6 mt-10">
+              {[['∞', 'Leads qualifiés'], ['24/7', 'Agents actifs'], ['0', 'Tâches perdues']].map(([val, label]) => (
+                <div key={label} className="text-center">
+                  <p className="text-[#E2FF8D] font-bold text-[24px]">{val}</p>
+                  <p className="text-white/30 text-[10px] mt-0.5">{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   )

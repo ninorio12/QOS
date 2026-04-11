@@ -43,6 +43,10 @@ export type Conversation = {
   pipeline_stage_id?: string | null
   opportunity_status?: OpportunityStatus
   assigned_to?: string | null
+  // Enrichissement
+  canal?: 'acquisition' | 'relance' | 'reception' | null
+  priorite?: 'faible' | 'moyenne' | 'haute' | null
+  tags?: string[]
 }
 
 export type Message = {

@@ -11,10 +11,10 @@ export async function PATCH(
   }
 
   const supabase = await createClient()
+  // Upsert : crée la ligne si elle n'existe pas encore (conversations GHL)
   const { error } = await supabase
     .from('conversations')
-    .update({ ai_enabled })
-    .eq('id', params.id)
+    .upsert({ id: params.id, ai_enabled }, { onConflict: 'id' })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

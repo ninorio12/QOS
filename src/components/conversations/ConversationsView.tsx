@@ -75,24 +75,13 @@ export default function ConversationsView({ dbConversations, pipelines }: Props)
       {/* ── Col 2: Thread ── */}
       <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
         {selected ? (
-          <>
-            {/* Header */}
-            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[#E5E7EB] bg-white flex-shrink-0">
-              <div>
-                <h2 className="text-sm font-bold text-[#111111]">{selected.contact_name ?? 'Contact inconnu'}</h2>
-                {selected.contact_company && (
-                  <p className="text-xs text-[#6B7280]">{selected.contact_company}</p>
-                )}
-              </div>
-            </div>
-            <div className="flex-1 min-h-0">
-              <MessageThread
-                conversation={selected}
-                aiEnabled={aiEnabled}
-                onAiToggle={handleAiToggle}
-              />
-            </div>
-          </>
+          <div className="flex-1 min-h-0">
+            <MessageThread
+              conversation={selected}
+              aiEnabled={aiEnabled}
+              onAiToggle={handleAiToggle}
+            />
+          </div>
         ) : (
           <div className="flex items-center justify-center h-full bg-[#EEF0EB]">
             <p className="text-sm text-[#9CA3AF]">Sélectionnez une conversation</p>
@@ -107,7 +96,9 @@ export default function ConversationsView({ dbConversations, pipelines }: Props)
           messages={messages}
           aiEnabled={aiEnabled}
           onAiToggle={handleAiToggle}
+          pipelines={pipelines}
         />
+
       ) : (
         <div className="w-[300px] flex-shrink-0 bg-white border-l border-[#E5E7EB]" />
       )}

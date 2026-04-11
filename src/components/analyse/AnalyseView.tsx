@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { TrendingUp } from 'lucide-react'
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { type GHLOpportunity, type GHLPipeline } from '@/lib/ghl'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -42,45 +41,51 @@ function DarkTooltip({ active, payload, label }: { active?: boolean; payload?: {
 }
 
 // ─── SVG Donut ────────────────────────────────────────────────
-const DONUT_PALETTE = ['#4A91A8', '#A78BFA', '#FB923C', '#EFE347', '#E2FF8D', '#EF4444']
-const STATUS_COLORS: Record<string, string> = {
-  open: '#3462EE', won: '#E2FF8D', lost: '#EF4444', abandoned: '#6B7280',
-}
-
-function SvgDonut({ data }: { data: { name: string; value: number; color: string; pct: number }[] }) {
+function SvgDonut({
+  data, centerNum, centerSub, centerColor, trackColor,
+}: {
+  data: { name: string; value: number; color: string; pct: number }[]
+  centerNum: string
+  centerSub: string
+  centerColor: string
+  trackColor: string
+}) {
   const filtered = data.filter(d => d.value > 0)
   if (filtered.length === 0) {
     return (
-      <div className="flex items-center justify-center" style={{ width: 80, height: 80 }}>
+      <div className="relative flex-shrink-0 flex items-center justify-center" style={{ width: 96, height: 96 }}>
         <span className="text-[10px] text-[#555]">—</span>
       </div>
     )
   }
-  const R = 36; const SW = 10; const CX = 44; const CY = 44
+  const R = 34; const SW = 11; const CX = 48; const CY = 48
   const circumference = 2 * Math.PI * R
   const total = filtered.reduce((s, d) => s + d.value, 0) || 1
   let offset = 0
   const slices = filtered.map(d => {
     const dash = (d.value / total) * circumference
-    const gap  = circumference - dash
-    const slice = { ...d, dash, gap, offset }
+    const slice = { ...d, dash, offset }
     offset += dash
     return slice
   })
   return (
-    <svg width={88} height={88} viewBox="0 0 88 88">
-      <circle cx={CX} cy={CY} r={R} fill="none" stroke="#3A3A3A" strokeWidth={SW} />
-      {slices.map((s, i) => (
-        <circle key={i} cx={CX} cy={CY} r={R} fill="none"
-          stroke={s.color} strokeWidth={SW}
-          strokeDasharray={`${s.dash} ${s.gap}`}
-          strokeDashoffset={circumference / 4 - s.offset}
-        />
-      ))}
-      <text x={CX} y={CY + 4} textAnchor="middle" fontSize={11} fontWeight={900} fill="#fff">
-        {total}
-      </text>
-    </svg>
+    <div className="relative flex-shrink-0" style={{ width: 96, height: 96 }}>
+      <svg width={96} height={96} viewBox="0 0 96 96">
+        <circle cx={CX} cy={CY} r={R} fill="none" stroke={trackColor} strokeWidth={SW} />
+        {slices.map((s, i) => (
+          <circle key={i} cx={CX} cy={CY} r={R} fill="none"
+            stroke={s.color} strokeWidth={SW}
+            strokeLinecap="round"
+            strokeDasharray={`${s.dash} ${circumference - s.dash}`}
+            strokeDashoffset={circumference / 4 - s.offset}
+          />
+        ))}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <span className="text-[18px] font-black leading-none" style={{ color: centerColor }}>{centerNum}</span>
+        <span className="text-[8px] font-semibold uppercase tracking-wide mt-0.5" style={{ color: centerColor, opacity: 0.5 }}>{centerSub}</span>
+      </div>
+    </div>
   )
 }
 
@@ -228,11 +233,47 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   }, [periodOpps])
 
   // ── Source bars ───────────────────────────────────────────────
+  const SOURCE_LABELS: Record<string, string> = {
+    'facebook':             'Meta Ads',
+    'facebook-lead-ad':     'Meta Ads',
+    'fb':                   'Meta Ads',
+    'meta':                 'Meta Ads',
+    'google':               'Google Ads',
+    'google-ads':           'Google Ads',
+    'instagram':            'Instagram',
+    'linkedin':             'LinkedIn',
+    'website':              'Site web',
+    'web':                  'Site web',
+    'form':                 'Formulaire',
+    'landing-page':         'Landing page',
+    'email':                'Email',
+    'sms':                  'SMS',
+    'phone':                'Téléphone',
+    'call':                 'Téléphone',
+    'chat':                 'Chat',
+    'whatsapp':             'WhatsApp',
+    'manual':               'Manuel',
+    'import':               'Import',
+    'csv':                  'Import',
+    'api':                  'API',
+    'referral':             'Parrainage',
+    'organic':              'Organique',
+    'seed-script':          'Import',
+    'seed':                 'Import',
+    'demo':                 'Démo',
+  }
+
+  function normalizeSource(raw: string | null | undefined): string {
+    if (!raw) return 'Manuel'
+    const key = raw.toLowerCase().trim()
+    return SOURCE_LABELS[key] ?? raw.charAt(0).toUpperCase() + raw.slice(1).replace(/-/g, ' ')
+  }
+
   const sourceData = useMemo(() => {
     const counts: Record<string, number> = {}
     pipelineOpps.forEach(o => {
-      const src = (o as unknown as { source?: string }).source || 'Non défini'
-      counts[src] = (counts[src] || 0) + 1
+      const label = normalizeSource(o.source)
+      counts[label] = (counts[label] || 0) + 1
     })
     const max = Math.max(...Object.values(counts), 1)
     return Object.entries(counts)
@@ -270,32 +311,33 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
     ]
   }, [pipelineOpps, stageNames])
 
+  const CARD = 'rounded-2xl' as const
+  const SHADOW = { boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.08)' } as const
+  const DARK = '#1C1C1E' as const
+
   return (
     <div className="h-[calc(100vh-56px)] overflow-y-auto bg-[#EEF0EB]">
-      <div className="p-5 flex flex-col gap-3 max-w-[1600px]">
+      <div className="p-5 flex flex-col gap-2.5 max-w-[1600px]">
 
         {/* ── Header + Filtres ── */}
         <div className="flex items-center justify-between gap-4 mb-1">
-          <div>
-            <h1 className="text-2xl font-black text-[#111111]">Analyse</h1>
-            <p className="text-[11px] text-[#9CA3AF] mt-0.5">Performance pipeline · données CRM</p>
-          </div>
+          <h1 className="text-[22px] font-black text-[#111111] tracking-tight">Analyse</h1>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-white border border-[#E5E7EB] rounded-xl p-1">
+            <div className="flex items-center gap-1 bg-white border border-[#E5E7EB] rounded-[10px] p-[3px]">
               {pipelineTabs.map(tab => (
                 <button key={tab.id} onClick={() => setSelectedPipeline(tab.id)}
-                  className={`text-[11px] font-medium px-3 py-1.5 rounded-lg transition-colors ${
-                    selectedPipeline === tab.id ? 'bg-[#111] text-white font-bold' : 'text-[#6B7280] hover:text-[#111]'
+                  className={`text-[11px] font-medium px-3 py-[5px] rounded-[7px] transition-colors ${
+                    selectedPipeline === tab.id ? 'bg-[#1a1a1a] text-white font-bold' : 'text-[#888] hover:text-[#111]'
                   }`}>
                   {tab.label}
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-1 bg-white border border-[#E5E7EB] rounded-xl p-1">
+            <div className="flex items-center gap-1 bg-white border border-[#E5E7EB] rounded-[10px] p-[3px]">
               {PERIODS.map(p => (
                 <button key={p.days} onClick={() => setPeriodDays(p.days)}
-                  className={`text-[11px] font-medium px-3 py-1.5 rounded-lg transition-colors ${
-                    periodDays === p.days ? 'bg-[#111] text-white font-bold' : 'text-[#6B7280] hover:text-[#111]'
+                  className={`text-[11px] font-medium px-3 py-[5px] rounded-[7px] transition-colors ${
+                    periodDays === p.days ? 'bg-[#1a1a1a] text-white font-bold' : 'text-[#888] hover:text-[#111]'
                   }`}>
                   {p.label}
                 </button>
@@ -305,59 +347,62 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
         </div>
 
         {/* ── Section 1 : Objectifs de vente ── */}
-        <div className="grid grid-cols-3 gap-3">
-          {objectives.map(obj => (
-            <div key={obj.label} className="bg-[#2E2E2E] rounded-2xl p-4 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-[#777] uppercase tracking-wider">{obj.label}</span>
-                <span className="text-[10px] font-bold" style={{ color: obj.color }}>{obj.pct}%</span>
+        <p className="text-[9px] font-bold uppercase tracking-[.8px] text-[#aaa]">Objectifs de vente</p>
+        <div className="grid grid-cols-3 gap-2.5">
+          {objectives.map((obj, idx) => {
+            const S = [
+              { bg: '#E2FF8D', text: '#111', muted: '#556b00', barBg: 'rgba(0,0,0,0.1)',          fillC: '#111111' },
+              { bg: DARK,      text: '#fff', muted: '#666',    barBg: 'rgba(255,255,255,0.08)', fillC: '#E2FF8D' },
+              { bg: '#ffffff', text: '#111', muted: '#888',    barBg: '#EBEBEB',                fillC: '#111111' },
+            ][idx]!
+            return (
+              <div key={obj.label} className={`${CARD} p-4 flex flex-col gap-2.5`} style={{ background: S.bg, ...SHADOW }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[.6px]" style={{ color: S.muted }}>{obj.label}</p>
+                <p className="text-[26px] font-black leading-none tracking-tight" style={{ color: S.text }}>{obj.current}</p>
+                <p className="text-[10px]" style={{ color: S.muted }}>Objectif : {obj.target}</p>
+                <div className="h-[5px] rounded-full overflow-hidden" style={{ background: S.barBg }}>
+                  <div className="h-full rounded-full" style={{ width: `${obj.pct}%`, background: S.fillC }} />
+                </div>
+                <p className="text-[11px] font-bold" style={{ color: S.fillC }}>{obj.pct}%</p>
               </div>
-              <div className="h-1.5 bg-[#3A3A3A] rounded-full overflow-hidden">
-                <div className="h-full rounded-full" style={{ width: `${obj.pct}%`, background: obj.color }} />
-              </div>
-              <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-black text-white">{obj.current}</span>
-                <span className="text-[11px] text-[#555]">/ {obj.target}</span>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* ── Section 2 : KPI cards ── */}
-        <div className="grid grid-cols-6 gap-3">
+        <p className="text-[9px] font-bold uppercase tracking-[.8px] text-[#aaa]">Métriques</p>
+        <div className="grid grid-cols-6 gap-2.5">
           {[
-            { label: 'Leads entrants',   value: String(kpis.total),          sub: `sur ${periodDays}j` },
-            { label: 'Valeur pipeline',  value: fmt(kpis.pipelineValue),      sub: 'deals ouverts' },
-            { label: 'Taux conversion',  value: `${kpis.conversionRate}%`,    sub: `${kpis.wonCount} won` },
-            { label: 'Durée moy.',       value: `${kpis.avgDays}j`,           sub: 'leads gagnés' },
-            { label: 'Leads actifs',     value: String(kpis.activeCount),     sub: 'status open' },
-            { label: 'Valeur moy.',      value: fmt(kpis.avgValue),           sub: 'par lead' },
+            { label: 'Total leads',     value: String(kpis.total),        trend: `sur ${periodDays}j`,  bg: DARK,      text: '#fff', muted: '#666', trendC: '#E2FF8D' },
+            { label: 'Pipeline',        value: fmt(kpis.pipelineValue),   trend: 'deals ouverts',    bg: '#ffffff', text: '#111', muted: '#888', trendC: '#111111' },
+            { label: 'Conversion',      value: `${kpis.conversionRate}%`, trend: `${kpis.wonCount} won`, bg: DARK, text: '#fff', muted: '#666', trendC: '#E2FF8D' },
+            { label: 'Durée moy.',      value: `${kpis.avgDays}j`,        trend: 'leads gagnés',     bg: '#ffffff', text: '#111', muted: '#888', trendC: '#888'    },
+            { label: 'Leads actifs',    value: String(kpis.activeCount),  trend: 'status open',      bg: DARK,      text: '#fff', muted: '#666', trendC: '#E2FF8D' },
+            { label: 'Valeur moy.',     value: fmt(kpis.avgValue),        trend: 'par lead',         bg: '#ffffff', text: '#111', muted: '#888', trendC: '#111111' },
           ].map(kpi => (
-            <div key={kpi.label} className="bg-[#2E2E2E] rounded-2xl p-4 flex flex-col gap-2">
-              <p className="text-[9px] text-[#777] uppercase tracking-wider">{kpi.label}</p>
-              <p className="text-xl font-black text-white leading-none">{kpi.value}</p>
-              <p className="text-[9px] text-[#555]">{kpi.sub}</p>
+            <div key={kpi.label} className={`${CARD} p-3.5 flex flex-col gap-2`} style={{ background: kpi.bg, ...SHADOW }}>
+              <p className="text-[10px] font-semibold uppercase tracking-[.6px]" style={{ color: kpi.muted }}>{kpi.label}</p>
+              <p className="text-[22px] font-black leading-none tracking-tight" style={{ color: kpi.text }}>{kpi.value}</p>
+              <p className="text-[10px] font-semibold" style={{ color: kpi.trendC }}>{kpi.trend}</p>
             </div>
           ))}
         </div>
 
-        {/* ── Section 3 : Leads par jour + Leads par heure ── */}
-        <div className="flex gap-3">
+        {/* ── Section 3 : Activité ── */}
+        <p className="text-[9px] font-bold uppercase tracking-[.8px] text-[#aaa]">Activité</p>
+        <div className="flex gap-2.5">
 
-          {/* Leads par jour */}
-          <div className="flex-1 bg-[#2E2E2E] rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[11px] font-bold text-white">Leads par jour</span>
-              <span className="text-[9px] text-[#555]">{periodDays} derniers jours</span>
-            </div>
+          {/* Leads par jour — fond dark */}
+          <div className={`flex-1 ${CARD} p-[18px]`} style={{ background: DARK, ...SHADOW }}>
+            <p className="text-[12px] font-bold text-white mb-3.5">Leads par jour</p>
             {chartData.every(d => d.count === 0) ? (
-              <div className="flex items-center justify-center h-28">
+              <div className="flex items-center justify-center h-24">
                 <p className="text-[11px] text-[#555]">Aucun lead sur la période</p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={120}>
+              <ResponsiveContainer width="100%" height={100}>
                 <BarChart data={chartData} barCategoryGap="30%">
-                  <XAxis dataKey="label" tick={{ fill: '#555', fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="label" tick={{ fill: '#666', fontSize: 9 }} axisLine={false} tickLine={false} />
                   <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
                   <Bar dataKey="count" fill="#E2FF8D" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -365,31 +410,40 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
             )}
           </div>
 
-          {/* Leads par heure */}
-          <div className="bg-[#2E2E2E] rounded-2xl p-4" style={{ width: 280 }}>
-            <span className="text-[11px] font-bold text-white block mb-4">Leads par heure</span>
-            <ResponsiveContainer width="100%" height={120}>
-              <BarChart data={hourlyData} barCategoryGap="20%">
+          {/* Leads par heure — fond blanc */}
+          <div className={`${CARD} p-[18px]`} style={{ background: '#fff', width: 260, ...SHADOW }}>
+            <p className="text-[12px] font-bold text-[#111] mb-3">Par heure</p>
+            <ResponsiveContainer width="100%" height={90}>
+              <BarChart data={hourlyData} barCategoryGap="20%" margin={{ top: 4, right: 2, bottom: 0, left: 2 }}>
                 <XAxis
                   dataKey="hour"
-                  tick={{ fill: '#555', fontSize: 8 }}
+                  tick={{ fill: '#BBB', fontSize: 8, fontWeight: 600 }}
                   axisLine={false}
                   tickLine={false}
-                  tickFormatter={(h: number) => [0, 6, 12, 18].includes(h) ? `${h}h` : ''}
+                  tickFormatter={(h: number) => [0, 6, 12, 18, 23].includes(h) ? `${h}h` : ''}
+                  interval={0}
+                  tickMargin={4}
                 />
                 <Tooltip
+                  cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 4 }}
                   content={({ active, payload, label }) => {
                     if (!active || !payload?.length) return null
                     return (
-                      <div className="bg-[#1a1a1a] border border-[#333] rounded-xl px-3 py-2 shadow-lg">
+                      <div className="bg-[#111] border border-[#333] rounded-xl px-3 py-2 shadow-lg">
                         <p className="text-[10px] text-[#777] mb-0.5">{label}h</p>
                         <p className="text-sm font-bold text-white">{payload[0].value} lead{Number(payload[0].value) !== 1 ? 's' : ''}</p>
                       </div>
                     )
                   }}
-                  cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                 />
-                <Bar dataKey="count" fill="#E2FF8D" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="count" radius={[3, 3, 0, 0]}>
+                  {(() => {
+                    const maxH = Math.max(...hourlyData.map(d => d.count), 1)
+                    return hourlyData.map((h, i) => (
+                      <Cell key={i} fill={h.count >= maxH * 0.4 && h.count > 0 ? '#1C1C1E' : '#E5E5E0'} />
+                    ))
+                  })()}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -397,52 +451,44 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
         </div>
 
         {/* ── Section 4 : Entonnoir + Source ── */}
-        <div className="flex gap-3">
+        <p className="text-[9px] font-bold uppercase tracking-[.8px] text-[#aaa]">Entonnoir &amp; sources</p>
+        <div className="flex gap-2.5">
 
-          {/* Entonnoir */}
-          <div className="flex-1 bg-[#2E2E2E] rounded-2xl p-4">
-            <span className="text-[11px] font-bold text-white block mb-4">Funnel par étape</span>
+          {/* Entonnoir — fond blanc */}
+          <div className={`flex-1 ${CARD} p-[18px]`} style={{ background: '#fff', ...SHADOW }}>
+            <p className="text-[12px] font-bold text-[#111] mb-3.5">Entonnoir de vente</p>
             {funnelData.length === 0 ? (
-              <p className="text-[11px] text-[#555] text-center py-6">Aucun stage</p>
+              <p className="text-[11px] text-[#9CA3AF] text-center py-6">Aucun stage</p>
             ) : (
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col">
                 {funnelData.map(stage => (
-                  <div key={stage.id}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
-                        <span className="text-[10px] text-[#999] truncate max-w-[160px]">{stage.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-[10px] font-bold text-white">{stage.count}</span>
-                        {stage.value > 0 && <span className="text-[9px] text-[#555]">{fmt(stage.value)}</span>}
-                      </div>
+                  <div key={stage.id} className="flex items-center gap-2.5 py-[6px] border-b border-[#F0F0EB] last:border-0">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
+                    <span className="text-[11px] text-[#888] font-medium flex-1 truncate">{stage.name}</span>
+                    <div className="w-24 h-[5px] rounded-full overflow-hidden" style={{ background: '#EBEBEB' }}>
+                      <div className="h-full rounded-full" style={{ width: `${stage.pct}%`, background: stage.color }} />
                     </div>
-                    <div className="h-1.5 bg-[#3A3A3A] rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${stage.pct}%`, background: stage.color }} />
-                    </div>
+                    <span className="text-[12px] font-bold text-[#111] w-7 text-right flex-shrink-0">{stage.count}</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Leads par source */}
-          <div className="bg-[#2E2E2E] rounded-2xl p-4" style={{ width: 280 }}>
-            <span className="text-[11px] font-bold text-white block mb-4">Leads par source</span>
+          {/* Leads par source — fond dark */}
+          <div className={`${CARD} p-[18px]`} style={{ background: DARK, width: 240, ...SHADOW }}>
+            <p className="text-[12px] font-bold text-white mb-3.5">Par source</p>
             {sourceData.length === 0 ? (
               <p className="text-[11px] text-[#555] text-center py-6">Aucune donnée</p>
             ) : (
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-2">
                 {sourceData.map(src => (
                   <div key={src.name} className="flex items-center gap-2">
-                    <span className="text-[9px] text-[#888] flex-shrink-0" style={{ width: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {src.name}
-                    </span>
-                    <div className="flex-1 h-1.5 bg-[#3A3A3A] rounded-full overflow-hidden">
+                    <span className="text-[10px] text-[#666] flex-shrink-0 truncate" style={{ width: 80 }}>{src.name}</span>
+                    <div className="flex-1 h-[4px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
                       <div className="h-full rounded-full bg-[#E2FF8D]" style={{ width: `${src.pct}%` }} />
                     </div>
-                    <span className="text-[9px] font-bold text-white flex-shrink-0 w-5 text-right">{src.count}</span>
+                    <span className="text-[11px] font-bold text-white flex-shrink-0 w-5 text-right">{src.count}</span>
                   </div>
                 ))}
               </div>
@@ -452,75 +498,104 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
         </div>
 
         {/* ── Section 5 : Donuts ── */}
-        <div className="grid grid-cols-3 gap-3">
-          {[
+        <p className="text-[9px] font-bold uppercase tracking-[.8px] text-[#aaa]">Répartition</p>
+        <div className="grid grid-cols-3 gap-2.5">
+          {([
             {
               title: 'Par statut',
-              data: statusPieData,
+              bg: '#1C1C1E', titleC: '#fff', centerColor: '#fff', trackColor: 'rgba(255,255,255,0.07)',
+              labelC: '#888', valC: '#fff', barTrack: 'rgba(255,255,255,0.08)',
+              centerSub: 'leads',
+              data: [
+                { name: 'Actif',      color: '#E2FF8D', value: statusPieData.find(d => d.name === 'Ouverts')?.value    ?? 0, pct: statusPieData.find(d => d.name === 'Ouverts')?.pct    ?? 0 },
+                { name: 'Gagné',      color: '#ffffff', value: statusPieData.find(d => d.name === 'Gagnés')?.value     ?? 0, pct: statusPieData.find(d => d.name === 'Gagnés')?.pct     ?? 0 },
+                { name: 'Perdu',      color: '#555555', value: statusPieData.find(d => d.name === 'Perdus')?.value     ?? 0, pct: statusPieData.find(d => d.name === 'Perdus')?.pct     ?? 0 },
+                { name: 'Abandonné',  color: '#333333', value: statusPieData.find(d => d.name === 'Abandonnés')?.value ?? 0, pct: statusPieData.find(d => d.name === 'Abandonnés')?.pct ?? 0 },
+              ],
             },
             {
               title: 'Par pipeline',
-              data: pipelinePieData.map((d, i) => ({ ...d, color: DONUT_PALETTE[i % DONUT_PALETTE.length] })),
+              bg: '#ffffff', titleC: '#111', centerColor: '#111', trackColor: '#E4E4E0',
+              labelC: '#888', valC: '#111', barTrack: '#EBEBEB',
+              centerSub: 'pipelines',
+              data: pipelinePieData.map((d, i) => ({ ...d, color: i === 0 ? '#111111' : '#E2FF8D' })),
             },
             {
               title: 'Par source',
-              data: sourceData.map((d, i) => ({ name: d.name, value: d.count, pct: d.pct, color: DONUT_PALETTE[i % DONUT_PALETTE.length] })),
+              bg: '#E2FF8D', titleC: '#111', centerColor: '#111', trackColor: 'rgba(0,0,0,0.1)',
+              labelC: '#3a5200', valC: '#111', barTrack: 'rgba(0,0,0,0.08)',
+              centerSub: 'sources',
+              data: sourceData.slice(0, 4).map((d, i) => ({
+                name: d.name, value: d.count, pct: d.pct,
+                color: ['#111111', '#ffffff', '#555555', '#333333'][i] ?? '#444',
+              })),
             },
-          ].map(card => (
-            <div key={card.title} className="bg-[#2E2E2E] rounded-2xl p-4">
-              <span className="text-[11px] font-bold text-white block mb-4">{card.title}</span>
-              <div className="flex items-center gap-3">
-                <SvgDonut data={card.data} />
-                <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                  {card.data.filter(d => d.value > 0).map(d => (
-                    <div key={d.name} className="flex items-center justify-between gap-1">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: d.color }} />
-                        <span className="text-[9px] text-[#888] truncate">{d.name}</span>
+          ]).map(card => {
+            const total = card.data.reduce((s, d) => s + d.value, 0)
+            return (
+              <div key={card.title} className={`${CARD} p-4`} style={{ background: card.bg, ...SHADOW }}>
+                <span className="text-[11px] font-bold block mb-3" style={{ color: card.titleC }}>{card.title}</span>
+                <div className="flex items-center gap-4">
+                  <SvgDonut
+                    data={card.data} centerNum={String(total)}
+                    centerSub={card.centerSub} centerColor={card.centerColor} trackColor={card.trackColor}
+                  />
+                  <div className="flex flex-col gap-2 flex-1 min-w-0">
+                    {card.data.filter(d => d.value > 0).map(d => (
+                      <div key={d.name} className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: d.color }} />
+                        <span className="text-[9px] flex-1 truncate" style={{ color: card.labelC }}>{d.name}</span>
+                        <div className="w-10 h-[3px] rounded-full overflow-hidden flex-shrink-0" style={{ background: card.barTrack }}>
+                          <div className="h-full rounded-full" style={{ width: `${d.pct}%`, background: d.color }} />
+                        </div>
+                        <span className="text-[10px] font-bold w-7 text-right flex-shrink-0" style={{ color: card.valC }}>{d.pct}%</span>
                       </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <span className="text-[9px] font-bold text-white">{d.value}</span>
-                        <span className="text-[9px] text-[#555]">{d.pct}%</span>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
-        {/* ── Section 6 : Table ── */}
-        <div className="bg-[#2E2E2E] rounded-2xl overflow-hidden">
-          <div className="flex items-center px-4 py-2.5 border-b border-[#323232]">
-            <span className="text-[8px] font-bold text-[#555] uppercase tracking-wider flex-1">Étape</span>
-            <span className="text-[8px] font-bold text-[#555] uppercase tracking-wider w-32">Volume</span>
-            <span className="text-[8px] font-bold text-[#555] uppercase tracking-wider w-14 text-right">Leads</span>
-            <span className="text-[8px] font-bold text-[#555] uppercase tracking-wider w-20 text-right">Valeur</span>
-            <span className="text-[8px] font-bold text-[#555] uppercase tracking-wider w-10 text-right">%</span>
+        {/* ── Section 6 : Table — fond blanc ── */}
+        <p className="text-[9px] font-bold uppercase tracking-[.8px] text-[#aaa]">Détail par étape</p>
+        <div className={`${CARD} bg-white p-3`} style={SHADOW}>
+          <div className="flex items-center px-3 pb-2 mb-1">
+            <span className="text-[8px] font-bold text-[#C0C0B8] uppercase tracking-wider flex-1">Étape</span>
+            <span className="text-[8px] font-bold text-[#C0C0B8] uppercase tracking-wider w-28">Volume</span>
+            <span className="text-[8px] font-bold text-[#C0C0B8] uppercase tracking-wider w-14 text-right">Leads</span>
+            <span className="text-[8px] font-bold text-[#C0C0B8] uppercase tracking-wider w-20 text-right">Valeur</span>
+            <span className="text-[8px] font-bold text-[#C0C0B8] uppercase tracking-wider w-12 text-right">%</span>
           </div>
           {funnelData.length === 0 ? (
-            <p className="text-[11px] text-[#555] text-center py-6">Aucune donnée</p>
+            <p className="text-[11px] text-[#9CA3AF] text-center py-6">Aucune donnée</p>
           ) : (
             funnelData.map((stage, i) => (
               <div key={stage.id}
-                className="flex items-center px-4 py-2.5 border-b border-[#323232] last:border-0"
-                style={{ background: i % 2 === 1 ? '#282828' : undefined }}
+                className="flex items-center px-3 py-2.5 rounded-xl mb-0.5"
+                style={{ background: i % 2 === 1 ? '#F8F8F5' : 'transparent' }}
               >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: stage.color }} />
-                  <span className="text-[10px] text-[#999] truncate">{stage.name}</span>
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
+                  <span className="text-[11px] font-semibold text-[#333] truncate">{stage.name}</span>
                 </div>
-                <div className="w-32 pr-3">
-                  <div className="h-1 bg-[#3A3A3A] rounded-full overflow-hidden">
+                <div className="w-28 pr-3">
+                  <div className="h-1.5 bg-[#EAEAE6] rounded-full overflow-hidden">
                     <div className="h-full rounded-full" style={{ width: `${stage.pct}%`, background: stage.color }} />
                   </div>
                 </div>
-                <span className="text-[10px] font-bold text-white w-14 text-right">{stage.count}</span>
-                <span className="text-[10px] text-[#555] w-20 text-right">{stage.value > 0 ? fmt(stage.value) : '—'}</span>
-                <span className="text-[10px] font-bold w-10 text-right" style={{ color: stage.pctTotal > 30 ? '#E2FF8D' : '#fff' }}>
-                  {stage.pctTotal}%
-                </span>
+                <span className="text-[13px] font-black text-[#111] w-14 text-right tracking-tight">{stage.count}</span>
+                <span className="text-[10px] text-[#999] w-20 text-right">{stage.value > 0 ? fmt(stage.value) : '—'}</span>
+                <div className="w-12 flex justify-end">
+                  <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    stage.pctTotal === 100 ? 'bg-[#E2FF8D] text-[#3a5200]' :
+                    stage.pctTotal > 30   ? 'bg-[#DCFCE7] text-[#166534]' :
+                                            'bg-[#EAEAE6] text-[#666]'
+                  }`}>
+                    {stage.pctTotal}%
+                  </span>
+                </div>
               </div>
             ))
           )}

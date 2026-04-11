@@ -5,7 +5,7 @@ import { type Conversation, CHANNEL_META } from './types'
 import { type InboxFilter } from './InboxNav'
 import NewConversationModal from './NewConversationModal'
 import { getAvatarColor } from '@/components/contacts/types'
-import { Mail, Phone, MessageSquare, Bot } from 'lucide-react'
+import { Mail, Phone, MessageSquare, Sparkles } from 'lucide-react'
 
 function ChannelIcon({ channel }: { channel: Conversation['channel'] }) {
   const meta = CHANNEL_META[channel]
@@ -48,7 +48,6 @@ function ConvRow({
   const name      = conv.contact_name ?? 'Contact inconnu'
   const initials  = (name.split(' ').map(w => w[0]).join('').slice(0, 2) || '??').toUpperCase()
   const color     = getAvatarColor(initials)
-  const isDark    = color === '#C8F135' || color === '#EFE347'
   const closedColor = conv.opportunity_status === 'won' ? '#22c55e'
     : conv.opportunity_status === 'lost' || conv.opportunity_status === 'abandoned' ? '#EF4444'
     : 'transparent'
@@ -63,7 +62,7 @@ function ConvRow({
       {/* Avatar */}
       <div
         className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5"
-        style={{ background: color, color: isDark ? '#111111' : '#ffffff' }}
+        style={{ background: color + '22', color }}
       >
         {initials}
       </div>
@@ -90,7 +89,11 @@ function ConvRow({
           </p>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {conv.ai_enabled && (
-              <Bot size={11} className="text-[#8B5CF6]" />
+              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                    style={{ background: '#8B5CF610', color: '#8B5CF6' }}>
+                <Sparkles size={8} />
+                Kai
+              </span>
             )}
             {(conv.unread ?? 0) > 0 && (
               <span className="w-4 h-4 rounded-full bg-[#3462EE] flex items-center justify-center text-[9px] font-bold text-white">

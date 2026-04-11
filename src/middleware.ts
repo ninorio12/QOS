@@ -28,16 +28,30 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
-  // Les routes API (webhooks, chat, whatsapp) ne nécessitent pas d'auth session
-  if (pathname.startsWith('/api/')) {
-    return supabaseResponse
-  }
+  // Routes API et webhooks — pas d'auth session requise
+  if (pathname.startsWith('/api/')) return supabaseResponse
 
+  // Non connecté → login
   if (!user && pathname !== '/login') {
     return NextResponse.redirect(new URL('/login', request.url))
   }
+
+  // Connecté sur /login → dashboard
   if (user && pathname === '/login') {
     return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  // Routes /admin → superadmin uniquement
+  if (user && pathname.startsWith('/admin')) {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
+
+    if (profile?.role !== 'superadmin') {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
   }
 
   return supabaseResponse

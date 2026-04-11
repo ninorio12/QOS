@@ -47,7 +47,7 @@ function NavButton({
       onClick={() => onFilterChange(filter)}
       aria-current={active ? 'page' : undefined}
       className={`
-        w-full text-left text-sm px-3 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#E2FF8D] focus:ring-offset-1 focus:ring-offset-[#111111]
+        w-full text-left text-sm px-3 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 focus:ring-offset-1 focus:ring-offset-[#111111]
         ${active
           ? 'bg-[#E2FF8D] text-[#111111] font-medium'
           : 'text-[#9CA3AF] hover:text-white hover:bg-white/5'
@@ -75,10 +75,12 @@ export default function InboxNav({ activeFilter, onFilterChange, totalUnread, pi
       </div>
 
       {/* Main filters */}
-      <nav aria-label="Filtres principaux" className="flex flex-col gap-0.5 px-2">
-        <NavButton label="Toutes"         filter="all"        activeFilter={activeFilter} onFilterChange={onFilterChange} />
-        <NavButton label="Non assignées"  filter="unassigned" activeFilter={activeFilter} onFilterChange={onFilterChange} />
-        <NavButton label="Fermées"        filter="closed"     activeFilter={activeFilter} onFilterChange={onFilterChange} />
+      <nav aria-label="Filtres principaux" className="px-2">
+        <div className="flex flex-col gap-0.5 bg-white/5 rounded-2xl p-1">
+          <NavButton label="Toutes"         filter="all"        activeFilter={activeFilter} onFilterChange={onFilterChange} />
+          <NavButton label="Non assignées"  filter="unassigned" activeFilter={activeFilter} onFilterChange={onFilterChange} />
+          <NavButton label="Fermées"        filter="closed"     activeFilter={activeFilter} onFilterChange={onFilterChange} />
+        </div>
       </nav>
 
       {/* Pipelines */}

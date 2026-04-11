@@ -4,7 +4,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { SYSTEM_PROMPT_DEFAULT } from '@/lib/agent-config'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+import { env } from '@/lib/env'
+
+const anthropic = new Anthropic({ apiKey: env.anthropicKey() })
 
 // Parse URL-encoded form data (format Twilio)
 function parseFormData(body: string): Record<string, string> {
@@ -16,17 +18,22 @@ export async function POST(req: NextRequest) {
     const rawBody  = await req.text()
     const formData = parseFormData(rawBody)
 
-    // Valider la signature Twilio (désactivé en dev local pour ngrok)
+    // Valider la signature Twilio — obligatoire en production
     const twilioSignature = req.headers.get('X-Twilio-Signature') ?? ''
     const authToken = process.env.TWILIO_AUTH_TOKEN ?? ''
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
-    const isDev = appUrl.includes('localhost') || appUrl.includes('127.0.0.1')
+    const isDev = process.env.NODE_ENV === 'development' && (appUrl.includes('localhost') || appUrl.includes('ngrok'))
 
-    if (authToken && twilioSignature && !isDev) {
+    if (!isDev) {
+      // En production, toujours vérifier la signature
+      if (!authToken || !twilioSignature) {
+        console.warn('[Twilio] Signature ou token manquant — requête rejetée')
+        return twimlResponse('', 403)
+      }
       const url = `${appUrl}/api/webhooks/twilio`
       const isValid = twilio.validateRequest(authToken, twilioSignature, url, formData)
       if (!isValid) {
-        console.warn('[Twilio] Signature invalide')
+        console.warn('[Twilio] Signature invalide — requête rejetée')
         return twimlResponse('', 403)
       }
     }

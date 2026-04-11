@@ -26,6 +26,7 @@ export type Opportunity = {
   email:      string
   phone:      string
   contactId:  string
+  tags:       string[]
   status:     'open' | 'won' | 'lost' | 'abandoned'
 }
 

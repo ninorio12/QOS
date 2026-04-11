@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { type Conversation, type Message } from './types'
 
@@ -37,6 +37,7 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
   const [streamingField, setStreamingField] = useState<'summary' | 'suggestion' | 'action' | null>(null)
   const [copiedSuggestion, setCopiedSuggestion] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+  const didAnalyze = useRef(false)
 
   const analyze = useCallback(async () => {
     setState('loading')
@@ -156,6 +157,13 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
     }
   }, [conversation, messages])
 
+  // Auto-trigger on first load
+  useEffect(() => {
+    if (messages.length === 0 || didAnalyze.current) return
+    didAnalyze.current = true
+    void analyze()
+  }, [messages.length])
+
   const copySuggestion = useCallback(async () => {
     await navigator.clipboard.writeText(suggestion)
     setCopiedSuggestion(true)
@@ -164,40 +172,19 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto px-5 py-5 gap-4">
-      {/* Header card */}
-      <div className="bg-white rounded-xl p-4 border border-[#E5E7EB]">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-sm font-semibold text-[#111111]">Analyse Kai</p>
-            <p className="text-xs text-[#6B7280]">
-              {conversation.contact_name ?? 'Contact'}{conversation.contact_company ? ` · ${conversation.contact_company}` : ''}
-            </p>
-          </div>
-          <button
-            onClick={analyze}
-            disabled={state === 'loading'}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[#111111] text-white hover:bg-[#222] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            {state === 'loading' ? 'Analyse...' : state === 'done' ? 'Réanalyser' : 'Analyser'}
-          </button>
+
+      {/* Score bar */}
+      {score !== null && (
+        <div className="px-1">
+          <ScoreBar score={score} />
         </div>
+      )}
 
-        {score !== null && <ScoreBar score={score} />}
+      {state === 'error' && (
+        <p className="text-xs text-red-500">Erreur lors de l'analyse. Vérifiez votre clé Anthropic.</p>
+      )}
 
-        {state === 'idle' && (
-          <p className="text-xs text-[#9CA3AF] mt-2">
-            Cliquez sur Analyser pour que Kai évalue ce lead.
-          </p>
-        )}
-
-        {state === 'error' && (
-          <p className="text-xs text-red-500 mt-2">
-            Erreur lors de l'analyse. Vérifiez votre clé Anthropic.
-          </p>
-        )}
-      </div>
-
-      {/* Analysis results — collapsible, open by default once analysis exists */}
+      {/* Analysis results — collapsible */}
       {(summary || suggestion || nextAction || streamingField !== null) && (
         <div>
           <button

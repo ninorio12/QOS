@@ -59,6 +59,7 @@ export default function NewLeadModal({ pipeline, onClose, onAdd }: Props) {
       email:      '',
       phone:      '',
       contactId:  '',
+      tags:       [],
       status:     'open',
     })
     onClose()

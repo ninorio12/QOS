@@ -1,162 +1,307 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
-import { Phone, ExternalLink, ChevronDown } from 'lucide-react'
-import { type Conversation, type Message, CHANNEL_META } from './types'
+import { Phone, Mail, ExternalLink, Sparkles, Loader2 } from 'lucide-react'
+import { type Conversation, type Message, type Pipeline, CHANNEL_META } from './types'
 import { getAvatarColor } from '@/components/contacts/types'
 import KaiAnalysis from './KaiAnalysis'
-import { useClickOutside } from '@/hooks/useClickOutside'
 
-const AGENT_OPTIONS = [
-  { name: 'Kai',   color: '#3462EE' },
-  { name: 'Mia',   color: '#8B5CF6' },
-  { name: 'Soren', color: '#14B8A6' },
-] as const
+type Priorite = 'faible' | 'moyenne' | 'haute'
+type Statut   = 'ouvert' | 'ferme'
 
-type AgentName = typeof AGENT_OPTIONS[number]['name']
+const PRIORITE_PILLS: { value: Priorite; label: string; color: string; dot: string }[] = [
+  { value: 'faible',  label: 'Faible',  color: '#16a34a', dot: '#22c55e' },
+  { value: 'moyenne', label: 'Moyenne', color: '#ea580c', dot: '#f97316' },
+  { value: 'haute',   label: 'Haute',   color: '#dc2626', dot: '#ef4444' },
+]
+
+const ORIGIN_COLORS: Record<string, string> = {
+  Mia:    '#8B5CF6',
+  Kai:    '#3462EE',
+  Soren:  '#14B8A6',
+  Thomas: '#0EA5E9',
+  Toi:    '#0EA5E9',
+  Luc:    '#F97316',
+  Eva:    '#EC4899',
+}
+
+function OriginBadge({ createdBy }: { createdBy: string | null }) {
+  if (!createdBy) return <span className="text-[11px] text-[#C4C9D4]">—</span>
+  const isBot = !['Thomas', 'Toi'].includes(createdBy)
+  const color = ORIGIN_COLORS[createdBy] ?? '#6B7280'
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+          style={{ background: color + '20', color, border: `1px solid ${color}35` }}>
+      {isBot && <Sparkles size={9} className="shrink-0" />}
+      {createdBy}
+    </span>
+  )
+}
 
 interface Props {
   conversation: Conversation
   messages:     Message[]
   aiEnabled:    boolean
   onAiToggle:   (enabled: boolean) => void
+  pipelines?:   Pipeline[]
 }
 
-export default function ConversationPanel({ conversation, messages, aiEnabled, onAiToggle }: Props) {
-  const [agent,     setAgent]     = useState<AgentName>('Kai')
-  const [agentOpen, setAgentOpen] = useState(false)
-  const agentDropdownRef = useClickOutside<HTMLDivElement>(() => setAgentOpen(false))
-
+export default function ConversationPanel({ conversation, messages, pipelines }: Props) {
   const name     = conversation.contact_name ?? 'Contact inconnu'
   const initials = (name.split(' ').map(w => w[0]).join('').slice(0, 2) || '??').toUpperCase()
   const color    = getAvatarColor(initials)
   const isDark   = color === '#C8F135' || color === '#EFE347'
+  const channelMeta = CHANNEL_META[conversation.channel]
 
-  const selectedAgent = AGENT_OPTIONS.find(a => a.name === agent) ?? AGENT_OPTIONS[0]
-  const channelMeta   = CHANNEL_META[conversation.channel]
+  const pipelineName = useMemo(() => {
+    if (!conversation.pipeline_stage_id || !pipelines?.length) return null
+    for (const p of pipelines) {
+      if (p.stages.some(s => s.id === conversation.pipeline_stage_id)) return p.name
+    }
+    return null
+  }, [conversation.pipeline_stage_id, pipelines])
+
+  const [createdBy, setCreatedBy] = useState<string | null>(null)
+  const [priorite,  setPriorite]  = useState<Priorite | null>(conversation.priorite ?? null)
+  const [sujet,     setSujet]     = useState<string>(conversation.summary ?? '')
+  const [statut,    setStatut]    = useState<Statut>(
+    conversation.opportunity_status === 'open' || !conversation.opportunity_status ? 'ouvert' : 'ferme'
+  )
+  const [genSujet, setGenSujet] = useState(false)
+  const [genPrio,  setGenPrio]  = useState(false)
+
+  const didGenSujet = useRef(false)
+  const didGenPrio  = useRef(false)
+
+  useEffect(() => {
+    if (!conversation.contact_id) return
+    fetch(`/api/contact/attribution?ids=${conversation.contact_id}`)
+      .then(r => r.json())
+      .then(data => { if (data.attributions?.[0]?.created_by) setCreatedBy(data.attributions[0].created_by) })
+      .catch(() => {})
+  }, [conversation.contact_id])
+
+  async function patch(data: Record<string, unknown>) {
+    await fetch(`/api/conversation/${conversation.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+  }
+
+  const generateSujet = useCallback(async () => {
+    if (messages.length === 0) return
+    setGenSujet(true)
+    const history = messages.slice(-10).map(m => `${m.role === 'user' ? name : 'Kai'}: ${m.content}`).join('\n\n')
+    try {
+      const res = await fetch('/api/kai-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'subject', contactName: name, contactCompany: conversation.contact_company ?? '', leadStage: conversation.lead_stage ?? '', history }),
+      })
+      if (res.ok && res.body) {
+        const reader = res.body.getReader()
+        const dec = new TextDecoder()
+        let text = ''
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          text += dec.decode(value, { stream: true })
+          setSujet(text)
+        }
+        await patch({ summary: text.trim() })
+      }
+    } finally { setGenSujet(false) }
+  }, [conversation, messages, name])
+
+  const generatePriorite = useCallback(async () => {
+    if (messages.length === 0) return
+    setGenPrio(true)
+    const history = messages.slice(-10).map(m => `${m.role === 'user' ? name : 'Kai'}: ${m.content}`).join('\n\n')
+    try {
+      const res = await fetch('/api/kai-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'priority', contactName: name, contactCompany: conversation.contact_company ?? '', leadStage: conversation.lead_stage ?? '', history }),
+      })
+      if (res.ok) {
+        const text = (await res.text()).trim().toLowerCase() as Priorite
+        const val: Priorite = ['haute', 'moyenne', 'faible'].includes(text) ? text as Priorite : 'moyenne'
+        setPriorite(val)
+        await patch({ priorite: val })
+      }
+    } finally { setGenPrio(false) }
+  }, [conversation, messages, name])
+
+  useEffect(() => {
+    if (messages.length === 0) return
+    if (!sujet && !didGenSujet.current) { didGenSujet.current = true; void generateSujet() }
+    if (!priorite && !didGenPrio.current) { didGenPrio.current = true; void generatePriorite() }
+  }, [messages.length])
+
+  async function handleStatutToggle() {
+    const next: Statut = statut === 'ouvert' ? 'ferme' : 'ouvert'
+    setStatut(next)
+    await patch({ opportunity_status: next === 'ouvert' ? 'open' : 'lost' })
+  }
+
+  async function handlePrioriteClick(val: Priorite) {
+    setPriorite(val)
+    await patch({ priorite: val })
+  }
 
   return (
-    <div className="w-[300px] flex-shrink-0 bg-white border-l border-[#E5E7EB] flex flex-col overflow-y-auto">
+    <div className="w-[300px] flex-shrink-0 bg-white border-l border-[#F0F0EE] flex flex-col overflow-hidden">
 
-      {/* ── Contact ──────────────────────────────── */}
-      <div className="px-5 py-5 border-b border-[#F0F0EE]">
-        <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wide mb-3">Contact</p>
-
-        <div className="flex items-center gap-3 mb-4">
-          <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center text-base font-black flex-shrink-0"
-            style={{ background: color, color: isDark ? '#111111' : '#ffffff' }}
-          >
+      {/* Contact header */}
+      <div className="px-4 pt-4 pb-3 border-b border-[#F0F0EE] flex-shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[12px] font-black flex-shrink-0"
+               style={{ background: color, color: isDark ? '#111111' : '#ffffff' }}>
             {initials}
           </div>
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-[#111111] truncate">{name}</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-[12px] font-bold text-[#111111] truncate">{name}</p>
             {conversation.contact_company && (
-              <p className="text-xs text-[#6B7280] truncate">{conversation.contact_company}</p>
+              <p className="text-[10px] text-[#9CA3AF] truncate">{conversation.contact_company}</p>
             )}
-            <span
-              className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-              style={{ background: channelMeta.bg, color: channelMeta.color }}
-            >
-              {channelMeta.label}
+          </div>
+        </div>
+      </div>
+
+      {/* Fields */}
+      <div className="px-4 py-3 space-y-3 border-b border-[#F0F0EE] flex-shrink-0">
+
+        {/* Statut */}
+        <div>
+          <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-1">Statut</p>
+          <button
+            onClick={() => void handleStatutToggle()}
+            className="flex items-center gap-2 w-full px-3 py-1.5 rounded-xl border border-[#E5E7EB] hover:border-[#D1D5DB] transition-colors text-left"
+          >
+            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                 style={{ background: statut === 'ouvert' ? '#22c55e' : '#9CA3AF' }} />
+            <span className="text-[11px] font-semibold text-[#374151]">
+              {statut === 'ouvert' ? 'Ouvert' : 'Fermé'}
             </span>
+          </button>
+        </div>
+
+        {/* Priorité */}
+        <div>
+          <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-1 flex items-center gap-1">
+            Priorité
+            {genPrio && <Loader2 size={8} className="animate-spin text-[#8B5CF6]" />}
+          </p>
+          <div className="flex gap-1">
+            {PRIORITE_PILLS.map(p => {
+              const active = priorite === p.value
+              return (
+                <button
+                  key={p.value}
+                  onClick={() => void handlePrioriteClick(p.value)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border transition-all flex-1 justify-center"
+                  style={active
+                    ? { background: p.dot + '18', color: p.color, borderColor: p.dot + '50' }
+                    : { background: 'transparent', color: '#9CA3AF', borderColor: '#E5E7EB' }
+                  }
+                >
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{ background: active ? p.dot : '#D1D5DB' }} />
+                  {p.label}
+                </button>
+              )
+            })}
           </div>
         </div>
 
-        {conversation.contact_phone && (
-          <a
-            href={`tel:${conversation.contact_phone}`}
-            className="flex items-center gap-2 text-xs text-[#374151] hover:text-[#3462EE] py-1 transition-colors"
-          >
-            <Phone size={12} className="flex-shrink-0 text-[#9CA3AF]" />
-            {conversation.contact_phone}
-          </a>
-        )}
+        {/* Sujet */}
+        <div>
+          <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-1 flex items-center gap-1">
+            Sujet
+            {genSujet && <Loader2 size={8} className="animate-spin text-[#8B5CF6]" />}
+          </p>
+          <div className="px-2.5 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9F9F7]">
+            {sujet ? (
+              <p className="text-[11px] text-[#374151] leading-snug">
+                {sujet}
+                {genSujet && <span className="inline-block w-0.5 h-3 bg-[#8B5CF6] ml-0.5 animate-pulse align-middle" />}
+              </p>
+            ) : (
+              <p className="text-[11px] italic text-[#C4C9D4]">
+                {genSujet ? 'Génération…' : 'En attente des messages…'}
+              </p>
+            )}
+          </div>
+        </div>
 
-        {conversation.contact_email && (
-          <a href={`mailto:${conversation.contact_email}`} className="text-sm text-[#6B7280] hover:text-[#111111] truncate">
-            {conversation.contact_email}
-          </a>
-        )}
-
-        {conversation.pipeline_stage && (
-          <span className="text-xs bg-[#EEF0EB] text-[#6B7280] px-2 py-0.5 rounded-full">
-            {conversation.pipeline_stage}
-          </span>
-        )}
-
-        {conversation.contact_id && (
-          <Link
-            href={`/contacts/${conversation.contact_id}`}
-            className="mt-3 flex items-center gap-1.5 text-xs font-medium text-[#3462EE] hover:underline"
-          >
-            <ExternalLink size={11} />
-            Ouvrir la fiche contact
-          </Link>
-        )}
-      </div>
-
-      {/* ── Agent IA ─────────────────────────────── */}
-      <div className="px-5 py-4 border-b border-[#F0F0EE]">
-        <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wide mb-3">Agent IA</p>
-
-        {/* Agent selector */}
-        <div ref={agentDropdownRef} className="relative mb-3">
-          <button
-            onClick={() => setAgentOpen(v => !v)}
-            className="w-full flex items-center justify-between px-3 py-2 bg-[#F9F9F7] border border-[#E5E7EB] rounded-xl text-sm font-semibold transition-colors hover:border-[#D1D5DB]"
-            style={{ color: selectedAgent.color }}
-          >
-            <span className="flex items-center gap-2">
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ background: selectedAgent.color }}
-              />
-              {selectedAgent.name}
-            </span>
-            <ChevronDown size={13} className="text-[#9CA3AF]" />
-          </button>
-          {agentOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E5E7EB] rounded-xl shadow-lg py-1 z-20">
-              {AGENT_OPTIONS.map(opt => (
-                <button
-                  key={opt.name}
-                  onClick={() => { setAgent(opt.name); setAgentOpen(false) }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold hover:bg-[#F5F5F0] transition-colors"
-                  style={{ color: opt.color }}
-                >
-                  <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
-                  {opt.name}
-                </button>
+        {/* Tags */}
+        {conversation.tags && conversation.tags.length > 0 && (
+          <div>
+            <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-1">Tags</p>
+            <div className="flex flex-wrap gap-1">
+              {conversation.tags.map(tag => (
+                <span key={tag} className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-[#EEF0EB] text-[#6B7280]">
+                  {tag}
+                </span>
               ))}
             </div>
-          )}
-        </div>
-
-        {/* AI toggle */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-[#374151] font-medium">Réponse automatique</span>
-          <button
-            onClick={() => onAiToggle(!aiEnabled)}
-            className="relative w-10 h-5 rounded-full transition-colors flex-shrink-0"
-            style={{ background: aiEnabled ? '#8B5CF6' : '#D1D5DB' }}
-            aria-label={aiEnabled ? 'Désactiver la réponse automatique' : 'Activer la réponse automatique'}
-            aria-pressed={aiEnabled}
-          >
-            <span
-              className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
-              style={{ transform: aiEnabled ? 'translateX(21px)' : 'translateX(2px)' }}
-            />
-          </button>
-        </div>
-        <p className="text-[11px] text-[#9CA3AF] mt-1.5">
-          {aiEnabled ? `${selectedAgent.name} répond automatiquement aux nouveaux messages.` : 'Réponse manuelle uniquement.'}
-        </p>
+          </div>
+        )}
       </div>
 
-      {/* ── Analyse Kai ──────────────────────────── */}
-      <div className="flex-1 min-h-0">
+      {/* Attributs */}
+      <div className="px-4 py-3 border-b border-[#F0F0EE] flex-shrink-0">
+        <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-2">Attributs</p>
+        <div className="space-y-2">
+
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] text-[#9CA3AF]">Origine</span>
+            <OriginBadge createdBy={createdBy} />
+          </div>
+
+          {pipelineName && (
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-[#9CA3AF]">Pipeline</span>
+              <span className="text-[11px] font-semibold text-[#374151]">{pipelineName}</span>
+            </div>
+          )}
+
+          {conversation.contact_phone && (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-[#9CA3AF] flex-shrink-0">Téléphone</span>
+              <a href={`tel:${conversation.contact_phone}`}
+                 className="flex items-center gap-1 text-[11px] font-semibold text-[#374151] hover:text-[#3462EE] transition-colors truncate">
+                <Phone size={9} className="text-[#C4C9D4] flex-shrink-0" />
+                {conversation.contact_phone}
+              </a>
+            </div>
+          )}
+
+          {conversation.contact_email && (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-[#9CA3AF] flex-shrink-0">Email</span>
+              <a href={`mailto:${conversation.contact_email}`}
+                 className="flex items-center gap-1 text-[11px] font-semibold text-[#374151] hover:text-[#3462EE] transition-colors truncate">
+                <Mail size={9} className="text-[#C4C9D4] flex-shrink-0" />
+                <span className="truncate">{conversation.contact_email}</span>
+              </a>
+            </div>
+          )}
+
+          {conversation.contact_id && (
+            <Link href={`/contacts/${conversation.contact_id}`}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-[#3462EE] hover:underline pt-0.5">
+              <ExternalLink size={9} />
+              Ouvrir la fiche contact
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* Kai analysis — prend tout l'espace restant */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <KaiAnalysis conversation={conversation} messages={messages} />
       </div>
 

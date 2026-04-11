@@ -48,7 +48,7 @@ export default function NewConversationModal({
       <div className="relative bg-white border border-[#E5E7EB] rounded-2xl w-full max-w-md shadow-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
           <h2 className="text-[#111111] font-semibold">Nouvelle conversation</h2>
-          <button onClick={onClose} className="text-[#9CA3AF] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#9CA3AF] hover:text-[#111111] transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -69,8 +69,8 @@ export default function NewConversationModal({
                     className={`
                       flex flex-col items-center gap-1.5 py-2.5 rounded-xl border text-xs font-medium transition-all
                       ${active
-                        ? 'border-[#3462EE] bg-[#3462EE]/10 text-white'
-                        : 'border-[#E5E7EB] text-[#6B7280] hover:border-[#3D4F6B] hover:text-white'
+                        ? 'border-[#3462EE] bg-[#3462EE]/10 text-[#3462EE]'
+                        : 'border-[#E5E7EB] text-[#6B7280] hover:border-[#3D4F6B] hover:text-[#111111]'
                       }
                     `}
                   >
@@ -96,7 +96,7 @@ export default function NewConversationModal({
 
           <div className="flex gap-3">
             <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-lg border border-[#E5E7EB] text-sm text-[#6B7280] hover:text-white hover:border-[#3D4F6B] transition-colors">
+              className="flex-1 py-2.5 rounded-lg border border-[#E5E7EB] text-sm text-[#6B7280] hover:text-[#111111] hover:border-[#3D4F6B] transition-colors">
               Annuler
             </button>
             <button type="submit" disabled={isPending}

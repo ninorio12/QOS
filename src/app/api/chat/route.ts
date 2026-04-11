@@ -3,8 +3,10 @@ import Anthropic from '@anthropic-ai/sdk'
 import { SYSTEM_PROMPT_DEFAULT } from '@/lib/agent-config'
 import { createClient } from '@/lib/supabase/server'
 import { sendWhatsApp } from '@/lib/twilio'
+import { getConversationMessages } from '@/lib/ghl'
+import { env } from '@/lib/env'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const anthropic = new Anthropic({ apiKey: env.anthropicKey() })
 
 export const runtime = 'nodejs'
 
@@ -40,7 +42,7 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // 2. Fetch full conversation history from Supabase
+    // 2. Fetch full conversation history
     let history: Anthropic.MessageParam[] = []
     if (conversationId) {
       const { data: msgs } = await supabase
@@ -50,12 +52,23 @@ export async function POST(req: NextRequest) {
         .order('created_at', { ascending: true })
 
       if (msgs && msgs.length > 0) {
-        // Convert to Anthropic format, ensuring alternating roles
         const filtered = msgs.filter(m => m.role === 'user' || m.role === 'assistant')
         history = filtered.map(m => ({
           role: m.role as 'user' | 'assistant',
           content: m.content,
         }))
+      } else {
+        // Aucun historique en base → lire l'historique GHL pour que Kai ait le contexte complet
+        const ghlMsgs = await getConversationMessages(conversationId, 30)
+        if (ghlMsgs.length > 0) {
+          // Les messages GHL les plus anciens en premier, exclure le dernier (= message courant)
+          const ordered = [...ghlMsgs].reverse()
+          const withoutLast = ordered.slice(0, -1)
+          for (const m of withoutLast) {
+            const role = m.direction === 'inbound' ? 'user' : 'assistant'
+            history.push({ role, content: m.body })
+          }
+        }
       }
     }
 
@@ -96,6 +109,7 @@ export async function POST(req: NextRequest) {
 
     const readable = new ReadableStream({
       async start(controller) {
+        const enc = new TextEncoder()
         try {
           for await (const event of stream) {
             if (
@@ -104,32 +118,35 @@ export async function POST(req: NextRequest) {
             ) {
               const text = event.delta.text
               fullResponse += text
-              controller.enqueue(new TextEncoder().encode(text))
+              controller.enqueue(enc.encode(text))
             }
           }
-
-          // 5. Save assistant response to Supabase after streaming completes
+        } catch (streamErr) {
+          console.error('[chat] Erreur stream Anthropic:', streamErr)
+          // Si on a déjà du contenu, on le garde — sinon message de fallback
+          if (!fullResponse) {
+            const fallback = "Une erreur s'est produite. Veuillez réessayer."
+            controller.enqueue(enc.encode(fallback))
+            fullResponse = fallback
+          }
+        } finally {
+          // Toujours sauvegarder ce qu'on a reçu, même partiel
           if (conversationId && fullResponse) {
-            await supabase.from('messages').insert({
+            const { error: saveErr } = await supabase.from('messages').insert({
               conversation_id: conversationId,
               role: 'assistant',
               content: fullResponse,
               metadata: { model: 'claude-opus-4-6' },
             })
+            if (saveErr) console.error('[chat] Erreur sauvegarde message:', saveErr.message)
           }
 
-          // 6. Envoyer via WhatsApp si le contact a un numéro
           if (contactPhone && fullResponse) {
-            try {
-              await sendWhatsApp(contactPhone, fullResponse)
-            } catch (waErr) {
-              console.error('[chat] Erreur envoi WhatsApp:', waErr)
-            }
+            sendWhatsApp(contactPhone, fullResponse)
+              .catch(e => console.error('[chat] Erreur envoi WhatsApp:', e))
           }
 
           controller.close()
-        } catch (err) {
-          controller.error(err)
         }
       },
     })

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { GitMerge, Settings } from 'lucide-react'
 import KanbanBoard from '@/components/pipeline/KanbanBoard'
-import { getOpportunities, getPipelines } from '@/lib/ghl'
+import { getOpportunities, getPipelines, getUsers } from '@/lib/ghl'
 import { stageColor, type GHLPipelineData, type Opportunity } from '@/components/pipeline/types'
 
 export const dynamic   = 'force-dynamic'   // désactive le cache statique
@@ -47,25 +47,39 @@ export default async function PipelinePage() {
   let fetchError:    string | null     = null
 
   try {
-    const rawPipelines = await getPipelines()
-    const rawOpps      = await getOpportunities(100)
+    const [rawPipelines, rawOpps, rawUsers] = await Promise.all([
+      getPipelines(),
+      getOpportunities(100),
+      getUsers().catch(() => []),
+    ])
+
+    const userInitialsMap = new Map(rawUsers.map(u => {
+      const name = u.name ?? `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim()
+      const ini  = name.trim().split(' ').map(w => w[0] ?? '').join('').slice(0, 2).toUpperCase()
+      return [u.id, ini || '?']
+    }))
 
     pipelines = rawPipelines.map(p => ({
       id:     p.id,
       name:   p.name,
       stages: p.stages
         .sort((a, b) => a.position - b.position)
-        .map(s => ({
-          id:       s.id,
-          name:     s.name,
-          color:    stageColor(s.name),
-          position: s.position,
-        })),
+        .map(s => {
+          const cleanName = s.name.replace(/^[^\w\d\s'"«»-]+\s*/, '').trim()
+          return {
+            id:       s.id,
+            name:     cleanName,
+            color:    stageColor(s.name),
+            position: s.position,
+          }
+        }),
     }))
 
     opportunities = rawOpps.map(opp => {
       const contactName = opp.contact?.name ?? opp.name
-      const initials    = contactName.trim().split(' ').map(w => w[0] ?? '').join('').slice(0, 2).toUpperCase()
+      const initials    = opp.assignedTo
+        ? (userInitialsMap.get(opp.assignedTo) ?? '?')
+        : contactName.trim().split(' ').map(w => w[0] ?? '').join('').slice(0, 2).toUpperCase()
       const rawSource   = (opp as Record<string, unknown> & { attributions?: { utmSessionSource?: string }[] })
         .attributions?.[0]?.utmSessionSource
       return {
@@ -81,6 +95,7 @@ export default async function PipelinePage() {
         email:      (opp.contact?.email ?? ''),
         phone:      (opp.contact?.phone ?? ''),
         contactId:  (opp.contact?.id ?? ''),
+        tags:       (opp.contact?.tags ?? []).filter(t => !['ia', 'kai', 'soren', 'mia', 'auto', 'ia active', 'auto ia active'].includes(t.toLowerCase())),
         status:     'open' as const,
       }
     })
@@ -93,8 +108,8 @@ export default async function PipelinePage() {
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <KanbanBoard />
+    <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+      <KanbanBoard initialPipelines={pipelines} initialOpportunities={opportunities} />
     </div>
   )
 }

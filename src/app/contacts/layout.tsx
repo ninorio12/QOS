@@ -3,10 +3,10 @@ import Header from '@/components/Header'
 
 export default function ContactsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#121721]">
+    <div className="min-h-screen bg-[#EEF0EB]">
       <Sidebar />
       <Header />
-      <main className="ml-16 pt-14 h-screen overflow-hidden">
+      <main className="ml-60 pt-14 h-screen overflow-y-auto">
         {children}
       </main>
     </div>

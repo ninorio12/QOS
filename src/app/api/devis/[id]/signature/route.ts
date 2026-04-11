@@ -32,12 +32,13 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   if (devis.conversation_id && devis.contact_id) {
     const message = `Bonjour${devis.contact_name ? ` ${devis.contact_name}` : ''},\n\nVotre devis ${devis.numero ?? ''} est prêt à être signé électroniquement :\n${signatureUrl}\n\nCordialement,\nL'équipe`
-    await sendGHLMessage({
-      conversationId: devis.conversation_id,
-      contactId:      devis.contact_id,
+    await sendGHLMessage(
+      devis.conversation_id,
       message,
-      type:           'WhatsApp',
-    }).catch(() => null)
+      'WhatsApp',
+      undefined,
+      devis.contact_id,
+    ).catch(() => null)
   }
 
   return Response.json({ signature_url: signatureUrl, token })

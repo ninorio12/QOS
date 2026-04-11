@@ -1,28 +1,248 @@
 'use client'
 
-import { useState } from 'react'
-import { X } from 'lucide-react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { X, ChevronDown, Search, Check, Plus } from 'lucide-react'
 import { type GHLContact } from '@/lib/ghl'
+import { type GHLPipelineData, type Opportunity } from '@/components/pipeline/types'
+import { type ContactPipelineInfo } from '@/app/contacts/page'
+import { fetchJSON } from '@/lib/fetchJSON'
 
-const inputCls = 'w-full bg-[#F5F5F0] border-0 rounded-xl px-3 py-2.5 text-sm text-[#111111] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#E2FF8D] transition-all'
+const inputCls = 'w-full bg-[#F5F5F0] border-0 rounded-xl px-3 py-2.5 text-sm text-[#111111] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all'
 const labelCls = 'block text-xs font-medium text-[#6B7280] mb-1.5'
 
-export default function NewContactModal({
-  onClose,
-  onAdd,
+// ─── Pays ──────────────────────────────────────────────────────
+const COUNTRIES = [
+  { code: 'FR', name: 'France',              dial: '+33',  flag: '🇫🇷' },
+  { code: 'BE', name: 'Belgique',            dial: '+32',  flag: '🇧🇪' },
+  { code: 'CH', name: 'Suisse',              dial: '+41',  flag: '🇨🇭' },
+  { code: 'LU', name: 'Luxembourg',          dial: '+352', flag: '🇱🇺' },
+  { code: 'MC', name: 'Monaco',              dial: '+377', flag: '🇲🇨' },
+  { code: 'DE', name: 'Allemagne',           dial: '+49',  flag: '🇩🇪' },
+  { code: 'AT', name: 'Autriche',            dial: '+43',  flag: '🇦🇹' },
+  { code: 'ES', name: 'Espagne',             dial: '+34',  flag: '🇪🇸' },
+  { code: 'IT', name: 'Italie',              dial: '+39',  flag: '🇮🇹' },
+  { code: 'PT', name: 'Portugal',            dial: '+351', flag: '🇵🇹' },
+  { code: 'NL', name: 'Pays-Bas',            dial: '+31',  flag: '🇳🇱' },
+  { code: 'GB', name: 'Royaume-Uni',         dial: '+44',  flag: '🇬🇧' },
+  { code: 'IE', name: 'Irlande',             dial: '+353', flag: '🇮🇪' },
+  { code: 'DK', name: 'Danemark',            dial: '+45',  flag: '🇩🇰' },
+  { code: 'SE', name: 'Suède',               dial: '+46',  flag: '🇸🇪' },
+  { code: 'NO', name: 'Norvège',             dial: '+47',  flag: '🇳🇴' },
+  { code: 'FI', name: 'Finlande',            dial: '+358', flag: '🇫🇮' },
+  { code: 'PL', name: 'Pologne',             dial: '+48',  flag: '🇵🇱' },
+  { code: 'CZ', name: 'Tchéquie',            dial: '+420', flag: '🇨🇿' },
+  { code: 'HU', name: 'Hongrie',             dial: '+36',  flag: '🇭🇺' },
+  { code: 'RO', name: 'Roumanie',            dial: '+40',  flag: '🇷🇴' },
+  { code: 'GR', name: 'Grèce',               dial: '+30',  flag: '🇬🇷' },
+  { code: 'TR', name: 'Turquie',             dial: '+90',  flag: '🇹🇷' },
+  { code: 'RU', name: 'Russie',              dial: '+7',   flag: '🇷🇺' },
+  { code: 'UA', name: 'Ukraine',             dial: '+380', flag: '🇺🇦' },
+  { code: 'US', name: 'États-Unis',          dial: '+1',   flag: '🇺🇸' },
+  { code: 'CA', name: 'Canada',              dial: '+1',   flag: '🇨🇦' },
+  { code: 'MX', name: 'Mexique',             dial: '+52',  flag: '🇲🇽' },
+  { code: 'BR', name: 'Brésil',              dial: '+55',  flag: '🇧🇷' },
+  { code: 'AR', name: 'Argentine',           dial: '+54',  flag: '🇦🇷' },
+  { code: 'CO', name: 'Colombie',            dial: '+57',  flag: '🇨🇴' },
+  { code: 'MA', name: 'Maroc',               dial: '+212', flag: '🇲🇦' },
+  { code: 'DZ', name: 'Algérie',             dial: '+213', flag: '🇩🇿' },
+  { code: 'TN', name: 'Tunisie',             dial: '+216', flag: '🇹🇳' },
+  { code: 'EG', name: 'Égypte',              dial: '+20',  flag: '🇪🇬' },
+  { code: 'SN', name: 'Sénégal',             dial: '+221', flag: '🇸🇳' },
+  { code: 'CI', name: "Côte d'Ivoire",       dial: '+225', flag: '🇨🇮' },
+  { code: 'CM', name: 'Cameroun',            dial: '+237', flag: '🇨🇲' },
+  { code: 'NG', name: 'Nigeria',             dial: '+234', flag: '🇳🇬' },
+  { code: 'ZA', name: 'Afrique du Sud',      dial: '+27',  flag: '🇿🇦' },
+  { code: 'SA', name: 'Arabie Saoudite',     dial: '+966', flag: '🇸🇦' },
+  { code: 'AE', name: 'Émirats Arabes Unis', dial: '+971', flag: '🇦🇪' },
+  { code: 'IN', name: 'Inde',                dial: '+91',  flag: '🇮🇳' },
+  { code: 'CN', name: 'Chine',               dial: '+86',  flag: '🇨🇳' },
+  { code: 'JP', name: 'Japon',               dial: '+81',  flag: '🇯🇵' },
+  { code: 'SG', name: 'Singapour',           dial: '+65',  flag: '🇸🇬' },
+  { code: 'AU', name: 'Australie',           dial: '+61',  flag: '🇦🇺' },
+]
+
+const SOURCES = ['Direct', 'Meta Ads', 'WhatsApp', 'LinkedIn', 'Téléphone', 'Site web', 'Referral', 'Email']
+
+const PIPELINE_KW: Record<'acquisition' | 'reactivation' | 'reception', string[]> = {
+  acquisition:  ['acquisition'],
+  reactivation: ['réactivation', 'reactivation', 'réactiv'],
+  reception:    ['réception', 'reception', 'inbound'],
+}
+
+function classifyPipeline(name: string): 'acquisition' | 'reactivation' | 'reception' | null {
+  const n = name.toLowerCase()
+  for (const [type, kws] of Object.entries(PIPELINE_KW)) {
+    if (kws.some(k => n.includes(k))) return type as 'acquisition' | 'reactivation' | 'reception'
+  }
+  return null
+}
+
+function buildPhone(dial: string, local: string): string {
+  const cleaned = local.trim().replace(/^0/, '')
+  return cleaned ? `${dial}${cleaned}` : ''
+}
+
+// Extract local number from E.164 phone (strips dial code)
+function parsePhone(phone: string | null): { countryCode: string; local: string } {
+  if (!phone) return { countryCode: 'FR', local: '' }
+  const sorted = [...COUNTRIES].sort((a, b) => b.dial.length - a.dial.length)
+  for (const c of sorted) {
+    if (phone.startsWith(c.dial)) {
+      return { countryCode: c.code, local: phone.slice(c.dial.length) }
+    }
+  }
+  return { countryCode: 'FR', local: phone }
+}
+
+function friendlyError(raw: string): string {
+  if (raw.includes('Invalid country calling code')) return 'Indicatif pays invalide — vérifiez le pays sélectionné'
+  if (raw.includes('duplicate') || raw.includes('already exists') || raw.includes('duplicated')) return 'Ce contact existe déjà dans le CRM'
+  if (raw.includes('Unauthorized')) return 'Clé API invalide — vérifiez vos paramètres'
+  return raw || 'Une erreur est survenue'
+}
+
+// ─── Custom dropdown ──────────────────────────────────────────
+function CustomSelect({
+  label, value, options, onChange,
 }: {
-  onClose: () => void
-  onAdd:   (c: GHLContact) => void
+  label:    string
+  value:    string
+  options:  { value: string; label: string }[]
+  onChange: (v: string) => void
 }) {
-  const [saving, setSaving]   = useState(false)
-  const [error,  setError]    = useState<string | null>(null)
-  const [form,   setForm]     = useState({
-    firstName: '', lastName: '', email: '', phone: '', companyName: '',
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const selected = options.find(o => o.value === value)
+
+  useEffect(() => {
+    if (!open) return
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative">
+      <label className={labelCls}>{label}</label>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full bg-[#F5F5F0] rounded-xl px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all flex items-center justify-between gap-2"
+      >
+        <span className={selected ? 'text-[#111111]' : 'text-[#9CA3AF]'}>
+          {selected?.label ?? 'Choisir…'}
+        </span>
+        <ChevronDown size={13} className={`text-[#9CA3AF] transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-white border border-[#E5E7EB] rounded-2xl shadow-xl overflow-hidden">
+          {options.map(o => (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => { onChange(o.value); setOpen(false) }}
+              className="w-full text-left flex items-center justify-between px-4 py-2.5 text-sm text-[#374151] hover:bg-[#F5F5F0] transition-colors"
+            >
+              {o.label}
+              {o.value === value && <Check size={13} className="text-[#3462EE]" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Section header ───────────────────────────────────────────
+function Section({ title }: { title: string }) {
+  return <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF]">{title}</p>
+}
+
+// ─── Props ────────────────────────────────────────────────────
+interface Props {
+  onClose:       () => void
+  onAdd?:        (c: GHLContact) => void
+  onSave?:       (c: GHLContact) => void
+  onAddOpp?:     (opp: Opportunity) => void
+  contact?:      GHLContact          // present = edit mode
+  pipelineInfo?: ContactPipelineInfo // current pipeline info for edit mode
+}
+
+// ─── Modal ────────────────────────────────────────────────────
+export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, contact, pipelineInfo }: Props) {
+  const isEdit = !!contact
+
+  const parsedPhone = useMemo(() => parsePhone(contact?.phone ?? null), [contact?.phone])
+
+  // Determine current pipeline type for pre-selection in edit mode (réception excluded — auto IA only)
+  const rawPipelineType     = pipelineInfo ? classifyPipeline(pipelineInfo.pipelineName) : null
+  const currentPipelineType = (rawPipelineType === 'acquisition' || rawPipelineType === 'reactivation') ? rawPipelineType : null
+
+  const [saving,        setSaving]        = useState(false)
+  const [error,         setError]         = useState<string | null>(null)
+  const [countryCode,   setCountryCode]   = useState(parsedPhone.countryCode)
+  const [showCountry,   setShowCountry]   = useState(false)
+  const [countrySearch, setCountrySearch] = useState('')
+  const [pipelines,        setPipelines]        = useState<GHLPipelineData[]>([])
+  const [pipelineId,       setPipelineId]       = useState<string>('')
+  const [withOpp,          setWithOpp]          = useState(!isEdit)
+  const [editPipelineType, setEditPipelineType] = useState<'acquisition' | 'reactivation' | null>(currentPipelineType)
+  const [tagInput,      setTagInput]      = useState('')
+  const [tags,          setTags]          = useState<string[]>(contact?.tags ?? [])
+
+  const [form, setForm] = useState({
+    firstName:   contact?.firstName   ?? '',
+    lastName:    contact?.lastName    ?? '',
+    email:       contact?.email       ?? '',
+    localPhone:  parsedPhone.local,
+    companyName: contact?.companyName ?? '',
+    address1:    contact?.address1    ?? '',
+    city:        contact?.city        ?? '',
+    postalCode:  contact?.postalCode  ?? '',
+    website:     contact?.website     ?? '',
+    value:       '',
+    source:      contact?.source      ?? 'Direct',
   })
+
+  const selectedCountry = COUNTRIES.find(c => c.code === countryCode) ?? COUNTRIES[0]
+
+  useEffect(() => {
+    fetch('/api/pipelines').then(r => r.json()).then((d: { pipelines?: GHLPipelineData[] }) => {
+      const all = d.pipelines ?? []
+      const typeOrder: (keyof typeof PIPELINE_KW)[] = ['acquisition', 'reactivation', 'reception']
+      const ordered: GHLPipelineData[] = []
+      for (const type of typeOrder) {
+        const found = all.find(p => classifyPipeline(p.name) === type)
+        if (found) ordered.push(found)
+      }
+      setPipelines(ordered.length ? ordered : all)
+      const first = ordered.find(p => classifyPipeline(p.name) !== 'reception') ?? ordered[0]
+      if (first) setPipelineId(first.id)
+    }).catch(() => {})
+  }, [isEdit])
+
+  const filteredCountries = useMemo(() => {
+    const q = countrySearch.toLowerCase().trim()
+    return q ? COUNTRIES.filter(c =>
+      c.name.toLowerCase().includes(q) || c.dial.includes(q) || c.code.toLowerCase().includes(q)
+    ) : COUNTRIES
+  }, [countrySearch])
 
   function set(k: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm(f => ({ ...f, [k]: e.target.value }))
+  }
+
+  function addTag(raw: string) {
+    const t = raw.trim().toLowerCase()
+    if (t && !tags.includes(t)) setTags(prev => [...prev, t])
+    setTagInput('')
+  }
+
+  function removeTag(t: string) {
+    setTags(prev => prev.filter(x => x !== t))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -31,29 +251,141 @@ export default function NewContactModal({
     setSaving(true)
     setError(null)
 
-    try {
-      const res  = await fetch('/api/contact', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(form),
-      })
-      const data = await res.json() as { contact?: { id: string; dateAdded: string }; error?: string }
-      if (!res.ok || data.error) throw new Error(data.error ?? 'Erreur création')
-      if (!data.contact) throw new Error('Réponse invalide du serveur')
+    const phone = buildPhone(selectedCountry.dial, form.localPhone)
 
-      const newContact: GHLContact = {
-        id:          data.contact.id,
-        contactName: `${form.firstName} ${form.lastName}`.trim(),
-        firstName:   form.firstName || null,
-        lastName:    form.lastName  || null,
-        email:       form.email      || null,
-        phone:       form.phone      || null,
-        companyName: form.companyName || null,
-        dateAdded:   data.contact.dateAdded,
-        dateUpdated: null,
-        tags:        [],
+    try {
+      if (isEdit && contact) {
+        // ── Edit mode ──────────────────────────────────────────
+        const res = await fetch(`/api/contact/${contact.id}`, {
+          method:  'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            firstName:   form.firstName,
+            lastName:    form.lastName,
+            email:       form.email,
+            phone:       phone || contact.phone,
+            companyName: form.companyName,
+            address1:    form.address1,
+            city:        form.city,
+            postalCode:  form.postalCode,
+            website:     form.website,
+            tags,
+          }),
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({})) as { error?: string }
+          throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
+        }
+
+        // If pipeline changed → create new opportunity at first stage
+        if (editPipelineType !== currentPipelineType && editPipelineType) {
+          const targetPipeline = pipelines.find(p => classifyPipeline(p.name) === editPipelineType)
+          if (targetPipeline) {
+            const firstStageId = targetPipeline.stages[0]?.id
+            await fetch('/api/opp', {
+              method:  'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contactId:       contact.id,
+                contactName:     `${form.firstName} ${form.lastName}`.trim() || contact.contactName,
+                email:           form.email       || '',
+                phone:           phone            || contact.phone || '',
+                company:         form.companyName || '',
+                pipelineId:      targetPipeline.id,
+                pipelineStageId: firstStageId,
+                monetaryValue:   0,
+                source:          '',
+              }),
+            })
+          }
+        }
+
+        const updated: GHLContact = {
+          ...contact,
+          firstName:   form.firstName   || null,
+          lastName:    form.lastName    || null,
+          contactName: `${form.firstName} ${form.lastName}`.trim() || contact.contactName,
+          email:       form.email       || null,
+          phone:       phone            || contact.phone,
+          companyName: form.companyName || null,
+          address1:    form.address1    || null,
+          city:        form.city        || null,
+          postalCode:  form.postalCode  || null,
+          website:     form.website     || null,
+          tags,
+          dateUpdated: new Date().toISOString(),
+        }
+        onSave?.(updated)
+
+      } else {
+        // ── Create mode ────────────────────────────────────────
+        const selectedPipeline = pipelines.find(p => p.id === pipelineId)
+        const firstStageId = selectedPipeline?.stages[0]?.id ?? ''
+
+        if (withOpp && pipelineId && firstStageId) {
+          const contactName = `${form.firstName} ${form.lastName}`.trim()
+          const res = await fetch('/api/opp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contactName,
+              email:           form.email,
+              phone,
+              company:         form.companyName,
+              pipelineId,
+              pipelineStageId: firstStageId,
+              monetaryValue:   parseFloat(form.value) || 0,
+              source:          form.source === 'Direct' ? '' : form.source,
+            }),
+          })
+          const data = await res.json().catch(() => ({})) as { opp?: Opportunity; error?: string }
+          if (!res.ok || data.error) throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
+
+          const newContact: GHLContact = {
+            id:          data.opp!.contactId,
+            contactName,
+            firstName:   form.firstName   || null,
+            lastName:    form.lastName    || null,
+            email:       form.email       || null,
+            phone:       phone            || null,
+            companyName: form.companyName || null,
+            dateAdded:   new Date().toISOString(),
+            dateUpdated: null,
+            tags:        [],
+          }
+          onAdd?.(newContact)
+          onAddOpp?.(data.opp!)
+        } else {
+          const res = await fetch('/api/contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              firstName:   form.firstName,
+              lastName:    form.lastName,
+              email:       form.email,
+              phone,
+              companyName: form.companyName,
+            }),
+          })
+          const data = await res.json().catch(() => ({})) as { contact?: { id: string; dateAdded: string }; error?: string }
+          if (!res.ok || data.error) throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
+
+          const newContact: GHLContact = {
+            id:          data.contact!.id,
+            contactName: `${form.firstName} ${form.lastName}`.trim(),
+            firstName:   form.firstName   || null,
+            lastName:    form.lastName    || null,
+            email:       form.email       || null,
+            phone:       phone            || null,
+            companyName: form.companyName || null,
+            dateAdded:   data.contact!.dateAdded,
+            dateUpdated: null,
+            tags:        [],
+          }
+          onAdd?.(newContact)
+        }
       }
-      onAdd(newContact)
+
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue')
@@ -62,46 +394,278 @@ export default function NewContactModal({
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl w-full max-w-md shadow-2xl">
+  const PIPELINE_STYLE: Record<string, { bg: string }> = {
+    acquisition:  { bg: '#3462EE' },
+    reactivation: { bg: '#F97316' },
+    reception:    { bg: '#9CA3AF' },
+  }
 
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white w-full sm:rounded-2xl sm:max-w-xl shadow-2xl max-h-[92vh] flex flex-col">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB] flex-shrink-0">
           <div>
-            <h2 className="text-base font-bold text-[#111111]">Ajouter un contact</h2>
-            <p className="text-xs text-[#9CA3AF] mt-0.5">Créé directement dans GHL</p>
+            <h2 className="text-base font-bold text-[#111111]">
+              {isEdit ? 'Modifier le contact' : 'Nouveau lead'}
+            </h2>
+            <p className="text-xs text-[#9CA3AF] mt-0.5">
+              {isEdit ? 'Les modifications sont synchronisées avec le CRM.' : 'Contact + opportunité synchronisés automatiquement'}
+            </p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#F5F5F0] flex items-center justify-center hover:bg-[#E5E7EB] transition-colors">
             <X size={14} className="text-[#6B7280]" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-3.5">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelCls}>Prénom *</label>
-              <input value={form.firstName} onChange={set('firstName')} placeholder="Jean" className={inputCls} />
+        {/* Scrollable body */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+
+          {/* ── Contact ── */}
+          <div className="flex flex-col gap-3">
+            <Section title="Contact" />
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Prénom *</label>
+                <input value={form.firstName} onChange={set('firstName')} placeholder="Jean" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Nom</label>
+                <input value={form.lastName} onChange={set('lastName')} placeholder="Dupont" className={inputCls} />
+              </div>
             </div>
+
             <div>
-              <label className={labelCls}>Nom</label>
-              <input value={form.lastName} onChange={set('lastName')} placeholder="Dupont" className={inputCls} />
+              <label className={labelCls}>Entreprise</label>
+              <input value={form.companyName} onChange={set('companyName')} placeholder="Dupont Construction" className={inputCls} />
             </div>
-          </div>
-          <div>
-            <label className={labelCls}>Entreprise</label>
-            <input value={form.companyName} onChange={set('companyName')} placeholder="Dupont Construction" className={inputCls} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+
             <div>
               <label className={labelCls}>E-mail</label>
               <input type="email" value={form.email} onChange={set('email')} placeholder="jean@exemple.fr" className={inputCls} />
             </div>
+
+            {/* Téléphone */}
             <div>
               <label className={labelCls}>Téléphone</label>
-              <input type="tel" value={form.phone} onChange={set('phone')} placeholder="+33 6 00 00 00 00" className={inputCls} />
+              <div className="flex gap-2">
+                <div className="relative flex-shrink-0">
+                  <button type="button" onClick={() => setShowCountry(s => !s)}
+                    className="flex items-center gap-1.5 bg-[#F5F5F0] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 whitespace-nowrap">
+                    <span>{selectedCountry.flag}</span>
+                    <span className="font-medium text-[#111111]">{selectedCountry.dial}</span>
+                    <ChevronDown size={12} className={`text-[#9CA3AF] transition-transform ${showCountry ? 'rotate-180' : ''}`} />
+                  </button>
+                  {showCountry && (
+                    <div className="absolute top-full mt-1.5 left-0 z-50 bg-white border border-[#E5E7EB] rounded-2xl shadow-xl w-64 flex flex-col" style={{ maxHeight: 240 }}>
+                      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[#F0F0EC]">
+                        <Search size={11} className="text-[#9CA3AF] flex-shrink-0" />
+                        <input autoFocus value={countrySearch} onChange={e => setCountrySearch(e.target.value)}
+                          placeholder="Rechercher un pays…"
+                          className="flex-1 text-xs text-[#111111] placeholder-[#9CA3AF] outline-none bg-transparent" />
+                      </div>
+                      <div className="overflow-y-auto flex-1">
+                        {filteredCountries.map(c => (
+                          <button key={c.code} type="button"
+                            onClick={() => { setCountryCode(c.code); setShowCountry(false); setCountrySearch('') }}
+                            className={`w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-[#F5F5F0] ${c.code === countryCode ? 'bg-[#F0F0EC]' : ''}`}>
+                            <span>{c.flag}</span>
+                            <span className="flex-1 text-[#111111] text-xs">{c.name}</span>
+                            <span className="text-[#9CA3AF] text-xs flex-shrink-0">{c.dial}</span>
+                            {c.code === countryCode && <Check size={11} className="text-[#3462EE] flex-shrink-0" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <input type="tel" value={form.localPhone} onChange={set('localPhone')}
+                  placeholder="6 12 34 56 78" className={inputCls} />
+              </div>
             </div>
           </div>
+
+          {/* ── Adresse & Détails ── */}
+          <div className="flex flex-col gap-3 border-t border-[#F0F0EC] pt-5">
+            <Section title="Adresse & Infos" />
+
+            <div>
+              <label className={labelCls}>Adresse</label>
+              <input value={form.address1} onChange={set('address1')} placeholder="12 rue de la Paix" className={inputCls} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Ville</label>
+                <input value={form.city} onChange={set('city')} placeholder="Paris" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Code postal</label>
+                <input value={form.postalCode} onChange={set('postalCode')} placeholder="75001" className={inputCls} />
+              </div>
+            </div>
+
+            <div>
+              <label className={labelCls}>Site web</label>
+              <input type="url" value={form.website} onChange={set('website')} placeholder="https://exemple.fr" className={inputCls} />
+            </div>
+
+            <CustomSelect
+              label="Source"
+              value={form.source}
+              onChange={v => setForm(f => ({ ...f, source: v }))}
+              options={SOURCES.map(s => ({ value: s, label: s }))}
+            />
+
+            {/* Tags */}
+            <div>
+              <label className={labelCls}>Balises</label>
+              <div className="bg-[#F5F5F0] rounded-xl px-3 py-2.5 flex flex-wrap gap-1.5 min-h-[42px] focus-within:ring-2 focus-within:ring-[#3462EE]/40 transition-all">
+                {tags.map(t => (
+                  <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white border border-[#E5E7EB] text-[#374151]">
+                    {t}
+                    <button type="button" onClick={() => removeTag(t)} className="hover:text-[#EF4444] transition-colors">
+                      <X size={9} />
+                    </button>
+                  </span>
+                ))}
+                <input
+                  value={tagInput}
+                  onChange={e => setTagInput(e.target.value)}
+                  onKeyDown={e => {
+                    if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
+                      e.preventDefault()
+                      addTag(tagInput)
+                    }
+                    if (e.key === 'Backspace' && !tagInput && tags.length > 0) {
+                      setTags(prev => prev.slice(0, -1))
+                    }
+                  }}
+                  onBlur={() => { if (tagInput.trim()) addTag(tagInput) }}
+                  placeholder={tags.length === 0 ? 'Ajouter une balise…' : ''}
+                  className="flex-1 min-w-[120px] bg-transparent text-sm text-[#111111] placeholder-[#9CA3AF] outline-none"
+                />
+              </div>
+              <p className="text-[10px] text-[#9CA3AF] mt-1">Appuyez sur Entrée ou virgule pour valider</p>
+            </div>
+          </div>
+
+          {/* ── Pipeline (edit only) ── */}
+          {isEdit && (
+            <div className="border-t border-[#F0F0EC] pt-5 flex flex-col gap-3">
+              <Section title="Pipeline" />
+              {pipelines.length === 0 ? (
+                <div className="flex gap-2">
+                  {['Acquisition', 'Réactivation'].map(n => (
+                    <div key={n} className="flex-1 h-14 bg-[#F5F5F0] rounded-xl animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-2">
+                    {[
+                      { type: null,           label: 'Aucun',        desc: 'Hors pipeline', color: '#9CA3AF' },
+                      { type: 'acquisition',  label: 'Acquisition',  desc: '1ère étape',    color: '#3462EE' },
+                      { type: 'reactivation', label: 'Réactivation', desc: '1ère étape',    color: '#F97316' },
+                    ].map(opt => {
+                      const pipeFound  = opt.type ? pipelines.find(p => classifyPipeline(p.name) === opt.type) : true
+                      const isSelected = editPipelineType === opt.type
+                      return (
+                        <button
+                          key={String(opt.type)}
+                          type="button"
+                          disabled={!!opt.type && !pipeFound}
+                          onClick={() => setEditPipelineType(opt.type as typeof editPipelineType)}
+                          className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                          style={{
+                            borderColor: isSelected ? opt.color : '#E5E7EB',
+                            background:  isSelected ? opt.color + '12' : '#F9F9F7',
+                          }}
+                        >
+                          <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
+                          <span className="text-[11px] font-bold text-[#111111] leading-tight text-center">{opt.label}</span>
+                          <span className="text-[10px] text-[#9CA3AF]">{opt.desc}</span>
+                          {isSelected && <Check size={11} style={{ color: opt.color }} />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {editPipelineType !== currentPipelineType && editPipelineType && (
+                    <p className="text-[10px] text-[#F97316] bg-[#FFF7ED] rounded-lg px-3 py-2">
+                      Le contact sera replacé en 1ère étape du pipeline {editPipelineType === 'acquisition' ? 'Acquisition' : 'Réactivation'}.
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ── Opportunité (create only) ── */}
+          {!isEdit && (
+            <div className="border-t border-[#F0F0EC] pt-5 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <Section title="Opportunité" />
+                <button type="button" onClick={() => setWithOpp(v => !v)}
+                  className="flex items-center gap-2 group">
+                  <span className={`text-[11px] font-semibold transition-colors ${withOpp ? 'text-[#111111]' : 'text-[#9CA3AF]'}`}>
+                    {withOpp ? 'Activée' : 'Désactivée'}
+                  </span>
+                  <div className={`relative w-10 h-5 rounded-full transition-all duration-300 ${withOpp ? 'bg-[#111111]' : 'bg-[#D1D5DB]'}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${withOpp ? 'left-5' : 'left-0.5'}`} />
+                  </div>
+                </button>
+              </div>
+
+              {withOpp && (
+                <>
+                  <div>
+                    <label className={labelCls}>Pipeline</label>
+                    {pipelines.length === 0 ? (
+                      <div className="flex gap-2">
+                        {['Acquisition', 'Réactivation', 'Réception'].map(n => (
+                          <div key={n} className="flex-1 h-10 bg-[#F5F5F0] rounded-xl animate-pulse" />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        {pipelines.map(p => {
+                          const type = classifyPipeline(p.name) ?? 'acquisition'
+                          const isAuto = type === 'reception'
+                          const isSelected = pipelineId === p.id
+                          const style = PIPELINE_STYLE[type]
+                          return (
+                            <button key={p.id} type="button" disabled={isAuto}
+                              onClick={() => setPipelineId(p.id)}
+                              className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all"
+                              style={{
+                                borderColor: isSelected && !isAuto ? style.bg : '#E5E7EB',
+                                background:  isSelected && !isAuto ? style.bg + '12' : '#F9F9F7',
+                                opacity:     isAuto ? 0.5 : 1,
+                                cursor:      isAuto ? 'not-allowed' : 'pointer',
+                              }}>
+                              <span className="w-2 h-2 rounded-full" style={{ background: isAuto ? '#9CA3AF' : style.bg }} />
+                              <span className="text-[11px] font-bold text-[#111111] leading-tight text-center">{p.name}</span>
+                              {isSelected && !isAuto && <Check size={11} style={{ color: style.bg }} />}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                    <p className="text-[10px] text-[#9CA3AF] mt-1.5">Le lead sera placé automatiquement en 1ère étape.</p>
+                  </div>
+
+                  <div>
+                    <label className={labelCls}>Valeur estimée (€)</label>
+                    <input type="number" value={form.value} onChange={set('value')}
+                      placeholder="0" className={inputCls} />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {error && (
             <p className="text-xs text-[#EF4444] bg-[#FEF2F2] rounded-xl px-3 py-2">{error}</p>
@@ -114,7 +678,9 @@ export default function NewContactModal({
             </button>
             <button type="submit" disabled={saving || !form.firstName.trim()}
               className="flex-1 py-2.5 rounded-full bg-[#111111] hover:bg-[#2a2a2a] disabled:opacity-50 text-white text-sm font-semibold transition-colors">
-              {saving ? 'Création...' : 'Créer le contact'}
+              {saving
+                ? (isEdit ? 'Enregistrement…' : 'Création en cours…')
+                : (isEdit ? 'Enregistrer' : withOpp ? 'Créer le lead' : 'Créer le contact')}
             </button>
           </div>
         </form>

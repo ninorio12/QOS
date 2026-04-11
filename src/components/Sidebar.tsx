@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, GitMerge, Users, MessageSquare, CalendarDays,
   TrendingUp, BotMessageSquare, CheckSquare,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import { logout } from '@/app/login/actions'
+import { createClient } from '@/lib/supabase/client'
 
 type NavItem = { href: string; icon: React.ElementType; label: string; also?: string[] }
 
@@ -27,11 +29,11 @@ const AGENTIQUE: NavItem[] = [
   { href: '/taches',    icon: CheckSquare,      label: 'Tâches' },
   { href: '/logs',      icon: ScrollText,       label: 'Activités' },
   { href: '/knowledge', icon: Database,         label: 'Base de connaissance' },
-  { href: '/workflows', icon: GitBranch,        label: 'Workflows' },
 ]
 
 const CONFIGURATION: NavItem[] = [
-  { href: '/budget',     icon: Wallet,   label: 'Budget' },
+  { href: '/workflows', icon: GitBranch, label: 'Automatisation' },
+  { href: '/budget',    icon: Wallet,    label: 'Budget' },
   { href: '/parametres', icon: Settings, label: 'Paramètres' },
 ]
 
@@ -69,6 +71,35 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const [profilePhoto, setProfilePhoto] = useState('')
+  const [role, setRole] = useState<'superadmin' | 'client' | null>(null)
+
+  useEffect(() => {
+    function load() {
+      try {
+        const p = localStorage.getItem('soren_profile_photo')
+        setProfilePhoto(p ?? '')
+      } catch {}
+    }
+    load()
+    window.addEventListener('profile-photo-updated', load)
+    return () => window.removeEventListener('profile-photo-updated', load)
+  }, [])
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single()
+        .then(({ data }) => setRole((data?.role as 'superadmin' | 'client') ?? 'client'))
+    })
+  }, [])
+
+  const isSuperAdmin = role === 'superadmin' || role === null // null = chargement, on affiche tout par défaut
 
   return (
     <aside className="fixed left-3 top-3 bottom-3 w-56 bg-[#111111] rounded-2xl flex flex-col z-50 overflow-hidden shadow-xl">
@@ -92,11 +123,25 @@ export default function Sidebar() {
         <SectionLabel label="Acquisition" />
         {ACQUISITION.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
 
-        <SectionLabel label="Agentique" />
-        {AGENTIQUE.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
+        {isSuperAdmin && (
+          <>
+            <SectionLabel label="Agentique" />
+            {AGENTIQUE.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
+          </>
+        )}
+
+        {!isSuperAdmin && (
+          <>
+            <SectionLabel label="Agents" />
+            <NavLink item={{ href: '/taches', icon: CheckSquare, label: 'Tâches' }} pathname={pathname} />
+          </>
+        )}
 
         <SectionLabel label="Configuration" />
-        {CONFIGURATION.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
+        {isSuperAdmin
+          ? CONFIGURATION.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)
+          : <NavLink item={{ href: '/parametres', icon: Settings, label: 'Paramètres' }} pathname={pathname} />
+        }
       </nav>
 
       {/* Bottom fade */}
@@ -109,8 +154,11 @@ export default function Sidebar() {
       <div className="mx-3 h-px bg-white/8 flex-shrink-0" />
       <div className="px-3 py-2.5 flex-shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-full bg-[#E2FF8D] flex items-center justify-center text-[11px] font-bold text-[#111111] flex-shrink-0">
-            T
+          <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center bg-[#E2FF8D]">
+            {profilePhoto
+              ? <img src={profilePhoto} alt="profil" className="w-full h-full object-cover" />
+              : <span className="text-[11px] font-bold text-[#111111]">T</span>
+            }
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-white text-[12px] font-semibold truncate">Thomas</p>
