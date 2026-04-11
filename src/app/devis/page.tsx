@@ -1,24 +1,25 @@
-// src/app/devis/page.tsx
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useEffect, useState } from 'react'
 import DevisView from '@/components/devis/DevisView'
+import DevisLoading from './loading'
 
-export const dynamic = 'force-dynamic'
+type DevisData = {
+  devisList: Record<string, unknown>[]
+  brandColor: string
+}
 
-export default async function DevisPage() {
-  const supabase = await createClient()
+export default function DevisPage() {
+  const [data, setData] = useState<DevisData | null>(null)
 
-  const [{ data: devisList }, { data: settings }] = await Promise.all([
-    supabase
-      .from('devis')
-      .select('*, signature_statut, signature_vu_le, signature_signe_le')
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('company_settings')
-      .select('brand_color')
-      .single(),
-  ])
+  useEffect(() => {
+    fetch('/api/devis/list')
+      .then(r => r.json())
+      .then(setData)
+      .catch(() => setData({ devisList: [], brandColor: '#d28e46' }))
+  }, [])
 
-  const brandColor = settings?.brand_color ?? '#d28e46'
+  if (!data) return <DevisLoading />
 
-  return <DevisView devisList={devisList ?? []} brandColor={brandColor} />
+  return <DevisView devisList={data.devisList as any} brandColor={data.brandColor} />
 }
