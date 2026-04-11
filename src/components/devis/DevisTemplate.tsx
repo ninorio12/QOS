@@ -185,14 +185,18 @@ export default function DevisTemplate({
               </div>
             )}
             <div>
-              <div style={{ margin: 0, fontSize: 22, fontWeight: 900, letterSpacing: -1, whiteSpace: 'nowrap', fontFamily: "'Inter', sans-serif" }}>
+              <div style={{ margin: 0, fontSize: 32, fontWeight: 900, letterSpacing: 1, fontFamily: "'Inter', sans-serif" }}>
                 {company.entreprise || 'Mon Entreprise'}
               </div>
-              {company.tagline && (
-                <div style={{ fontSize: 10, lineHeight: 1.2, fontWeight: 600, color: company.brandColor || brandColor, whiteSpace: 'nowrap' }}>
-                  {company.tagline}
-                </div>
-              )}
+              {company.tagline && (() => {
+                const parts = company.tagline.split('·').map((p: string) => p.trim()).filter(Boolean)
+                return (
+                  <div style={{ fontSize: 14, lineHeight: 1.2, fontWeight: 700 }}>
+                    <span style={{ color: company.brandColor || brandColor }}>{parts[0]}</span>
+                    {parts.slice(1).map((p: string, i: number) => <span key={i}><br/>{p}</span>)}
+                  </div>
+                )
+              })()}
             </div>
           </div>
           <div style={{ marginTop: 15, fontSize: 12, lineHeight: 1.8 }}>
@@ -252,16 +256,6 @@ export default function DevisTemplate({
               <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700, fontSize: 13 }}>
                 <E>{fmtEUR(l.quantite * l.prixUnitaire)}</E>
               </td>
-            </tr>
-          ))}
-          {Array.from({ length: Math.max(0, 8 - validLignes.length) }).map((_, i) => (
-            <tr key={`empty-${i}`}>
-              <td style={{ padding: '12px 8px', borderRight: '1px solid #ccc' }}>&nbsp;</td>
-              <td style={{ padding: '12px 8px', borderRight: '1px solid #ccc' }}>&nbsp;</td>
-              <td style={{ padding: '12px 8px', borderRight: '1px solid #ccc' }}>&nbsp;</td>
-              <td style={{ padding: '12px 8px', borderRight: '1px solid #ccc' }}>&nbsp;</td>
-              <td style={{ padding: '12px 8px', borderRight: '1px solid #ccc' }}>&nbsp;</td>
-              <td style={{ padding: '12px 8px' }}>&nbsp;</td>
             </tr>
           ))}
         </tbody>
