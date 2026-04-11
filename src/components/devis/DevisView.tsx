@@ -6,6 +6,8 @@ import { Search, Plus, X } from 'lucide-react'
 import DevisListView from './DevisListView'
 import DevisDetailView from './DevisDetailView'
 import { getAvatarColor } from '@/components/contacts/types'
+import { useToast } from '@/hooks/useToast'
+import { Toaster } from '@/components/shared/Toaster'
 
 type Ligne = {
   quantite:     number
@@ -205,6 +207,7 @@ export default function DevisView({ devisList: initial, brandColor = '#d28e46' }
   const [view, setView]           = useState<View>('list')
   const [selected, setSelected]   = useState<Devis | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const { toasts, toast, dismiss } = useToast()
 
   function handleClose()           { setView('list'); setSelected(null) }
   function handleUpdated(d: Devis) {
@@ -242,17 +245,22 @@ export default function DevisView({ devisList: initial, brandColor = '#d28e46' }
 
     const res  = await fetch('/api/devis', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     const json = await res.json()
-    if (!res.ok) return
+    if (!res.ok) {
+      toast('Erreur lors de la création du devis', 'error')
+      return
+    }
 
     const newDevis = json.devis as Devis
     setDevisList(p => [newDevis, ...p])
     setShowModal(false)
     setSelected(newDevis)
     setView('detail')
+    toast('Devis créé', 'success')
   }
 
   return (
     <div className="h-full flex flex-col bg-[#EEF0EB]">
+      <Toaster toasts={toasts} dismiss={dismiss} />
       <div className="flex-1 overflow-hidden flex flex-col">
         {view === 'list' && (
           <DevisListView

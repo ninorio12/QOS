@@ -3,6 +3,8 @@
 
 import { useState } from 'react'
 import { ChevronLeft, Save, Download, ExternalLink, Plus, X, FileText, ZoomIn } from 'lucide-react'
+import { useToast } from '@/hooks/useToast'
+import { Toaster } from '@/components/shared/Toaster'
 import Select from '@/components/ui/Select'
 import InfoSection from './InfoSection'
 import SignatureSection from './SignatureSection'
@@ -72,6 +74,7 @@ interface DevisDetailViewProps {
 }
 
 export default function DevisDetailView({ devis: initial, onClose, onUpdated, onDeleted, brandColor = '#E2FF8D' }: DevisDetailViewProps) {
+  const { toasts, toast, dismiss } = useToast()
   const [titre, setTitreRaw]       = useState(initial.titre)
   const [lignes, setLignesRaw]     = useState<Ligne[]>(fromLignesDb(initial.lignes))
   const [notes, setNotesRaw]       = useState(initial.notes ?? '')
@@ -108,6 +111,7 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
   function setAdresseCity(v: string) { setAdresseCityRaw(v); setDirty(true) }
   const [sigStatut, setSigStatut] = useState<SignatureStatut>(initial.signature_statut ?? 'non_envoye')
   const [saving, setSaving]     = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [genPdf, setGenPdf]     = useState(false)
   const [dirty, setDirty]       = useState(false)
   const [error, setError]       = useState<string | null>(null)
@@ -145,6 +149,7 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
       if (!res.ok) throw new Error(json.error ?? 'Erreur')
       onUpdated(json.devis as Devis)
       setDirty(false)
+      toast('Devis sauvegardé', 'success')
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Erreur')
     } finally {
@@ -190,8 +195,17 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
 
   async function handleDelete() {
     if (!confirm('Supprimer ce devis définitivement ?')) return
-    await fetch(`/api/devis/${initial.id}`, { method: 'DELETE' })
-    onDeleted(initial.id)
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/devis/${initial.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Erreur suppression')
+      toast('Devis supprimé', 'success')
+      onDeleted(initial.id)
+    } catch {
+      toast('Erreur lors de la suppression', 'error')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const formPanel = (
@@ -385,10 +399,14 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
       <div className="border-t border-[#f0f0eb] pt-3">
         <button
           onClick={handleDelete}
-          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-red-500 hover:text-red-700 transition-colors font-jakarta"
+          disabled={deleting}
+          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-red-500 hover:text-red-700 transition-colors font-jakarta disabled:opacity-50"
         >
-          <X size={11} />
-          Supprimer ce devis
+          {deleting
+            ? <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            : <X size={11} />
+          }
+          {deleting ? 'Suppression…' : 'Supprimer ce devis'}
         </button>
       </div>
     </div>
@@ -461,6 +479,7 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
 
   return (
     <div className="flex flex-col h-full">
+      <Toaster toasts={toasts} dismiss={dismiss} />
       {/* Header — ligne unique */}
       <div className="bg-white border-b border-[#f0f0eb] flex-shrink-0">
         <div className="flex items-center gap-4 px-5 py-4">
@@ -512,7 +531,11 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
                   : 'bg-transparent text-[#C8CCC6] cursor-default'
               }`}
             >
-              <Save size={13} /> {saving ? '…' : 'Sauvegarder'}
+              <Save size={13} />
+              {saving
+                ? <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                : 'Sauvegarder'
+              }
             </button>
             <button
                 onClick={handleDownload}
