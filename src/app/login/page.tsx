@@ -38,7 +38,7 @@ export default function LoginPage() {
 
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <Image src="/soren-logo.png" alt="Soren" width={42} height={42} className="object-contain rounded-xl" />
+            <Image src="/soren-logo.png" alt="Soren" width={52} height={52} className="object-contain rounded-xl" />
             <span className="text-[#111111] font-bold text-[17px] tracking-tight">Soren</span>
           </div>
 
