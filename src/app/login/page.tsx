@@ -44,10 +44,10 @@ export default function LoginPage() {
 
           {/* Contenu central */}
           <div>
-            <h1 className="text-[#111111] font-bold text-[26px] leading-snug mb-1">
+            <h1 className="text-[#111111] font-bold text-[28px] leading-snug mb-2">
               Bon retour 👋
             </h1>
-            <p className="text-[#111111]/40 text-[13px] mb-7">
+            <p className="text-[#9CA3AF] text-[13px] mb-7">
               Connectez-vous à votre espace Soren
             </p>
 
