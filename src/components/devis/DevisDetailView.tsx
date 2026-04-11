@@ -3,8 +3,7 @@
 
 import { useState } from 'react'
 import { ChevronLeft, Save, Download, ExternalLink, Plus, X, FileText, ZoomIn } from 'lucide-react'
-import { useToast } from '@/hooks/useToast'
-import { Toaster } from '@/components/shared/Toaster'
+import { ToastType } from '@/hooks/useToast'
 import Select from '@/components/ui/Select'
 import InfoSection from './InfoSection'
 import SignatureSection from './SignatureSection'
@@ -71,10 +70,10 @@ interface DevisDetailViewProps {
   onUpdated:   (d: Devis) => void
   onDeleted:   (id: string) => void
   brandColor?: string
+  toast:       (message: string, type: ToastType) => void
 }
 
-export default function DevisDetailView({ devis: initial, onClose, onUpdated, onDeleted, brandColor = '#E2FF8D' }: DevisDetailViewProps) {
-  const { toasts, toast, dismiss } = useToast()
+export default function DevisDetailView({ devis: initial, onClose, onUpdated, onDeleted, brandColor = '#E2FF8D', toast }: DevisDetailViewProps) {
   const [titre, setTitreRaw]       = useState(initial.titre)
   const [lignes, setLignesRaw]     = useState<Ligne[]>(fromLignesDb(initial.lignes))
   const [notes, setNotesRaw]       = useState(initial.notes ?? '')
@@ -154,20 +153,6 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
       setError(e instanceof Error ? e.message : 'Erreur')
     } finally {
       setSaving(false)
-    }
-  }
-
-  async function handleGeneratePdf() {
-    setGenPdf(true); setError(null)
-    try {
-      const res = await fetch(`/api/devis/${initial.id}/pdf`, { method: 'POST' })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Erreur PDF')
-      setPdfUrl(json.pdf_url)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Erreur PDF')
-    } finally {
-      setGenPdf(false)
     }
   }
 
@@ -479,7 +464,6 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
 
   return (
     <div className="flex flex-col h-full">
-      <Toaster toasts={toasts} dismiss={dismiss} />
       {/* Header — ligne unique */}
       <div className="bg-white border-b border-[#f0f0eb] flex-shrink-0">
         <div className="flex items-center gap-4 px-5 py-4">

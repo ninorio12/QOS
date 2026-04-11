@@ -277,6 +277,7 @@ export default function DevisView({ devisList: initial, brandColor = '#d28e46' }
             onUpdated={handleUpdated}
             onDeleted={handleDeleted}
             brandColor={brandColor}
+            toast={toast}
           />
         )}
       </div>
