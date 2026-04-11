@@ -44,14 +44,11 @@ export default function LoginPage() {
 
           {/* Contenu central */}
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#E2FF8D] bg-[#111111] rounded-full px-3 py-1 w-fit mb-5">
-              Connexion
-            </p>
-            <h1 className="text-[#111111] font-bold text-[24px] leading-snug mb-1">
-              Bon retour !
+            <h1 className="text-[#111111] font-bold text-[26px] leading-snug mb-1">
+              Bon retour 👋
             </h1>
-            <p className="text-[#111111]/35 text-[13px] mb-7">
-              Accédez à votre espace Soren
+            <p className="text-[#111111]/40 text-[13px] mb-7">
+              Connectez-vous à votre espace Soren
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-3">
