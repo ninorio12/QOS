@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/client'
 import { getAvatarColor } from '@/components/contacts/types'
 import { Sparkles, Loader2 as SpinnerIcon, X } from 'lucide-react'
 import ComposerBar from './ComposerBar'
+import { useToast } from '@/hooks/useToast'
+import { Toaster } from '@/components/shared/Toaster'
 
 type SendChannel = 'WhatsApp' | 'SMS' | 'Email'
 
@@ -118,6 +120,7 @@ interface Props {
 }
 
 export default function MessageThread({ conversation, aiEnabled, onAiToggle }: Props) {
+  const { toasts, toast, dismiss } = useToast()
   const [messages,    setMessages]    = useState<Message[]>([])
   const [isLoading,   setIsLoading]   = useState(true)
   const [streaming,   setStreaming]   = useState<string | null>(null)
@@ -415,7 +418,9 @@ export default function MessageThread({ conversation, aiEnabled, onAiToggle }: P
         onMessageSent={handleMessageSent}
         onAiToggle={onAiToggle}
         aiEnabled={aiEnabled}
+        toast={toast}
       />
+      <Toaster toasts={toasts} dismiss={dismiss} />
     </div>
   )
 }

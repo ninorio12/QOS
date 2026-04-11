@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Send, Loader2, ChevronDown, Zap } from 'lucide-react'
 import { type Conversation } from './types'
 import { fetchJSON } from '@/lib/fetchJSON'
+import { type ToastType } from '@/hooks/useToast'
 
 type SendChannel = 'WhatsApp' | 'SMS' | 'Email'
 
@@ -57,9 +58,10 @@ interface Props {
   onAiToggle:    (enabled: boolean) => void
   aiEnabled:     boolean
   disabled?:     boolean
+  toast:         (message: string, type: ToastType) => void
 }
 
-export default function ComposerBar({ conversation, onMessageSent, onAiToggle, aiEnabled, disabled }: Props) {
+export default function ComposerBar({ conversation, onMessageSent, onAiToggle, aiEnabled, disabled, toast }: Props) {
   const [input,       setInput]       = useState('')
   const [sending,     setSending]     = useState(false)
   const [channel,     setChannel]     = useState<SendChannel>(() => defaultChannel(conversation))
@@ -105,8 +107,10 @@ export default function ComposerBar({ conversation, onMessageSent, onAiToggle, a
       setInput('')
       onMessageSent(content, channel)
       inputRef.current?.focus()
+      toast('Message envoyé', 'success')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur envoi')
+      toast("Erreur lors de l'envoi", 'error')
     } finally {
       setSending(false)
     }
