@@ -177,6 +177,50 @@ WhatsApp/Telegram photo → N8N Webhook Trigger (message.type === 'image')
 
 ---
 
+### Automation 6 — Demande d'avis Google après chantier ⭐⭐⭐
+
+**Pourquoi N8N et pas GHL :** GHL peut envoyer un SMS générique, mais ne sait pas détecter intelligemment la fin de chantier (depuis Supabase), ni personnaliser le message avec les travaux spécifiques réalisés via Claude.
+
+**Problème résolu :** Les artisans oublient de demander un avis Google. Pourtant c'est leur principal levier de réputation locale. Un bon timing + message personnalisé multiplie le taux de réponse.
+
+**Flow :**
+```
+Trigger : webhook GHL "opportunity.won" (ou tag "chantier_terminé" ajouté)
+→ N8N reçoit : contact_id, opportunity_name, montant, date
+→ Supabase query : récupérer le devis associé (travaux réalisés, client_name)
+→ Attente 2 jours (délai post-chantier — client a le temps de voir le résultat)
+→ Claude Sonnet : génère SMS personnalisé
+  → Mentionne les travaux exacts ("votre cuisine rénovée", "votre salle de bain")
+  → Ton chaleureux, pas agressif, une seule demande
+  → Inclut le lien Google Review de l'artisan
+→ GHL sendSMS au contact client
+→ Si pas de clic sur le lien après 5 jours :
+  → 1 seul SMS de rappel (GHL workflow ou N8N selon préférence)
+→ Log Supabase agent_interactions (tracking taux de conversion)
+```
+
+**Prompt Claude :**
+```
+Tu rédiges un SMS de demande d'avis Google pour un artisan bâtiment.
+Travaux réalisés : [travaux]. Client : [prénom]. Artisan : [nom_entreprise].
+Le SMS doit : remercier chaleureusement, mentionner les travaux spécifiques, 
+demander un avis Google de façon naturelle (pas insistante), inclure [LIEN].
+Max 160 caractères. Ton : humain, sincère, jamais robotique.
+```
+
+**Exemple de SMS généré :**
+```
+Bonjour Marie, merci pour votre confiance pour la rénovation de votre cuisine ! 
+Si vous êtes satisfaite, un avis Google nous aiderait beaucoup 🙏 → [lien]
+— Équipe Dupont Rénovation
+```
+
+**Prérequis :** Lien Google Review de l'artisan à stocker dans les settings Supabase.
+
+**Valeur métier :** +4-5 avis Google/mois en automatique. Référencement local et crédibilité = source #1 de leads organiques pour artisans.
+
+---
+
 ## Ce que GHL gère seul (ne pas dupliquer dans N8N)
 
 | Workflow | Où ça vit |
@@ -203,10 +247,11 @@ WhatsApp/Telegram photo → N8N Webhook Trigger (message.type === 'image')
 
 ### Ordre de déploiement
 1. **Automation 4** (scoring leads) — impact ROI pub immédiat, GHL fait le reste
-2. **Automation 2** (alerte devis bloqués) — récupération CA
-3. **Automation 1** (voice → devis) — différenciateur UX fort
-4. **Automation 3** (rapport hebdo) — visibilité sans effort
-5. **Automation 5** (photo → devis) — innovation progressive
+2. **Automation 6** (avis Google) — impact réputation immédiat, simple à déployer
+3. **Automation 2** (alerte devis bloqués) — récupération CA
+4. **Automation 1** (voice → devis) — différenciateur UX fort
+5. **Automation 3** (rapport hebdo) — visibilité sans effort
+6. **Automation 5** (photo → devis) — innovation progressive
 
 ---
 
@@ -215,6 +260,7 @@ WhatsApp/Telegram photo → N8N Webhook Trigger (message.type === 'image')
 | # | Automation | Ce que N8N apporte | GHL impliqué ? | Priorité |
 |---|---|---|---|---|
 | 4 | Scoring leads IA + alerte Telegram | Claude scoring + Telegram | Oui (séquences post-tag) | P0 |
+| 6 | Demande avis Google post-chantier | Claude SMS perso + timing Supabase | Oui (envoi SMS) | P0 |
 | 2 | Alerte devis bloqués | Supabase query + Telegram | Oui (relances auto) | P0 |
 | 1 | Voice note → Devis | Whisper + Claude + APITemplate | Non | P1 |
 | 3 | Rapport hebdo Telegram | Supabase + Claude + Telegram | Non | P1 |
