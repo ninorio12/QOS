@@ -1,38 +1,56 @@
 # N8N Automations — Design Spec
 **Date:** 2026-04-12  
-**Statut:** Brainstorming autonome (utilisateur indisponible)
+**Statut:** Révisé — frontière GHL/N8N clarifiée
 
-## Contexte
+## Principe de base — Quand utiliser N8N vs GHL
 
-Le SaaS Soren dispose d'une infrastructure agentique complète :
+**GHL gère déjà nativement :**
+- Séquences SMS/email avec délais (J+0, J+3, J+7…)
+- Triggers sur événements contact (tag ajouté, pipeline stage changé, lead entrant)
+- Routage conditionnel par tag (hot/warm/cold)
+- Envoi de messages multi-canal (SMS, email, WhatsApp, voicemail)
+- Workflows de nurturing complets
+
+**N8N intervient uniquement pour :**
+- Appels Claude API (scoring, transcription, vision, génération)
+- Requêtes/écritures Supabase
+- Messages Telegram Bot
+- Traitements IA multi-étapes
+- Orchestration inter-systèmes sans native integration (Whisper, APITemplate.io)
+
+**Règle :** Si GHL peut le faire seul → GHL. N8N uniquement quand il y a une brique IA ou Supabase qui ne rentre pas dans GHL.
+
+---
+
+## Contexte technique
+
 - 3 agents IA : Soren (COO/analyste), Kai (CSM/qualificateur), Mia (KB/docs)
 - 6 endpoints webhook actifs (GHL, Cal.com, Twilio WhatsApp, Meta, Telegram, Google Calendar)
 - Supabase : tables conversations, messages, contacts, leads, devis, devis_relances, agent_tasks, agent_interactions, agent_memory
 - Services externes : GHL CRM, APITemplate.io (PDF), Twilio/WhatsApp, Telegram, Claude API
 
-N8N vient orchestrer la couche **inter-systèmes** : déclencher des workflows complexes en réponse à des événements, connecter des services qui ne se parlent pas nativement, et automatiser les tâches répétitives à valeur métier.
-
 ---
 
-## Les 7 automations prioritaires
+## Les 5 automations N8N (uniquement ce que GHL ne peut pas faire)
 
 ### Automation 1 — Voice Note → Devis automatique ⭐⭐⭐
 
-**Problème résolu :** Un artisan en chantier ne peut pas taper un devis. Il envoie un vocal à Soren depuis WhatsApp ou Telegram. Aujourd'hui rien ne se passe.
+**Pourquoi N8N et pas GHL :** GHL ne sait pas transcrire un audio ni appeler Claude pour extraire des données structurées ni générer un PDF via APITemplate.io.
+
+**Problème résolu :** Un artisan en chantier envoie un vocal sur WhatsApp/Telegram qui décrit le chantier. Aujourd'hui rien ne se passe.
 
 **Flow :**
 ```
-WhatsApp/Telegram audio → N8N Webhook Trigger
+WhatsApp/Telegram audio → N8N Webhook Trigger (message.type === 'audio')
 → Téléchargement fichier audio (Twilio Media URL / Telegram File API)
 → Transcription Whisper (OpenAI Audio API)
-→ Claude Sonnet : extraction structurée (client, travaux, montants estimés, conditions)
-→ POST /api/webhooks/n8n/devis (endpoint existant selon spec 2026-04-08)
+→ Claude Sonnet : extraction structurée
+  → { client_name, client_address, travaux: [{description, quantite, prix_unitaire}], conditions_paiement, delai_realisation }
+→ POST /api/webhooks/n8n/devis (endpoint Soren — spec 2026-04-08)
 → APITemplate.io génère le PDF
-→ PDF stocké Supabase + envoyé au contact GHL via SMS/WhatsApp
+→ PDF stocké Supabase + URL envoyé en SMS via GHL
 → Notification Telegram à l'artisan : "Devis créé ✓ [lien preview]"
 ```
-
-**Déclencheur N8N :** Webhook entrant depuis `/api/webhooks/telegram` ou `/api/webhooks/twilio/whatsapp` quand `message.type === 'audio'`
 
 **Prompt Claude extraction :**
 ```
@@ -41,55 +59,53 @@ Extrais en JSON : { client_name, client_address, travaux: [{description, quantit
 Si une info manque, laisse le champ vide. Ne hallucine pas de montants.
 ```
 
-**Tables Supabase impactées :** `devis` (création), `devis_relances` (init), `agent_tasks` (suivi)
+**Tables Supabase :** `devis` (création), `devis_relances` (init)
 
-**Valeur métier :** Réduit le temps de création devis de 20min → 2min. Différenciateur fort.
+**Valeur métier :** Devis créé en 2min depuis chantier, sans ouvrir l'app.
 
 ---
 
-### Automation 2 — Relance automatique devis sans réponse ⭐⭐⭐
+### Automation 2 — Relance devis : enrichissement IA + alerte artisan ⭐⭐⭐
 
-**Problème résolu :** Les devis envoyés sans réponse se perdent. Pas de relance systématique aujourd'hui.
+**Pourquoi N8N et pas GHL :** GHL ne peut pas requêter Supabase pour identifier les devis sans réponse, ni générer un message personnalisé via Claude, ni envoyer une alerte Telegram.
 
-**Flow :**
+**Ce que GHL fait déjà :** Les séquences de relance SMS/email standard après envoi d'un devis peuvent être gérées dans GHL workflows. Ne pas les dupliquer ici.
+
+**Ce que N8N ajoute :**
 ```
 Cron N8N : tous les jours à 9h00
-→ Supabase query : SELECT * FROM devis WHERE status = 'sent' AND sent_at < NOW() - INTERVAL '3 days' AND relance_count < 3
-→ Pour chaque devis :
-  → Incrémenter relance_count dans devis_relances
-  → Si relance 1 (J+3) : SMS via GHL "Bonjour [prénom], votre devis est disponible ici : [lien]. Questions ?"
-  → Si relance 2 (J+7) : WhatsApp + email via GHL avec message personnalisé Claude
-  → Si relance 3 (J+14) : Notification Telegram à l'artisan "Relancer manuellement [client] ?"
-→ Log dans agent_tasks
+→ Supabase query : SELECT * FROM devis WHERE status = 'sent' 
+    AND sent_at < NOW() - INTERVAL '5 days' 
+    AND relance_count >= 2  (GHL a déjà fait les relances auto)
+    AND signed_at IS NULL
+→ Pour chaque devis sans réponse malgré relances GHL :
+  → Claude Sonnet : génère message de relance personnalisé (contexte client + travaux + montant)
+  → Notification Telegram à l'artisan :
+    "⚠️ [Client] n'a pas répondu à 2 relances auto.
+     Devis [montant]€ — [travaux].
+     Appel manuel recommandé aujourd'hui."
+  → Update Supabase devis_relances (relance_count, last_relance_at)
 ```
 
-**Personnalisation relance 2 (Claude) :**
-```
-Génère un SMS de relance chaleureux (max 160 chars) pour [prénom_client] pour un devis de [travaux] à [montant]€.
-Ton : professionnel mais accessible. Inclure une question ouverte pour relancer la conversation.
-```
+**Ce que N8N NE fait PAS ici :** Envoyer les SMS/emails de relance (GHL s'en charge).
 
-**Tables Supabase :** `devis`, `devis_relances` (update count + dates), `agent_interactions` (log)
-
-**Valeur métier :** +20-30% de devis convertis selon benchmarks secteur bâtiment.
+**Valeur métier :** L'artisan est alerté uniquement sur les cas vraiment bloquants, avec contexte pour rappeler.
 
 ---
 
 ### Automation 3 — Rapport hebdomadaire business → Telegram ⭐⭐
 
-**Problème résolu :** L'artisan n'a pas le temps de regarder son dashboard. Il veut un résumé actionnable chaque lundi matin.
+**Pourquoi N8N et pas GHL :** GHL ne peut pas requêter Supabase, appeler Claude pour synthétiser, ni envoyer un message Telegram.
 
 **Flow :**
 ```
 Cron N8N : lundi 07h30
 → Supabase queries parallèles :
-  → Devis : créés / envoyés / signés cette semaine + CA signé
+  → Devis : créés / envoyés / signés S-1 + CA signé + delta vs S-2
   → Leads : nouveaux / qualifiés / perdus
-  → Conversations : taux de réponse IA vs humain
-  → Relances : automatiques envoyées + taux de réponse
-→ Claude Sonnet : génère rapport narratif avec recommandations
-→ Telegram message à l'artisan (format structuré avec emojis)
-→ Optionnel : GHL note sur contact "Propriétaire" avec le rapport
+  → Conversations : volume messages IA vs humain
+→ Claude Sonnet : génère rapport narratif avec recommandations concrètes
+→ Telegram message à l'artisan
 ```
 
 **Format rapport Telegram :**
@@ -102,168 +118,104 @@ Cron N8N : lundi 07h30
 
 🎯 *Pipeline*
 • 14 leads actifs · 3 qualifiés chauds
-• À prioriser : Martin Dupont (demande urgente cuisine)
 
 ⚡ *Actions recommandées*
 1. Relancer les 3 devis à J+5 sans réponse
 2. Rappeler Sophie Bernard — budget confirmé 8k€
 ```
 
-**Valeur métier :** Visibilité hebdomadaire sans effort. L'artisan reste "dans la boucle" sans ouvrir l'app.
+**Valeur métier :** Visibilité hebdomadaire sans ouvrir le dashboard.
 
 ---
 
-### Automation 4 — Qualification automatique leads entrants ⭐⭐⭐
+### Automation 4 — Scoring IA des leads entrants + alerte Telegram ⭐⭐⭐
 
-**Problème résolu :** Les leads Meta Ads arrivent dans GHL mais ne sont pas qualifiés ni scorés. L'artisan rappelle tout le monde sans priorisation.
+**Pourquoi N8N et pas GHL :** GHL ne peut pas appeler Claude pour scorer un lead, ni envoyer une alerte Telegram. En revanche, GHL gère déjà les séquences de nurturing post-tagging.
 
-**Flow :**
-```
-Trigger : POST /api/webhooks/meta/leadgen (webhook existant)
-→ N8N reçoit le lead (nom, email, phone, ad_name, form_data)
-→ Claude Sonnet : scoring lead (budget estimé, urgence, type de travaux, zone géo)
-→ Score 1-10 → tag GHL (hot/warm/cold)
-→ Si score ≥ 7 :
-  → SMS automatique dans les 5min (taux de contact x3 si <5min)
-  → Notification Telegram à l'artisan : "🔥 Lead chaud entrant : [nom] — [travaux] [budget]"
-→ Si score 4-6 :
-  → Email de bienvenue + qualification form
-  → Ajout séquence nurturing (Automation 5)
-→ Si score < 4 :
-  → Tag "cold" + séquence longue 30 jours
-→ Log Supabase leads + agent_interactions
-```
+**Ce que GHL fait déjà :** Les séquences SMS/email déclenchées par tag hot/warm/cold, le routage pipeline, les workflows de suivi.
 
-**Prompt scoring Claude :**
+**Ce que N8N ajoute :**
 ```
-Lead entrant d'une publicité Meta pour artisan bâtiment/rénovation.
-Données : [form_data]. Pubicité : [ad_name].
-Score ce lead de 1-10 selon : budget mentionné, urgence signalée, clarté du projet, cohérence avec nos services.
-Réponds JSON : { score: number, budget_estime: string, urgence: "haute|normale|faible", type_travaux: string, raison: string }
+Trigger : webhook GHL "contact.created" + form_data Meta lead
+→ Claude Sonnet : scoring lead 1-10
+  → Input : prénom, travaux mentionnés, budget mentionné, urgence, zone géo, nom de la publicité
+  → Output JSON : { score, budget_estime, urgence, type_travaux, raison }
+→ Selon score :
+  → ≥ 7 : ajouter tag "hot" dans GHL (GHL prend le relais avec sa séquence hot)
+           + Telegram artisan : "🔥 Lead chaud : [nom] — [travaux] ~[budget]€ (score [X]/10)"
+  → 4-6 : ajouter tag "warm" dans GHL (GHL séquence warm)
+  → < 4  : ajouter tag "cold" dans GHL (GHL séquence cold ou rien)
+→ Log Supabase leads (score + raison)
 ```
 
-**Valeur métier :** Priorisation automatique → l'artisan rappelle les chauds en premier → +40% taux de conversion.
+**Ce que N8N NE fait PAS ici :** Les SMS/emails de nurturing (GHL s'en charge post-tag).
+
+**Valeur métier :** L'artisan rappelle les chauds en premier. GHL fait le reste automatiquement.
 
 ---
 
-### Automation 5 — Nurturing leads froids (séquence 30 jours) ⭐⭐
+### Automation 5 — Photo chantier → Devis ⭐⭐
 
-**Problème résolu :** Les leads froids sont oubliés. Pourtant 30-40% des ventes viennent de leads qui ont dit non initialement.
-
-**Flow :**
-```
-Trigger : tag "cold" posé sur contact GHL (via Automation 4 ou manuel)
-→ J+0 : Email personnalisé "Vos travaux, quand vous le souhaitez"
-→ J+3 : SMS avec photo réalisation similaire (URL image Supabase)
-→ J+7 : Email avec témoignage client + lien simulateur ROI
-→ J+14 : SMS "Offre limitée ce mois-ci"
-→ J+30 : Dernière tentative + sortie séquence si pas de réponse
-
-À chaque message :
-→ Claude génère le contenu personnalisé (prénom, type de travaux du lead)
-→ GHL sendMessage (SMS) ou sendEmail
-→ Tracking ouverture/clic → si interaction → escalade vers Kai (agent qualificateur)
-```
-
-**Tables Supabase :** `leads` (suivi séquence), `agent_tasks` (états)
-
-**Valeur métier :** Monétise les leads payés Meta qui ne convertissent pas immédiatement.
-
----
-
-### Automation 6 — Sync contact GHL → Supabase temps réel ⭐⭐
-
-**Problème résolu :** Les contacts créés ou mis à jour dans GHL ne sont pas toujours reflétés dans Supabase. Les agents IA travaillent parfois sur des données obsolètes.
-
-**Flow :**
-```
-Trigger : GHL webhook "contact.created" ou "contact.updated"
-→ N8N reçoit le payload GHL contact
-→ Upsert Supabase contacts (ghl_contact_id comme clé)
-→ Si nouveau contact avec email : enrichissement LinkedIn (Unipile) → update Supabase
-→ Si tag "chantier_en_cours" ajouté : créer agent_task pour Soren (suivi chantier)
-→ Log agent_interactions
-```
-
-**Valeur métier :** Cohérence données. Les agents IA ont toujours une vue à jour. Pas de "contact introuvable".
-
----
-
-### Automation 7 — Génération devis depuis photo chantier ⭐⭐
-
-**Problème résolu :** L'artisan prend une photo du chantier avec son téléphone. Aujourd'hui il doit encore tout saisir manuellement.
+**Pourquoi N8N et pas GHL :** GHL ne peut pas analyser une image avec Claude Vision.
 
 **Flow :**
 ```
 WhatsApp/Telegram photo → N8N Webhook Trigger (message.type === 'image')
-→ Download image URL
-→ Claude Vision (claude-3-5-sonnet) : analyse photo
-  → Identification travaux visibles (type, ampleur estimée)
-  → Estimation superficie si possible
-  → Liste de prestations probables
+→ Download image
+→ Claude Vision (claude-sonnet-4-6) : analyse photo chantier
+  → type_travaux[], superficie_estimee, materiaux[], prestations[], notes
 → Réponse Telegram/WhatsApp à l'artisan :
-  "📸 J'ai analysé la photo. Travaux détectés : [liste]
-   Pour créer le devis, confirme : client ? surface exacte ? matériaux souhaités ?"
-→ Attente réponse → POST /api/webhooks/n8n/devis avec données complètes
+  "📸 Travaux détectés : [liste]
+   Pour créer le devis, confirme :
+   → Nom du client ?
+   → Surface exacte ?
+   → Matériaux souhaités ?"
+→ Attente réponse vocale ou texte → Automation 1 (voice→devis) ou saisie manuelle
 ```
 
-**Prompt Claude Vision :**
-```
-Tu es un expert en bâtiment/rénovation. Analyse cette photo de chantier.
-Identifie : type de travaux, ampleur estimée (petite/moyenne/grande), matériaux visibles, prestations nécessaires.
-Réponds JSON : { type_travaux: string[], superficie_estimee: string, materiaux: string[], prestations: string[], notes: string }
-```
-
-**Valeur métier :** Zéro saisie pour l'artisan. Photo → devis en 3 minutes.
+**Valeur métier :** Zéro saisie depuis le chantier. Photo → devis en 3 minutes.
 
 ---
 
-## Architecture N8N recommandée
+## Ce que GHL gère seul (ne pas dupliquer dans N8N)
+
+| Workflow | Où ça vit |
+|---|---|
+| Séquence nurturing leads froids J+0/J+3/J+7/J+14/J+30 | GHL Automation |
+| SMS de bienvenue lead entrant | GHL Automation |
+| Relance automatique devis J+3 / J+7 | GHL Automation |
+| Notification interne pipeline stage changé | GHL Automation |
+| Rappel RDV 24h avant | GHL Automation |
+| Routage lead par tag hot/warm/cold | GHL Automation |
+
+---
+
+## Architecture N8N
 
 ### Infrastructure
-- **Self-hosted N8N** sur VPS KVM2 (déjà en place, 7€/mois)
-- URL N8N : `http://vps-ip:5678` (ou sous-domaine n8n.qorpoia.com)
-- Credentials N8N : Supabase (service key), GHL API, Telegram Bot, Twilio, OpenAI (Whisper), Anthropic
+- Self-hosted N8N sur VPS KVM2 (déjà en place, 7€/mois)
+- Sous-domaine recommandé : `n8n.qorpoia.com`
+- Credentials à configurer : Supabase (service key), GHL API, Telegram Bot, OpenAI (Whisper), Anthropic Claude
 
-### Sécurité webhooks
-- Tous les webhooks N8N → Soren SaaS passent par header `X-N8N-Secret: [token]`
-- Valider le header côté API route Next.js
+### Sécurité
+- Header `X-N8N-Secret` sur tous les appels N8N → Soren
+- Valider côté Next.js API routes
 
-### Variables d'environnement à ajouter dans Soren
-```
-N8N_WEBHOOK_SECRET=xxx
-N8N_BASE_URL=https://n8n.qorpoia.com
-```
-
-### Ordre de déploiement recommandé
-1. **Automation 4** (qualification leads) — impact immédiat sur ROI pub
-2. **Automation 2** (relance devis) — récupération CA perdu
-3. **Automation 1** (voice → devis) — différenciateur UX
-4. **Automation 3** (rapport hebdo) — confort artisan
-5. **Automation 6** (sync GHL/Supabase) — prérequis qualité données
-6. **Automation 5** (nurturing) — monétisation leads froids
-7. **Automation 7** (photo → devis) — innovation, déploiement progressif
+### Ordre de déploiement
+1. **Automation 4** (scoring leads) — impact ROI pub immédiat, GHL fait le reste
+2. **Automation 2** (alerte devis bloqués) — récupération CA
+3. **Automation 1** (voice → devis) — différenciateur UX fort
+4. **Automation 3** (rapport hebdo) — visibilité sans effort
+5. **Automation 5** (photo → devis) — innovation progressive
 
 ---
 
 ## Tableau récapitulatif
 
-| # | Automation | Impact | Complexité | Priorité |
+| # | Automation | Ce que N8N apporte | GHL impliqué ? | Priorité |
 |---|---|---|---|---|
-| 4 | Qualification leads entrants | ⭐⭐⭐ | Moyenne | P0 |
-| 2 | Relance devis automatique | ⭐⭐⭐ | Faible | P0 |
-| 1 | Voice note → Devis | ⭐⭐⭐ | Haute | P1 |
-| 3 | Rapport hebdo Telegram | ⭐⭐ | Faible | P1 |
-| 6 | Sync GHL → Supabase | ⭐⭐ | Faible | P1 |
-| 5 | Nurturing leads froids | ⭐⭐ | Moyenne | P2 |
-| 7 | Photo chantier → Devis | ⭐⭐ | Haute | P2 |
-
----
-
-## Prochaines étapes
-
-1. **Valider cette liste** avec Thomas (priorités, ajouts éventuels)
-2. **Écrire le plan d'implémentation** pour les automations P0 (4 + 2)
-3. **Configurer N8N** sur VPS : installer, exposer avec nginx/reverse proxy, HTTPS
-4. **Créer l'endpoint** `POST /api/webhooks/n8n/devis` côté Soren (décrit dans spec 2026-04-08)
-5. **Déployer workflow par workflow** avec tests en staging avant prod
+| 4 | Scoring leads IA + alerte Telegram | Claude scoring + Telegram | Oui (séquences post-tag) | P0 |
+| 2 | Alerte devis bloqués | Supabase query + Telegram | Oui (relances auto) | P0 |
+| 1 | Voice note → Devis | Whisper + Claude + APITemplate | Non | P1 |
+| 3 | Rapport hebdo Telegram | Supabase + Claude + Telegram | Non | P1 |
+| 5 | Photo chantier → Devis | Claude Vision | Non | P2 |
