@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { sendTelegram, sendChatAction, type TelegramUpdate } from '@/lib/telegram'
+import { sendTelegram, sendChatAction, transcribeVoice, type TelegramUpdate } from '@/lib/telegram'
 import { runAgent } from '@/lib/agents/runner'
 import { env } from '@/lib/env'
 
@@ -34,13 +34,31 @@ export async function POST(req: NextRequest) {
   }
 
   const message = update.message
-  if (!message?.text || !message.chat) {
+  if (!message?.chat) {
     return new Response('OK', { status: 200 })
   }
 
   const chatId   = message.chat.id
-  const text     = message.text.trim()
   const fromName = message.from.first_name ?? 'Thomas'
+
+  // Transcription vocale via Whisper
+  let text: string | undefined = message.text?.trim()
+  const voiceFileId = message.voice?.file_id ?? message.audio?.file_id
+  if (!text && voiceFileId) {
+    await sendChatAction(chatId)
+    const transcription = await transcribeVoice(voiceFileId)
+    if (!transcription) {
+      await sendTelegram(chatId, '❌ Impossible de transcrire le message vocal. Réessaie ou écris ton message.')
+      return new Response('OK', { status: 200 })
+    }
+    text = transcription
+    // Confirmer la transcription avant de répondre
+    await sendTelegram(chatId, `🎙️ <i>${text}</i>`)
+  }
+
+  if (!text) {
+    return new Response('OK', { status: 200 })
+  }
 
   // Sécurité : seulement Thomas
   if (ALLOWED_CHAT_ID && chatId !== ALLOWED_CHAT_ID) {
