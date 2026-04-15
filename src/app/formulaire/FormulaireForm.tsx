@@ -109,16 +109,25 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
                 {initial}
               </div>
             )}
-            <span className="text-[#111111] font-bold text-[17px] tracking-tight">{companyName}</span>
+            <span
+              className="text-[#111111] font-bold tracking-tight"
+              style={{ fontSize: companyName.length > 18 ? '13px' : companyName.length > 12 ? '15px' : '17px' }}
+            >
+              {companyName}
+            </span>
           </div>
 
           {/* Titre */}
           <div>
-            <h1 className="text-[#111111] font-bold text-[24px] leading-snug mb-1.5">
-              Planifiez un rendez-vous<br />gratuitement
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[#9CA3AF] mb-2">
+              Prise de rendez-vous
+            </p>
+            <h1 className="text-[#111111] font-bold text-[26px] leading-tight mb-2">
+              Planifiez votre<br />
+              <span style={{ color: brandColor }}>rendez-vous</span> gratuitement
             </h1>
             <p className="text-[#9CA3AF] text-[13px] mb-6">
-              Remplissez le formulaire, on vous rappelle rapidement
+              Remplissez le formulaire, un expert vous rappelle rapidement
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-3">
