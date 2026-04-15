@@ -119,9 +119,6 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
 
           {/* Titre */}
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[#9CA3AF] mb-2">
-              Prise de rendez-vous
-            </p>
             <h1 className="text-[#111111] font-bold text-[26px] leading-tight mb-2">
               Planifiez votre<br />
               <span style={{ color: brandColor }}>rendez-vous</span> gratuitement

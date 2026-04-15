@@ -589,16 +589,6 @@ function GHLFormsTab() {
               <ExternalLink size={11} />
             </a>
           </div>
-          {/* Lien public + copier */}
-          <div className="flex items-center gap-2 px-4 py-2 bg-[#F5F5F3] border-b border-[#EBEBEB]">
-            <span className="text-[11px] text-[#9CA3AF] truncate flex-1">{formUrl}</span>
-            <button
-              onClick={copyLink}
-              className="flex items-center gap-1.5 text-[11px] bg-[#111111] text-[#E2FF8D] font-medium px-2.5 py-1 rounded-lg hover:bg-[#222] transition-colors flex-shrink-0"
-            >
-              {copied ? 'Copié !' : 'Copier le lien'}
-            </button>
-          </div>
           {/* iframe */}
           <div className="relative w-full" style={{ height: '460px' }}>
             <iframe
