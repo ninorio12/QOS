@@ -49,12 +49,10 @@ export default function MerciContent({ companyName, brandColor, logoSvg }: Props
         <div className="flex-1 flex flex-col justify-center gap-5">
           {/* Checkmark */}
           <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center"
+            className="w-12 h-12 rounded-2xl flex items-center justify-center text-[26px] select-none"
             style={{ backgroundColor: brandColor }}
           >
-            <svg className="w-6 h-6 text-[#111]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
+            {'👋'}
           </div>
 
           <div>

@@ -167,10 +167,10 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
           {prenom !== null ? (
             <div className="flex-1 flex flex-col justify-center gap-5">
               <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center text-[24px]"
+                className="w-12 h-12 rounded-2xl flex items-center justify-center text-[26px] select-none"
                 style={{ backgroundColor: brandColor }}
               >
-                👋
+                {'👋'}
               </div>
               <div>
                 <h1 className="text-[#111111] font-bold text-[23px] leading-tight mb-1.5">
