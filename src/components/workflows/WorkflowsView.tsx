@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Zap, Bot, Workflow, ExternalLink, Save, MessageSquare, ChevronDown, Phone, Mic, Clock, Settings2, PhoneCall, PhoneOff, Volume2, KeyRound } from 'lucide-react'
+import { Zap, Bot, Workflow, ExternalLink, Save, MessageSquare, ChevronDown, Phone, Mic, Clock, Settings2, PhoneCall, KeyRound } from 'lucide-react'
 import type { GHLWorkflow } from '@/lib/ghl'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -340,106 +340,122 @@ function GHLChatbotTab({ initialSystemPrompt, initialAutoResponse, initialBudget
 
 // ─── Onglet Réception Vapi ────────────────────────────────────────────────────
 
-type CallStatus = 'idle' | 'connecting' | 'active' | 'ended'
-type TranscriptLine = { role: 'user' | 'assistant'; text: string }
-
 function ReceptionTab() {
-  const [vapiKey,     setVapiKey]     = useState('')
-  const [assistantId, setAssistantId] = useState('')
-  const [configSaved, setConfigSaved] = useState(false)
-  const [callStatus,  setCallStatus]  = useState<CallStatus>('idle')
-  const [isSpeaking,  setIsSpeaking]  = useState(false)
-  const [transcript,  setTranscript]  = useState<TranscriptLine[]>([])
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const vapiRef        = useRef<any>(null)
-  const transcriptRef  = useRef<HTMLDivElement>(null)
+  const [shareLink,   setShareLink]   = useState('')
+  const [linkSaved,   setLinkSaved]   = useState(false)
+  const [copied,      setCopied]      = useState(false)
+  const [showConfig,  setShowConfig]  = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    setVapiKey(localStorage.getItem('vapi_key') ?? '')
-    setAssistantId(localStorage.getItem('vapi_assistant_id') ?? '')
+    setShareLink(localStorage.getItem('vapi_share_link') ?? process.env.NEXT_PUBLIC_VAPI_SHARE_URL ?? '')
   }, [])
 
-  useEffect(() => {
-    if (transcriptRef.current) {
-      transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight
-    }
-  }, [transcript])
-
-  function saveConfig() {
-    localStorage.setItem('vapi_key',          vapiKey)
-    localStorage.setItem('vapi_assistant_id', assistantId)
-    setConfigSaved(true)
-    setTimeout(() => setConfigSaved(false), 2000)
+  function saveLink() {
+    localStorage.setItem('vapi_share_link', shareLink)
+    setLinkSaved(true)
+    setTimeout(() => setLinkSaved(false), 2000)
+    setShowConfig(false)
   }
 
-  async function startCall() {
-    if (!vapiKey || !assistantId) return
-    setCallStatus('connecting')
-    setTranscript([])
-
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Vapi = (await import('@vapi-ai/web')).default
-    const vapi = new Vapi(vapiKey)
-    vapiRef.current = vapi
-
-    vapi.on('call-start',  () => setCallStatus('active'))
-    vapi.on('call-end',    () => { setCallStatus('ended'); vapiRef.current = null; setIsSpeaking(false) })
-    vapi.on('speech-start',() => setIsSpeaking(true))
-    vapi.on('speech-end',  () => setIsSpeaking(false))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vapi.on('message', (msg: any) => {
-      if (msg.type === 'transcript' && msg.transcriptType === 'final') {
-        setTranscript(prev => [...prev, { role: msg.role as 'user' | 'assistant', text: msg.transcript }])
-      }
+  function copyLink() {
+    navigator.clipboard.writeText(shareLink).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     })
-    vapi.on('error', () => { setCallStatus('idle'); vapiRef.current = null })
-
-    await vapi.start(assistantId)
   }
 
-  function stopCall() {
-    vapiRef.current?.stop()
-  }
-
-  const isConfigured = vapiKey.trim().length > 0 && assistantId.trim().length > 0
-  const isActive     = callStatus === 'active'
-  const isConnecting = callStatus === 'connecting'
+  const hasLink = shareLink.trim().length > 0
 
   return (
     <div className="space-y-4">
 
-      {/* ── Status header ── */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4">
-        <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-             style={{ background: isActive ? '#22c55e18' : '#F43F5E18' }}>
-          <Phone size={18} style={{ color: isActive ? '#22c55e' : '#F43F5E' }} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <p className="text-[13px] font-bold text-[#111]">Réception IA — Vapi</p>
-            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
-                  style={isActive
-                    ? { background: '#22c55e18', color: '#16a34a' }
-                    : isConfigured
-                      ? { background: '#3462EE18', color: '#3462EE' }
-                      : { background: '#FEF9C3', color: '#854D0E' }
-                  }>
-              {isActive ? 'En appel' : isConnecting ? 'Connexion…' : isConfigured ? 'Configuré' : 'À configurer'}
-            </span>
+      {/* ── Hero card ── */}
+      <div className="bg-white rounded-3xl overflow-hidden shadow-sm">
+
+        {/* Agent header */}
+        <div className="px-6 pt-6 pb-5 flex items-center gap-4 border-b border-[#F0F0EE]">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-white text-[15px] flex-shrink-0"
+               style={{ background: 'linear-gradient(135deg, #3462EE 0%, #6C8EFF 100%)' }}>
+            K
           </div>
-          <p className="text-[11px] text-[#9CA3AF]">
-            Agent vocal IA qui gère les appels entrants 24/7 — qualification, prise de RDV, FAQ.
-          </p>
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-bold text-[#111]">Kai — Agent vocal BTP</p>
+            <p className="text-[11px] text-[#9CA3AF]">Qualification · Prise de RDV · FAQ 24/7</p>
+          </div>
+          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0"
+                style={hasLink
+                  ? { background: '#E2FF8D', color: '#111' }
+                  : { background: '#F3F4F6', color: '#9CA3AF' }}>
+            {hasLink ? 'Prêt' : 'À configurer'}
+          </span>
+        </div>
+
+        {/* CTA zone */}
+        <div className="px-6 py-8 flex flex-col items-center gap-5"
+             style={{ background: 'linear-gradient(180deg, #FAFAF8 0%, #F4F4F0 100%)' }}>
+
+          {hasLink ? (
+            <>
+              {/* URL display */}
+              <div className="w-full flex items-center gap-2 bg-white border border-[#E5E7EB] rounded-2xl px-4 py-3">
+                <Phone size={13} className="text-[#9CA3AF] flex-shrink-0" />
+                <p className="flex-1 text-[11px] text-[#374151] font-mono truncate">{shareLink}</p>
+                <button
+                  onClick={copyLink}
+                  className="flex-shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full transition-all"
+                  style={copied
+                    ? { background: '#22c55e18', color: '#16a34a' }
+                    : { background: '#F3F4F6', color: '#6B7280' }}
+                >
+                  {copied ? 'Copié !' : 'Copier'}
+                </button>
+              </div>
+
+              {/* Open button */}
+              <a
+                href={shareLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-8 py-3.5 rounded-full text-[13px] font-bold text-white shadow-md transition-all hover:shadow-lg active:scale-95"
+                style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' }}
+              >
+                <PhoneCall size={15} />
+                Tester Kai
+                <ExternalLink size={11} className="opacity-70" />
+              </a>
+
+              <p className="text-[10px] text-[#C4C9D4] text-center">
+                S&apos;ouvre dans un nouvel onglet · Aucune installation requise
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-dashed border-[#E5E7EB]">
+                <Phone size={20} className="text-[#D1D5DB]" />
+              </div>
+              <div className="text-center">
+                <p className="text-[13px] font-semibold text-[#374151] mb-1">Aucun lien de test configuré</p>
+                <p className="text-[11px] text-[#9CA3AF]">Ajoute le lien de partage Vapi de ton assistant.</p>
+              </div>
+              <button
+                onClick={() => setShowConfig(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full text-[12px] font-bold bg-[#111] text-white hover:bg-[#333] transition-colors"
+              >
+                <Settings2 size={13} />
+                Configurer le lien
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       {/* ── Fonctionnalités ── */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { icon: Mic,       color: '#F43F5E', label: 'Appels entrants', desc: 'Répond 24/7 à tous les appels' },
+          { icon: Mic,       color: '#3462EE', label: 'Appels entrants', desc: 'Répond 24/7 à tous les appels' },
           { icon: Clock,     color: '#8B5CF6', label: 'Prise de RDV',    desc: 'Réserve dans ton agenda en direct' },
-          { icon: Settings2, color: '#3462EE', label: 'Qualification',   desc: 'Chaud / tiède / froid automatique' },
+          { icon: Settings2, color: '#F43F5E', label: 'Qualification',   desc: 'Chaud / tiède / froid automatique' },
         ].map(({ icon: Icon, color, label, desc }) => (
           <div key={label} className="bg-white rounded-2xl p-4 shadow-sm">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-3"
@@ -452,146 +468,44 @@ function ReceptionTab() {
         ))}
       </div>
 
-      {/* ── Configuration ── */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <KeyRound size={13} className="text-[#9CA3AF]" />
-          <p className="text-[11px] font-bold text-[#C4C9D4] uppercase tracking-widest">Configuration Vapi</p>
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">Clé publique Vapi</label>
-            <input
-              type="password"
-              value={vapiKey}
-              onChange={e => setVapiKey(e.target.value)}
-              placeholder="Votre clé publique Vapi"
-              className="w-full text-[12px] bg-[#F9F9F7] border border-[#E5E7EB] rounded-xl px-3 py-2 text-[#111] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/30 focus:border-[#3462EE]"
-            />
+      {/* ── Paramètres (collapsible) ── */}
+      <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
+        <button
+          onClick={() => setShowConfig(v => !v)}
+          className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#FAFAF8] transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <KeyRound size={13} className="text-[#9CA3AF]" />
+            <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-widest">Lien de partage Vapi</p>
+            {hasLink && <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />}
           </div>
-          <div>
-            <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">ID de l'assistant</label>
+          <ChevronDown size={14} className="text-[#C4C9D4] transition-transform"
+                       style={{ transform: showConfig ? 'rotate(180deg)' : 'none' }} />
+        </button>
+
+        {showConfig && (
+          <div className="px-5 pb-5 border-t border-[#F0F0EE] pt-4 space-y-3">
+            <p className="text-[11px] text-[#9CA3AF]">
+              Dans le dashboard Vapi → ton assistant → bouton <strong>Share</strong> → copie le lien ici.
+            </p>
             <input
-              type="text"
-              value={assistantId}
-              onChange={e => setAssistantId(e.target.value)}
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              className="w-full text-[12px] bg-[#F9F9F7] border border-[#E5E7EB] rounded-xl px-3 py-2 text-[#111] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/30 focus:border-[#3462EE]"
+              type="url"
+              value={shareLink}
+              onChange={e => setShareLink(e.target.value)}
+              placeholder="https://vapi.ai/?demo=true&shareKey=…"
+              className="w-full text-[12px] bg-[#F9F9F7] border border-[#E5E7EB] rounded-xl px-3 py-2.5 text-[#111] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/20 focus:border-[#3462EE]"
             />
-          </div>
-          <div>
-            <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">Numéro de téléphone</label>
-            <input
-              type="text"
-              placeholder="+33 • • • • • • • • •"
-              disabled
-              className="w-full text-[12px] bg-[#F9F9F7] border border-[#E5E7EB] rounded-xl px-3 py-2 text-[#9CA3AF] cursor-not-allowed"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-end gap-3 mt-4">
-          {configSaved && <span className="text-[12px] font-medium text-[#22c55e]">Sauvegardé !</span>}
-          <button
-            onClick={saveConfig}
-            className="flex items-center gap-1.5 bg-[#111111] text-white px-4 py-2 rounded-full text-[12px] font-medium hover:bg-[#333] transition-colors"
-          >
-            <Save size={12} />
-            Sauvegarder
-          </button>
-        </div>
-      </div>
-
-      {/* ── Test en direct ── */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm">
-        <p className="text-[11px] font-bold text-[#C4C9D4] uppercase tracking-widest mb-4">Test en direct</p>
-
-        {/* Call controls */}
-        <div className="flex items-center gap-3 mb-4">
-          {!isActive && !isConnecting ? (
-            <button
-              onClick={() => void startCall()}
-              disabled={!isConfigured || callStatus === 'ended'}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-[12px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: '#22c55e18', color: '#16a34a' }}
-            >
-              <PhoneCall size={14} />
-              {callStatus === 'ended' ? 'Appel terminé' : 'Démarrer le test'}
-            </button>
-          ) : (
-            <button
-              onClick={stopCall}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-[12px] font-bold transition-all animate-pulse"
-              style={{ background: '#F43F5E18', color: '#F43F5E' }}
-            >
-              <PhoneOff size={14} />
-              {isConnecting ? 'Connexion…' : 'Raccrocher'}
-            </button>
-          )}
-
-          {callStatus === 'ended' && (
-            <button
-              onClick={() => { setCallStatus('idle'); setTranscript([]) }}
-              className="text-[11px] font-medium text-[#3462EE] hover:underline"
-            >
-              Nouveau test
-            </button>
-          )}
-
-          {isActive && (
-            <div className="flex items-center gap-1.5 ml-auto">
-              <Volume2 size={12} style={{ color: isSpeaking ? '#22c55e' : '#D1D5DB' }} />
-              <span className="text-[11px] font-medium" style={{ color: isSpeaking ? '#16a34a' : '#9CA3AF' }}>
-                {isSpeaking ? 'Agent parle…' : 'En écoute'}
-              </span>
-              <div className="flex gap-0.5 ml-1">
-                {[1,2,3].map(i => (
-                  <div key={i} className="w-0.5 rounded-full transition-all duration-150"
-                       style={{
-                         height: isSpeaking ? `${8 + i * 4}px` : '4px',
-                         background: isSpeaking ? '#22c55e' : '#D1D5DB',
-                       }} />
-                ))}
-              </div>
+            <div className="flex items-center justify-end gap-3">
+              {linkSaved && <span className="text-[11px] font-medium text-[#22c55e]">Sauvegardé</span>}
+              <button
+                onClick={saveLink}
+                disabled={!shareLink.trim()}
+                className="flex items-center gap-1.5 bg-[#111] text-white px-4 py-2 rounded-full text-[11px] font-medium hover:bg-[#333] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <Save size={11} />
+                Sauvegarder
+              </button>
             </div>
-          )}
-        </div>
-
-        {/* Transcript */}
-        {(transcript.length > 0 || isActive) && (
-          <div
-            ref={transcriptRef}
-            className="rounded-xl border border-[#F0F0EE] bg-[#F9F9F7] p-3 space-y-2 max-h-64 overflow-y-auto"
-            style={{ scrollbarWidth: 'thin', scrollbarColor: '#d1d5db transparent' }}
-          >
-            {transcript.length === 0 && isActive && (
-              <p className="text-[11px] text-[#C4C9D4] italic text-center py-4">En attente des premiers mots…</p>
-            )}
-            {transcript.map((line, i) => (
-              <div key={i} className={`flex gap-2 ${line.role === 'assistant' ? '' : 'justify-end'}`}>
-                {line.role === 'assistant' && (
-                  <div className="w-5 h-5 rounded-full bg-[#3462EE] flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Mic size={9} className="text-white" />
-                  </div>
-                )}
-                <div className={`max-w-[80%] px-3 py-1.5 rounded-2xl text-[11px] leading-snug ${
-                  line.role === 'assistant'
-                    ? 'bg-white border border-[#E5E7EB] text-[#374151] rounded-tl-md'
-                    : 'text-white rounded-tr-md'
-                }`}
-                style={line.role === 'user' ? { background: 'linear-gradient(135deg, #1a2b4a 0%, #2d4a7a 100%)' } : undefined}>
-                  {line.text}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!isConfigured && (
-          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#FEF9C3] border border-[#FDE68A]">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] flex-shrink-0" />
-            <p className="text-[11px] text-[#92400E]">Renseigne la clé publique Vapi et l'ID de l'assistant pour activer le test.</p>
           </div>
         )}
       </div>
@@ -634,85 +548,123 @@ function N8NTab() {
 // ─── Onglet Formulaires GHL ───────────────────────────────────────────────────
 
 function GHLFormsTab() {
-  const steps = [
-    {
-      num: '01',
-      title: 'Créer le formulaire dans GHL',
-      desc: 'Va dans Funnels → Forms → New Form. Ajoute les champs : Prénom, Téléphone, Type de travaux, Budget estimé.',
-    },
-    {
-      num: '02',
-      title: 'Connecter à un workflow GHL',
-      desc: 'Dans le workflow, ajoute le trigger "Form Submitted" et sélectionne ton formulaire. GHL crée le contact automatiquement et déclenche la qualification.',
-    },
-    {
-      num: '03',
-      title: 'Intégrer sur la landing Meta Ads',
-      desc: 'Copie le lien public GHL du formulaire et colle-le comme URL de destination dans ta campagne Meta Ads — ou utilise l\'iframe embed sur ta landing page.',
-    },
-    {
-      num: '04',
-      title: 'Le lead arrive dans Soren',
-      desc: 'Dès soumission, le contact apparaît dans Pipeline et Contacts. Le chatbot qualif se déclenche automatiquement via SMS/WhatsApp.',
-    },
-  ]
+  const [copied, setCopied] = useState(false)
+  const [origin, setOrigin] = useState('')
+
+  useEffect(() => {
+    setOrigin(window.location.origin)
+  }, [])
+
+  const formUrl = `${origin}/formulaire`
+
+  function copyLink() {
+    navigator.clipboard.writeText(formUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="bg-white rounded-2xl p-5 shadow-sm flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-[#111111] font-bold text-[15px] mb-1">Formulaires GHL</h2>
+          <h2 className="text-[#111111] font-bold text-[15px] mb-1">Formulaire Soren</h2>
           <p className="text-[#6B7280] text-[13px] leading-relaxed max-w-lg">
-            Les formulaires GHL sont la porte d'entrée de tes leads Meta Ads. Un formulaire soumis crée un contact dans GHL et déclenche automatiquement le workflow de qualification.
+            Formulaire public intégré — à coller comme lien de destination dans ta pub Canva ou Meta Ads. Dès soumission, le contact apparaît dans Pipeline et Kai envoie un WhatsApp en moins de 60s.
           </p>
         </div>
-        <a
-          href="https://app.gohighlevel.com/funnels-websites"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-shrink-0 flex items-center gap-1.5 text-xs bg-[#EEF0EB] text-[#111111] font-medium px-3 py-2 rounded-xl hover:bg-[#e4e6e1] transition-colors"
-        >
-          Gérer dans GHL <ExternalLink size={11} />
-        </a>
+        <div className="flex gap-2 flex-shrink-0">
+          <button
+            onClick={copyLink}
+            className="flex items-center gap-1.5 text-xs bg-[#111111] text-[#E2FF8D] font-medium px-3 py-2 rounded-xl hover:bg-[#222] transition-colors"
+          >
+            {copied ? 'Copié !' : <><ExternalLink size={11} /> Copier le lien</>}
+          </button>
+          <a
+            href="/formulaire"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs bg-[#EEF0EB] text-[#111111] font-medium px-3 py-2 rounded-xl hover:bg-[#e4e6e1] transition-colors"
+          >
+            Ouvrir <ExternalLink size={11} />
+          </a>
+        </div>
       </div>
 
-      {/* Flow */}
-      <div className="grid grid-cols-2 gap-3">
-        {steps.map(step => (
-          <div key={step.num} className="bg-white rounded-2xl p-5 shadow-sm">
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-[11px] font-bold text-[#E2FF8D] bg-[#111111] rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">
-                {step.num}
-              </span>
-              <p className="text-[#111111] font-semibold text-[13px]">{step.title}</p>
+      <div className="grid grid-cols-[1fr_320px] gap-4">
+        {/* Préview iframe */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          {/* Barre navigateur déco */}
+          <div className="flex items-center gap-2 px-4 py-3 bg-[#F5F5F3] border-b border-[#EBEBEB]">
+            <div className="flex gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#28C840]" />
             </div>
-            <p className="text-[#6B7280] text-[12px] leading-relaxed pl-9">{step.desc}</p>
+            <div className="flex-1 bg-white rounded-lg px-3 py-1 text-[11px] text-[#9CA3AF] truncate border border-[#E5E5E5]">
+              {origin}/formulaire
+            </div>
           </div>
-        ))}
-      </div>
+          {/* iframe */}
+          <div className="relative w-full" style={{ height: '460px' }}>
+            <iframe
+              src="/formulaire"
+              className="absolute inset-0 w-full h-full border-0"
+              title="Aperçu formulaire"
+            />
+          </div>
+        </div>
 
-      {/* Schéma flux */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm">
-        <p className="text-[#111111] font-semibold text-[13px] mb-4">Flux complet</p>
-        <div className="flex items-center gap-2 flex-wrap">
-          {[
-            { label: 'Meta Ads', color: 'bg-blue-50 text-blue-700 border-blue-100' },
-            { label: '→', color: 'text-[#9CA3AF]' },
-            { label: 'Formulaire GHL', color: 'bg-[#EEF0EB] text-[#111111] border-[#DDE0D8]' },
-            { label: '→', color: 'text-[#9CA3AF]' },
-            { label: 'Contact créé', color: 'bg-[#EEF0EB] text-[#111111] border-[#DDE0D8]' },
-            { label: '→', color: 'text-[#9CA3AF]' },
-            { label: 'Workflow déclenché', color: 'bg-[#EEF0EB] text-[#111111] border-[#DDE0D8]' },
-            { label: '→', color: 'text-[#9CA3AF]' },
-            { label: 'Chatbot SMS/WA', color: 'bg-green-50 text-green-700 border-green-100' },
-            { label: '→', color: 'text-[#9CA3AF]' },
-            { label: 'RDV qualifié', color: 'bg-[#111111] text-[#E2FF8D] border-transparent' },
-          ].map((item, i) =>
-            item.label === '→'
-              ? <span key={i} className={`text-sm font-bold ${item.color}`}>{item.label}</span>
-              : <span key={i} className={`text-[11px] font-medium border px-3 py-1.5 rounded-xl ${item.color}`}>{item.label}</span>
-          )}
+        {/* Infos & flux */}
+        <div className="space-y-3">
+          {/* URL publique */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm">
+            <p className="text-[#111111] font-semibold text-[12px] mb-2">Lien public</p>
+            <div className="bg-[#F5F5F3] rounded-xl px-3 py-2 text-[11px] text-[#6B7280] break-all font-mono leading-relaxed">
+              {formUrl || '/formulaire'}
+            </div>
+          </div>
+
+          {/* Flux */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm">
+            <p className="text-[#111111] font-semibold text-[12px] mb-3">Flux automatique</p>
+            <div className="space-y-2">
+              {[
+                { step: '01', label: 'Formulaire soumis', color: 'bg-blue-50 text-blue-700' },
+                { step: '02', label: 'Contact créé GHL + Soren', color: 'bg-[#EEF0EB] text-[#111]' },
+                { step: '03', label: 'Kai déclenché < 60s', color: 'bg-[#EEF0EB] text-[#111]' },
+                { step: '04', label: 'WhatsApp envoyé', color: 'bg-green-50 text-green-700' },
+                { step: '05', label: 'RDV qualifié et booké', color: 'bg-[#111] text-[#E2FF8D]' },
+              ].map(({ step, label, color }) => (
+                <div key={step} className="flex items-center gap-2">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg flex-shrink-0 ${color}`}>
+                    {step}
+                  </span>
+                  <span className="text-[12px] text-[#444]">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Champs */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm">
+            <p className="text-[#111111] font-semibold text-[12px] mb-2">Champs collectés</p>
+            <div className="space-y-1">
+              {[
+                ['Prénom', 'Requis'],
+                ['Nom', 'Requis'],
+                ['Téléphone', 'Requis'],
+                ['Email', 'Optionnel'],
+              ].map(([field, status]) => (
+                <div key={field} className="flex items-center justify-between text-[12px]">
+                  <span className="text-[#444]">{field}</span>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${status === 'Requis' ? 'bg-[#111] text-[#E2FF8D]' : 'bg-[#F5F5F3] text-[#9CA3AF]'}`}>
+                    {status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
