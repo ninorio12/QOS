@@ -119,7 +119,7 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
 
           {/* Titre */}
           <div>
-            <h1 className="text-[#111111] font-bold text-[21px] leading-tight mb-2">
+            <h1 className="text-[#111111] font-bold text-[23px] leading-tight mb-2">
               Planifiez votre<br />
               <span style={{ color: brandColor }}>rendez-vous</span> gratuitement
             </h1>
