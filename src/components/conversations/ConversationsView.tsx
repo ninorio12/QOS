@@ -1,16 +1,26 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { type Conversation, type Pipeline, type Message, MOCK_CONVERSATIONS } from './types'
 import ConversationList from './ConversationList'
 import MessageThread from './MessageThread'
 import ConversationPanel from './ConversationPanel'
-import { getMessages } from '@/app/conversations/actions'
 import { fetchJSON } from '@/lib/fetchJSON'
 
 interface Props {
   dbConversations: Conversation[]
   pipelines:       Pipeline[]
+}
+
+async function fetchMessages(convId: string): Promise<Message[]> {
+  try {
+    const res = await fetch(`/api/conversations/${convId}/messages`)
+    if (!res.ok) return []
+    const data = await res.json() as { messages: Message[] }
+    return data.messages ?? []
+  } catch {
+    return []
+  }
 }
 
 export default function ConversationsView({ dbConversations, pipelines }: Props) {
@@ -21,29 +31,70 @@ export default function ConversationsView({ dbConversations, pipelines }: Props)
     return [...dbConversations, ...mocks]
   }, [dbConversations])
 
+  const [convList,  setConvList]  = useState<Conversation[]>(allConversations)
   const [selected,  setSelected]  = useState<Conversation | null>(allConversations[0] ?? null)
   const [aiEnabled, setAiEnabled] = useState(allConversations[0]?.ai_enabled ?? true)
-  const [messages,  setMessages]  = useState<Message[]>([])
 
-  // Sync aiEnabled and load messages when conversation changes
+  // Cache de messages par conversation — évite de re-fetcher à chaque switch
+  const msgCache = useRef<Map<string, Message[]>>(new Map())
+  const [messages, setMessages] = useState<Message[]>([])
+
+  // Prefetch en cours (pour éviter les doublons)
+  const prefetching = useRef<Set<string>>(new Set())
+
+  // Sync aiEnabled when conversation changes
   useEffect(() => {
     if (!selected) return
     setAiEnabled(selected.ai_enabled ?? true)
-
-    let isMounted = true
-    void getMessages(selected.id).then(result => {
-      if (!isMounted) return
-      setMessages(Array.isArray(result.messages) ? result.messages : [])
-    }).catch(() => {
-      if (isMounted) setMessages([])
-    })
-
-    return () => { isMounted = false }
   }, [selected?.id])
+
+  // Charger les messages de la conversation sélectionnée
+  useEffect(() => {
+    if (!selected) return
+
+    // Déjà en cache → affichage instantané
+    const cached = msgCache.current.get(selected.id)
+    if (cached) {
+      setMessages(cached)
+      // Refresh silencieux — uniquement si pas déjà en cours
+      if (!prefetching.current.has(selected.id)) {
+        prefetching.current.add(selected.id)
+        void fetchMessages(selected.id).then(fresh => {
+          prefetching.current.delete(selected.id)
+          if (fresh.length > 0) {
+            msgCache.current.set(selected.id, fresh)
+            setMessages(fresh)
+          }
+        })
+      }
+      return
+    }
+
+    // Pas en cache → fetch normal
+    setMessages([])
+    if (!prefetching.current.has(selected.id)) {
+      prefetching.current.add(selected.id)
+      void fetchMessages(selected.id).then(msgs => {
+        prefetching.current.delete(selected.id)
+        msgCache.current.set(selected.id, msgs)
+        setMessages(msgs)
+      })
+    }
+  }, [selected?.id])
+
+  // Prefetch des messages au hover sur une conversation
+  const prefetchConv = useCallback((convId: string) => {
+    if (msgCache.current.has(convId) || prefetching.current.has(convId)) return
+    prefetching.current.add(convId)
+    void fetchMessages(convId).then(msgs => {
+      msgCache.current.set(convId, msgs)
+      prefetching.current.delete(convId)
+    })
+  }, [])
 
   async function handleAiToggle(enabled: boolean) {
     if (!selected) return
-    setAiEnabled(enabled) // optimistic
+    setAiEnabled(enabled)
     try {
       await fetchJSON(`/api/conversation/${selected.id}/ai`, {
         method:  'PATCH',
@@ -51,13 +102,29 @@ export default function ConversationsView({ dbConversations, pipelines }: Props)
         body:    JSON.stringify({ ai_enabled: enabled }),
       })
     } catch {
-      setAiEnabled(!enabled) // rollback
+      setAiEnabled(!enabled)
     }
   }
 
   function handleSelect(conv: Conversation) {
     setSelected(conv)
+    setAiEnabled(conv.ai_enabled ?? true)
+  }
+
+  // Quand un nouveau message arrive (Supabase realtime ou envoi manuel)
+  // → mettre à jour le cache
+  function handleMessageSent(convId: string, msg: Message) {
+    msgCache.current.set(convId, [...(msgCache.current.get(convId) ?? []), msg])
+  }
+
+  function handleConversationCreated(conv: Conversation) {
+    setConvList(prev => {
+      if (prev.some(c => c.id === conv.id)) return prev
+      return [conv, ...prev]
+    })
+    setSelected(conv)
     setMessages([])
+    msgCache.current.delete(conv.id)
   }
 
   return (
@@ -65,11 +132,12 @@ export default function ConversationsView({ dbConversations, pipelines }: Props)
 
       {/* ── Col 1: Conversation list ── */}
       <ConversationList
-        conversations={allConversations}
+        conversations={convList}
         selected={selected}
         onSelect={handleSelect}
         activeFilter="all"
-        onConversationCreated={() => {}}
+        onConversationCreated={handleConversationCreated}
+        onPrefetch={prefetchConv}
       />
 
       {/* ── Col 2: Thread ── */}
@@ -78,8 +146,10 @@ export default function ConversationsView({ dbConversations, pipelines }: Props)
           <div className="flex-1 min-h-0">
             <MessageThread
               conversation={selected}
+              initialMessages={messages}
               aiEnabled={aiEnabled}
               onAiToggle={handleAiToggle}
+              onMessageSent={(msg) => handleMessageSent(selected.id, msg)}
             />
           </div>
         ) : (
@@ -98,7 +168,6 @@ export default function ConversationsView({ dbConversations, pipelines }: Props)
           onAiToggle={handleAiToggle}
           pipelines={pipelines}
         />
-
       ) : (
         <div className="w-[300px] flex-shrink-0 bg-white border-l border-[#E5E7EB]" />
       )}
