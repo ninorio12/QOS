@@ -4,7 +4,7 @@ import KanbanBoard from '@/components/pipeline/KanbanBoard'
 import { getOpportunities, getPipelines, getUsers } from '@/lib/ghl'
 import { stageColor, type GHLPipelineData, type Opportunity } from '@/components/pipeline/types'
 
-export const dynamic   = 'force-dynamic'   // désactive le cache statique
+export const revalidate = 300
 
 // ─── Empty state ──────────────────────────────────────────────
 function PipelineEmpty({ error }: { error?: string }) {

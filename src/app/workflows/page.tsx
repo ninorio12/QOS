@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { SYSTEM_PROMPT_DEFAULT } from '@/lib/agent-config'
 import WorkflowsView from '@/components/workflows/WorkflowsView'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 export default async function WorkflowsPage() {
   let workflows: Awaited<ReturnType<typeof getWorkflows>> = []

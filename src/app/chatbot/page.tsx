@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { SYSTEM_PROMPT_DEFAULT } from '@/lib/agent-config'
 import ChatbotView from '@/components/chatbot/ChatbotView'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 export default async function ChatbotPage() {
   const supabase = await createClient()
