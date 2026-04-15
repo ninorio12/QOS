@@ -349,16 +349,44 @@ export async function createGHLContact(data: {
   phone:     string
   email?:    string
 }): Promise<string> {
-  const res = await ghlMutate('/contacts/', 'POST', {
-    firstName:  data.firstName,
-    lastName:   data.lastName,
-    phone:      data.phone,
-    email:      data.email ?? undefined,
-    locationId: env.ghlLocationId(),
-    source:     'Formulaire Soren',
-  }) as { contact?: { id: string } }
+  const baseUrl = env.ghlBaseUrl()
+  const apiKey  = env.ghlApiKey()
 
-  const id = res.contact?.id
+  const res = await fetch(`${baseUrl}/contacts/`, {
+    method: 'POST',
+    headers: {
+      Authorization:  `Bearer ${apiKey}`,
+      Version:        '2021-07-28',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      firstName:  data.firstName,
+      lastName:   data.lastName,
+      phone:      data.phone,
+      email:      data.email ?? undefined,
+      locationId: env.ghlLocationId(),
+      source:     'Formulaire Soren',
+    }),
+    cache: 'no-store',
+  })
+
+  const json = await res.json() as {
+    contact?:   { id: string }
+    meta?:      { contactId?: string }
+    statusCode?: number
+    message?:   string
+  }
+
+  // Contact déjà existant — GHL renvoie l'ID dans meta.contactId
+  if (!res.ok && json.meta?.contactId) {
+    return json.meta.contactId
+  }
+
+  if (!res.ok) {
+    throw new Error(`GHL POST ${res.status}: /contacts/ — ${JSON.stringify(json)}`)
+  }
+
+  const id = json.contact?.id
   if (!id) throw new Error('GHL createContact: id manquant dans la réponse')
   return id
 }
