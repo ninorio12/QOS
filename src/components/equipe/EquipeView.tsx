@@ -24,22 +24,22 @@ type AgentRunState = {
 // ─── Initial log templates per agent ──────────────────────────
 const BOOT_LOGS: Record<string, string[]> = {
   soren: [
-    `[${new Date().toLocaleTimeString('fr-FR')}] Orchestrateur démarré — agents : 3/3`,
-    `[${new Date().toLocaleTimeString('fr-FR')}] Analyse pipeline ACQUISITION — 7 opportunités actives`,
-    `[${new Date().toLocaleTimeString('fr-FR')}] Directive envoyée à Kai : relancer Xavier Lambert`,
-    `[${new Date().toLocaleTimeString('fr-FR')}] Rapport hebdo généré — pipeline €74 600`,
+    '[08:31:00] Orchestrateur démarré — agents : 3/3',
+    '[08:31:02] Analyse pipeline ACQUISITION — 7 opportunités actives',
+    '[08:31:04] Directive envoyée à Kai : relancer Xavier Lambert',
+    '[08:31:06] Rapport hebdo généré — pipeline €74 600',
   ],
   kai: [
-    `[${new Date().toLocaleTimeString('fr-FR')}] CSM démarré — scan conversations entrantes`,
-    `[${new Date().toLocaleTimeString('fr-FR')}] Lead Martin Dupont qualifié → stage CRM mis à jour`,
-    `[${new Date().toLocaleTimeString('fr-FR')}] Message WhatsApp envoyé → +33612345007`,
-    `[${new Date().toLocaleTimeString('fr-FR')}] RDV planifié — Inès Duprez 2 avril 14h`,
+    '[08:31:00] CSM démarré — scan conversations entrantes',
+    '[08:31:03] Lead Martin Dupont qualifié → stage CRM mis à jour',
+    '[08:31:05] Message WhatsApp envoyé → +33612345007',
+    '[08:31:07] RDV planifié — Inès Duprez 2 avril 14h',
   ],
   mia: [
-    `[${new Date().toLocaleTimeString('fr-FR')}] KB Manager démarré — 47 fiches clients actives`,
-    `[${new Date().toLocaleTimeString('fr-FR')}] Devis façade €8 900 généré — envoi planifié 09h00`,
-    `[${new Date().toLocaleTimeString('fr-FR')}] MEMORY.md mis à jour — 3 nouvelles entrées`,
-    `[${new Date().toLocaleTimeString('fr-FR')}] Alerte : devis Marie Colin en attente de validation`,
+    '[08:31:00] KB Manager démarré — 47 fiches clients actives',
+    '[08:31:02] Devis façade €8 900 généré — envoi planifié 09h00',
+    '[08:31:04] MEMORY.md mis à jour — 3 nouvelles entrées',
+    '[08:31:06] Alerte : devis Marie Colin en attente de validation',
   ],
 }
 
@@ -265,8 +265,8 @@ export default function EquipeView() {
   const agentStatus   = useAgentStatus()
 
   const [runStates, setRunStates] = useState<Record<string, AgentRunState>>({
-    soren: { status: 'online', lastHeartbeat: new Date().toLocaleTimeString('fr-FR'), logs: BOOT_LOGS.soren },
-    kai:   { status: 'online', lastHeartbeat: new Date().toLocaleTimeString('fr-FR'), logs: BOOT_LOGS.kai },
+    soren: { status: 'online', lastHeartbeat: 'En ligne', logs: BOOT_LOGS.soren },
+    kai:   { status: 'online', lastHeartbeat: 'En ligne', logs: BOOT_LOGS.kai },
     mia:   { status: 'offline', lastHeartbeat: 'Jamais', logs: [] },
   })
 
