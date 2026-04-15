@@ -565,31 +565,7 @@ function GHLFormsTab() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-[#111111] font-bold text-[15px] mb-1">Formulaire Soren</h2>
-          <p className="text-[#6B7280] text-[13px] leading-relaxed max-w-lg">
-            Formulaire public intégré — à coller comme lien de destination dans ta pub Canva ou Meta Ads. Dès soumission, le contact apparaît dans Pipeline et Kai envoie un WhatsApp en moins de 60s.
-          </p>
-        </div>
-        <div className="flex gap-2 flex-shrink-0">
-          <button
-            onClick={copyLink}
-            className="flex items-center gap-1.5 text-xs bg-[#111111] text-[#E2FF8D] font-medium px-3 py-2 rounded-xl hover:bg-[#222] transition-colors"
-          >
-            {copied ? 'Copié !' : <><ExternalLink size={11} /> Copier le lien</>}
-          </button>
-          <a
-            href="/formulaire"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs bg-[#EEF0EB] text-[#111111] font-medium px-3 py-2 rounded-xl hover:bg-[#e4e6e1] transition-colors"
-          >
-            Ouvrir <ExternalLink size={11} />
-          </a>
-        </div>
-      </div>
+      {/* Header supprimé — lien + actions sous la barre URL */}
 
       <div className="grid grid-cols-[1fr_320px] gap-4">
         {/* Préview iframe */}
@@ -604,6 +580,24 @@ function GHLFormsTab() {
             <div className="flex-1 bg-white rounded-lg px-3 py-1 text-[11px] text-[#9CA3AF] truncate border border-[#E5E5E5]">
               {origin}/formulaire
             </div>
+            <a
+              href="/formulaire"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[11px] text-[#9CA3AF] hover:text-[#111111] transition-colors flex-shrink-0"
+            >
+              <ExternalLink size={11} />
+            </a>
+          </div>
+          {/* Lien public + copier */}
+          <div className="flex items-center gap-2 px-4 py-2 bg-[#F5F5F3] border-b border-[#EBEBEB]">
+            <span className="text-[11px] text-[#9CA3AF] truncate flex-1">{formUrl}</span>
+            <button
+              onClick={copyLink}
+              className="flex items-center gap-1.5 text-[11px] bg-[#111111] text-[#E2FF8D] font-medium px-2.5 py-1 rounded-lg hover:bg-[#222] transition-colors flex-shrink-0"
+            >
+              {copied ? 'Copié !' : 'Copier le lien'}
+            </button>
           </div>
           {/* iframe */}
           <div className="relative w-full" style={{ height: '460px' }}>
