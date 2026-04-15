@@ -89,21 +89,21 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#EEF0EB] p-6">
-      <div className="flex w-full max-w-[860px] rounded-[28px] overflow-hidden shadow-2xl" style={{ minHeight: '580px' }}>
+      <div className="flex w-full max-w-[880px] rounded-[32px] overflow-hidden shadow-2xl" style={{ minHeight: '600px' }}>
 
         {/* ── Gauche : formulaire ──────────────────────────────────────────── */}
-        <div className="w-[420px] flex-shrink-0 flex flex-col justify-between px-10 py-9 bg-white">
+        <div className="w-[440px] flex-shrink-0 flex flex-col px-10 py-8 bg-white gap-6">
 
           {/* Logo */}
           <div className="flex items-center gap-3">
             {logoSvg ? (
               <div
-                className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center"
+                className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center"
                 dangerouslySetInnerHTML={{ __html: logoSvg }}
               />
             ) : (
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-[#111] font-bold text-[18px]"
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-[#111] font-bold text-[16px]"
                 style={{ backgroundColor: brandColor }}
               >
                 {initial}
@@ -118,16 +118,18 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
           </div>
 
           {/* Titre */}
-          <div>
-            <h1 className="text-[#111111] font-bold text-[23px] leading-tight mb-2">
-              Planifiez votre<br />
-              <span style={{ color: brandColor }}>rendez-vous</span> gratuitement
-            </h1>
-            <p className="text-[#9CA3AF] text-[11px] mb-6">
-              Remplissez le formulaire, un expert vous rappelle rapidement
-            </p>
+          <div className="flex-1 flex flex-col justify-center gap-5">
+            <div>
+              <h1 className="text-[#111111] font-bold text-[23px] leading-tight mb-1.5">
+                Planifiez votre<br />
+                <span style={{ color: brandColor }}>rendez-vous</span> gratuitement
+              </h1>
+              <p className="text-[#9CA3AF] text-[11px]">
+                Remplissez le formulaire, un expert vous rappelle rapidement
+              </p>
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-2.5">
 
               <div className="flex gap-2.5">
                 <InputField name="firstName" required placeholder="Prénom" brandColor={brandColor} />
@@ -137,7 +139,7 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
               <InputField name="phone" required type="tel" placeholder="Téléphone" brandColor={brandColor} />
               <InputField name="email" required type="email" placeholder="Email" brandColor={brandColor} />
 
-              <div className="space-y-2 pt-1">
+              <div className="space-y-1.5 pt-0.5">
                 <ConsentCheckbox
                   id="consentSms"
                   label={`J'accepte de recevoir des SMS de ${companyName} pour le suivi de ma demande. Répondez STOP pour vous désabonner.`}
@@ -157,7 +159,7 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full font-semibold text-[13px] py-3 rounded-2xl transition-opacity disabled:opacity-40 flex items-center justify-center gap-2"
+                className="w-full font-semibold text-[13px] py-3 rounded-2xl transition-opacity disabled:opacity-40 flex items-center justify-center gap-2 mt-1"
                 style={{ backgroundColor: '#F97316', color: '#ffffff' }}
               >
                 {loading
@@ -169,7 +171,7 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
             </form>
           </div>
 
-          <p className="text-[#111111]/20 text-[11px]">
+          <p className="text-[#111111]/20 text-[11px] text-center">
             Données protégées · {companyName}
           </p>
         </div>
@@ -184,21 +186,25 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
             priority
           />
           {/* Overlay gradient pour lisibilité */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
           {/* Badge stats en bas */}
-          <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-6 px-6">
-            {[
-              ['98%',    'Clients satisfaits'],
-              ['+12 ans', "D'expérience"],
-              ['4.9★',   'Note Google'],
-              ['500+',   'Chantiers réalisés'],
-            ].map(([val, label]) => (
-              <div key={label} className="text-center">
-                <p className="font-bold text-[18px]" style={{ color: brandColor }}>{val}</p>
-                <p className="text-white/70 text-[10px] mt-0.5">{label}</p>
-              </div>
-            ))}
+          <div className="absolute bottom-0 left-0 right-0 px-6 pb-7">
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                ['98%',    'Clients satisfaits'],
+                ['4.9★',   'Note Google'],
+                ['500+',   'Chantiers réalisés'],
+              ].map(([val, label]) => (
+                <div
+                  key={label}
+                  className="bg-white/10 backdrop-blur-sm rounded-2xl px-3 py-3 text-center border border-white/10"
+                >
+                  <p className="font-bold text-[20px] leading-none" style={{ color: brandColor }}>{val}</p>
+                  <p className="text-white/70 text-[10px] mt-1">{label}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
