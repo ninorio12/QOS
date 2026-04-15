@@ -10,10 +10,8 @@ import {
   ArrowUpRight, Plus, X, Check,
   CheckSquare, FileText, ScrollText, Database, Wallet, Cpu,
 } from 'lucide-react'
-import {
-  BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip,
-  AreaChart, Area,
-} from 'recharts'
+const WeeklyBarChart   = dynamic(() => import('./WeeklyBarChart'),   { ssr: false })
+const MonthlyAreaChart = dynamic(() => import('./MonthlyAreaChart'), { ssr: false })
 import type { WeeklyDay, MonthlyPoint } from '@/lib/dashboard'
 import { getAvatarColor } from '@/components/contacts/types'
 
@@ -589,43 +587,7 @@ export default function DashboardClient({
           </div>
 
           <div className="flex-1 min-h-0 px-2 pb-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyData} barGap={2} barCategoryGap="18%" margin={{ top: 8, right: 12, left: -20, bottom: 0 }}>
-                <XAxis
-                  dataKey="day"
-                  axisLine={false} tickLine={false}
-                  tick={{ fill: '#9CA3AF', fontSize: 11, fontWeight: 500 }}
-                />
-                <YAxis
-                  axisLine={false} tickLine={false}
-                  tick={{ fill: '#D1D5DB', fontSize: 10 }}
-                  width={24}
-                />
-                <Tooltip
-                  cursor={{ fill: 'rgba(0,0,0,0.03)', radius: 6 } as React.SVGProps<SVGRectElement>}
-                  content={({ active, payload, label }) => {
-                    if (!active || !payload?.length) return null
-                    const FULL: Record<string,string> = {
-                      Lun:'Lundi', Mar:'Mardi', Mer:'Mercredi', Jeu:'Jeudi',
-                      Ven:'Vendredi', Sam:'Samedi', Dim:'Dimanche',
-                    }
-                    return (
-                      <div style={{ background:'#111', borderRadius:12, padding:'10px 14px', fontSize:11, color:'#fff', minWidth:110 }}>
-                        <p style={{ fontWeight:700, fontSize:12, marginBottom:6 }}>{label != null ? (FULL[label] ?? label) : ''}</p>
-                        {payload.map(p => (
-                          <p key={p.dataKey as string} style={{ color: p.dataKey === 'leads' ? '#E2FF8D' : p.dataKey === 'booked' ? '#fff' : '#9CA3AF', marginBottom:2 }}>
-                            {p.name} : {p.value}
-                          </p>
-                        ))}
-                      </div>
-                    )
-                  }}
-                />
-                <Bar dataKey="rdv"    name="RDV"    fill="#3462EE"         radius={[4,4,0,0]} />
-                <Bar dataKey="booked" name="Signés" fill="#111111"          radius={[4,4,0,0]} />
-                <Bar dataKey="leads"  name="Leads"  fill="#E2FF8D"          radius={[4,4,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <WeeklyBarChart data={weeklyData} />
           </div>
         </div>
 
@@ -640,48 +602,7 @@ export default function DashboardClient({
           </div>
 
           <div className="flex-1 min-h-0 px-2 pb-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={monthlyPipeline} margin={{ top: 8, right: 12, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="pipelineGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3462EE" stopOpacity={0.15} />
-                    <stop offset="100%" stopColor="#3462EE" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="month"
-                  axisLine={false} tickLine={false}
-                  tick={{ fill: '#9CA3AF', fontSize: 11, fontWeight: 500 }}
-                />
-                <YAxis
-                  axisLine={false} tickLine={false}
-                  tick={{ fill: '#D1D5DB', fontSize: 10 }}
-                  tickFormatter={v => v >= 1000 ? `${Math.round(v/1000)}k` : `${v}`}
-                  width={28}
-                />
-                <Tooltip
-                  wrapperStyle={{ border: 'none', outline: 'none' }}
-                  content={({ active, payload, label }) => {
-                    if (!active || !payload?.length) return null
-                    return (
-                      <div style={{ background:'#111', borderRadius:12, padding:'10px 14px', fontSize:11, color:'#fff', minWidth:110 }}>
-                        <p style={{ fontWeight:700, fontSize:12, marginBottom:4 }}>{label}</p>
-                        <p style={{ color:'#fff' }}>{fmt(payload[0]?.value as number ?? 0)}</p>
-                      </div>
-                    )
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#3462EE"
-                  strokeWidth={2}
-                  fill="url(#pipelineGrad)"
-                  dot={{ fill: '#3462EE', strokeWidth: 0, r: 3 }}
-                  activeDot={{ r: 5, fill: '#3462EE', stroke: '#fff', strokeWidth: 2 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <MonthlyAreaChart data={monthlyPipeline} />
           </div>
         </div>
       </div>
