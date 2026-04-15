@@ -137,7 +137,13 @@ export default function ContactsView({
   const { toasts, toast, dismiss } = useToast()
   const [contacts,     setContacts]     = useState<GHLContact[]>(initial)
   const [checked,      setChecked]      = useState<Set<string>>(new Set())
-  const [query,        setQuery]        = useState('')
+  const [query,          setQuery]          = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 200)
+    return () => clearTimeout(t)
+  }, [query])
   const [showImport,   setShowImport]   = useState(false)
   const [allChecked,   setAllChecked]   = useState(false)
   const [sortCol,      setSortCol]      = useState<string|null>(null)
@@ -196,8 +202,8 @@ export default function ContactsView({
   const filtered = useMemo(() => {
     let result = contacts
 
-    if (query.trim()) {
-      const q = query.toLowerCase()
+    if (debouncedQuery.trim()) {
+      const q = debouncedQuery.toLowerCase()
       result = result.filter(c =>
         `${c.contactName} ${c.firstName ?? ''} ${c.lastName ?? ''} ${c.email ?? ''} ${c.phone ?? ''} ${c.companyName ?? ''} ${c.tags.join(' ')}`
           .toLowerCase().includes(q)
@@ -225,7 +231,7 @@ export default function ContactsView({
     }
 
     return result
-  }, [contacts, query, filterOrigin, sortCol, sortDir, attributions])
+  }, [contacts, debouncedQuery, filterOrigin, sortCol, sortDir, attributions])
 
   function toggleCheck(id: string) {
     setChecked(prev => {
