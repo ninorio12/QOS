@@ -48,13 +48,9 @@ export default function MerciContent({ companyName, brandColor, logoSvg }: Props
         {/* Contenu */}
         <div className="flex-1 flex flex-col justify-center gap-5">
           {/* Checkmark */}
-          <div className="text-[40px] select-none leading-none">
-            {'👋'}
-          </div>
-
           <div>
             <h1 className="text-[#111111] font-bold text-[23px] leading-tight mb-1.5">
-              Merci {prenom} !
+              Merci {prenom} ! <span className="select-none">{'👋'}</span>
             </h1>
             <p className="text-[#9CA3AF] text-[11px]">
               Notre équipe vous contacte sous 48h.
