@@ -547,30 +547,78 @@ function N8NTab() {
 
 // ─── Onglet Formulaires GHL ───────────────────────────────────────────────────
 
+interface FormField {
+  key: string; label: string; type: string
+  enabled: boolean; required: boolean; locked: boolean
+}
+
+const DEFAULT_FIELDS: FormField[] = [
+  { key: 'firstName', label: 'Prénom',    type: 'text',     enabled: true,  required: true,  locked: true  },
+  { key: 'lastName',  label: 'Nom',       type: 'text',     enabled: true,  required: false, locked: false },
+  { key: 'phone',     label: 'Téléphone', type: 'tel',      enabled: true,  required: true,  locked: true  },
+  { key: 'email',     label: 'Email',     type: 'email',    enabled: true,  required: false, locked: false },
+  { key: 'message',   label: 'Message',   type: 'textarea', enabled: false, required: false, locked: false },
+]
+
+function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${checked ? 'bg-[#111111]' : 'bg-[#E5E7EB]'} ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+    >
+      <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${checked ? 'translate-x-4' : 'translate-x-0'}`} />
+    </button>
+  )
+}
+
 function GHLFormsTab() {
-  const [copied, setCopied] = useState(false)
-  const [origin, setOrigin] = useState('')
+  const [origin,   setOrigin]   = useState('')
+  const [fields,   setFields]   = useState<FormField[]>(DEFAULT_FIELDS)
+  const [saving,   setSaving]   = useState(false)
+  const [saved,    setSaved]    = useState(false)
+  const [iframeKey, setIframeKey] = useState(0)
 
   useEffect(() => {
     setOrigin(window.location.origin)
+    // Charge la config actuelle
+    fetch('/api/settings/form-fields-get')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.fields) setFields(data.fields) })
+      .catch(() => {})
   }, [])
 
-  const formUrl = `${origin}/formulaire`
+  function toggleEnabled(key: string) {
+    setFields(prev => prev.map(f => f.key === key ? { ...f, enabled: !f.enabled } : f))
+  }
 
-  function copyLink() {
-    navigator.clipboard.writeText(formUrl)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  function toggleRequired(key: string) {
+    setFields(prev => prev.map(f => f.key === key ? { ...f, required: !f.required } : f))
+  }
+
+  async function save() {
+    setSaving(true)
+    try {
+      await fetch('/api/settings/form-fields', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields }),
+      })
+      setSaved(true)
+      setIframeKey(k => k + 1) // refresh iframe
+      setTimeout(() => setSaved(false), 2000)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
     <div className="space-y-4">
-      {/* Header supprimé — lien + actions sous la barre URL */}
+      <div className="grid grid-cols-[1fr_300px] gap-4">
 
-      <div className="grid grid-cols-[1fr_320px] gap-4">
         {/* Préview iframe */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          {/* Barre navigateur déco */}
           <div className="flex items-center gap-2 px-4 py-3 bg-[#F5F5F3] border-b border-[#EBEBEB]">
             <div className="flex gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
@@ -589,9 +637,9 @@ function GHLFormsTab() {
               <ExternalLink size={11} />
             </a>
           </div>
-          {/* iframe */}
           <div className="relative w-full" style={{ height: '460px' }}>
             <iframe
+              key={iframeKey}
               src="/formulaire"
               className="absolute inset-0 w-full h-full border-0"
               title="Aperçu formulaire"
@@ -599,55 +647,49 @@ function GHLFormsTab() {
           </div>
         </div>
 
-        {/* Infos & flux */}
+        {/* Sidebar config */}
         <div className="space-y-3">
-          {/* URL publique */}
+          {/* Lien public */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <p className="text-[#111111] font-semibold text-[12px] mb-2">Lien public</p>
             <div className="bg-[#F5F5F3] rounded-xl px-3 py-2 text-[11px] text-[#6B7280] break-all font-mono leading-relaxed">
-              {formUrl || '/formulaire'}
+              {origin || ''}/formulaire
             </div>
           </div>
 
-          {/* Flux */}
+          {/* Champs avec toggles */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <p className="text-[#111111] font-semibold text-[12px] mb-3">Flux automatique</p>
-            <div className="space-y-2">
-              {[
-                { step: '01', label: 'Formulaire soumis', color: 'bg-blue-50 text-blue-700' },
-                { step: '02', label: 'Contact créé GHL + Soren', color: 'bg-[#EEF0EB] text-[#111]' },
-                { step: '03', label: 'Kai déclenché < 60s', color: 'bg-[#EEF0EB] text-[#111]' },
-                { step: '04', label: 'WhatsApp envoyé', color: 'bg-green-50 text-green-700' },
-                { step: '05', label: 'RDV qualifié et booké', color: 'bg-[#111] text-[#E2FF8D]' },
-              ].map(({ step, label, color }) => (
-                <div key={step} className="flex items-center gap-2">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg flex-shrink-0 ${color}`}>
-                    {step}
-                  </span>
-                  <span className="text-[12px] text-[#444]">{label}</span>
+            <p className="text-[#111111] font-semibold text-[12px] mb-3">Champs du formulaire</p>
+            <div className="space-y-3">
+              {fields.map(f => (
+                <div key={f.key}>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[13px] font-medium ${f.enabled ? 'text-[#111111]' : 'text-[#C4C9D4]'}`}>
+                      {f.label}
+                    </span>
+                    <Toggle checked={f.enabled} onChange={() => toggleEnabled(f.key)} disabled={f.locked} />
+                  </div>
+                  {f.enabled && !f.locked && (
+                    <div className="flex items-center gap-2 mt-1.5 ml-0.5">
+                      <span className="text-[11px] text-[#9CA3AF]">Obligatoire</span>
+                      <Toggle checked={f.required} onChange={() => toggleRequired(f.key)} />
+                    </div>
+                  )}
+                  {f.locked && f.enabled && (
+                    <p className="text-[10px] text-[#C4C9D4] mt-0.5 ml-0.5">Champ requis — non désactivable</p>
+                  )}
                 </div>
               ))}
             </div>
-          </div>
 
-          {/* Champs */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <p className="text-[#111111] font-semibold text-[12px] mb-2">Champs collectés</p>
-            <div className="space-y-1">
-              {[
-                ['Prénom', 'Requis'],
-                ['Nom', 'Requis'],
-                ['Téléphone', 'Requis'],
-                ['Email', 'Optionnel'],
-              ].map(([field, status]) => (
-                <div key={field} className="flex items-center justify-between text-[12px]">
-                  <span className="text-[#444]">{field}</span>
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${status === 'Requis' ? 'bg-[#111] text-[#E2FF8D]' : 'bg-[#F5F5F3] text-[#9CA3AF]'}`}>
-                    {status}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <button
+              onClick={save}
+              disabled={saving}
+              className="w-full mt-4 py-2 rounded-xl text-[12px] font-semibold transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+              style={{ backgroundColor: '#111111', color: '#E2FF8D' }}
+            >
+              {saved ? '✓ Sauvegardé' : saving ? 'Sauvegarde…' : 'Appliquer les modifications'}
+            </button>
           </div>
         </div>
       </div>

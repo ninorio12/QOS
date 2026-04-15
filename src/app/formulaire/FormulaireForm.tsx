@@ -4,11 +4,29 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 
+export interface FormField {
+  key:      string
+  label:    string
+  type:     string
+  enabled:  boolean
+  required: boolean
+  locked:   boolean  // ne peut pas être désactivé
+}
+
+export const DEFAULT_FIELDS: FormField[] = [
+  { key: 'firstName', label: 'Prénom',     type: 'text',     enabled: true,  required: true,  locked: true  },
+  { key: 'lastName',  label: 'Nom',        type: 'text',     enabled: true,  required: false, locked: false },
+  { key: 'phone',     label: 'Téléphone',  type: 'tel',      enabled: true,  required: true,  locked: true  },
+  { key: 'email',     label: 'Email',      type: 'email',    enabled: true,  required: false, locked: false },
+  { key: 'message',   label: 'Message',    type: 'textarea', enabled: false, required: false, locked: false },
+]
+
 interface Props {
   companyName:    string
   companyTagline: string
   brandColor:     string
   logoSvg:        string | null
+  formFields:     FormField[]
 }
 
 function InputField({ name, required, type = 'text', placeholder, brandColor }: {
@@ -19,6 +37,22 @@ function InputField({ name, required, type = 'text', placeholder, brandColor }: 
   brandColor: string
 }) {
   const [focused, setFocused] = useState(false)
+
+  if (type === 'textarea') {
+    return (
+      <textarea
+        name={name}
+        required={required}
+        placeholder={placeholder}
+        rows={3}
+        className="w-full bg-[#F5F5F3] rounded-2xl px-4 py-3 text-[#111111] text-[13px] placeholder-[#111111]/25 focus:outline-none transition-all resize-none"
+        style={{ border: `1.5px solid ${focused ? brandColor : 'transparent'}` }}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+      />
+    )
+  }
+
   return (
     <input
       name={name}
@@ -50,10 +84,17 @@ function ConsentCheckbox({ id, label }: { id: string; label: string }) {
   )
 }
 
-export default function FormulaireForm({ companyName, companyTagline, brandColor, logoSvg }: Props) {
+export default function FormulaireForm({ companyName, companyTagline, brandColor, logoSvg, formFields }: Props) {
   const router  = useRouter()
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
+
+  const activeFields = formFields.filter(f => f.enabled)
+
+  // Sépare prénom/nom pour les mettre sur la même ligne si les deux sont actifs
+  const hasFirstName = activeFields.some(f => f.key === 'firstName')
+  const hasLastName  = activeFields.some(f => f.key === 'lastName')
+  const nameOnOneLine = hasFirstName && hasLastName
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -61,11 +102,10 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
     setLoading(true)
 
     const form = new FormData(e.currentTarget)
-    const body = {
-      firstName: (form.get('firstName') as string).trim(),
-      lastName:  (form.get('lastName')  as string).trim(),
-      phone:     (form.get('phone')     as string).trim(),
-      email:     (form.get('email')     as string).trim() || undefined,
+    const body: Record<string, string | undefined> = {}
+    for (const field of activeFields) {
+      const val = (form.get(field.key) as string | null)?.trim()
+      body[field.key] = val || (field.required ? val : undefined)
     }
 
     try {
@@ -78,7 +118,8 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
         const data = await res.json()
         throw new Error(data.error ?? 'Erreur serveur')
       }
-      router.push('/formulaire/merci?prenom=' + encodeURIComponent(body.firstName))
+      const prenom = (body.firstName ?? '').trim()
+      router.push('/formulaire/merci?prenom=' + encodeURIComponent(prenom))
     } catch (err) {
       setError(String(err))
       setLoading(false)
@@ -117,7 +158,7 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
             </span>
           </div>
 
-          {/* Titre */}
+          {/* Titre + form */}
           <div className="flex-1 flex flex-col justify-center gap-5">
             <div>
               <h1 className="text-[#111111] font-bold text-[23px] leading-tight mb-1.5">
@@ -131,13 +172,34 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
 
             <form onSubmit={handleSubmit} className="space-y-2.5">
 
-              <div className="flex gap-2.5">
-                <InputField name="firstName" required placeholder="Prénom" brandColor={brandColor} />
-                <InputField name="lastName"  required placeholder="Nom"    brandColor={brandColor} />
-              </div>
+              {/* Prénom + Nom sur une ligne si les deux sont actifs */}
+              {nameOnOneLine && (
+                <div className="flex gap-2.5">
+                  <InputField name="firstName" required placeholder="Prénom" brandColor={brandColor} />
+                  <InputField name="lastName"  required={activeFields.find(f => f.key === 'lastName')?.required} placeholder="Nom" brandColor={brandColor} />
+                </div>
+              )}
 
-              <InputField name="phone" required type="tel" placeholder="Téléphone" brandColor={brandColor} />
-              <InputField name="email" type="email" placeholder="Email (optionnel)" brandColor={brandColor} />
+              {/* Champs individuels (hors prénom+nom si déjà traités ensemble) */}
+              {activeFields
+                .filter(f => nameOnOneLine ? (f.key !== 'firstName' && f.key !== 'lastName') : true)
+                .map(f => (
+                  !nameOnOneLine && f.key === 'firstName' ? (
+                    <InputField key={f.key} name={f.key} required={f.required} type={f.type} placeholder={f.label} brandColor={brandColor} />
+                  ) : !nameOnOneLine && f.key === 'lastName' ? (
+                    <InputField key={f.key} name={f.key} required={f.required} type={f.type} placeholder={f.label} brandColor={brandColor} />
+                  ) : (
+                    <InputField
+                      key={f.key}
+                      name={f.key}
+                      required={f.required}
+                      type={f.type}
+                      placeholder={f.required ? f.label : `${f.label} (optionnel)`}
+                      brandColor={brandColor}
+                    />
+                  )
+                ))
+              }
 
               <div className="space-y-1.5 pt-0.5">
                 <ConsentCheckbox
@@ -185,16 +247,14 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
             className="object-cover object-center"
             priority
           />
-          {/* Overlay gradient pour lisibilité */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
-          {/* Badge stats en bas */}
           <div className="absolute bottom-0 left-0 right-0 px-6 pb-7">
             <div className="grid grid-cols-3 gap-3">
               {[
-                ['98%',    'Clients satisfaits'],
-                ['4.9★',   'Note Google'],
-                ['500+',   'Chantiers réalisés'],
+                ['98%',  'Clients satisfaits'],
+                ['4.9★', 'Note Google'],
+                ['500+', 'Chantiers réalisés'],
               ].map(([val, label]) => (
                 <div
                   key={label}

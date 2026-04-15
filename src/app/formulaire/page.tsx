@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import FormulaireForm from './FormulaireForm'
+import FormulaireForm, { DEFAULT_FIELDS, type FormField } from './FormulaireForm'
 
 async function getCompanySettings() {
   try {
@@ -9,7 +9,7 @@ async function getCompanySettings() {
     )
     const { data } = await supabase
       .from('company_settings')
-      .select('name, tagline, brand_color, logo_svg')
+      .select('name, tagline, brand_color, logo_svg, form_fields')
       .single()
     return data
   } catch {
@@ -20,12 +20,15 @@ async function getCompanySettings() {
 export default async function FormulairePublicPage() {
   const company = await getCompanySettings()
 
+  const formFields: FormField[] = (company?.form_fields as FormField[] | null) ?? DEFAULT_FIELDS
+
   return (
     <FormulaireForm
-      companyName={company?.name    ?? 'Votre entreprise'}
-      companyTagline={company?.tagline   ?? ''}
+      companyName={company?.name       ?? 'Votre entreprise'}
+      companyTagline={company?.tagline ?? ''}
       brandColor={company?.brand_color ?? '#E2FF8D'}
-      logoSvg={company?.logo_svg   ?? null}
+      logoSvg={company?.logo_svg       ?? null}
+      formFields={formFields}
     />
   )
 }
