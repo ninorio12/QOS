@@ -574,11 +574,12 @@ function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (
 }
 
 function GHLFormsTab() {
-  const [origin,   setOrigin]   = useState('')
-  const [fields,   setFields]   = useState<FormField[]>(DEFAULT_FIELDS)
-  const [saving,   setSaving]   = useState(false)
-  const [saved,    setSaved]    = useState(false)
+  const [origin,    setOrigin]    = useState('')
+  const [fields,    setFields]    = useState<FormField[]>(DEFAULT_FIELDS)
+  const [saving,    setSaving]    = useState(false)
+  const [saved,     setSaved]     = useState(false)
   const [iframeKey, setIframeKey] = useState(0)
+  const [preview,   setPreview]   = useState<'formulaire' | 'merci'>('formulaire')
 
   useEffect(() => {
     setOrigin(window.location.origin)
@@ -625,11 +626,25 @@ function GHLFormsTab() {
               <div className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]" />
               <div className="w-2.5 h-2.5 rounded-full bg-[#28C840]" />
             </div>
+            {/* Toggle formulaire / merci */}
+            <div className="flex bg-white border border-[#E5E7EB] rounded-lg overflow-hidden mx-2">
+              {(['formulaire', 'merci'] as const).map(p => (
+                <button
+                  key={p}
+                  onClick={() => setPreview(p)}
+                  className={`text-[11px] px-3 py-1 transition-colors font-medium ${
+                    preview === p ? 'bg-[#111111] text-[#E2FF8D]' : 'text-[#9CA3AF] hover:text-[#111111]'
+                  }`}
+                >
+                  {p === 'formulaire' ? 'Formulaire' : 'Merci'}
+                </button>
+              ))}
+            </div>
             <div className="flex-1 bg-white rounded-lg px-3 py-1 text-[11px] text-[#9CA3AF] truncate border border-[#E5E5E5]">
-              {origin}/formulaire
+              {origin}/{preview === 'merci' ? 'formulaire/merci' : 'formulaire'}
             </div>
             <a
-              href="/formulaire"
+              href={`/${preview === 'merci' ? 'formulaire/merci' : 'formulaire'}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-[11px] text-[#9CA3AF] hover:text-[#111111] transition-colors flex-shrink-0"
@@ -639,10 +654,10 @@ function GHLFormsTab() {
           </div>
           <div className="relative w-full" style={{ height: '460px' }}>
             <iframe
-              key={iframeKey}
-              src="/formulaire"
+              key={`${iframeKey}-${preview}`}
+              src={preview === 'merci' ? '/formulaire/merci?prenom=Thomas' : '/formulaire'}
               className="absolute inset-0 w-full h-full border-0"
-              title="Aperçu formulaire"
+              title="Aperçu"
             />
           </div>
         </div>
