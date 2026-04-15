@@ -17,39 +17,6 @@ import { getAvatarColor } from '@/components/contacts/types'
 
 const NewLeadWidget = dynamic(() => import('@/components/shared/NewLeadWidget'), { ssr: false })
 
-// ─── Live agent activity feed ─────────────────────────────────
-type LiveEvent = { id: number; agent: string; color: string; msg: string; time: string }
-let liveId = 0
-const LIVE_EVENTS: { agent: string; color: string; msg: string }[] = [
-  { agent: 'Kai',   color: '#4A91A8', msg: 'Lead qualifié — score 87/100' },
-  { agent: 'Soren', color: '#3462EE', msg: 'Heartbeat — pipeline analysé' },
-  { agent: 'Mia',   color: '#65a30d', msg: 'Devis généré — envoi planifié' },
-  { agent: 'Kai',   color: '#4A91A8', msg: 'Relance WhatsApp envoyée' },
-  { agent: 'Soren', color: '#3462EE', msg: 'Rapport Telegram transmis' },
-  { agent: 'Mia',   color: '#65a30d', msg: 'KB mise à jour — 3 docs' },
-  { agent: 'Kai',   color: '#4A91A8', msg: 'RDV planifié dans le CRM' },
-  { agent: 'Soren', color: '#3462EE', msg: 'Directive envoyée à Kai' },
-]
-
-function useLiveFeed(max = 5) {
-  const [events, setEvents] = useState<LiveEvent[]>([])
-  const ref = useRef(0)
-  useEffect(() => {
-    function schedule() {
-      const delay = 12000 + Math.random() * 10000
-      ref.current = window.setTimeout(() => {
-        const tpl = LIVE_EVENTS[Math.floor(Math.random() * LIVE_EVENTS.length)]
-        const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-        liveId++
-        setEvents(prev => [{ id: liveId, ...tpl, time: now }, ...prev].slice(0, max))
-        schedule()
-      }, delay)
-    }
-    schedule()
-    return () => clearTimeout(ref.current)
-  }, [max])
-  return events
-}
 
 // ─── Types ────────────────────────────────────────────────────
 interface StageBreakdown {
@@ -218,8 +185,6 @@ export default function DashboardClient({
         date:   o.date,
       }))
     : FALLBACK_ACTIVITY
-
-  const liveEvents = useLiveFeed(4)
 
   const MONTH_LABEL = new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
 
@@ -545,16 +510,7 @@ export default function DashboardClient({
               </span>
             </div>
             <div className="flex flex-col gap-1.5">
-              {liveEvents.length === 0 ? (
-                <p className="text-[11px] text-[#9CA3AF] italic">En attente d&apos;activité…</p>
-              ) : liveEvents.map(ev => (
-                <div key={ev.id} className="flex items-center gap-2 py-1.5 px-3 -mx-3 rounded-xl bg-[#F5F5F0]">
-                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: ev.color }} />
-                  <span className="text-[10px] font-bold flex-shrink-0" style={{ color: ev.color }}>{ev.agent}</span>
-                  <span className="text-[10px] text-[#6B7280] flex-1 truncate">{ev.msg}</span>
-                  <span className="text-[9px] text-[#9CA3AF] flex-shrink-0">{ev.time}</span>
-                </div>
-              ))}
+              <p className="text-[11px] text-[#9CA3AF] italic">En attente d&apos;activité…</p>
             </div>
           </div>
           </div>
