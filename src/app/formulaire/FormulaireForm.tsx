@@ -222,7 +222,7 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
                 type="submit"
                 disabled={loading}
                 className="w-full font-semibold text-[13px] py-3 rounded-2xl transition-opacity disabled:opacity-40 flex items-center justify-center gap-2 mt-1"
-                style={{ backgroundColor: brandColor, color: '#111111' }}
+                style={{ backgroundColor: brandColor, color: '#ffffff' }}
               >
                 {loading
                   ? <><span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" /> Envoi…</>
