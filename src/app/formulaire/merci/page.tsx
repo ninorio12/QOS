@@ -10,7 +10,7 @@ async function getCompanySettings() {
     )
     const { data } = await supabase
       .from('company_settings')
-      .select('name, brand_color, cta_color, logo_svg')
+      .select('*')
       .single()
     return data
   } catch {
