@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import useSWR from 'swr'
 import { Bot, Mic, Smartphone, Wallet, FileText, RefreshCw, Server, Database, Zap, Globe, CreditCard } from 'lucide-react'
 
 const PERIODS = [
@@ -76,29 +77,19 @@ function ServiceCard({ id, service, loading }: { id: string; service: Service; l
 }
 
 export default function BudgetView() {
-  const [period,  setPeriod]  = useState<PeriodKey>('month')
-  const [data,    setData]    = useState<BudgetData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error,   setError]   = useState<string | null>(null)
+  const [period, setPeriod] = useState<PeriodKey>('month')
 
-  async function load(p: PeriodKey) {
-    setLoading(true); setError(null)
-    try {
-      const res = await fetch(`/api/budget?period=${p}`)
-      if (!res.ok) throw new Error('Erreur serveur')
-      setData(await res.json() as BudgetData)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur')
-    } finally {
-      setLoading(false)
+  const { data, isLoading, error, mutate } = useSWR<BudgetData>(
+    `/api/budget?period=${period}`,
+    (url: string) => fetch(url).then(r => { if (!r.ok) throw new Error('Erreur serveur'); return r.json() }),
+    {
+      revalidateOnFocus: false,
+      dedupingInterval:  300_000,
+      keepPreviousData:  true,
     }
-  }
+  )
 
-  useEffect(() => {
-    void load(period)
-    const interval = setInterval(() => { void load(period) }, 5 * 60 * 1000)
-    return () => clearInterval(interval)
-  }, [period])
+  const loading = isLoading && !data
 
   const usageKeys        = ['claude', 'twilio', 'vapi', 'apitemplate'] as const
   const subscriptionKeys = ['ghl', 'supabase', 'hetzner', 'n8n', 'vercel'] as const
@@ -127,7 +118,7 @@ export default function BudgetView() {
             ))}
           </div>
           <button
-            onClick={() => void load(period)}
+            onClick={() => { void mutate() }}
             disabled={loading}
             className="flex items-center gap-1.5 text-xs text-[#9CA3AF] hover:text-[#111111] transition-colors disabled:opacity-40"
           >
@@ -138,7 +129,7 @@ export default function BudgetView() {
       </div>
 
       {error && (
-        <div className="flex-shrink-0 bg-red-50 border border-red-100 rounded-xl p-3 text-xs text-red-600">{error}</div>
+        <div className="flex-shrink-0 bg-red-50 border border-red-100 rounded-xl p-3 text-xs text-red-600">Erreur lors du chargement du budget.</div>
       )}
 
       {/* Total */}
