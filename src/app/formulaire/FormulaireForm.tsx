@@ -78,7 +78,7 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
           {/* Contenu */}
           <div>
             <h1 className="text-[#111111] font-bold text-[28px] leading-snug mb-2">
-              Planifiez votre visite gratuite
+              Planifiez un rendez-vous gratuitement
             </h1>
             <p className="text-[#9CA3AF] text-[13px] mb-7">
               Remplissez le formulaire, on vous rappelle rapidement
