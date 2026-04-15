@@ -189,12 +189,13 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
           {/* Badge stats en bas */}
           <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-6 px-6">
             {[
-              ['< 48h', 'Rappel garanti'],
-              ['100%',  'Gratuit'],
-              ['0€',    'Sans engagement'],
+              ['98%',    'Clients satisfaits'],
+              ['+12 ans', "D'expérience"],
+              ['4.9★',   'Note Google'],
+              ['500+',   'Chantiers réalisés'],
             ].map(([val, label]) => (
               <div key={label} className="text-center">
-                <p className="font-bold text-[20px]" style={{ color: brandColor }}>{val}</p>
+                <p className="font-bold text-[18px]" style={{ color: brandColor }}>{val}</p>
                 <p className="text-white/70 text-[10px] mt-0.5">{label}</p>
               </div>
             ))}
