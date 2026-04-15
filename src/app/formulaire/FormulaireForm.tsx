@@ -123,7 +123,7 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
               Planifiez votre<br />
               <span style={{ color: brandColor }}>rendez-vous</span> gratuitement
             </h1>
-            <p className="text-[#9CA3AF] text-[13px] mb-6">
+            <p className="text-[#9CA3AF] text-[11px] mb-6">
               Remplissez le formulaire, un expert vous rappelle rapidement
             </p>
 
