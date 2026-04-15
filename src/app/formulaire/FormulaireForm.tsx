@@ -111,7 +111,7 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
             )}
             <span
               className="text-[#111111] font-bold tracking-tight"
-              style={{ fontSize: companyName.length > 18 ? '13px' : companyName.length > 12 ? '15px' : '17px' }}
+              style={{ fontSize: companyName.length > 22 ? '14px' : companyName.length > 16 ? '16px' : '19px' }}
             >
               {companyName}
             </span>
