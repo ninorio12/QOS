@@ -652,11 +652,12 @@ function GHLFormsTab() {
               <ExternalLink size={11} />
             </a>
           </div>
-          <div className="relative w-full" style={{ height: '460px' }}>
+          <div className="relative w-full" style={{ height: '420px' }}>
             <iframe
               key={`${iframeKey}-${preview}`}
-              src={preview === 'merci' ? '/formulaire/merci?prenom=Thomas' : '/formulaire'}
+              src={preview === 'merci' ? '/formulaire/merci?prenom=Prénom' : '/formulaire'}
               className="absolute inset-0 w-full h-full border-0"
+              style={{ transform: 'scale(0.72)', transformOrigin: 'top left', width: '139%', height: '139%' }}
               title="Aperçu"
             />
           </div>
@@ -674,43 +675,51 @@ function GHLFormsTab() {
 
           {/* Champs avec toggles */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <p className="text-[#111111] font-semibold text-[12px] mb-3">Champs du formulaire</p>
-            <div className="divide-y divide-[#F5F5F3]">
-              {fields.map(f => (
-                <div key={f.key} className="py-2.5 first:pt-0 last:pb-0">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className={`text-[13px] font-medium truncate ${f.enabled ? 'text-[#111111]' : 'text-[#C4C9D4]'}`}>
-                        {f.label}
-                      </span>
-                      {f.locked && (
-                        <span className="text-[9px] bg-[#F5F5F3] text-[#9CA3AF] px-1.5 py-0.5 rounded-md flex-shrink-0">
-                          Fixe
-                        </span>
-                      )}
-                      {f.enabled && !f.locked && (
-                        <button
-                          onClick={() => toggleRequired(f.key)}
-                          className={`text-[9px] px-1.5 py-0.5 rounded-md flex-shrink-0 transition-colors ${
-                            f.required
-                              ? 'bg-[#111111] text-[#E2FF8D]'
-                              : 'bg-[#F5F5F3] text-[#9CA3AF] hover:bg-[#E5E7EB]'
-                          }`}
-                        >
-                          {f.required ? 'Requis' : 'Optionnel'}
-                        </button>
-                      )}
+            <p className="text-[#111111] font-semibold text-[12px] mb-1">Champs du formulaire</p>
+            <p className="text-[#9CA3AF] text-[10px] mb-3">Active ou désactive les champs visibles par le client</p>
+            <div className="space-y-2">
+              {fields.map(f => {
+                const icons: Record<string, string> = {
+                  firstName: '👤', lastName: '👤', phone: '📞', email: '✉️', message: '💬'
+                }
+                return (
+                  <div
+                    key={f.key}
+                    className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-colors ${
+                      f.enabled ? 'bg-[#F9F9F7]' : 'bg-[#F5F5F3] opacity-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="text-[14px] flex-shrink-0">{icons[f.key] ?? '📝'}</span>
+                      <div className="min-w-0">
+                        <p className={`text-[12px] font-medium leading-none ${f.enabled ? 'text-[#111111]' : 'text-[#9CA3AF]'}`}>
+                          {f.label}
+                        </p>
+                        {f.locked ? (
+                          <p className="text-[10px] text-[#C4C9D4] mt-0.5">Toujours affiché</p>
+                        ) : f.enabled ? (
+                          <button
+                            onClick={() => toggleRequired(f.key)}
+                            className="text-[10px] mt-0.5 transition-colors text-left"
+                            style={{ color: f.required ? '#111111' : '#9CA3AF' }}
+                          >
+                            {f.required ? '★ Obligatoire — cliquer pour rendre optionnel' : '○ Optionnel — cliquer pour rendre obligatoire'}
+                          </button>
+                        ) : (
+                          <p className="text-[10px] text-[#C4C9D4] mt-0.5">Désactivé</p>
+                        )}
+                      </div>
                     </div>
                     <Toggle checked={f.enabled} onChange={() => toggleEnabled(f.key)} disabled={f.locked} />
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             <button
               onClick={save}
               disabled={saving}
-              className="w-full mt-4 py-2 rounded-xl text-[12px] font-semibold transition-opacity disabled:opacity-50"
+              className="w-full mt-3 py-2 rounded-xl text-[12px] font-semibold transition-opacity disabled:opacity-50"
               style={{ backgroundColor: '#111111', color: '#E2FF8D' }}
             >
               {saved ? '✓ Sauvegardé' : saving ? 'Sauvegarde…' : 'Appliquer'}
