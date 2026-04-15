@@ -5,11 +5,10 @@ import { useSearchParams } from 'next/navigation'
 interface Props {
   companyName: string
   brandColor:  string
-  ctaColor:    string
   logoSvg:     string | null
 }
 
-export default function MerciContent({ companyName, brandColor, ctaColor, logoSvg }: Props) {
+export default function MerciContent({ companyName, brandColor, logoSvg }: Props) {
   const params = useSearchParams()
   const prenom = params.get('prenom') ?? 'vous'
   const initial = companyName.charAt(0).toUpperCase()

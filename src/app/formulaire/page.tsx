@@ -27,7 +27,6 @@ export default async function FormulairePublicPage() {
       companyName={company?.name       ?? 'Votre entreprise'}
       companyTagline={company?.tagline ?? ''}
       brandColor={company?.brand_color ?? '#E2FF8D'}
-      ctaColor={company?.cta_color     ?? '#F97316'}
       logoSvg={company?.logo_svg       ?? null}
       formFields={formFields}
     />

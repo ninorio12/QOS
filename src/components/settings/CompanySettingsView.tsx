@@ -15,7 +15,6 @@ type CompanySettings = {
   tva_intra: string
   assurance: string
   brand_color: string
-  cta_color:   string
   logo_svg: string
   website_url: string
 }
@@ -433,15 +432,9 @@ export default function CompanySettingsView() {
                 <input value={form.tagline} onChange={e => set('tagline', e.target.value)} className={inputCls} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Couleur brand</label>
-                <ColorPicker value={form.brand_color} onChange={v => set('brand_color', v)} />
-              </div>
-              <div>
-                <label className={labelCls}>Couleur bouton CTA</label>
-                <ColorPicker value={form.cta_color || '#F97316'} onChange={v => set('cta_color', v)} />
-              </div>
+            <div>
+              <label className={labelCls}>Couleur brand</label>
+              <ColorPicker value={form.brand_color} onChange={v => set('brand_color', v)} />
             </div>
           </div>
 
