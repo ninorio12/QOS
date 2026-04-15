@@ -660,24 +660,34 @@ function GHLFormsTab() {
           {/* Champs avec toggles */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <p className="text-[#111111] font-semibold text-[12px] mb-3">Champs du formulaire</p>
-            <div className="space-y-3">
+            <div className="divide-y divide-[#F5F5F3]">
               {fields.map(f => (
-                <div key={f.key}>
-                  <div className="flex items-center justify-between">
-                    <span className={`text-[13px] font-medium ${f.enabled ? 'text-[#111111]' : 'text-[#C4C9D4]'}`}>
-                      {f.label}
-                    </span>
+                <div key={f.key} className="py-2.5 first:pt-0 last:pb-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`text-[13px] font-medium truncate ${f.enabled ? 'text-[#111111]' : 'text-[#C4C9D4]'}`}>
+                        {f.label}
+                      </span>
+                      {f.locked && (
+                        <span className="text-[9px] bg-[#F5F5F3] text-[#9CA3AF] px-1.5 py-0.5 rounded-md flex-shrink-0">
+                          Fixe
+                        </span>
+                      )}
+                      {f.enabled && !f.locked && (
+                        <button
+                          onClick={() => toggleRequired(f.key)}
+                          className={`text-[9px] px-1.5 py-0.5 rounded-md flex-shrink-0 transition-colors ${
+                            f.required
+                              ? 'bg-[#111111] text-[#E2FF8D]'
+                              : 'bg-[#F5F5F3] text-[#9CA3AF] hover:bg-[#E5E7EB]'
+                          }`}
+                        >
+                          {f.required ? 'Requis' : 'Optionnel'}
+                        </button>
+                      )}
+                    </div>
                     <Toggle checked={f.enabled} onChange={() => toggleEnabled(f.key)} disabled={f.locked} />
                   </div>
-                  {f.enabled && !f.locked && (
-                    <div className="flex items-center gap-2 mt-1.5 ml-0.5">
-                      <span className="text-[11px] text-[#9CA3AF]">Obligatoire</span>
-                      <Toggle checked={f.required} onChange={() => toggleRequired(f.key)} />
-                    </div>
-                  )}
-                  {f.locked && f.enabled && (
-                    <p className="text-[10px] text-[#C4C9D4] mt-0.5 ml-0.5">Champ requis — non désactivable</p>
-                  )}
                 </div>
               ))}
             </div>
@@ -685,10 +695,10 @@ function GHLFormsTab() {
             <button
               onClick={save}
               disabled={saving}
-              className="w-full mt-4 py-2 rounded-xl text-[12px] font-semibold transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full mt-4 py-2 rounded-xl text-[12px] font-semibold transition-opacity disabled:opacity-50"
               style={{ backgroundColor: '#111111', color: '#E2FF8D' }}
             >
-              {saved ? '✓ Sauvegardé' : saving ? 'Sauvegarde…' : 'Appliquer les modifications'}
+              {saved ? '✓ Sauvegardé' : saving ? 'Sauvegarde…' : 'Appliquer'}
             </button>
           </div>
         </div>

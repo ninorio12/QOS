@@ -25,6 +25,7 @@ interface Props {
   companyName:    string
   companyTagline: string
   brandColor:     string
+  ctaColor:       string
   logoSvg:        string | null
   formFields:     FormField[]
 }
@@ -84,7 +85,7 @@ function ConsentCheckbox({ id, label }: { id: string; label: string }) {
   )
 }
 
-export default function FormulaireForm({ companyName, companyTagline, brandColor, logoSvg, formFields }: Props) {
+export default function FormulaireForm({ companyName, companyTagline, brandColor, ctaColor, logoSvg, formFields }: Props) {
   const router  = useRouter()
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
@@ -222,7 +223,7 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
                 type="submit"
                 disabled={loading}
                 className="w-full font-semibold text-[13px] py-3 rounded-2xl transition-opacity disabled:opacity-40 flex items-center justify-center gap-2 mt-1"
-                style={{ backgroundColor: '#F97316', color: '#ffffff' }}
+                style={{ backgroundColor: ctaColor, color: '#ffffff' }}
               >
                 {loading
                   ? <><span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" /> Envoi…</>

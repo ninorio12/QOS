@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest) {
   const allowed = [
     'name', 'tagline', 'address', 'phone', 'email',
     'siret', 'capital', 'tva_intra', 'assurance',
-    'brand_color', 'logo_svg', 'website_url',
+    'brand_color', 'cta_color', 'logo_svg', 'website_url',
   ]
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
   for (const key of allowed) {
