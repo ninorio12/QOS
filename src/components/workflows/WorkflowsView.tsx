@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Zap, Bot, Workflow, ExternalLink, Save, MessageSquare, ChevronDown, Phone, Mic, Clock, Settings2, PhoneCall, KeyRound } from 'lucide-react'
+import { Zap, Bot, Workflow, ExternalLink, Save, MessageSquare, ChevronDown, Phone, Mic, Clock, Settings2, PhoneCall, KeyRound, User, PhoneCall as PhoneIcon, Mail, AlignLeft, Type } from 'lucide-react'
 import type { GHLWorkflow } from '@/lib/ghl'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -677,38 +677,56 @@ function GHLFormsTab() {
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <p className="text-[#111111] font-semibold text-[12px] mb-1">Champs du formulaire</p>
             <p className="text-[#9CA3AF] text-[10px] mb-3">Active ou désactive les champs visibles par le client</p>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {fields.map(f => {
-                const icons: Record<string, string> = {
-                  firstName: '👤', lastName: '👤', phone: '📞', email: '✉️', message: '💬'
+                const fieldIcons: Record<string, React.ElementType> = {
+                  firstName: User, lastName: User, phone: Phone, email: Mail, message: AlignLeft
                 }
+                const Icon = fieldIcons[f.key] ?? Type
+
+                const statusColor = !f.enabled
+                  ? { bg: '#F5F5F3', text: '#C4C9D4', dot: '#D1D5DB' }
+                  : f.locked
+                  ? { bg: '#EEF0EB', text: '#6B7280', dot: '#6B7280' }
+                  : f.required
+                  ? { bg: '#FFF1EC', text: '#EA580C', dot: '#EA580C' }
+                  : { bg: '#F0FDF4', text: '#16A34A', dot: '#16A34A' }
+
+                const statusLabel = !f.enabled ? 'Désactivé'
+                  : f.locked ? 'Toujours affiché'
+                  : f.required ? 'Obligatoire'
+                  : 'Optionnel'
+
                 return (
                   <div
                     key={f.key}
-                    className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-colors ${
-                      f.enabled ? 'bg-[#F9F9F7]' : 'bg-[#F5F5F3] opacity-50'
+                    className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border transition-all ${
+                      f.enabled ? 'border-[#EBEBEB] bg-white' : 'border-transparent bg-[#F5F5F3] opacity-60'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-[14px] flex-shrink-0">{icons[f.key] ?? '📝'}</span>
-                      <div className="min-w-0">
-                        <p className={`text-[12px] font-medium leading-none ${f.enabled ? 'text-[#111111]' : 'text-[#9CA3AF]'}`}>
-                          {f.label}
-                        </p>
-                        {f.locked ? (
-                          <p className="text-[10px] text-[#C4C9D4] mt-0.5">Toujours affiché</p>
-                        ) : f.enabled ? (
-                          <button
-                            onClick={() => toggleRequired(f.key)}
-                            className="text-[10px] mt-0.5 transition-colors text-left"
-                            style={{ color: f.required ? '#111111' : '#9CA3AF' }}
-                          >
-                            {f.required ? '★ Obligatoire — cliquer pour rendre optionnel' : '○ Optionnel — cliquer pour rendre obligatoire'}
-                          </button>
-                        ) : (
-                          <p className="text-[10px] text-[#C4C9D4] mt-0.5">Désactivé</p>
-                        )}
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      {/* Icône champ */}
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${f.enabled ? 'bg-[#F5F5F3]' : 'bg-[#EBEBEB]'}`}>
+                        <Icon size={13} color={f.enabled ? '#111111' : '#C4C9D4'} />
                       </div>
+
+                      <span className={`text-[12px] font-medium flex-1 ${f.enabled ? 'text-[#111111]' : 'text-[#9CA3AF]'}`}>
+                        {f.label}
+                      </span>
+
+                      {/* Badge statut */}
+                      {f.enabled && (
+                        <button
+                          onClick={() => !f.locked && toggleRequired(f.key)}
+                          disabled={f.locked}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 transition-opacity"
+                          style={{ backgroundColor: statusColor.bg, color: statusColor.text }}
+                          title={f.locked ? undefined : 'Cliquer pour changer'}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: statusColor.dot }} />
+                          {statusLabel}
+                        </button>
+                      )}
                     </div>
                     <Toggle checked={f.enabled} onChange={() => toggleEnabled(f.key)} disabled={f.locked} />
                   </div>
