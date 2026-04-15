@@ -340,3 +340,46 @@ export const getWorkflows = unstable_cache(
   ['ghl-workflows'],
   { revalidate: 300, tags: ['ghl-workflows'] }
 )
+
+// ── Création contact + opportunité (flow acquisition) ────────────────────────
+
+export async function createGHLContact(data: {
+  firstName: string
+  lastName:  string
+  phone:     string
+  email?:    string
+}): Promise<string> {
+  const res = await ghlMutate('/contacts/', 'POST', {
+    firstName:  data.firstName,
+    lastName:   data.lastName,
+    phone:      data.phone,
+    email:      data.email ?? undefined,
+    locationId: env.ghlLocationId(),
+    source:     'Formulaire Soren',
+  }) as { contact?: { id: string } }
+
+  const id = res.contact?.id
+  if (!id) throw new Error('GHL createContact: id manquant dans la réponse')
+  return id
+}
+
+export async function createGHLOpportunity(data: {
+  contactId:       string
+  firstName:       string
+  lastName:        string
+  pipelineId:      string
+  pipelineStageId: string
+}): Promise<string> {
+  const res = await ghlMutate('/opportunities/', 'POST', {
+    name:            `Devis — ${data.firstName} ${data.lastName}`,
+    contactId:       data.contactId,
+    pipelineId:      data.pipelineId,
+    pipelineStageId: data.pipelineStageId,
+    status:          'open',
+    monetaryValue:   0,
+  }) as { opportunity?: { id: string } }
+
+  const id = res.opportunity?.id
+  if (!id) throw new Error('GHL createOpportunity: id manquant dans la réponse')
+  return id
+}
