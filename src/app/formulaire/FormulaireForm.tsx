@@ -65,7 +65,7 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
       firstName: (form.get('firstName') as string).trim(),
       lastName:  (form.get('lastName')  as string).trim(),
       phone:     (form.get('phone')     as string).trim(),
-      email:     (form.get('email')     as string).trim(),
+      email:     (form.get('email')     as string).trim() || undefined,
     }
 
     try {
@@ -137,7 +137,7 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
               </div>
 
               <InputField name="phone" required type="tel" placeholder="Téléphone" brandColor={brandColor} />
-              <InputField name="email" required type="email" placeholder="Email" brandColor={brandColor} />
+              <InputField name="email" type="email" placeholder="Email (optionnel)" brandColor={brandColor} />
 
               <div className="space-y-1.5 pt-0.5">
                 <ConsentCheckbox
