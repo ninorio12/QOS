@@ -37,18 +37,27 @@ export async function POST(req: NextRequest) {
     const userId = users?.users?.[0]?.id
     if (!userId) throw new Error('Aucun utilisateur admin Supabase trouvé')
 
-    // Contact Supabase — upsert sur ghl_contact_id pour éviter les doublons
-    const { data: contact, error: contactErr } = await supabase
+    // Contact Supabase — cherche d'abord par ghl_contact_id, sinon crée
+    let contact: { id: string }
+    const { data: existing } = await supabase
       .from('contacts')
-      .upsert(
-        { user_id: userId, first_name: firstName, last_name: lastName, phone, email: email ?? null, ghl_contact_id: ghlContactId },
-        { onConflict: 'ghl_contact_id', ignoreDuplicates: false }
-      )
       .select('id')
-      .single()
-    if (contactErr) {
-      console.error('[capture] Supabase contact:', contactErr.message)
-      throw new Error('supabase_contact')
+      .eq('ghl_contact_id', ghlContactId)
+      .maybeSingle()
+
+    if (existing) {
+      contact = existing
+    } else {
+      const { data: created, error: contactErr } = await supabase
+        .from('contacts')
+        .insert({ user_id: userId, first_name: firstName, last_name: lastName, phone, email: email ?? null, ghl_contact_id: ghlContactId })
+        .select('id')
+        .single()
+      if (contactErr) {
+        console.error('[capture] Supabase contact:', contactErr.message)
+        throw new Error('supabase_contact')
+      }
+      contact = created
     }
 
     const { data: lead, error: leadErr } = await supabase
