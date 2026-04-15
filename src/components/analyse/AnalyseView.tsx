@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import dynamic from 'next/dynamic'
+
+const DailyBarChart  = dynamic(() => import('./AnalyseCharts').then(m => m.DailyBarChart),  { ssr: false })
+const HourlyBarChart = dynamic(() => import('./AnalyseCharts').then(m => m.HourlyBarChart), { ssr: false })
 import { type GHLOpportunity, type GHLPipeline } from '@/lib/ghl'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -30,16 +33,6 @@ function cleanStageName(name: string) {
 }
 
 // ─── Dark tooltip ─────────────────────────────────────────────
-function DarkTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="bg-[#1a1a1a] border border-[#333] rounded-xl px-3 py-2 shadow-lg">
-      <p className="text-[10px] text-[#777] mb-0.5">{label}</p>
-      <p className="text-sm font-bold text-white">{payload[0].value} lead{payload[0].value !== 1 ? 's' : ''}</p>
-    </div>
-  )
-}
-
 // ─── SVG Donut ────────────────────────────────────────────────
 function SvgDonut({
   data, centerNum, centerSub, centerColor, trackColor,
@@ -400,52 +393,14 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
                 <p className="text-[11px] text-[#555]">Aucun lead sur la période</p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={100}>
-                <BarChart data={chartData} barCategoryGap="30%">
-                  <XAxis dataKey="label" tick={{ fill: '#666', fontSize: 9 }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                  <Bar dataKey="count" fill="#E2FF8D" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <DailyBarChart data={chartData} />
             )}
           </div>
 
           {/* Leads par heure — fond blanc */}
           <div className={`${CARD} p-[18px]`} style={{ background: '#fff', width: 260, ...SHADOW }}>
             <p className="text-[12px] font-bold text-[#111] mb-3">Par heure</p>
-            <ResponsiveContainer width="100%" height={90}>
-              <BarChart data={hourlyData} barCategoryGap="20%" margin={{ top: 4, right: 2, bottom: 0, left: 2 }}>
-                <XAxis
-                  dataKey="hour"
-                  tick={{ fill: '#BBB', fontSize: 8, fontWeight: 600 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(h: number) => [0, 6, 12, 18, 23].includes(h) ? `${h}h` : ''}
-                  interval={0}
-                  tickMargin={4}
-                />
-                <Tooltip
-                  cursor={{ fill: 'rgba(0,0,0,0.04)', radius: 4 }}
-                  content={({ active, payload, label }) => {
-                    if (!active || !payload?.length) return null
-                    return (
-                      <div className="bg-[#111] border border-[#333] rounded-xl px-3 py-2 shadow-lg">
-                        <p className="text-[10px] text-[#777] mb-0.5">{label}h</p>
-                        <p className="text-sm font-bold text-white">{payload[0].value} lead{Number(payload[0].value) !== 1 ? 's' : ''}</p>
-                      </div>
-                    )
-                  }}
-                />
-                <Bar dataKey="count" radius={[3, 3, 0, 0]}>
-                  {(() => {
-                    const maxH = Math.max(...hourlyData.map(d => d.count), 1)
-                    return hourlyData.map((h, i) => (
-                      <Cell key={i} fill={h.count >= maxH * 0.4 && h.count > 0 ? '#1C1C1E' : '#E5E5E0'} />
-                    ))
-                  })()}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <HourlyBarChart data={hourlyData} />
           </div>
 
         </div>
