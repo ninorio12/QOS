@@ -43,7 +43,7 @@ function ConsentCheckbox({ id, label }: { id: string; label: string }) {
         required
         className="mt-0.5 flex-shrink-0 w-4 h-4 rounded border border-[#D1D5DB] accent-[#111111] cursor-pointer"
       />
-      <span className="text-[11px] text-[#9CA3AF] leading-relaxed group-has-[:checked]:text-[#6B7280]">
+      <span className="text-[10px] text-[#C4C9D4] leading-snug group-has-[:checked]:text-[#9CA3AF]">
         {label}
       </span>
     </label>
