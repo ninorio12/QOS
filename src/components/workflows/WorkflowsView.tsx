@@ -615,11 +615,11 @@ function GHLFormsTab() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-[1fr_300px] gap-4">
+    <div className="flex flex-col gap-4 h-full">
+      <div className="grid grid-cols-[1fr_300px] gap-4 flex-1 min-h-0">
 
         {/* Préview iframe */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col">
           <div className="flex items-center gap-2 px-4 py-3 bg-[#F5F5F3] border-b border-[#EBEBEB]">
             <div className="flex gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
@@ -652,7 +652,7 @@ function GHLFormsTab() {
               <ExternalLink size={11} />
             </a>
           </div>
-          <div className="relative w-full" style={{ height: '420px' }}>
+          <div className="relative flex-1 min-h-0">
             <iframe
               key={`${iframeKey}-${preview}`}
               src={preview === 'merci' ? '/formulaire/merci?prenom=Prénom' : '/formulaire'}
@@ -664,7 +664,7 @@ function GHLFormsTab() {
         </div>
 
         {/* Sidebar config */}
-        <div className="space-y-3">
+        <div className="space-y-3 flex flex-col min-h-0 overflow-y-auto">
           {/* Lien public */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <p className="text-[#111111] font-semibold text-[12px] mb-2">Lien public</p>
@@ -763,15 +763,15 @@ export default function WorkflowsView({ workflows, escalade }: Props) {
   ]
 
   return (
-    <div className="p-6">
+    <div className="p-6 h-full flex flex-col">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4">
         <h1 className="text-2xl font-bold text-[#111111]">Automatisation</h1>
         <p className="text-[#6B7280] text-sm mt-1">Chatbot GHL, workflows natifs et orchestration N8N</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-white rounded-2xl p-1 shadow-sm w-fit mb-6">
+      <div className="flex gap-1 bg-white rounded-2xl p-1 shadow-sm w-fit mb-4">
         {tabs.map(tab => {
           const Icon   = tab.icon
           const active = activeTab === tab.id
@@ -787,11 +787,13 @@ export default function WorkflowsView({ workflows, escalade }: Props) {
         })}
       </div>
 
-      {activeTab === 'ghl-chatbot'   && <GHLChatbotTab {...escalade} />}
-      {activeTab === 'reception'     && <ReceptionTab />}
-      {activeTab === 'ghl-workflows' && <GHLWorkflowsTab workflows={workflows} />}
-      {activeTab === 'n8n'           && <N8NTab />}
-      {activeTab === 'ghl-forms'     && <GHLFormsTab />}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {activeTab === 'ghl-chatbot'   && <GHLChatbotTab {...escalade} />}
+        {activeTab === 'reception'     && <ReceptionTab />}
+        {activeTab === 'ghl-workflows' && <GHLWorkflowsTab workflows={workflows} />}
+        {activeTab === 'n8n'           && <N8NTab />}
+        {activeTab === 'ghl-forms'     && <GHLFormsTab />}
+      </div>
     </div>
   )
 }
