@@ -50,7 +50,7 @@ export default function MerciContent({ companyName, brandColor, logoSvg }: Props
           {/* Checkmark */}
           <div>
             <h1 className="text-[#111111] font-bold text-[23px] leading-tight mb-1.5">
-              Merci {prenom} ! <span className="select-none">{'👋'}</span>
+              Merci {prenom} ! <span className="select-none">{'😊'}</span>
             </h1>
             <p className="text-[#9CA3AF] text-[11px]">
               Notre équipe vous contacte sous 48h.
