@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { useSWRConfig } from 'swr'
 import {
   LayoutDashboard, GitMerge, Users, MessageSquare, CalendarDays,
   TrendingUp, BotMessageSquare, CheckSquare,
@@ -13,6 +14,15 @@ import { logout } from '@/app/login/actions'
 import { createClient } from '@/lib/supabase/client'
 
 type NavItem = { href: string; icon: React.ElementType; label: string; also?: string[] }
+
+const PREFETCH_MAP: Record<string, string> = {
+  '/dashboard':     '/api/dashboard',
+  '/conversations': '/api/conversations/list',
+  '/calendrier':    '/api/calendrier',
+  '/devis':         '/api/devis/list',
+}
+
+const prefetchFetcher = (url: string) => fetch(url).then(r => r.json())
 
 const ACQUISITION: NavItem[] = [
   { href: '/dashboard',     icon: LayoutDashboard, label: 'Tableau de bord' },
@@ -47,14 +57,23 @@ function SectionLabel({ label }: { label: string }) {
 
 function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   const { href, icon: Icon, label, also = [] } = item
+  const { mutate, cache } = useSWRConfig()
   const active =
     pathname === href ||
     (href !== '/dashboard' && pathname.startsWith(href)) ||
     also.some(a => pathname.startsWith(a))
 
+  function handleMouseEnter() {
+    const endpoint = PREFETCH_MAP[href]
+    if (!endpoint) return
+    if ((cache as Map<string, unknown>).get(endpoint)) return
+    void mutate(endpoint, prefetchFetcher(endpoint))
+  }
+
   return (
     <Link
       href={href}
+      onMouseEnter={handleMouseEnter}
       className={`
         flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-150
         ${active

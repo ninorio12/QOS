@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import useSWR from 'swr'
 import DevisView from '@/components/devis/DevisView'
 import DevisLoading from './loading'
 
@@ -9,16 +9,15 @@ type DevisData = {
   brandColor: string
 }
 
-export default function DevisPage() {
-  const [data, setData] = useState<DevisData | null>(null)
-  const [error, setError] = useState(false)
+const fetcher = (url: string) =>
+  fetch(url).then(r => { if (!r.ok) throw new Error(r.statusText); return r.json() })
 
-  useEffect(() => {
-    fetch('/api/devis/list')
-      .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json() })
-      .then(setData)
-      .catch(() => setError(true))
-  }, [])
+export default function DevisPage() {
+  const { data, isLoading, error } = useSWR<DevisData>('/api/devis/list', fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 30_000,
+    keepPreviousData: true,
+  })
 
   if (error) return (
     <div className="h-full flex items-center justify-center text-sm text-[#6B7280] page-fade-in">
@@ -26,11 +25,11 @@ export default function DevisPage() {
     </div>
   )
 
-  if (!data) return <DevisLoading />
+  if (isLoading && !data) return <DevisLoading />
 
   return (
     <div className="h-full page-fade-in">
-      <DevisView devisList={data.devisList as any} brandColor={data.brandColor} />
+      <DevisView devisList={(data?.devisList ?? []) as any} brandColor={data?.brandColor ?? ''} />
     </div>
   )
 }
