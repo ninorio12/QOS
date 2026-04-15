@@ -2,12 +2,52 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 
 interface Props {
   companyName:    string
   companyTagline: string
   brandColor:     string
   logoSvg:        string | null
+}
+
+function InputField({ name, required, type = 'text', placeholder, brandColor }: {
+  name: string
+  required?: boolean
+  type?: string
+  placeholder: string
+  brandColor: string
+}) {
+  const [focused, setFocused] = useState(false)
+  return (
+    <input
+      name={name}
+      required={required}
+      type={type}
+      placeholder={placeholder}
+      className="w-full bg-[#F5F5F3] rounded-2xl px-4 py-3 text-[#111111] text-[13px] placeholder-[#111111]/25 focus:outline-none transition-all"
+      style={{ border: `1.5px solid ${focused ? brandColor : 'transparent'}` }}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+    />
+  )
+}
+
+function ConsentCheckbox({ id, label }: { id: string; label: string }) {
+  return (
+    <label htmlFor={id} className="flex items-start gap-2.5 cursor-pointer group">
+      <input
+        id={id}
+        name={id}
+        type="checkbox"
+        required
+        className="mt-0.5 flex-shrink-0 w-4 h-4 rounded border border-[#D1D5DB] accent-[#111111] cursor-pointer"
+      />
+      <span className="text-[11px] text-[#9CA3AF] leading-relaxed group-has-[:checked]:text-[#6B7280]">
+        {label}
+      </span>
+    </label>
+  )
 }
 
 export default function FormulaireForm({ companyName, companyTagline, brandColor, logoSvg }: Props) {
@@ -45,84 +85,62 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
     }
   }
 
+  const initial = companyName.charAt(0).toUpperCase()
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#EEF0EB] p-6">
-      <div
-        className="flex w-full max-w-[860px] rounded-[28px] overflow-hidden shadow-2xl"
-        style={{ minHeight: '580px' }}
-      >
+      <div className="flex w-full max-w-[860px] rounded-[28px] overflow-hidden shadow-2xl" style={{ minHeight: '580px' }}>
 
-        {/* ── Gauche : formulaire ──────────────────────────────────────── */}
+        {/* ── Gauche : formulaire ──────────────────────────────────────────── */}
         <div className="w-[420px] flex-shrink-0 flex flex-col justify-between px-10 py-9 bg-white">
 
-          {/* Logo + nom entreprise */}
+          {/* Logo */}
           <div className="flex items-center gap-3">
             {logoSvg ? (
               <div
-                className="w-10 h-10 flex items-center justify-center"
+                className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center"
                 dangerouslySetInnerHTML={{ __html: logoSvg }}
               />
             ) : (
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-[#111] font-bold text-lg"
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-[#111] font-bold text-[18px]"
                 style={{ backgroundColor: brandColor }}
               >
-                {companyName.charAt(0).toUpperCase()}
+                {initial}
               </div>
             )}
-            <span className="text-[#111111] font-bold text-[17px] tracking-tight">
-              {companyName}
-            </span>
+            <span className="text-[#111111] font-bold text-[17px] tracking-tight">{companyName}</span>
           </div>
 
-          {/* Contenu */}
+          {/* Titre */}
           <div>
-            <h1 className="text-[#111111] font-bold text-[28px] leading-snug mb-2">
-              Planifiez un rendez-vous gratuitement
+            <h1 className="text-[#111111] font-bold text-[24px] leading-snug mb-1.5">
+              Planifiez un rendez-vous<br />gratuitement
             </h1>
-            <p className="text-[#9CA3AF] text-[13px] mb-7">
+            <p className="text-[#9CA3AF] text-[13px] mb-6">
               Remplissez le formulaire, on vous rappelle rapidement
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-3">
-              <div className="flex gap-3">
-                <input
-                  name="firstName"
-                  required
-                  placeholder="Prénom"
-                  className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3 text-[#111111] text-[13px] placeholder-[#111111]/25 focus:outline-none transition-colors"
-                  style={{ ['--tw-ring-color' as string]: brandColor }}
-                  onFocus={e => e.currentTarget.style.borderColor = brandColor}
-                  onBlur={e => e.currentTarget.style.borderColor = 'transparent'}
-                />
-                <input
-                  name="lastName"
-                  required
-                  placeholder="Nom"
-                  className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3 text-[#111111] text-[13px] placeholder-[#111111]/25 focus:outline-none transition-colors"
-                  onFocus={e => e.currentTarget.style.borderColor = brandColor}
-                  onBlur={e => e.currentTarget.style.borderColor = 'transparent'}
-                />
+
+              <div className="flex gap-2.5">
+                <InputField name="firstName" required placeholder="Prénom" brandColor={brandColor} />
+                <InputField name="lastName"  required placeholder="Nom"    brandColor={brandColor} />
               </div>
 
-              <input
-                name="phone"
-                required
-                type="tel"
-                placeholder="Téléphone (+33 6 12 34 56 78)"
-                className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3 text-[#111111] text-[13px] placeholder-[#111111]/25 focus:outline-none transition-colors"
-                onFocus={e => e.currentTarget.style.borderColor = brandColor}
-                onBlur={e => e.currentTarget.style.borderColor = 'transparent'}
-              />
+              <InputField name="phone" required type="tel" placeholder="Téléphone" brandColor={brandColor} />
+              <InputField name="email" type="email" placeholder="Email (optionnel)" brandColor={brandColor} />
 
-              <input
-                name="email"
-                type="email"
-                placeholder="Email (optionnel)"
-                className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3 text-[#111111] text-[13px] placeholder-[#111111]/25 focus:outline-none transition-colors"
-                onFocus={e => e.currentTarget.style.borderColor = brandColor}
-                onBlur={e => e.currentTarget.style.borderColor = 'transparent'}
-              />
+              <div className="space-y-2 pt-1">
+                <ConsentCheckbox
+                  id="consentSms"
+                  label={`J'accepte de recevoir des SMS de ${companyName} pour le suivi de ma demande. Répondez STOP pour vous désabonner.`}
+                />
+                <ConsentCheckbox
+                  id="consentData"
+                  label={`J'accepte que mes données soient utilisées par ${companyName} pour me recontacter.`}
+                />
+              </div>
 
               {error && (
                 <p className="text-red-500 text-[12px] bg-red-50 border border-red-100 rounded-xl px-3 py-2">
@@ -133,67 +151,50 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full font-semibold text-[13px] py-3 rounded-2xl transition-colors disabled:opacity-40"
+                className="w-full font-semibold text-[13px] py-3 rounded-2xl transition-opacity disabled:opacity-40 flex items-center justify-center gap-2"
                 style={{ backgroundColor: '#111111', color: brandColor }}
               >
-                {loading ? 'Envoi en cours…' : 'Envoyer ma demande →'}
+                {loading
+                  ? <><span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" /> Envoi…</>
+                  : 'Prendre rendez-vous →'
+                }
               </button>
+
             </form>
           </div>
 
           <p className="text-[#111111]/20 text-[11px]">
-            Vos données sont protégées · {companyName}
+            Données protégées · {companyName}
           </p>
         </div>
 
-        {/* ── Droite : visuel dark ─────────────────────────────────────── */}
-        <div className="flex-1 relative bg-[#111111] overflow-hidden">
-
-          <div
-            className="absolute top-[-30%] right-[-20%] w-[500px] h-[500px] rounded-full opacity-25"
-            style={{ background: `radial-gradient(circle, ${brandColor} 0%, transparent 65%)` }}
+        {/* ── Droite : photo chantier ──────────────────────────────────────── */}
+        <div className="flex-1 relative overflow-hidden">
+          <Image
+            src="/hero-chantier.jpg"
+            alt="Chantier"
+            fill
+            className="object-cover object-center"
+            priority
           />
-          <div
-            className="absolute bottom-[-20%] left-[-10%] w-[350px] h-[350px] rounded-full opacity-15"
-            style={{ background: `radial-gradient(circle, ${brandColor} 0%, transparent 65%)` }}
-          />
+          {/* Overlay gradient pour lisibilité */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage: `linear-gradient(rgba(226,255,141,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(226,255,141,0.05) 1px, transparent 1px)`,
-              backgroundSize: '40px 40px',
-            }}
-          />
-
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-10 text-center">
-            <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-lg text-[#111] font-bold text-2xl"
-              style={{ backgroundColor: brandColor }}
-            >
-              {logoSvg
-                ? <div className="w-8 h-8" dangerouslySetInnerHTML={{ __html: logoSvg }} />
-                : companyName.charAt(0).toUpperCase()
-              }
-            </div>
-
-            <h2 className="text-white font-bold text-[20px] leading-tight mb-3">
-              Un expert vous rappelle<br />en moins d&apos;une minute
-            </h2>
-            <p className="text-white/35 text-[12.5px] max-w-[220px] leading-relaxed">
-              {companyTagline || 'Devis personnalisé, sans engagement, réponse immédiate.'}
-            </p>
-
-            <div className="flex gap-6 mt-10">
-              {[['< 60s', 'Réponse'], ['100%', 'Gratuit'], ['0', 'Engagement']].map(([val, label]) => (
-                <div key={label} className="text-center">
-                  <p className="font-bold text-[24px]" style={{ color: brandColor }}>{val}</p>
-                  <p className="text-white/30 text-[10px] mt-0.5">{label}</p>
-                </div>
-              ))}
-            </div>
+          {/* Badge stats en bas */}
+          <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-6 px-6">
+            {[
+              ['< 48h', 'Rappel garanti'],
+              ['100%',  'Gratuit'],
+              ['0€',    'Sans engagement'],
+            ].map(([val, label]) => (
+              <div key={label} className="text-center">
+                <p className="font-bold text-[20px]" style={{ color: brandColor }}>{val}</p>
+                <p className="text-white/70 text-[10px] mt-0.5">{label}</p>
+              </div>
+            ))}
           </div>
         </div>
+
       </div>
     </div>
   )
