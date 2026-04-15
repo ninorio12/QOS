@@ -1,6 +1,7 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 
 interface Props {
   companyName: string
@@ -89,50 +90,20 @@ export default function MerciContent({ companyName, brandColor, logoSvg }: Props
         </p>
       </div>
 
-      {/* ── Droite : visuel dark ─────────────────────────────────────────── */}
-      <div className="flex-1 relative bg-[#111111] overflow-hidden">
-        <div
-          className="absolute top-[-30%] right-[-20%] w-[500px] h-[500px] rounded-full opacity-25"
-          style={{ background: `radial-gradient(circle, ${brandColor} 0%, transparent 65%)` }}
-        />
-        <div
-          className="absolute bottom-[-20%] left-[-10%] w-[350px] h-[350px] rounded-full opacity-15"
-          style={{ background: `radial-gradient(circle, ${brandColor} 0%, transparent 65%)` }}
-        />
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: `linear-gradient(${brandColor}08 1px, transparent 1px), linear-gradient(90deg, ${brandColor}08 1px, transparent 1px)`,
-            backgroundSize: '40px 40px',
-          }}
-        />
-
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-10 text-center">
-          <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-lg"
-            style={{ backgroundColor: brandColor }}
-          >
-            <svg className="w-7 h-7 text-[#111]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-
-          <h2 className="text-white font-bold text-[20px] leading-tight mb-3">
-            Votre demande est<br />bien enregistrée
-          </h2>
-          <p className="text-white/40 text-[12.5px] max-w-[220px] leading-relaxed">
-            Notre équipe prend en charge votre demande et vous recontacte sous 48h.
-          </p>
-
-          <div className="flex gap-6 mt-10">
+      {/* ── Droite : photo chantier ──────────────────────────────────────── */}
+      <div className="flex-1 relative overflow-hidden">
+        <Image src="/hero-chantier.jpg" alt="Chantier" fill className="object-cover object-center" priority />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 px-6 pb-7">
+          <div className="grid grid-cols-3 gap-3">
             {[
-              ['< 48h', 'Rappel'],
-              ['100%',  'Gratuit'],
-              ['0€',    'Engagement'],
+              ['98%',  'Clients satisfaits'],
+              ['4.9★', 'Note Google'],
+              ['500+', 'Chantiers réalisés'],
             ].map(([val, label]) => (
-              <div key={label} className="text-center">
-                <p className="font-bold text-[22px]" style={{ color: brandColor }}>{val}</p>
-                <p className="text-white/30 text-[10px] mt-0.5">{label}</p>
+              <div key={label} className="bg-white/10 backdrop-blur-sm rounded-2xl px-3 py-3 text-center border border-white/10">
+                <p className="font-bold text-[20px] leading-none" style={{ color: brandColor }}>{val}</p>
+                <p className="text-white/70 text-[10px] mt-1">{label}</p>
               </div>
             ))}
           </div>
