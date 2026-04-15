@@ -67,28 +67,37 @@ function NewDevisModal({ onClose, onCreate }: {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading,  setLoading]  = useState(false)
   const [creating, setCreating] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef    = useRef<HTMLInputElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => { inputRef.current?.focus() }, [])
 
   useEffect(() => {
     if (!search.trim()) { setContacts([]); return }
-    setLoading(true)
-    const q = search.toLowerCase()
-    fetch('/api/contact')
-      .then(r => r.json())
-      .then(d => {
-        const all: Contact[] = d.contacts ?? d.data ?? []
-        setContacts(
-          all.filter(c =>
-            contactDisplayName(c).toLowerCase().includes(q) ||
-            (c.email ?? '').toLowerCase().includes(q) ||
-            (c.phone ?? '').toLowerCase().includes(q)
-          ).slice(0, 6)
-        )
-      })
-      .catch(() => setContacts([]))
-      .finally(() => setLoading(false))
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      setLoading(true)
+      const q = search.toLowerCase()
+      fetch('/api/contact')
+        .then(r => r.json())
+        .then(d => {
+          const all: Contact[] = d.contacts ?? d.data ?? []
+          setContacts(
+            all.filter(c =>
+              contactDisplayName(c).toLowerCase().includes(q) ||
+              (c.email ?? '').toLowerCase().includes(q) ||
+              (c.phone ?? '').toLowerCase().includes(q)
+            ).slice(0, 6)
+          )
+        })
+        .catch(() => setContacts([]))
+        .finally(() => setLoading(false))
+    }, 300)
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
   }, [search])
 
   async function pick(contact?: Contact) {
