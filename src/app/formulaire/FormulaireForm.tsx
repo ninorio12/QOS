@@ -121,7 +121,14 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
       const prenom = (body.firstName ?? '').trim()
       router.push('/formulaire/merci?prenom=' + encodeURIComponent(prenom))
     } catch (err) {
-      setError(String(err))
+      const msg = String(err)
+      if (msg.includes('supabase_contact')) {
+        setError('Ce contact existe déjà dans notre système.')
+      } else if (msg.includes('supabase_lead') || msg.includes('supabase_conversation')) {
+        setError('Une erreur est survenue, veuillez réessayer.')
+      } else {
+        setError('Une erreur est survenue, veuillez réessayer.')
+      }
       setLoading(false)
     }
   }
