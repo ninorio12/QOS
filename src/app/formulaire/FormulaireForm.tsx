@@ -78,10 +78,10 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
           {/* Contenu */}
           <div>
             <h1 className="text-[#111111] font-bold text-[28px] leading-snug mb-2">
-              Votre devis gratuit
+              Planifiez votre visite gratuite
             </h1>
             <p className="text-[#9CA3AF] text-[13px] mb-7">
-              Réponse garantie en moins de 60 secondes
+              Remplissez le formulaire, on vous rappelle rapidement
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-3">

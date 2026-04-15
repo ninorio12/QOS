@@ -39,13 +39,13 @@ export default function MerciContent() {
             Merci {prenom} !
           </h1>
           <p className="text-[#9CA3AF] text-[13px] mb-7 leading-relaxed">
-            Votre demande a bien été reçue. Vous allez recevoir un message WhatsApp dans les prochaines secondes.
+            Merci ! Notre équipe vous contacte sous 48h.
           </p>
 
           <div className="bg-[#F5F5F3] rounded-2xl px-4 py-4 space-y-2">
             {[
-              ['📱', 'Vérifiez votre WhatsApp'],
-              ['⏱', 'Réponse en moins de 60 secondes'],
+              ['📋', 'Demande bien enregistrée'],
+              ['📞', 'Notre équipe vous rappelle sous 48h'],
               ['🔒', 'Vos données restent confidentielles'],
             ].map(([icon, text]) => (
               <div key={text} className="flex items-center gap-3 text-[13px] text-[#444]">
@@ -84,10 +84,10 @@ export default function MerciContent() {
             <Image src="/soren-logo.png" alt="Soren" width={30} height={30} className="object-contain" />
           </div>
           <h2 className="text-white font-bold text-[20px] leading-tight mb-3">
-            Un expert vous répond<br />sous peu
+            Votre visite est<br />en cours de planification
           </h2>
           <p className="text-white/35 text-[12.5px] max-w-[220px] leading-relaxed">
-            Notre assistant IA prend en charge votre demande immédiatement.
+            Notre équipe prend en charge votre demande et vous recontacte sous 48h.
           </p>
 
           <div className="flex gap-6 mt-10">
