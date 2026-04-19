@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Mail, MessageCircle } from 'lucide-react'
 
 type SignatureStatut = 'non_envoye' | 'envoye' | 'vu' | 'signe'
 
@@ -14,10 +15,10 @@ interface SignatureSectionProps {
 }
 
 const STEPS: { key: SignatureStatut | 'created'; label: string }[] = [
-  { key: 'created',    label: 'Créé' },
-  { key: 'envoye',     label: 'Envoyé' },
-  { key: 'vu',         label: 'Vu' },
-  { key: 'signe',      label: 'Signé' },
+  { key: 'created', label: 'Créé'   },
+  { key: 'envoye',  label: 'Envoyé' },
+  { key: 'vu',      label: 'Vu'     },
+  { key: 'signe',   label: 'Signé'  },
 ]
 
 function stepIndex(statut: SignatureStatut): number {
@@ -44,23 +45,28 @@ function badgeLabel(statut: SignatureStatut) {
 export default function SignatureSection({
   devisId, statut, contactEmail, signatureVuLe, signatureSigne, onStatutChange,
 }: SignatureSectionProps) {
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState<string | null>(null)
+  const [loadingChannel, setLoadingChannel] = useState<'whatsapp' | 'email' | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const badge = badgeLabel(statut)
   const done  = stepIndex(statut)
 
-  async function handleEnvoyer() {
-    setLoading(true); setError(null)
+  async function handleEnvoyer(channel: 'whatsapp' | 'email') {
+    setLoadingChannel(channel)
+    setError(null)
     try {
-      const res = await fetch(`/api/devis/${devisId}/signature`, { method: 'POST' })
+      const res = await fetch(`/api/devis/${devisId}/signature`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel }),
+      })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Erreur')
       onStatutChange('envoye')
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Erreur')
     } finally {
-      setLoading(false)
+      setLoadingChannel(null)
     }
   }
 
@@ -114,37 +120,56 @@ export default function SignatureSection({
         })}
       </div>
 
-      {/* Info + action */}
-      {error && (
-        <p className="text-[11px] text-red-600 mb-2">{error}</p>
-      )}
-      <div className="flex items-center justify-between bg-[#f9f9f7] rounded-xl px-3 py-2.5">
-        <div>
-          {statut === 'non_envoye' ? (
-            <p className="text-[11px] text-[#9CA3AF]">Aucun lien envoyé</p>
-          ) : (
-            <>
-              <p className="text-[10px] text-[#9CA3AF] mb-0.5">
-                {statut === 'signe' ? 'Signé le' : statut === 'vu' ? 'Vu le' : 'Envoyé à'}
-              </p>
-              <p className="text-[12px] font-semibold text-[#111111]">
-                {statut === 'signe' && signatureSigne ? fmtDate(signatureSigne)
-                  : statut === 'vu' && signatureVuLe ? fmtDate(signatureVuLe)
-                  : contactEmail ?? '—'}
-              </p>
-            </>
-          )}
-        </div>
-        {statut !== 'signe' && (
-          <button
-            onClick={handleEnvoyer}
-            disabled={loading}
-            className="bg-[#111] text-white rounded-lg px-3 py-1.5 text-[11px] font-semibold hover:bg-[#333] transition-colors disabled:opacity-40 font-jakarta"
-          >
-            {loading ? '...' : statut === 'non_envoye' ? 'Envoyer le lien' : 'Renvoyer le lien'}
-          </button>
+      {/* Info */}
+      {error && <p className="text-[11px] text-red-600 mb-2">{error}</p>}
+
+      <div className="bg-[#f9f9f7] rounded-xl px-3 py-2.5 mb-3">
+        {statut === 'non_envoye' ? (
+          <p className="text-[11px] text-[#9CA3AF]">Aucun lien envoyé</p>
+        ) : (
+          <>
+            <p className="text-[10px] text-[#9CA3AF] mb-0.5">
+              {statut === 'signe' ? 'Signé le' : statut === 'vu' ? 'Vu le' : 'Envoyé à'}
+            </p>
+            <p className="text-[12px] font-semibold text-[#111111]">
+              {statut === 'signe' && signatureSigne ? fmtDate(signatureSigne)
+                : statut === 'vu' && signatureVuLe ? fmtDate(signatureVuLe)
+                : contactEmail ?? '—'}
+            </p>
+          </>
         )}
       </div>
+
+      {/* Boutons d'envoi */}
+      {statut !== 'signe' && (
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleEnvoyer('whatsapp')}
+            disabled={loadingChannel !== null}
+            className="flex-1 flex items-center justify-center gap-1.5 bg-[#111] text-white rounded-lg px-3 py-1.5 text-[11px] font-semibold hover:bg-[#333] transition-colors disabled:opacity-40 font-jakarta"
+          >
+            {loadingChannel === 'whatsapp'
+              ? <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              : <MessageCircle size={11} />
+            }
+            WhatsApp
+          </button>
+
+          {contactEmail && (
+            <button
+              onClick={() => handleEnvoyer('email')}
+              disabled={loadingChannel !== null}
+              className="flex-1 flex items-center justify-center gap-1.5 bg-[#EEF3FF] text-[#3462EE] rounded-lg px-3 py-1.5 text-[11px] font-semibold hover:bg-[#dce8ff] transition-colors disabled:opacity-40 font-jakarta"
+            >
+              {loadingChannel === 'email'
+                ? <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                : <Mail size={11} />
+              }
+              Email
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
