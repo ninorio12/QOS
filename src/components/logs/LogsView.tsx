@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { Search, Radio } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
-type AgentId  = 'soren' | 'kai' | 'mia'
+type AgentId  = 'soren' | 'kai' | 'mia' | 'ops' | 'doc' | 'hermes'
 type LogLevel = 'info' | 'success' | 'error' | 'warning'
 
 type LogEntry = {
@@ -14,13 +14,18 @@ type LogEntry = {
   level: LogLevel
   message: string
   detail?: string
+  tool_used?: string | null
+  created_at?: string
 }
 
 // ─── Meta ─────────────────────────────────────────────────────
 const AGENT_META: Record<AgentId, { label: string; color: string; bg: string }> = {
-  soren: { label: 'Soren', color: '#4A91A8', bg: '#4A91A815' },
-  kai:   { label: 'Kai',   color: '#1A5C38', bg: '#1A5C3815' },
-  mia:   { label: 'Mia',   color: '#E8836A', bg: '#E8836A15' },
+  soren:  { label: 'Soren',  color: '#4A91A8', bg: '#4A91A815' },
+  kai:    { label: 'Kai',    color: '#1A5C38', bg: '#1A5C3815' },
+  mia:    { label: 'Mia',    color: '#E8836A', bg: '#E8836A15' },
+  ops:    { label: 'Ops',    color: '#7C3AED', bg: '#7C3AED15' },
+  doc:    { label: 'Doc',    color: '#0F766E', bg: '#0F766E15' },
+  hermes: { label: 'Hermes', color: '#1D4ED8', bg: '#1D4ED815' },
 }
 
 const LEVEL_META: Record<LogLevel, { label: string; color: string; bg: string }> = {
@@ -90,7 +95,13 @@ type AgentFilter = AgentId | 'all'
 type LevelFilter = LogLevel | 'all'
 
 const AGENT_OPTIONS: { id: AgentFilter; label: string }[] = [
-  { id: 'all', label: 'Tous' }, { id: 'soren', label: 'Soren' }, { id: 'kai', label: 'Kai' }, { id: 'mia', label: 'Mia' },
+  { id: 'all',    label: 'Tous' },
+  { id: 'soren',  label: 'Soren' },
+  { id: 'kai',    label: 'Kai' },
+  { id: 'mia',    label: 'Mia' },
+  { id: 'ops',    label: 'Ops' },
+  { id: 'doc',    label: 'Doc' },
+  { id: 'hermes', label: 'Hermes' },
 ]
 const LEVEL_OPTIONS: { id: LevelFilter; label: string }[] = [
   { id: 'all', label: 'Tous' }, { id: 'info', label: 'Info' }, { id: 'success', label: 'Succès' },
@@ -155,11 +166,12 @@ export default function LogsView() {
   const [query,       setQuery]       = useState('')
   const [liveMode,    setLiveMode]    = useState(true)
   const [logs,        setLogs]        = useState<LogEntry[]>(SEED_LOGS)
+  const [realLoaded,  setRealLoaded]  = useState(false)
   const [newIds,      setNewIds]      = useState<Set<string>>(new Set())
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!liveMode) return
+    if (!liveMode || realLoaded) return
     let timeout: ReturnType<typeof setTimeout>
     function schedule() {
       const delay = 15000 + Math.random() * 10000
@@ -173,6 +185,34 @@ export default function LogsView() {
     }
     schedule()
     return () => clearTimeout(timeout)
+  }, [liveMode, realLoaded])
+
+  // Charger les vrais logs Supabase
+  useEffect(() => {
+    async function fetchLogs() {
+      try {
+        const res  = await fetch('/api/agent-logs?limit=100')
+        const data = await res.json() as { logs: { id: string; agent: string; level: string; message: string; tool_used?: string | null; created_at: string }[] }
+        if (data.logs && data.logs.length > 0) {
+          const mapped: LogEntry[] = data.logs.map(l => ({
+            id:       l.id,
+            time:     new Date(l.created_at).toLocaleTimeString('fr-FR'),
+            agent:    (l.agent as AgentId) in AGENT_META ? (l.agent as AgentId) : 'kai',
+            level:    (['info', 'success', 'warning', 'error'].includes(l.level) ? l.level : 'info') as LogLevel,
+            message:  l.message,
+            detail:   l.tool_used ?? undefined,
+            tool_used: l.tool_used,
+            created_at: l.created_at,
+          }))
+          setLogs(mapped)
+          setRealLoaded(true)
+        }
+      } catch { /* fallback sur SEED_LOGS */ }
+    }
+    void fetchLogs()
+    // Polling toutes les 10s si liveMode
+    const interval = setInterval(() => { if (liveMode) void fetchLogs() }, 10000)
+    return () => clearInterval(interval)
   }, [liveMode])
 
   const filtered = useMemo(() => {
