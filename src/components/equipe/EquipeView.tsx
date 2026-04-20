@@ -380,18 +380,25 @@ function AgentCardInTraining({ agent }: { agent: EquipeAgent }) {
           </span>
         </div>
 
-        <p className="text-[10px] text-[#AAAEB3] leading-relaxed line-clamp-2">{agent.description}</p>
+        <p className="text-[10px] text-[#AAAEB3] leading-relaxed line-clamp-1">{agent.description}</p>
 
         <div className="flex-1">
           <p className="text-[7px] font-bold uppercase tracking-widest text-[#BDC1C5] mb-1">Skills</p>
           <div className="flex flex-wrap gap-1">
-            {agent.tools.map(tool => (
+            {agent.tools.slice(0, 3).map(tool => (
               <span key={tool}
                 className="text-[8.5px] font-medium px-2 py-0.5 rounded-full"
                 style={{ background: '#D8DBDE', color: '#9CA3AF', border: '1px solid #C8CCD0' }}>
                 {formatTool(tool)}
               </span>
             ))}
+            {agent.tools.length > 3 && (
+              <span
+                className="text-[8.5px] font-medium px-2 py-0.5 rounded-full"
+                style={{ background: '#D8DBDE', color: '#AAAEB3', border: '1px solid #C8CCD0' }}>
+                +{agent.tools.length - 3}
+              </span>
+            )}
           </div>
         </div>
 
@@ -402,7 +409,7 @@ function AgentCardInTraining({ agent }: { agent: EquipeAgent }) {
             <span className="text-[8px] text-[#AAAEB3]">Actuellement en formation</span>
           </div>
           <button disabled
-            className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-[9.5px] font-bold cursor-not-allowed"
+            className="flex items-center gap-1 px-3 py-1 rounded-xl text-[9.5px] font-bold cursor-not-allowed"
             style={{ background: '#CDD0D3', color: '#9CA3AF', border: '1px solid #C4C8CC' }}>
             <Play size={8} /> Indisponible
           </button>
