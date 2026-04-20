@@ -3,6 +3,15 @@
 import { useState, useEffect } from 'react'
 import { Cpu, Users, Database, Globe, Save, RefreshCw, ChevronRight, Zap, Brain, Sparkles, FileText, Pencil } from 'lucide-react'
 
+type KBDoc = {
+  id: string
+  slug: string
+  title: string
+  content?: string
+  updated_at: string
+  updated_by: string
+}
+
 // ─── Agents ──────────────────────────────────────────────────────────────────
 
 const AGENTS = [
@@ -185,6 +194,13 @@ export default function KnowledgeView() {
   const [saved, setSaved] = useState(false)
   const [scraping, setScraping] = useState(false)
   const [scrapeError, setScrapeError] = useState<string | null>(null)
+  const [kbDocs, setKbDocs]             = useState<KBDoc[]>([])
+  const [kbSelected, setKbSelected]     = useState<KBDoc | null>(null)
+  const [kbEditing, setKbEditing]       = useState(false)
+  const [kbContent, setKbContent]       = useState('')
+  const [kbSaving, setKbSaving]         = useState(false)
+  const [kbLoadingDoc, setKbLoadingDoc] = useState(false)
+  const [showKb, setShowKb]             = useState(false)
 
   // Fetch company settings to get website_url and company_doc
   useEffect(() => {
@@ -194,6 +210,13 @@ export default function KnowledgeView() {
         if (d.company?.website_url) setWebsiteUrl(d.company.website_url)
         if (d.company?.company_doc) setCompanyDoc(d.company.company_doc)
       })
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/knowledge/docs')
+      .then(r => r.json())
+      .then((d: { docs: KBDoc[] }) => setKbDocs(d.docs ?? []))
+      .catch(() => {})
   }, [])
 
   const agent = selection.type === 'agent' ? AGENTS.find(a => a.id === selection.id) : null
@@ -230,7 +253,39 @@ export default function KnowledgeView() {
     }
   }
 
+  async function loadKbDoc(doc: KBDoc) {
+    setKbLoadingDoc(true)
+    setKbEditing(false)
+    try {
+      const res  = await fetch(`/api/knowledge/docs?slug=${doc.slug}`)
+      const data = await res.json() as { doc: KBDoc }
+      const full = data.doc ?? doc
+      setKbSelected(full)
+      setKbContent(full.content ?? '')
+    } finally {
+      setKbLoadingDoc(false)
+    }
+  }
+
+  async function saveKbDoc() {
+    if (!kbSelected) return
+    setKbSaving(true)
+    try {
+      await fetch('/api/knowledge/docs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: kbSelected.slug, title: kbSelected.title, content: kbContent, updated_by: 'thomas' }),
+      })
+      setKbDocs(prev => prev.map(d => d.slug === kbSelected.slug ? { ...d, content: kbContent, updated_at: new Date().toISOString() } : d))
+      setKbSelected(prev => prev ? { ...prev, content: kbContent } : prev)
+      setKbEditing(false)
+    } finally {
+      setKbSaving(false)
+    }
+  }
+
   function selectAgent(id: string) {
+    setShowKb(false)
     setSelection({ type: 'agent', id })
     setTab('soul')
     setEditing(false)
@@ -239,6 +294,7 @@ export default function KnowledgeView() {
   }
 
   function selectCommun() {
+    setShowKb(false)
     setSelection({ type: 'commun' })
     setEditing(false)
     setSaved(false)
@@ -249,7 +305,7 @@ export default function KnowledgeView() {
     <div className="flex h-[calc(100vh-56px)] bg-[#EEF0EB]">
 
       {/* ── Sidebar ──────────────────────────────────────────── */}
-      <div className="w-56 flex-shrink-0 flex flex-col p-3 gap-1 border-r border-[#E5E7EB] bg-white">
+      <div className="w-56 flex-shrink-0 flex flex-col p-3 gap-1 border-r border-[#E5E7EB] bg-white" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
         <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-widest px-2 pt-1 pb-2">Agents</p>
 
         {AGENTS.map(a => {
@@ -288,10 +344,27 @@ export default function KnowledgeView() {
           </div>
           {selection.type === 'commun' && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#111111] flex-shrink-0" />}
         </button>
+
+        <div className="border-t border-[#F3F4F6] my-2" />
+        <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-widest px-2 pb-1">Agents autonomes</p>
+
+        <button
+          onClick={() => { setShowKb(true); setKbSelected(null); setKbEditing(false) }}
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${showKb ? 'bg-[#F5F6F3]' : 'hover:bg-[#F9FAF8]'}`}
+        >
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#7C3AED]/10">
+            <Database size={15} className="text-[#7C3AED]" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[#111111] leading-none">Base de connaissance</p>
+            <p className="text-[10px] text-[#9CA3AF] mt-0.5">{kbDocs.length} documents</p>
+          </div>
+          {showKb && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#7C3AED] flex-shrink-0" />}
+        </button>
       </div>
 
       {/* ── Main ─────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 p-4 gap-3">
+      <div className="flex-1 flex flex-col min-w-0 p-4 gap-3" style={{ animation: 'fadeSlideUp 400ms ease-out 90ms both' }}>
 
         {/* ── AGENT ── */}
         {agent && (
@@ -465,6 +538,86 @@ export default function KnowledgeView() {
                   <pre className="text-xs text-[#374151] font-mono leading-6 whitespace-pre-wrap">{companyDoc}</pre>
                 </div>
               )}
+            </div>
+          </>
+        )}
+
+        {/* ── BASE DE CONNAISSANCE ── */}
+        {showKb && (
+          <>
+            <div className="flex items-center justify-between flex-shrink-0">
+              <div>
+                <h2 className="text-base font-bold text-[#111111]">Base de connaissance</h2>
+                <p className="text-xs text-[#9CA3AF]">{kbDocs.length} documents · mis à jour par Hermes et les agents</p>
+              </div>
+              {kbSelected && !kbEditing && (
+                <button
+                  onClick={() => setKbEditing(true)}
+                  className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-[#111111] text-white hover:bg-[#333] transition-colors"
+                >
+                  <Pencil size={12} />
+                  Modifier
+                </button>
+              )}
+              {kbEditing && (
+                <button
+                  onClick={saveKbDoc}
+                  disabled={kbSaving}
+                  className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-50"
+                  style={{ background: '#E2FF8D', color: '#111111' }}
+                >
+                  <Save size={12} />
+                  {kbSaving ? 'Sauvegarde…' : 'Sauvegarder'}
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-1 gap-3 min-h-0">
+              {/* Doc list */}
+              <div className="w-48 flex-shrink-0 flex flex-col gap-1 overflow-y-auto">
+                {kbDocs.length === 0 && (
+                  <p className="text-xs text-[#9CA3AF] px-2">Aucun document</p>
+                )}
+                {kbDocs.map(doc => (
+                  <button
+                    key={doc.slug}
+                    onClick={() => loadKbDoc(doc)}
+                    className={`text-left px-3 py-2.5 rounded-xl transition-all ${kbSelected?.slug === doc.slug ? 'bg-[#F5F6F3]' : 'hover:bg-[#F9FAF8]'}`}
+                  >
+                    <p className="text-xs font-semibold text-[#111111] truncate">{doc.title}</p>
+                    <p className="text-[9px] text-[#9CA3AF] mt-0.5 truncate">
+                      {doc.updated_by} · {new Date(doc.updated_at).toLocaleDateString('fr-FR')}
+                    </p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Doc viewer/editor */}
+              <div className="flex-1 bg-white rounded-2xl overflow-hidden min-h-0">
+                {!kbSelected ? (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-sm text-[#9CA3AF]">Sélectionnez un document</p>
+                  </div>
+                ) : kbLoadingDoc ? (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-sm text-[#9CA3AF]">Chargement…</p>
+                  </div>
+                ) : kbEditing ? (
+                  <textarea
+                    value={kbContent}
+                    onChange={e => setKbContent(e.target.value)}
+                    className="w-full h-full bg-white text-xs text-[#374151] font-mono leading-6 p-5 outline-none resize-none border-2 border-[#E2FF8D] rounded-2xl"
+                    spellCheck={false}
+                    autoFocus
+                  />
+                ) : (
+                  <div className="h-full p-5 overflow-y-auto">
+                    <pre className="text-xs text-[#374151] font-mono leading-6 whitespace-pre-wrap">
+                      {kbSelected.content ?? 'Contenu non chargé'}
+                    </pre>
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}
