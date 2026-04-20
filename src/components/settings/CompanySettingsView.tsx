@@ -436,8 +436,8 @@ export default function CompanySettingsView() {
       <div className="grid grid-cols-2 gap-2.5 flex-1 min-h-0">
 
         {/* Identité + Logo */}
-        <div className="bg-white rounded-2xl shadow-sm p-3 flex flex-col gap-2 overflow-hidden">
-          <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wider flex-shrink-0">Identité & Logo</p>
+        <div className="bg-white rounded-2xl border border-[#EAECE7] p-4 flex flex-col gap-3 overflow-hidden">
+          <p className="text-[8px] font-semibold text-[#9CA3AF] uppercase tracking-widest flex-shrink-0">Identité & Logo</p>
           <div className="grid grid-cols-2 gap-2 flex-shrink-0">
             <div>
               <label className={labelCls}>Nom de l&apos;entreprise</label>
@@ -459,8 +459,8 @@ export default function CompanySettingsView() {
         </div>
 
         {/* Profil utilisateur */}
-        <div className="bg-white rounded-2xl shadow-sm p-3 flex flex-col gap-2 overflow-hidden">
-          <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wider flex-shrink-0">Profil utilisateur</p>
+        <div className="bg-white rounded-2xl border border-[#EAECE7] p-4 flex flex-col gap-3 overflow-hidden">
+          <p className="text-[8px] font-semibold text-[#9CA3AF] uppercase tracking-widest flex-shrink-0">Profil utilisateur</p>
 
           {/* Avatar + boutons sur une ligne */}
           <div className="flex items-center gap-2.5 flex-shrink-0">
@@ -513,8 +513,8 @@ export default function CompanySettingsView() {
       {/* Ligne 2 : Coordonnées + Infos légales */}
       <div className="grid grid-cols-2 gap-2.5 flex-1 min-h-0">
 
-        <div className="bg-white rounded-2xl shadow-sm p-3 flex flex-col gap-2 overflow-hidden">
-          <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wider flex-shrink-0">Coordonnées</p>
+        <div className="bg-white rounded-2xl border border-[#EAECE7] p-4 flex flex-col gap-3 overflow-hidden">
+          <p className="text-[8px] font-semibold text-[#9CA3AF] uppercase tracking-widest flex-shrink-0">Coordonnées</p>
           <div className="flex-shrink-0 min-w-0">
             <label className={labelCls}>Rue</label>
             <input value={addrRue} onChange={e => setAddrRue(e.target.value)} className={inputCls} placeholder="215, avenue Clément Ader" />
@@ -545,8 +545,8 @@ export default function CompanySettingsView() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm p-3 flex flex-col gap-2 overflow-hidden">
-          <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wider flex-shrink-0">Informations légales</p>
+        <div className="bg-white rounded-2xl border border-[#EAECE7] p-4 flex flex-col gap-3 overflow-hidden">
+          <p className="text-[8px] font-semibold text-[#9CA3AF] uppercase tracking-widest flex-shrink-0">Informations légales</p>
           <div className="grid grid-cols-2 gap-2 flex-shrink-0">
             <div>
               <label className={labelCls}>SIRET</label>
