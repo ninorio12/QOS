@@ -6,6 +6,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { KAI_TOOLS, SOREN_TOOLS, MIA_TOOLS, executeTool } from './tools'
+import { OPS_TOOLS } from './ops-tools'
+import { DOC_TOOLS } from './doc-tools'
 import type { GHLCreds } from '@/lib/ghl'
 
 export const runtime = 'nodejs'
@@ -33,12 +35,44 @@ Quand tu identifies un lead qualifié, tu crées une tâche de suivi.`,
 Tu génères des devis, maintiens la base de connaissance, et gères les documents.
 Tu as accès aux contacts et à la base de connaissance interne.
 Tu réponds en français avec précision et clarté.`,
+
+  ops: `Tu es Agent OPS, un agent opérationnel autonome de Qorpo IA.
+Tu exécutes des tâches liées au CRM, pipeline et workflows GHL.
+
+WORKFLOW OBLIGATOIRE pour chaque tâche :
+1. Appelle read_knowledge pour charger le contexte métier avant d'agir
+2. Exécute la tâche avec les outils disponibles
+3. Appelle write_task_log à chaque étape importante
+4. Appelle complete_task avec un résumé de ce que tu as fait
+5. Appelle send_telegram si la tâche révèle une info critique pour Thomas
+
+RÈGLES :
+- Lis toujours la KB en premier (slug: directives-contact si disponible)
+- Log chaque action via write_task_log (level: info/success/warning/error)
+- Si la tâche est ambiguë : complete_task avec status='error' et explication`,
+
+  doc: `Tu es Agent DOC, un agent documentaire autonome de Qorpo IA.
+Tu maintiens la base de connaissance et génères des rapports.
+
+WORKFLOW OBLIGATOIRE :
+1. Lis la tâche attentivement
+2. Si création/mise à jour KB : génère le contenu markdown structuré et utilise upsert_knowledge
+3. Si rapport/synthèse : query_supabase pour récupérer les données, génère le rapport, stocke-le via upsert_knowledge et envoie-le via send_telegram
+4. write_task_log à chaque étape
+5. complete_task avec résumé
+
+RÈGLES :
+- Les docs KB doivent être en markdown, avec un titre H1 et des sections claires
+- Les rapports envoyés via Telegram doivent être concis (< 300 mots)
+- Slug KB = kebab-case, ex: tarifs-peinture-2026, rapport-hebdo-semaine-17`,
 }
 
 const TOOLS_BY_AGENT: Record<string, Anthropic.Tool[]> = {
   soren: SOREN_TOOLS,
   kai:   KAI_TOOLS,
   mia:   MIA_TOOLS,
+  ops:   OPS_TOOLS,
+  doc:   DOC_TOOLS,
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -56,8 +90,10 @@ export type AgentRunResult = {
 
 // ─── Runner principal ─────────────────────────────────────────────────────────
 
+export type AgentId = 'soren' | 'kai' | 'mia' | 'ops' | 'doc'
+
 export async function runAgent(
-  agentId: 'soren' | 'kai' | 'mia',
+  agentId: AgentId,
   userMessage: string,
   creds: GHLCreds,
   orgId: string | null,
@@ -125,6 +161,7 @@ export async function runAgent(
         toolUse.input as Record<string, unknown>,
         creds,
         orgId,
+        agentId,
       )
       toolResults.push({
         type:        'tool_result',
