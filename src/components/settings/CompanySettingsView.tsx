@@ -19,8 +19,8 @@ type CompanySettings = {
   website_url: string
 }
 
-const inputCls = 'w-full bg-[#F5F6F3] border border-transparent rounded-lg px-3 py-2 text-[#111111] text-sm placeholder:text-[#C4C4C4] focus:outline-none focus:border-[#111111]/15 transition-colors'
-const labelCls = 'block text-[11px] font-medium text-[#9CA3AF] mb-1 uppercase tracking-wide'
+const inputCls = 'w-full bg-[#F5F6F3] border border-transparent rounded-lg px-2.5 py-1.5 text-[#111111] text-xs placeholder:text-[#C4C4C4] focus:outline-none focus:border-[#111111]/15 transition-colors'
+const labelCls = 'block text-[8px] font-medium text-[#9CA3AF] mb-1 uppercase tracking-widest'
 
 // ─── Color math ──────────────────────────────────────────────────────────────
 
@@ -330,7 +330,12 @@ export default function CompanySettingsView() {
   const [addrCP,   setAddrCPRaw]   = useState('')
   const [addrCity, setAddrCityRaw] = useState('')
   const [profilePhoto, setProfilePhotoRaw] = useState('')
+  const [userPrenom,   setUserPrenomRaw]   = useState('')
+  const [userNom,      setUserNomRaw]      = useState('')
   const profileInputRef = useRef<HTMLInputElement>(null)
+
+  function setUserPrenom(v: string) { setUserPrenomRaw(v); setDirty(true) }
+  function setUserNom(v: string)    { setUserNomRaw(v);    setDirty(true) }
 
   function setAddrRue(v: string)  { setAddrRueRaw(v);  setDirty(true) }
   function setAddrCP(v: string)   { setAddrCPRaw(v);   setDirty(true) }
@@ -345,6 +350,11 @@ export default function CompanySettingsView() {
     try {
       const stored = localStorage.getItem('soren_profile_photo')
       if (stored) setProfilePhotoRaw(stored)
+    } catch {}
+    try {
+      const compte = JSON.parse(localStorage.getItem('soren_compte') ?? '{}')
+      if (compte.prenom) setUserPrenomRaw(compte.prenom)
+      if (compte.nom)    setUserNomRaw(compte.nom)
     } catch {}
   }, [])
 
@@ -371,9 +381,13 @@ export default function CompanySettingsView() {
   }, [dirty])
 
   if (!form) return (
-    <div className="p-8 flex items-center gap-2 text-[#9CA3AF] text-sm">
-      <div className="w-4 h-4 border-2 border-[#9CA3AF]/30 border-t-[#9CA3AF] rounded-full animate-spin" />
-      Chargement...
+    <div className="p-8 flex flex-col gap-6 animate-pulse max-w-xl">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i}>
+          <div className="h-2.5 w-24 bg-[#D9DDD6] rounded mb-2" />
+          <div className="h-10 w-full bg-[#E5E7EB] rounded-xl" />
+        </div>
+      ))}
     </div>
   )
 
@@ -386,180 +400,175 @@ export default function CompanySettingsView() {
     setSaving(true)
     const address = [addrRue, [addrCP, addrCity].filter(Boolean).join(' ')].filter(Boolean).join('\n')
     await fetch('/api/settings/company', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, address }) })
+    try {
+      const existing = JSON.parse(localStorage.getItem('soren_compte') ?? '{}')
+      localStorage.setItem('soren_compte', JSON.stringify({ ...existing, prenom: userPrenom, nom: userNom }))
+    } catch {}
     setSaving(false); setSaved(true); setDirty(false)
     window.dispatchEvent(new Event('company-settings-updated'))
     setTimeout(() => setSaved(false), 2500)
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-56px)] p-4 gap-3">
+    <div className="h-full overflow-hidden flex flex-col p-3 gap-2.5">
 
       {/* Header */}
-      <div className="flex items-center justify-between flex-shrink-0">
+      <div className="flex items-center justify-between flex-shrink-0 px-0.5">
         <div>
-          <h1 className="text-base font-semibold text-[#111111]">Paramètres de l&apos;entreprise</h1>
-          <p className="text-xs text-[#9CA3AF] mt-0.5">Ces informations apparaissent sur vos devis PDF</p>
+          <h1 className="text-lg font-black text-[#111111] leading-none">Paramètres</h1>
+          <p className="text-[10px] text-[#9CA3AF] mt-0.5">Ces informations apparaissent sur vos devis PDF</p>
         </div>
         <button
           onClick={save}
           disabled={saving || !dirty}
-          className={`flex items-center gap-2 px-5 py-2 rounded-xl font-semibold text-sm transition-all ${
+          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl font-semibold text-xs transition-all ${
             dirty
               ? 'bg-[#E2FF8D] text-[#111111] hover:bg-[#d4f570]'
               : 'bg-transparent text-[#C8CCC6] cursor-default'
           }`}
         >
-          <Save size={13} />
+          <Save size={11} />
           {saving ? 'Sauvegarde…' : saved ? '✓ Sauvegardé' : 'Sauvegarder'}
         </button>
       </div>
 
-      {/* Grille principale — prend tout l'espace restant */}
-      <div className="flex-1 grid grid-rows-[auto_1fr] gap-3 min-h-0">
+      {/* Ligne 1 : Identité+Logo | Profil */}
+      <div className="grid grid-cols-2 gap-2.5 flex-1 min-h-0">
 
-        {/* Ligne 1 : Identité + Logo + Profil */}
-        <div className="grid grid-cols-[1fr_280px_180px] gap-3 min-h-0">
-
-          <div className="bg-white rounded-2xl shadow-sm p-4 flex flex-col gap-3">
-            <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider flex-shrink-0">Identité</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Nom</label>
-                <input value={form.name} onChange={e => set('name', e.target.value)} className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Tagline</label>
-                <input value={form.tagline} onChange={e => set('tagline', e.target.value)} className={inputCls} />
-              </div>
+        {/* Identité + Logo */}
+        <div className="bg-white rounded-2xl shadow-sm p-3 flex flex-col gap-2 overflow-hidden">
+          <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wider flex-shrink-0">Identité & Logo</p>
+          <div className="grid grid-cols-2 gap-2 flex-shrink-0">
+            <div>
+              <label className={labelCls}>Nom de l&apos;entreprise</label>
+              <input value={form.name} onChange={e => set('name', e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className={labelCls}>Couleur brand</label>
-              <ColorPicker value={form.brand_color} onChange={v => set('brand_color', v)} />
+              <label className={labelCls}>Tagline</label>
+              <input value={form.tagline} onChange={e => set('tagline', e.target.value)} className={inputCls} />
             </div>
           </div>
-
-          <div className="bg-white rounded-2xl shadow-sm p-4 flex flex-col gap-3">
-            <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider flex-shrink-0">Logo entreprise</p>
+          <div className="flex-shrink-0 min-w-0">
+            <label className={labelCls}>Couleur brand</label>
+            <ColorPicker value={form.brand_color} onChange={v => set('brand_color', v)} />
+          </div>
+          <div className="flex-1 min-h-0 flex flex-col">
+            <label className={labelCls}>Logo entreprise</label>
             <SvgDropZone value={form.logo_svg} onChange={v => set('logo_svg', v)} />
           </div>
-
-          {/* Photo de profil */}
-          <div className="bg-white rounded-2xl shadow-sm p-4 flex flex-col gap-3">
-            <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider flex-shrink-0">Photo de profil</p>
-            <div className="flex flex-col items-center gap-3 flex-1 justify-center">
-              {/* Avatar */}
-              <div
-                onClick={() => profileInputRef.current?.click()}
-                className="w-16 h-16 rounded-full overflow-hidden cursor-pointer ring-2 ring-offset-2 ring-transparent hover:ring-[#3462EE]/40 transition-all flex-shrink-0 relative group"
-              >
-                {profilePhoto ? (
-                  <img src={profilePhoto} alt="profil" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-[#E2FF8D] flex items-center justify-center text-[22px] font-bold text-[#111111]">
-                    T
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                  </svg>
-                </div>
-              </div>
-              <input
-                ref={profileInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="sr-only"
-                onChange={e => { const f = e.target.files?.[0]; if (f) handleProfilePhoto(f) }}
-              />
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => profileInputRef.current?.click()}
-                  className="text-[11px] font-medium text-[#3462EE] hover:text-[#2a50d4] transition-colors"
-                >
-                  {profilePhoto ? 'Changer' : 'Ajouter une photo'}
-                </button>
-                {profilePhoto && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfilePhotoRaw('')
-                      try { localStorage.removeItem('soren_profile_photo') } catch {}
-                      window.dispatchEvent(new Event('profile-photo-updated'))
-                    }}
-                    className="block mx-auto mt-1 text-[11px] text-red-400 hover:text-red-600 transition-colors"
-                  >
-                    Supprimer
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
         </div>
 
-        {/* Ligne 2 : Coordonnées + Infos légales */}
-        <div className="grid grid-cols-2 gap-3 min-h-0">
+        {/* Profil utilisateur */}
+        <div className="bg-white rounded-2xl shadow-sm p-3 flex flex-col gap-2 overflow-hidden">
+          <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wider flex-shrink-0">Profil utilisateur</p>
 
-          <div className="bg-white rounded-2xl shadow-sm p-4 flex flex-col gap-3 overflow-hidden">
-            <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider flex-shrink-0">Coordonnées</p>
+          {/* Avatar + boutons sur une ligne */}
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <div onClick={() => profileInputRef.current?.click()}
+              className="w-9 h-9 rounded-full overflow-hidden cursor-pointer ring-2 ring-offset-2 ring-transparent hover:ring-[#3462EE]/40 transition-all flex-shrink-0 relative group">
+              {profilePhoto
+                ? <img src={profilePhoto} alt="profil" className="w-full h-full object-cover" />
+                : <div className="w-full h-full bg-[#E2FF8D] flex items-center justify-center text-[14px] font-bold text-[#111111]">
+                    {userPrenom ? userPrenom[0].toUpperCase() : 'T'}
+                  </div>
+              }
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <button type="button" onClick={() => profileInputRef.current?.click()}
+                className="text-[11px] font-medium text-[#3462EE] hover:text-[#2a50d4] transition-colors text-left">
+                {profilePhoto ? 'Changer la photo' : 'Ajouter une photo'}
+              </button>
+              {profilePhoto && (
+                <button type="button"
+                  onClick={() => { setProfilePhotoRaw(''); try { localStorage.removeItem('soren_profile_photo') } catch {}; window.dispatchEvent(new Event('profile-photo-updated')) }}
+                  className="text-[11px] text-red-400 hover:text-red-600 transition-colors text-left">
+                  Supprimer
+                </button>
+              )}
+            </div>
+          </div>
+          <input ref={profileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleProfilePhoto(f) }} />
+
+          <div className="grid grid-cols-2 gap-2 flex-shrink-0">
             <div>
-              <label className={labelCls}>Rue</label>
-              <input value={addrRue} onChange={e => setAddrRue(e.target.value)} className={inputCls} placeholder="215, avenue Clément Ader" />
+              <label className={labelCls}>Prénom</label>
+              <input value={userPrenom} onChange={e => setUserPrenom(e.target.value)} placeholder="Thomas" className={inputCls} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Code postal</label>
-                <input value={addrCP} onChange={e => setAddrCP(e.target.value)} className={inputCls} placeholder="34173" />
-              </div>
-              <div>
-                <label className={labelCls}>Ville</label>
-                <input value={addrCity} onChange={e => setAddrCity(e.target.value)} className={inputCls} placeholder="Castelnau-le-Lez" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Téléphone</label>
-                <input value={form.phone} onChange={e => set('phone', e.target.value)} className={inputCls} placeholder="04 99 13 32 00" />
-              </div>
-              <div>
-                <label className={labelCls}>Email</label>
-                <input value={form.email} onChange={e => set('email', e.target.value)} className={inputCls} placeholder="contact@soren.fr" />
-              </div>
-              <div className="col-span-2">
-                <label className={labelCls}>Site web</label>
-                <input value={form.website_url} onChange={e => set('website_url', e.target.value)} className={inputCls} placeholder="https://www.soren.fr" />
-              </div>
+            <div>
+              <label className={labelCls}>Nom</label>
+              <input value={userNom} onChange={e => setUserNom(e.target.value)} placeholder="Dupont" className={inputCls} />
             </div>
           </div>
-
-          <div className="bg-white rounded-2xl shadow-sm p-4 flex flex-col gap-3 overflow-hidden">
-            <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider flex-shrink-0">Informations légales</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>SIRET</label>
-                <input value={form.siret} onChange={e => set('siret', e.target.value)} className={inputCls} placeholder="500 123 321 00012" />
-              </div>
-              <div>
-                <label className={labelCls}>Capital social</label>
-                <input value={form.capital} onChange={e => set('capital', e.target.value)} className={inputCls} placeholder="50 000 euros" />
-              </div>
-              <div className="col-span-2">
-                <label className={labelCls}>TVA intracommunautaire</label>
-                <input value={form.tva_intra} onChange={e => set('tva_intra', e.target.value)} className={inputCls} placeholder="FR 25 500 123 321" />
-              </div>
-              <div className="col-span-2">
-                <label className={labelCls}>Assurance décennale</label>
-                <input value={form.assurance} onChange={e => set('assurance', e.target.value)} className={inputCls} placeholder="AssureurPro — N° 450123" />
-              </div>
-            </div>
-          </div>
-
         </div>
 
       </div>
+
+      {/* Ligne 2 : Coordonnées + Infos légales */}
+      <div className="grid grid-cols-2 gap-2.5 flex-1 min-h-0">
+
+        <div className="bg-white rounded-2xl shadow-sm p-3 flex flex-col gap-2 overflow-hidden">
+          <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wider flex-shrink-0">Coordonnées</p>
+          <div className="flex-shrink-0 min-w-0">
+            <label className={labelCls}>Rue</label>
+            <input value={addrRue} onChange={e => setAddrRue(e.target.value)} className={inputCls} placeholder="215, avenue Clément Ader" />
+          </div>
+          <div className="grid grid-cols-2 gap-2 flex-shrink-0">
+            <div>
+              <label className={labelCls}>Code postal</label>
+              <input value={addrCP} onChange={e => setAddrCP(e.target.value)} className={inputCls} placeholder="34173" />
+            </div>
+            <div>
+              <label className={labelCls}>Ville</label>
+              <input value={addrCity} onChange={e => setAddrCity(e.target.value)} className={inputCls} placeholder="Castelnau-le-Lez" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 flex-shrink-0">
+            <div>
+              <label className={labelCls}>Téléphone</label>
+              <input value={form.phone} onChange={e => set('phone', e.target.value)} className={inputCls} placeholder="04 99 13 32 00" />
+            </div>
+            <div>
+              <label className={labelCls}>Email</label>
+              <input value={form.email} onChange={e => set('email', e.target.value)} className={inputCls} placeholder="contact@soren.fr" />
+            </div>
+          </div>
+          <div className="flex-shrink-0 min-w-0">
+            <label className={labelCls}>Site web</label>
+            <input value={form.website_url} onChange={e => set('website_url', e.target.value)} className={inputCls} placeholder="https://www.soren.fr" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm p-3 flex flex-col gap-2 overflow-hidden">
+          <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wider flex-shrink-0">Informations légales</p>
+          <div className="grid grid-cols-2 gap-2 flex-shrink-0">
+            <div>
+              <label className={labelCls}>SIRET</label>
+              <input value={form.siret} onChange={e => set('siret', e.target.value)} className={inputCls} placeholder="500 123 321 00012" />
+            </div>
+            <div>
+              <label className={labelCls}>Capital social</label>
+              <input value={form.capital} onChange={e => set('capital', e.target.value)} className={inputCls} placeholder="50 000 euros" />
+            </div>
+          </div>
+          <div className="flex-shrink-0 min-w-0">
+            <label className={labelCls}>TVA intracommunautaire</label>
+            <input value={form.tva_intra} onChange={e => set('tva_intra', e.target.value)} className={inputCls} placeholder="FR 25 500 123 321" />
+          </div>
+          <div className="flex-shrink-0 min-w-0">
+            <label className={labelCls}>Assurance décennale</label>
+            <input value={form.assurance} onChange={e => set('assurance', e.target.value)} className={inputCls} placeholder="AssureurPro — N° 450123" />
+          </div>
+        </div>
+
+      </div>
+
     </div>
   )
 }
