@@ -5,7 +5,7 @@ import { Circle, Clock, AlertTriangle, CheckCircle2, AlertCircle, Plus, X, Histo
 
 // ─── Types ────────────────────────────────────────────────────
 type ColId     = 'todo' | 'inprogress' | 'error' | 'done' | 'archived'
-type AgentId   = 'soren' | 'kai' | 'mia'
+type AgentId   = 'soren' | 'kai' | 'mia' | 'ops' | 'doc'
 type FilterTab = 'all' | 'human'
 
 type Task = {
@@ -22,6 +22,8 @@ const AGENT_META: Record<AgentId, { label: string; color: string; bg: string }> 
   soren: { label: 'Soren', color: '#4A91A8', bg: '#4A91A815' },
   kai:   { label: 'Kai',   color: '#1A5C38', bg: '#1A5C3815' },
   mia:   { label: 'Mia',   color: '#E8836A', bg: '#E8836A15' },
+  ops:   { label: 'Ops',   color: '#7C3AED', bg: '#7C3AED15' },
+  doc:   { label: 'Doc',   color: '#0F766E', bg: '#0F766E15' },
 }
 
 type ColMeta = { label: string; icon: React.ElementType; iconColor: string; color: string; muted?: boolean }
@@ -39,6 +41,8 @@ const AGENTS_FILTER: { id: AgentId | 'all'; label: string }[] = [
   { id: 'soren', label: 'Soren' },
   { id: 'kai',   label: 'Kai' },
   { id: 'mia',   label: 'Mia' },
+  { id: 'ops',   label: 'Ops' },
+  { id: 'doc',   label: 'Doc' },
 ]
 
 // ─── Add task modal ───────────────────────────────────────────
@@ -75,7 +79,7 @@ function AddTaskModal({ onClose, onAdd }: { onClose: () => void; onAdd: (title: 
             className="w-full bg-[#F5F5F0] rounded-xl px-3 py-2.5 text-sm text-[#111111] placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#4A91A8]/30"
           />
           <div className="flex gap-2">
-            {(['soren', 'kai', 'mia'] as AgentId[]).map(a => {
+            {(['soren', 'kai', 'mia', 'ops', 'doc'] as AgentId[]).map(a => {
               const m = AGENT_META[a]
               return (
                 <button key={a} type="button" onClick={() => setAgent(a)}
@@ -102,7 +106,7 @@ function AddTaskModal({ onClose, onAdd }: { onClose: () => void; onAdd: (title: 
 }
 
 // ─── Task card ────────────────────────────────────────────────
-function TaskCard({ task, onMove }: { task: Task; onMove: (id: string, col: ColId) => void }) {
+function TaskCard({ task, onMove, onSelect }: { task: Task; onMove: (id: string, col: ColId) => void; onSelect: (task: Task) => void }) {
   const agent    = AGENT_META[task.agent]
   const col      = COLS[task.col]
   const ColIcon  = col.icon
@@ -115,7 +119,9 @@ function TaskCard({ task, onMove }: { task: Task; onMove: (id: string, col: ColI
   const nextLabel: Partial<Record<ColId, string>> = { done: 'Archiver' }
 
   return (
-    <div className={`border rounded-lg px-3 py-2 flex flex-col gap-1 select-none transition-all group ${
+    <div
+      onClick={() => onSelect(task)}
+      className={`border rounded-lg px-3 py-2 flex flex-col gap-1 select-none transition-all group cursor-pointer ${
       archived
         ? 'bg-[#F9FAFB] border-[#E5E7EB] opacity-60'
         : 'bg-white border-[#E5E7EB] hover:border-[#C8CBD0] hover:shadow-sm'
@@ -157,7 +163,7 @@ function TaskCard({ task, onMove }: { task: Task; onMove: (id: string, col: ColI
 }
 
 // ─── Kanban column ────────────────────────────────────────────
-function KanbanCol({ colId, tasks, onMove }: { colId: ColId; tasks: Task[]; onMove: (id: string, col: ColId) => void }) {
+function KanbanCol({ colId, tasks, onMove, onSelect }: { colId: ColId; tasks: Task[]; onMove: (id: string, col: ColId) => void; onSelect: (task: Task) => void }) {
   const meta   = COLS[colId]
   const Icon   = meta.icon
   const muted  = meta.muted === true
@@ -182,13 +188,89 @@ function KanbanCol({ colId, tasks, onMove }: { colId: ColId; tasks: Task[]; onMo
         muted ? 'bg-black/[0.02] border border-dashed border-[#E5E7EB]' : 'bg-black/[0.04]'
       }`}>
         <div className="flex-1 min-h-0 overflow-y-auto kanban-col flex flex-col gap-1.5">
-          {tasks.map(t => <TaskCard key={t.id} task={t} onMove={onMove} />)}
+          {tasks.map(t => <TaskCard key={t.id} task={t} onMove={onMove} onSelect={onSelect} />)}
           {tasks.length === 0 && (
             <div className="h-full flex items-center justify-center">
               <p className={`text-[11px] ${muted ? 'text-[#D1D5DB]' : 'text-[#9CA3AF]'}`}>Aucune tâche</p>
             </div>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Types logs ───────────────────────────────────────────────
+type AgentLog = {
+  id: string
+  agent: string
+  level: 'info' | 'success' | 'warning' | 'error'
+  message: string
+  tool_used: string | null
+  created_at: string
+}
+
+const LOG_LEVEL_COLOR: Record<string, string> = {
+  info: '#8896AB', success: '#22c55e', warning: '#F59E0B', error: '#EF4444',
+}
+
+// ─── Log drawer ───────────────────────────────────────────────
+function LogDrawer({ task, onClose }: { task: Task; onClose: () => void }) {
+  const [logs, setLogs] = useState<AgentLog[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`/api/agent-logs?taskId=${task.id}&limit=50`)
+      .then(r => r.json())
+      .then((d: { logs: AgentLog[] }) => setLogs(d.logs ?? []))
+      .catch(() => setLogs([]))
+      .finally(() => setLoading(false))
+  }, [task.id])
+
+  return (
+    <div className="fixed inset-y-0 right-0 w-80 bg-white border-l border-[#E5E7EB] shadow-2xl z-50 flex flex-col">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#F0F0EE] flex-shrink-0">
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-[#111111] truncate">{task.title}</p>
+          <p className="text-[10px] text-[#9CA3AF] mt-0.5">Logs d&apos;exécution</p>
+        </div>
+        <button onClick={onClose} className="w-7 h-7 rounded-full bg-[#F5F5F0] flex items-center justify-center ml-2 flex-shrink-0">
+          <X size={13} className="text-[#6B7280]" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {loading ? (
+          <div className="flex items-center justify-center h-20">
+            <p className="text-xs text-[#9CA3AF]">Chargement…</p>
+          </div>
+        ) : logs.length === 0 ? (
+          <div className="flex items-center justify-center h-20">
+            <p className="text-xs text-[#9CA3AF]">Aucun log pour cette tâche</p>
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            {logs.map((log, i) => (
+              <div key={log.id} className="relative px-4 py-2.5 border-b border-[#F9FAFB] last:border-0">
+                {/* Timeline dot */}
+                <div className="absolute left-4 top-3.5 w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  style={{ background: LOG_LEVEL_COLOR[log.level] ?? '#8896AB' }} />
+                {i < logs.length - 1 && (
+                  <div className="absolute left-[18px] top-5 bottom-0 w-px bg-[#F3F4F6]" />
+                )}
+                <div className="pl-4">
+                  <p className="text-[11px] text-[#374151] leading-tight">{log.message}</p>
+                  {log.tool_used && (
+                    <p className="text-[9px] font-mono text-[#9CA3AF] mt-0.5">{log.tool_used}</p>
+                  )}
+                  <p className="text-[9px] text-[#C8CBD0] mt-0.5">
+                    {new Date(log.created_at).toLocaleTimeString('fr-FR')}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -201,6 +283,7 @@ export default function TachesView() {
   const [tasks,       setTasks]       = useState<Task[]>([])
   const [loading,     setLoading]     = useState(true)
   const [showModal,   setShowModal]   = useState(false)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [scrolled,    setScrolled]    = useState(false)
   const boardRef = useRef<HTMLDivElement>(null)
 
@@ -291,7 +374,7 @@ export default function TachesView() {
     <div className="flex flex-col flex-1 min-h-0">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0">
+      <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
         <div>
           <h1 className="text-2xl font-black text-[#111111] leading-none">Tâches</h1>
           <p className="text-xs text-[#6B7280] mt-1">Suivez l'activité de vos agents en temps réel</p>
@@ -328,7 +411,7 @@ export default function TachesView() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center justify-between px-6 pb-3 flex-shrink-0">
+      <div className="flex items-center justify-between px-6 pb-3 flex-shrink-0" style={{ animation: 'fadeSlideUp 400ms ease-out 70ms both' }}>
         <div className="flex gap-1">
           <button onClick={() => setTabFilter('all')}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
@@ -367,9 +450,17 @@ export default function TachesView() {
 
       {/* Board */}
       {loading ? (
-        <div className="flex items-center justify-center h-40 gap-3">
-          <div className="w-4 h-4 rounded-full border-2 border-[#111111] border-t-transparent animate-spin" />
-          <p className="text-sm text-[#9CA3AF]">Chargement…</p>
+        <div className="flex flex-col gap-2 px-2 animate-pulse">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 border border-[#E5E7EB]">
+              <div className="w-4 h-4 rounded bg-[#E5E7EB] flex-shrink-0" />
+              <div className="flex-1">
+                <div className="h-2.5 bg-[#D9DDD6] rounded mb-1.5" style={{ width: `${50 + (i * 17) % 35}%` }} />
+                <div className="h-2 bg-[#E5E7EB] rounded" style={{ width: `${30 + (i * 11) % 25}%` }} />
+              </div>
+              <div className="h-5 w-16 bg-[#E5E7EB] rounded-full flex-shrink-0" />
+            </div>
+          ))}
         </div>
       ) : (
         <div className="relative flex-1 min-h-0">
@@ -388,12 +479,14 @@ export default function TachesView() {
               <KanbanCol key={colId} colId={colId}
                 tasks={filtered.filter(t => t.col === colId)}
                 onMove={moveTask}
+                onSelect={setSelectedTask}
               />
             ))}
           </div>
         </div>
       )}
 
+      {selectedTask && <LogDrawer task={selectedTask} onClose={() => setSelectedTask(null)} />}
       {showModal && <AddTaskModal onClose={() => setShowModal(false)} onAdd={addTask} />}
     </div>
   )
