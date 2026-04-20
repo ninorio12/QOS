@@ -257,7 +257,6 @@ export async function executeTool(
       }
 
       case 'get_dashboard': {
-        const supabase = createAdminClient()
         const data = await ghlFetchWith(
           `/opportunities/search?location_id=${creds.locationId}&limit=50`,
           creds
@@ -310,7 +309,7 @@ export async function executeTool(
         // Log dans agent_interactions sans envoyer réellement (Twilio requis)
         const supabase = createAdminClient()
         await supabase.from('agent_interactions').insert({
-          agent: 'kai', type: 'whatsapp_sent', lead_id: phone,
+          agent: agentId ?? 'kai', type: 'whatsapp_sent', lead_id: phone,
           outcome: 'sent', metadata: { phone, message },
           organization_id: orgId,
         })
@@ -322,7 +321,7 @@ export async function executeTool(
         const { data, error } = await supabase
           .from('agent_interactions')
           .insert({
-            agent:           'kai',
+            agent:           agentId ?? 'kai',
             lead_id:         String(input.leadId),
             type:            String(input.type),
             outcome:         String(input.outcome),
@@ -488,7 +487,8 @@ export async function executeTool(
         let query = supabase.from('agent_tasks').select('*').order('created_at', { ascending: false }).limit(20)
         if (input.col)   query = query.eq('col',   input.col   as string)
         if (input.agent) query = query.eq('agent', input.agent as string)
-        const { data } = await query
+        const { data, error } = await query
+        if (error) return { success: false, error: error.message }
         return { success: true, data: { tasks: data ?? [] } }
       }
 
@@ -522,7 +522,8 @@ export async function executeTool(
           .limit(limit)
         if (input.agent) query = query.eq('agent', input.agent as string)
         if (input.level) query = query.eq('level', input.level as string)
-        const { data } = await query
+        const { data, error } = await query
+        if (error) return { success: false, error: error.message }
         return { success: true, data: { logs: data ?? [] } }
       }
 
@@ -543,7 +544,7 @@ export async function executeTool(
         let query = supabase.from(table).select('*').limit(limit)
         const filters = (input.filters ?? {}) as Record<string, unknown>
         for (const [k, v] of Object.entries(filters)) {
-          query = query.eq(k, v as string)
+          query = query.eq(k, v)
         }
         const { data, error } = await query
         if (error) return { success: false, error: error.message }
