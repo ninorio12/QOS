@@ -515,7 +515,7 @@ export default function EquipeView() {
 
       {/* 3-row grid — full width */}
       <div
-        className="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto pr-0.5"
+        className="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto pr-0.5"
         style={{ animation: 'fadeSlideUp 400ms ease-out 90ms both' }}
       >
 
@@ -531,7 +531,7 @@ export default function EquipeView() {
         />
 
         {/* Row 2: Kai + Mia (actifs) */}
-        <div className="flex gap-3" style={{ height: 185 }}>
+        <div className="flex gap-3" style={{ height: 168 }}>
           <AgentCard agent={kai} runState={runStates.kai}
             isSelected={selectedAgent === 'kai'} onClick={() => setSelectedAgent(p => p === 'kai' ? null : 'kai')}
             onStart={() => startAgent('kai')} onStop={() => stopAgent('kai')} />
@@ -541,7 +541,7 @@ export default function EquipeView() {
         </div>
 
         {/* Row 3: Alex + Leo (en formation) */}
-        <div className="flex gap-3" style={{ height: 175 }}>
+        <div className="flex gap-3" style={{ height: 155 }}>
           <AgentCardInTraining agent={alex} />
           <AgentCardInTraining agent={leo} />
         </div>
