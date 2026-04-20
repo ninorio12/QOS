@@ -136,7 +136,7 @@ function SorenHeroCard({
       className="relative rounded-2xl overflow-hidden cursor-pointer select-none"
       style={{
         background: '#F2F3F0',
-        border: isSelected ? '2px solid #C8F135' : '1px solid #E2E4DF',
+        border: isSelected ? '2px solid #C8F135' : '2px solid #E2E4DF',
         boxShadow: isSelected
           ? '0 6px 20px rgba(0,0,0,0.10)'
           : '0 4px 16px rgba(0,0,0,0.07)',
