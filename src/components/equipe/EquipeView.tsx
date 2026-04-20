@@ -254,12 +254,15 @@ function AgentCard({
   return (
     <div
       onClick={onClick}
-      className={`relative rounded-2xl overflow-hidden cursor-pointer select-none transition-all duration-200 flex-1 min-w-0 ${
-        isSelected
-          ? 'shadow-[0_0_0_3px_white,0_0_0_5px_var(--accent),0_12px_32px_rgba(0,0,0,0.18)] -translate-y-0.5'
-          : 'shadow-[0_4px_16px_rgba(0,0,0,0.14)] hover:shadow-[0_8px_28px_rgba(0,0,0,0.18)] hover:-translate-y-0.5'
-      }`}
-      style={{ background: agent.accentColor, '--accent': agent.accentColor } as React.CSSProperties}
+      className="relative rounded-2xl overflow-hidden cursor-pointer select-none flex-1 min-w-0"
+      style={{
+        background: agent.accentColor,
+        transform: isSelected ? 'scale(1.015)' : 'scale(1)',
+        boxShadow: isSelected
+          ? '0 8px 24px rgba(0,0,0,0.18)'
+          : '0 4px 12px rgba(0,0,0,0.12)',
+        transition: 'transform 150ms ease-out, box-shadow 150ms ease-out',
+      }}
     >
       <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/8 pointer-events-none" />
       <div className="absolute -bottom-12 -left-6 w-28 h-28 rounded-full bg-black/8 pointer-events-none" />
@@ -291,12 +294,12 @@ function AgentCard({
           )}
         </div>
 
-        <p className="text-[10px] text-white/70 leading-relaxed line-clamp-2">{agent.description}</p>
+        <p className="text-[10px] text-white/70 leading-relaxed line-clamp-1">{agent.description}</p>
 
         <div className="flex-1">
           <p className="text-[7px] font-bold uppercase tracking-widest text-white/35 mb-1">Skills</p>
           <div className="flex flex-wrap gap-1">
-            {agent.tools.map(tool => (
+            {agent.tools.slice(0, 3).map(tool => (
               <span
                 key={tool}
                 className="text-[8.5px] font-medium px-2 py-0.5 rounded-full"
@@ -305,6 +308,14 @@ function AgentCard({
                 {formatTool(tool)}
               </span>
             ))}
+            {agent.tools.length > 3 && (
+              <span
+                className="text-[8.5px] font-medium px-2 py-0.5 rounded-full"
+                style={{ background: 'rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.15)' }}
+              >
+                +{agent.tools.length - 3}
+              </span>
+            )}
           </div>
         </div>
 
@@ -317,18 +328,18 @@ function AgentCard({
           <div onClick={e => e.stopPropagation()} className="flex-shrink-0">
             {isOnline ? (
               <button onClick={onStop}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-[9.5px] font-bold text-white"
+                className="flex items-center gap-1 px-3 py-1 rounded-xl text-[9.5px] font-bold text-white"
                 style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.2)' }}>
                 <Square size={8} /> Arrêter
               </button>
             ) : isStart ? (
-              <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-[9.5px] font-bold text-white"
+              <div className="flex items-center gap-1 px-3 py-1 rounded-xl text-[9.5px] font-bold text-white"
                 style={{ background: 'rgba(255,255,255,0.15)' }}>
                 <RefreshCw size={8} className="animate-spin" /> Init…
               </div>
             ) : (
               <button onClick={onStart}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-[9.5px] font-bold text-white hover:brightness-110 transition-all"
+                className="flex items-center gap-1 px-3 py-1 rounded-xl text-[9.5px] font-bold text-white hover:brightness-110 transition-all"
                 style={{ background: 'rgba(255,255,255,0.22)', border: '1px solid rgba(255,255,255,0.3)' }}>
                 <Play size={8} /> Démarrer
               </button>
