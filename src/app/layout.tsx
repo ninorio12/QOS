@@ -40,8 +40,17 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "Soren - Infrastructure d'Acquisition Organisationnelle",
-  description: 'Plateforme agentique pour la gestion des leads et workflows BTP',
+  title: 'Soren',
+  description: "Infrastructure d'Acquisition Organisationnelle",
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    title: 'Soren',
+    statusBarStyle: 'black-translucent',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -49,6 +58,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr" suppressHydrationWarning className={`${fraunces.variable} ${inter.variable} ${montserrat.variable} ${outfit.variable} ${jakarta.variable}`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#111111" />
       </head>
       <body>
         <Providers>
