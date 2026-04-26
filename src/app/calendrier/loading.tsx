@@ -7,7 +7,7 @@ export default function CalendrierLoading() {
       {/* Main calendar area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Toolbar */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#E5E7EB] bg-white flex-shrink-0">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-soren-border bg-soren-card flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 bg-[#E5E7EB] rounded-lg" />
             <div className="h-5 w-36 bg-[#D9DDD6] rounded" />
@@ -21,7 +21,7 @@ export default function CalendrierLoading() {
         </div>
 
         {/* Day headers */}
-        <div className="flex border-b border-[#E5E7EB] bg-white flex-shrink-0">
+        <div className="flex border-b border-soren-border bg-soren-card flex-shrink-0">
           <div className="w-14 flex-shrink-0" />
           {DAYS.map(d => (
             <div key={d} className="flex-1 flex flex-col items-center py-2 gap-1">
@@ -53,7 +53,7 @@ export default function CalendrierLoading() {
       </div>
 
       {/* Right sidebar */}
-      <div className="w-64 flex-shrink-0 border-l border-[#E5E7EB] bg-white p-4 flex flex-col gap-4">
+      <div className="w-64 flex-shrink-0 border-l border-soren-border bg-soren-card p-4 flex flex-col gap-4">
         <div className="h-10 w-full bg-[#D9DDD6] rounded-xl" />
         <div>
           <div className="h-3 w-24 bg-[#E5E7EB] rounded mb-3" />

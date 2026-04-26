@@ -14,11 +14,12 @@ import { Toaster } from '@/components/shared/Toaster'
 const NewLeadWidget   = dynamic(() => import('@/components/shared/NewLeadWidget'), { ssr: false })
 const ImportModal     = dynamic(() => import('./ImportModal'),     { ssr: false })
 
-const COL_HEADER = 'px-4 py-3 text-left text-[11px] font-semibold text-[#6B7280] uppercase tracking-wide whitespace-nowrap'
+const COL_HEADER = 'px-4 py-3 text-left text-[11px] font-semibold text-soren-muted uppercase tracking-wide whitespace-nowrap'
 
 // ─── Avatar ────────────────────────────────────────────────────
 function Avatar({ contact }: { contact: GHLContact }) {
-  const name     = contact.contactName || `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim()
+  const rawName  = contact.contactName || `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim()
+  const name     = rawName.split(' ').map((w: string) => w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : '').join(' ')
   const initials = (name.split(' ').map((w: string) => w[0]).join('').slice(0, 2) || '?').toUpperCase()
   const color    = getAvatarColor(initials)
   return (
@@ -90,7 +91,8 @@ function ContactRow({
   onClick:     () => void
   visibleCols: Set<ColName>
 }) {
-  const name = contact.contactName || `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim() || '—'
+  const rawName = contact.contactName || `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim() || '—'
+  const name = rawName === '—' ? '—' : rawName.split(' ').map((w: string) => w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : '').join(' ')
   const v = (col: ColName) => visibleCols.has(col)
   return (
     <tr className="border-b border-[#F0F0EE] hover:bg-[#FAFAF8] transition-colors group cursor-pointer" onClick={onClick}>
@@ -101,7 +103,7 @@ function ContactRow({
       <td className="px-4 py-3 min-w-[180px]">
         <div className="flex items-center gap-2.5">
           <Avatar contact={contact} />
-          <span className="text-sm font-semibold text-[#111111] truncate">{name}</span>
+          <span className="text-sm font-semibold text-soren-text truncate">{name}</span>
         </div>
       </td>
       {v('Téléphone') && <td className="px-4 py-3 min-w-[140px]">
@@ -114,8 +116,8 @@ function ContactRow({
         {contact.companyName ? <span className="text-sm text-[#374151] truncate">{contact.companyName}</span> : <span className="text-sm text-[#D1D5DB]">—</span>}
       </td>}
       {v('Origine') && <td className="px-4 py-3 min-w-[120px]"><OriginBadge createdBy={createdBy} /></td>}
-      {v('Créé') && <td className="px-4 py-3 min-w-[130px]"><span className="text-sm text-[#6B7280]">{formatDate(contact.dateAdded)}</span></td>}
-      {v('Dernière activité') && <td className="px-4 py-3 min-w-[150px]"><span className="text-sm text-[#6B7280]">{formatRelative(contact.dateUpdated ?? contact.dateAdded)}</span></td>}
+      {v('Créé') && <td className="px-4 py-3 min-w-[130px]"><span className="text-sm text-soren-muted">{formatDate(contact.dateAdded)}</span></td>}
+      {v('Dernière activité') && <td className="px-4 py-3 min-w-[150px]"><span className="text-sm text-soren-muted">{formatRelative(contact.dateUpdated ?? contact.dateAdded)}</span></td>}
       {v('Balises') && <td className="px-4 py-3 min-w-[160px]">
         <div className="flex items-center gap-1 flex-wrap">{contact.tags.map(t => <TagPill key={t} label={t} />)}</div>
       </td>}
@@ -307,13 +309,13 @@ export default function ContactsView({
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-[#EEF0EB]">
+    <div className="h-full flex flex-col overflow-hidden bg-soren-app">
       <Toaster toasts={toasts} dismiss={dismiss} />
       {/* ── Header ─────────────────────────────────────────── */}
-      <div className="px-6 pt-6 pb-3 flex-shrink-0 flex items-center justify-between gap-4">
+      <div className="px-6 pt-6 pb-3 flex-shrink-0 flex items-center justify-between gap-4" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-black text-[#111111] leading-none">Contacts</h1>
-          <span className="self-end mb-1 bg-[#E2FF8D] text-[#111111] text-xs font-bold px-2.5 py-1 rounded-full">
+          <h1 className="text-3xl font-black text-soren-text leading-none">Contacts</h1>
+          <span className="self-end mb-1 bg-[#E2FF8D] text-soren-text text-xs font-bold px-2.5 py-1 rounded-full">
             {contacts.length} contacts
           </span>
         </div>
@@ -331,21 +333,21 @@ export default function ContactsView({
           <button
             onClick={refreshContacts}
             disabled={refreshing}
-            className="flex items-center gap-1.5 bg-white border border-[#E5E7EB] text-[#6B7280] text-xs font-semibold px-3.5 py-2 rounded-full hover:bg-[#F5F5F0] disabled:opacity-50 transition-colors"
+            className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-xs font-semibold px-3.5 py-2 rounded-full hover:bg-soren-elevated disabled:opacity-50 transition-colors"
           >
             <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
             Actualiser
           </button>
           <button
             onClick={exportExcel}
-            className="flex items-center gap-1.5 bg-white border border-[#E5E7EB] text-[#6B7280] text-xs font-semibold px-3.5 py-2 rounded-full hover:bg-[#F5F5F0] transition-colors"
+            className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-xs font-semibold px-3.5 py-2 rounded-full hover:bg-soren-elevated transition-colors"
           >
             <FileSpreadsheet size={12} />
             Exporter
           </button>
           <button
             onClick={() => setShowImport(true)}
-            className="flex items-center gap-1.5 bg-white border border-[#E5E7EB] text-[#6B7280] text-xs font-semibold px-3.5 py-2 rounded-full hover:bg-[#F5F5F0] transition-colors"
+            className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-xs font-semibold px-3.5 py-2 rounded-full hover:bg-soren-elevated transition-colors"
           >
             <Download size={12} />
             Importer
@@ -355,24 +357,24 @@ export default function ContactsView({
       </div>
 
       {/* ── Filter bar ─────────────────────────────────────── */}
-      <div className="px-6 pb-3 flex-shrink-0 flex items-center justify-between gap-4">
+      <div className="px-6 pb-3 flex-shrink-0 flex items-center justify-between gap-4" style={{ animation: 'fadeSlideUp 400ms ease-out 70ms both' }}>
         <div className="flex items-center gap-2">
           {/* Filtres avancés */}
           <div className="relative" ref={filterMenuRef}>
             <button
               onClick={() => setShowFilterMenu(v => !v)}
-              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${filterOrigin ? 'bg-[#111111] text-white border-[#111111]' : 'bg-white text-[#6B7280] border-[#E5E7EB] hover:bg-[#F5F5F0]'}`}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${filterOrigin ? 'bg-soren-sidebar text-white border-[#111111]' : 'bg-soren-card text-soren-muted border-soren-border hover:bg-soren-elevated'}`}
             >
               <SlidersHorizontal size={11} />
               {filterOrigin ?? 'Filtres avancés'}
               {filterOrigin && <button onClick={e => { e.stopPropagation(); setFilterOrigin(null) }} className="ml-1 text-white/70 hover:text-white">×</button>}
             </button>
             {showFilterMenu && (
-              <div className="absolute left-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-2xl shadow-lg z-20 py-1 min-w-[160px]">
-                <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wide px-3 pt-2 pb-1">Origine</p>
+              <div className="absolute left-0 top-full mt-1 bg-soren-card border border-soren-border rounded-2xl shadow-lg z-20 py-1 min-w-[160px]">
+                <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-wide px-3 pt-2 pb-1">Origine</p>
                 {['Thomas', 'Kai', 'Soren', 'Mia'].map(o => (
                   <button key={o} onClick={() => { setFilterOrigin(o); setShowFilterMenu(false) }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-[#111111] hover:bg-[#F5F5F0]">
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-soren-text hover:bg-soren-elevated">
                     {filterOrigin === o && <Check size={10} />}
                     <span className={filterOrigin === o ? 'font-semibold' : ''}>{o}</span>
                   </button>
@@ -383,38 +385,38 @@ export default function ContactsView({
           {/* Trier — indicateur actif */}
           {sortCol && (
             <button onClick={() => { setSortCol(null) }}
-              className="flex items-center gap-1.5 text-xs font-semibold bg-[#111111] text-white px-3 py-1.5 rounded-full border border-[#111111] transition-colors">
+              className="flex items-center gap-1.5 text-xs font-semibold bg-soren-sidebar text-white px-3 py-1.5 rounded-full border border-[#111111] transition-colors">
               <ArrowUpDown size={11} />
               {sortCol} {sortDir === 'asc' ? '↑' : '↓'} ×
             </button>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-white border border-[#E5E7EB] rounded-full px-3 py-1.5">
-            <Search size={12} className="text-[#9CA3AF] flex-shrink-0" />
+          <div className="flex items-center gap-2 bg-soren-card border border-soren-border rounded-full px-3 py-1.5">
+            <Search size={12} className="text-soren-subtle flex-shrink-0" />
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Rechercher contacts..."
-              className="bg-transparent text-sm text-[#111111] placeholder-[#9CA3AF] outline-none w-44"
+              className="bg-transparent text-sm text-soren-text placeholder-[#9CA3AF] outline-none w-44"
             />
           </div>
           <div className="relative" ref={fieldsMenuRef}>
             <button
               onClick={() => setShowFieldsMenu(v => !v)}
-              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${showFieldsMenu ? 'bg-[#111111] text-white border-[#111111]' : 'bg-white text-[#6B7280] border-[#E5E7EB] hover:bg-[#F5F5F0]'}`}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${showFieldsMenu ? 'bg-soren-sidebar text-white border-[#111111]' : 'bg-soren-card text-soren-muted border-soren-border hover:bg-soren-elevated'}`}
             >
               <Settings2 size={11} />
               Gérer les champs
             </button>
             {showFieldsMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-2xl shadow-lg z-20 py-2 min-w-[200px]">
-                <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wide px-3 pb-1">Colonnes visibles</p>
+              <div className="absolute right-0 top-full mt-1 bg-soren-card border border-soren-border rounded-2xl shadow-lg z-20 py-2 min-w-[200px]">
+                <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-wide px-3 pb-1">Colonnes visibles</p>
                 {ALL_COLS.map(col => (
                   <button key={col} onClick={() => toggleCol(col)}
-                    className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-[#111111] hover:bg-[#F5F5F0]">
+                    className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-soren-text hover:bg-soren-elevated">
                     <span>{col}</span>
-                    <span className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${visibleCols.has(col) ? 'bg-[#111111] border-[#111111]' : 'border-[#D1D5DB]'}`}>
+                    <span className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${visibleCols.has(col) ? 'bg-soren-sidebar border-[#111111]' : 'border-[#D1D5DB]'}`}>
                       {visibleCols.has(col) && <Check size={10} className="text-white" />}
                     </span>
                   </button>
@@ -426,9 +428,9 @@ export default function ContactsView({
       </div>
 
       {/* ── Table ──────────────────────────────────────────── */}
-      <div ref={tableRef} className="flex-1 overflow-auto mx-6 mb-6 bg-white rounded-2xl border border-[#E5E7EB] shadow-sm">
+      <div ref={tableRef} className="flex-1 overflow-auto mx-6 mb-6 bg-soren-card rounded-2xl border border-soren-border shadow-sm" style={{ animation: 'fadeSlideUp 400ms ease-out 140ms both' }}>
         <table className="w-full border-collapse">
-          <thead className="sticky top-0 bg-white z-10 border-b border-[#E5E7EB]">
+          <thead className="sticky top-0 bg-soren-card z-10 border-b border-soren-border">
             <tr>
               <th className="pl-4 pr-2 py-3 w-10">
                 <input
@@ -447,7 +449,7 @@ export default function ContactsView({
                     <span className="flex items-center gap-1">
                       {col}
                       {sortable && (active
-                        ? <ChevronDown size={10} className={`text-[#111111] transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} />
+                        ? <ChevronDown size={10} className={`text-soren-text transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} />
                         : <ArrowUpDown size={10} className="text-[#D1D5DB]" />
                       )}
                     </span>
@@ -459,7 +461,7 @@ export default function ContactsView({
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={2 + visibleCols.size} className="px-4 py-16 text-center text-sm text-[#9CA3AF]">
+                <td colSpan={2 + visibleCols.size} className="px-4 py-16 text-center text-sm text-soren-subtle">
                   Aucun contact trouvé
                 </td>
               </tr>

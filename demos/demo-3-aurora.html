@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Soren — Tableau de bord · Aurora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,300&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --bg-2: #0b1018;
+    --card-bg: rgba(255,255,255,0.04);
+    --card-border: rgba(255,255,255,0.07);
+    --lime: #E2FF8D;
+    --lime-glow: rgba(226,255,141,0.2);
+    --blue: #4A8EFF;
+    --blue-glow: rgba(74,142,255,0.25);
+    --indigo: #A78BFA;
+    --indigo-glow: rgba(167,139,250,0.25);
+    --green: #34D399;
+    --green-glow: rgba(52,211,153,0.25);
+    --text-primary: #EEF0EB;
+    --text-secondary: rgba(238,240,235,0.5);
+    --text-tertiary: rgba(238,240,235,0.28);
+    --sidebar-w: 72px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ── Aurora BG ── */
+  .aurora-bg {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 400px;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .aurora-layer {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0;
+    animation: aurora-drift 12s ease-in-out infinite;
+  }
+
+  .aurora-1 {
+    width: 600px; height: 300px;
+    background: radial-gradient(ellipse, rgba(74,142,255,0.18) 0%, transparent 70%);
+    top: -100px; left: 20%;
+    animation-delay: 0s;
+  }
+
+  .aurora-2 {
+    width: 500px; height: 250px;
+    background: radial-gradient(ellipse, rgba(167,139,250,0.14) 0%, transparent 70%);
+    top: -80px; left: 50%;
+    animation-delay: -4s;
+  }
+
+  .aurora-3 {
+    width: 400px; height: 200px;
+    background: radial-gradient(ellipse, rgba(226,255,141,0.1) 0%, transparent 70%);
+    top: -60px; left: 65%;
+    animation-delay: -8s;
+  }
+
+  @keyframes aurora-drift {
+    0%, 100% { opacity: 0.6; transform: translateX(0) translateY(0) scale(1); }
+    33% { opacity: 1; transform: translateX(40px) translateY(20px) scale(1.05); }
+    66% { opacity: 0.7; transform: translateX(-30px) translateY(10px) scale(0.97); }
+  }
+
+  /* ── Sidebar (icons only) ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    min-height: 100vh;
+    background: rgba(255,255,255,0.025);
+    border-right: 1px solid var(--card-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 0;
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    backdrop-filter: blur(40px);
+    z-index: 100;
+  }
+
+  .sidebar-logo-icon {
+    width: 36px; height: 36px;
+    background: var(--lime);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+    font-size: 18px;
+    color: var(--bg);
+    margin-bottom: 32px;
+    box-shadow: 0 0 20px rgba(226,255,141,0.3);
+  }
+
+  .nav-icons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    width: 100%;
+    padding: 0 10px;
+  }
+
+  .nav-icon-btn {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-tertiary);
+    position: relative;
+  }
+
+  .nav-icon-btn:hover {
+    background: rgba(255,255,255,0.06);
+    color: var(--text-secondary);
+  }
+
+  .nav-icon-btn.active {
+    background: linear-gradient(135deg, rgba(226,255,141,0.15) 0%, rgba(226,255,141,0.05) 100%);
+    color: var(--lime);
+    border: 1px solid rgba(226,255,141,0.2);
+  }
+
+  .nav-icon-btn svg { width: 18px; height: 18px; }
+
+  .nav-tooltip {
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%; transform: translateY(-50%);
+    background: rgba(20,28,38,0.95);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+    color: var(--text-primary);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .nav-icon-btn:hover .nav-tooltip { opacity: 1; }
+
+  .nav-divider {
+    width: 24px; height: 1px;
+    background: var(--card-border);
+    margin: 8px 0;
+  }
+
+  .sidebar-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--indigo));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    margin-top: auto;
+  }
+
+  /* ── Main ── */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    min-height: 100vh;
+    overflow-y: auto;
+    padding: 40px 44px;
+    max-height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  .main::-webkit-scrollbar { width: 5px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 5px; }
+
+  /* ── Hero typographic block ── */
+  .hero-block {
+    margin-bottom: 44px;
+    position: relative;
+  }
+
+  .hero-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 8px;
+  }
+
+  .hero-number-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 48px;
+  }
+
+  .hero-pipeline-wrap {
+    position: relative;
+    display: inline-block;
+  }
+
+  .hero-pipeline {
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+    font-size: 96px;
+    color: var(--lime);
+    letter-spacing: -4px;
+    line-height: 0.95;
+    text-shadow: 0 0 80px rgba(226,255,141,0.35), 0 0 160px rgba(226,255,141,0.15);
+  }
+
+  .hero-glow-orb {
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px; height: 100px;
+    background: radial-gradient(ellipse, rgba(226,255,141,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-secondary {
+    padding-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .hero-sec-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .hero-sec-label {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    font-weight: 600;
+  }
+
+  .hero-sec-value {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 32px;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .hero-sep {
+    width: 1px; height: 60px;
+    background: var(--card-border);
+    align-self: flex-end;
+    margin-bottom: 12px;
+  }
+
+  .delta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-top: 4px;
+    align-self: flex-start;
+  }
+
+  /* ── Card grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    backdrop-filter: blur(40px);
+    padding: 22px;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card:hover {
+    border-color: rgba(255,255,255,0.12);
+    transform: translateY(-2px);
+  }
+
+  .card-glow-blue::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(74,142,255,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .card-glow-blue:hover {
+    box-shadow: 0 0 40px var(--blue-glow);
+  }
+
+  .card-glow-green::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(52,211,153,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .card-glow-green:hover {
+    box-shadow: 0 0 40px var(--green-glow);
+  }
+
+  .card-glow-purple::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(167,139,250,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .card-glow-purple:hover {
+    box-shadow: 0 0 40px var(--indigo-glow);
+  }
+
+  /* Pipeline card gradient */
+  .card-pipeline-gradient {
+    background: linear-gradient(135deg, rgba(74,142,255,0.1) 0%, rgba(167,139,250,0.06) 50%, rgba(8,12,16,0.1) 100%);
+    border-color: rgba(74,142,255,0.2);
+  }
+
+  .card-pipeline-gradient:hover {
+    box-shadow: 0 0 60px rgba(74,142,255,0.2);
+    border-color: rgba(74,142,255,0.3);
+  }
+
+  .card-title {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .see-all {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: color 0.2s;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 400;
+  }
+  .see-all:hover { color: var(--lime); }
+
+  /* Stage — large percentage display */
+  .stage-pct-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .stage-pct-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .stage-pct-bar-wrap {
+    flex: 1;
+    height: 3px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .stage-pct-bar {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 1.4s cubic-bezier(.4,0,.2,1);
+    width: 0;
+  }
+
+  .stage-pct-name {
+    font-size: 12px;
+    color: var(--text-secondary);
+    width: 90px;
+    flex-shrink: 0;
+  }
+
+  .stage-pct-num {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* Won card big number */
+  .won-display {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+  }
+
+  .won-number {
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+    font-size: 56px;
+    color: var(--green);
+    letter-spacing: -2px;
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(52,211,153,0.4);
+  }
+
+  .won-detail {
+    padding-bottom: 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  /* Conv card */
+  .conv-big {
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+    font-size: 56px;
+    letter-spacing: -2px;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--indigo), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    filter: drop-shadow(0 0 20px rgba(167,139,250,0.4));
+  }
+
+  /* Opp list */
+  .opp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .opp-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 12px;
+    transition: background 0.18s;
+    cursor: pointer;
+  }
+
+  .opp-item:hover { background: rgba(255,255,255,0.04); }
+
+  .opp-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .opp-name {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    flex: 1;
+  }
+
+  .opp-val {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  .opp-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Agents purple card */
+  .agent-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  .agent-card {
+    background: rgba(167,139,250,0.06);
+    border: 1px solid rgba(167,139,250,0.12);
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .agent-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .agent-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    animation: agent-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes agent-pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+    50% { opacity: 0.7; }
+  }
+
+  .agent-name {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .agent-status {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.4;
+  }
+
+  .agent-task {
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    padding: 7px 9px;
+    line-height: 1.4;
+  }
+
+  /* Weekly sparkline */
+  .sparkline-wrap {
+    margin-top: 12px;
+    height: 60px;
+    position: relative;
+  }
+
+  .sparkline-wrap svg {
+    width: 100%; height: 100%;
+    overflow: visible;
+  }
+
+  /* Bottom stat row */
+  .stat-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .stat-chip {
+    flex: 1;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+
+  .stat-chip-val {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    line-height: 1;
+  }
+
+  .stat-chip-label {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<!-- Aurora BG -->
+<div class="aurora-bg" aria-hidden="true">
+  <div class="aurora-layer aurora-1"></div>
+  <div class="aurora-layer aurora-2"></div>
+  <div class="aurora-layer aurora-3"></div>
+</div>
+
+<!-- Sidebar icons only -->
+<nav class="sidebar">
+  <div class="sidebar-logo-icon">S</div>
+
+  <div class="nav-icons">
+    <div class="nav-icon-btn active">
+      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7">
+        <rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="11" y="1" width="6" height="6" rx="1.5"/>
+        <rect x="1" y="11" width="6" height="6" rx="1.5"/><rect x="11" y="11" width="6" height="6" rx="1.5"/>
+      </svg>
+      <span class="nav-tooltip">Tableau de bord</span>
+    </div>
+
+    <div class="nav-icon-btn">
+      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7">
+        <path d="M3 14V8l6-5 6 5v6a1 1 0 01-1 1h-3v-3H7v3H4a1 1 0 01-1-1z"/>
+      </svg>
+      <span class="nav-tooltip">Pipeline</span>
+    </div>
+
+    <div class="nav-icon-btn">
+      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7">
+        <circle cx="9" cy="6" r="3"/><path d="M2 16c0-3.314 3.134-6 7-6s7 2.686 7 6"/>
+      </svg>
+      <span class="nav-tooltip">Contacts</span>
+    </div>
+
+    <div class="nav-icon-btn">
+      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7">
+        <path d="M2 4h14a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V5a1 1 0 011-1z"/>
+        <path d="M1 5l8 5 8-5"/>
+      </svg>
+      <span class="nav-tooltip">Conversations</span>
+    </div>
+
+    <div class="nav-icon-btn">
+      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7">
+        <path d="M4 4h10a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/>
+        <path d="M6 8h6M6 11h4"/>
+      </svg>
+      <span class="nav-tooltip">Devis</span>
+    </div>
+
+    <div class="nav-divider"></div>
+
+    <div class="nav-icon-btn">
+      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7">
+        <path d="M3 9h3l2-5 3 9 2-4h2"/>
+      </svg>
+      <span class="nav-tooltip">Workflows</span>
+    </div>
+
+    <div class="nav-icon-btn">
+      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7">
+        <circle cx="9" cy="9" r="3"/>
+        <path d="M9 1v2M9 15v2M1 9h2M15 9h2M3.22 3.22l1.42 1.42M13.36 13.36l1.42 1.42M3.22 14.78l1.42-1.42M13.36 4.64l1.42-1.42"/>
+      </svg>
+      <span class="nav-tooltip">Agents</span>
+    </div>
+
+    <div class="nav-icon-btn">
+      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7">
+        <rect x="1" y="1" width="7" height="7" rx="1"/><rect x="10" y="1" width="7" height="7" rx="1"/>
+        <rect x="1" y="10" width="7" height="7" rx="1"/>
+        <path d="M14 10v7M10.5 13.5h7"/>
+      </svg>
+      <span class="nav-tooltip">Architecture</span>
+    </div>
+  </div>
+
+  <div class="sidebar-avatar">TM</div>
+</nav>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- Typographic hero -->
+  <div class="hero-block">
+    <div class="hero-eyebrow">Tableau de bord · Semaine du 7 avril 2026</div>
+    <div class="hero-number-row">
+      <div class="hero-pipeline-wrap">
+        <div class="hero-pipeline" id="val-pipeline">€0k</div>
+        <div class="hero-glow-orb"></div>
+        <div style="margin-top:8px;">
+          <span style="font-size:12px; color:var(--text-tertiary);">Pipeline actif</span>
+          <span class="delta-chip" style="background:rgba(226,255,141,0.1); color:var(--lime);">↑ +18% vs mars</span>
+        </div>
+      </div>
+
+      <div class="hero-sep"></div>
+
+      <div class="hero-secondary">
+        <div class="hero-sec-metric">
+          <div class="hero-sec-label">Leads actifs</div>
+          <div class="hero-sec-value" style="color:var(--blue)" id="val-leads">0</div>
+        </div>
+        <div class="hero-sec-metric">
+          <div class="hero-sec-label">Gagnés ce mois</div>
+          <div class="hero-sec-value" style="color:var(--green)" id="val-won">0</div>
+        </div>
+      </div>
+
+      <div class="hero-sep"></div>
+
+      <div class="hero-secondary">
+        <div class="hero-sec-metric">
+          <div class="hero-sec-label">Conversion</div>
+          <div class="hero-sec-value" style="background:linear-gradient(135deg,var(--indigo),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text" id="val-conv">0%</div>
+        </div>
+        <div class="hero-sec-metric">
+          <div class="hero-sec-label">Valeur moy. deal</div>
+          <div class="hero-sec-value" style="color:var(--text-primary)">€28k</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 1 -->
+  <div class="grid">
+    <!-- Pipeline stages -->
+    <div class="card card-pipeline-gradient card-glow-blue">
+      <div class="card-title">
+        Pipeline par étape
+        <span class="see-all">Voir tout →</span>
+      </div>
+      <div class="stage-pct-list" id="stage-list"></div>
+
+      <div class="sparkline-wrap">
+        <svg id="sparkline" viewBox="0 0 300 60" preserveAspectRatio="none"></svg>
+      </div>
+      <div style="font-size:10px; color:var(--text-tertiary); margin-top:4px; letter-spacing:0.05em;">LEADS · 7 DERNIERS JOURS</div>
+    </div>
+
+    <!-- Won deals -->
+    <div class="card card-glow-green">
+      <div class="card-title">Deals gagnés</div>
+      <div class="won-display">
+        <div class="won-number" id="val-won-big">0</div>
+        <div class="won-detail">
+          contrats<br>ce mois<br>
+          <span style="color:var(--green); font-weight:600;">+3 vs mars</span>
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <div class="stat-row">
+          <div class="stat-chip">
+            <div class="stat-chip-val" style="color:var(--green)">€342k</div>
+            <div class="stat-chip-label">Valeur gagnée</div>
+          </div>
+          <div class="stat-chip">
+            <div class="stat-chip-val" style="color:var(--text-primary)">28j</div>
+            <div class="stat-chip-label">Cycle moyen</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conversion -->
+    <div class="card card-glow-purple">
+      <div class="card-title">Taux de conversion</div>
+      <div class="conv-big" id="val-conv-big">0%</div>
+      <div style="font-size:12px; color:var(--text-secondary); margin-top:8px;">Sur 47 leads qualifiés</div>
+      <div style="margin-top:16px;">
+        <div class="stat-row">
+          <div class="stat-chip">
+            <div class="stat-chip-val" style="color:var(--indigo)">8.2j</div>
+            <div class="stat-chip-label">Rép. moy.</div>
+          </div>
+          <div class="stat-chip">
+            <div class="stat-chip-val" style="color:var(--text-primary)">94%</div>
+            <div class="stat-chip-label">Satisf. IA</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2 -->
+  <div class="grid-2">
+    <!-- Opps -->
+    <div class="card card-glow-blue">
+      <div class="card-title">
+        Opportunités récentes
+        <span class="see-all">Tout voir →</span>
+      </div>
+      <div class="opp-list" id="opp-list"></div>
+    </div>
+
+    <!-- Agents -->
+    <div class="card card-glow-purple" style="grid-column:span 2;">
+      <div class="card-title">
+        Agents IA actifs
+        <span style="font-size:11px; color:var(--indigo); text-transform:none; letter-spacing:0; font-weight:500;">3 en ligne</span>
+      </div>
+      <div class="agent-grid" id="agent-grid"></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const stages = [
+  { name: 'Nouveau', count: 18, color: '#4A8EFF' },
+  { name: 'Contact', count: 14, color: '#A78BFA' },
+  { name: 'Devis', count: 8, color: '#E2FF8D' },
+  { name: 'Signé', count: 7, color: '#34D399' },
+];
+
+const opps = [
+  { initials: 'AB', bg: 'rgba(74,142,255,0.15)', color: '#4A8EFF', name: 'Renovation Dupont', company: 'Batipro SAS', value: '42 000 €', dotColor: '#E2FF8D' },
+  { initials: 'CG', bg: 'rgba(167,139,250,0.15)', color: '#A78BFA', name: 'Chantier Garel', company: 'Maison & Toit', value: '28 500 €', dotColor: '#A78BFA' },
+  { initials: 'MB', bg: 'rgba(52,211,153,0.15)', color: '#34D399', name: 'Extension Bernard', company: 'Bernard & Fils', value: '67 000 €', dotColor: '#34D399' },
+  { initials: 'LM', bg: 'rgba(74,142,255,0.15)', color: '#4A8EFF', name: 'Surélévation Martin', company: 'Groupe Martel', value: '91 000 €', dotColor: '#4A8EFF' },
+  { initials: 'PC', bg: 'rgba(167,139,250,0.15)', color: '#A78BFA', name: 'Rénovation Côté', company: 'Artisan Côté', value: '19 200 €', dotColor: '#A78BFA' },
+];
+
+const agents = [
+  { name: 'Kai', dotColor: '#4A8EFF', status: 'Actif · Analyse', task: 'Extraction des lots du devis Dupont — identification automatique des postes travaux', taskColor: 'rgba(74,142,255,0.06)' },
+  { name: 'Soren', dotColor: '#A78BFA', status: 'Actif · Communication', task: 'Email de relance envoyé à Maison & Toit. Prochaine action planifiée dans 3 jours', taskColor: 'rgba(167,139,250,0.06)' },
+  { name: 'Mia', dotColor: '#34D399', status: 'Actif · Qualification', task: 'Nouveau lead entrant qualifié et assigné au pipeline. Score de qualité : 87/100', taskColor: 'rgba(52,211,153,0.06)' },
+];
+
+const weeklyRaw = [8, 12, 6, 14, 10, 4, 2];
+const days = ['L','M','M','J','V','S','D'];
+
+// Render stages
+const stageList = document.getElementById('stage-list');
+const maxCount = Math.max(...stages.map(s => s.count));
+stages.forEach(s => {
+  const pct = Math.round((s.count / 47) * 100);
+  const el = document.createElement('div');
+  el.className = 'stage-pct-item';
+  el.innerHTML = `
+    <div class="stage-pct-name">${s.name}</div>
+    <div class="stage-pct-bar-wrap">
+      <div class="stage-pct-bar" data-w="${(s.count/maxCount)*100}" style="background:${s.color}; ${s.color === '#E2FF8D' ? 'box-shadow:0 0 6px rgba(226,255,141,0.4)' : ''}"></div>
+    </div>
+    <div class="stage-pct-num" style="color:${s.color}">${s.count}</div>`;
+  stageList.appendChild(el);
+});
+
+// Sparkline SVG
+function buildSparkline() {
+  const svg = document.getElementById('sparkline');
+  const w = 300, h = 60;
+  const max = Math.max(...weeklyRaw);
+  const pts = weeklyRaw.map((v, i) => {
+    const x = (i / (weeklyRaw.length - 1)) * w;
+    const y = h - (v / max) * (h * 0.85) - 4;
+    return `${x},${y}`;
+  });
+  const pathD = 'M' + pts.join(' L');
+  const areaD = pathD + ` L${w},${h} L0,${h} Z`;
+
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#4A8EFF" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#4A8EFF" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="${areaD}" fill="url(#spark-grad)"/>
+    <path d="${pathD}" stroke="#4A8EFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    ${weeklyRaw.map((v, i) => {
+      const x = (i / (weeklyRaw.length - 1)) * w;
+      const y = h - (v / max) * (h * 0.85) - 4;
+      const isMax = v === max;
+      return `<circle cx="${x}" cy="${y}" r="${isMax ? 4 : 2.5}" fill="${isMax ? '#E2FF8D' : '#4A8EFF'}" ${isMax ? 'filter="drop-shadow(0 0 4px #E2FF8D)"' : ''}/>`;
+    }).join('')}`;
+}
+buildSparkline();
+
+// Render opps
+const oppList = document.getElementById('opp-list');
+opps.forEach(o => {
+  const el = document.createElement('div');
+  el.className = 'opp-item';
+  el.innerHTML = `
+    <div class="opp-avatar" style="background:${o.bg};color:${o.color}">${o.initials}</div>
+    <div class="opp-name">${o.name}</div>
+    <div class="opp-val">${o.value}</div>
+    <div class="opp-dot" style="background:${o.dotColor};box-shadow:0 0 5px ${o.dotColor}"></div>`;
+  oppList.appendChild(el);
+});
+
+// Render agents
+const agentGrid = document.getElementById('agent-grid');
+agents.forEach(a => {
+  const el = document.createElement('div');
+  el.className = 'agent-card';
+  el.innerHTML = `
+    <div class="agent-header">
+      <div class="agent-dot" style="background:${a.dotColor};box-shadow:0 0 6px ${a.dotColor}"></div>
+      <div class="agent-name" style="color:${a.dotColor}">${a.name}</div>
+      <div class="agent-status">${a.status}</div>
+    </div>
+    <div class="agent-task" style="background:${a.taskColor}">${a.task}</div>`;
+  agentGrid.appendChild(el);
+});
+
+// Animations
+function countUp(el, end, duration, fmt) {
+  const s = performance.now();
+  const run = t => {
+    const p = Math.min((t-s)/duration, 1);
+    const e = 1-Math.pow(1-p,3);
+    el.textContent = fmt(Math.round(end*e));
+    if (p<1) requestAnimationFrame(run);
+  };
+  requestAnimationFrame(run);
+}
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    countUp(document.getElementById('val-pipeline'), 342, 2000, v => `€${v}k`);
+    countUp(document.getElementById('val-leads'), 47, 1600, v => v);
+    countUp(document.getElementById('val-won'), 12, 1400, v => v);
+    countUp(document.getElementById('val-won-big'), 12, 1400, v => v);
+
+    const convEl1 = document.getElementById('val-conv');
+    const convEl2 = document.getElementById('val-conv-big');
+    const s = performance.now();
+    const runConv = t => {
+      const p = Math.min((t-s)/1800, 1);
+      const e = 1-Math.pow(1-p,3);
+      const v = Math.round(26*e);
+      convEl1.textContent = v + '%';
+      convEl2.textContent = v + '%';
+      if (p<1) requestAnimationFrame(runConv);
+    };
+    requestAnimationFrame(runConv);
+
+    // Stage bars
+    document.querySelectorAll('.stage-pct-bar').forEach((b, i) => {
+      setTimeout(() => { b.style.width = b.dataset.w + '%'; }, 200 + i * 120);
+    });
+  }, 100);
+});
+</script>
+</body>
+</html>

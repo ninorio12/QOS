@@ -42,13 +42,32 @@ function CompteTab() {
   const [assurance, setAssurance] = useState<string>(stored.assurance ?? '')
   const [saved,     setSaved]     = useState(false)
 
-  function handleSave() {
+  async function handleSave() {
+    const adresse = [adresseRue, [adresseCP, adresseCity].filter(Boolean).join(' ')].filter(Boolean).join('\n')
+    // Cache local (retour immédiat si offline)
     try {
-      const adresse = [adresseRue, [adresseCP, adresseCity].filter(Boolean).join(' ')].filter(Boolean).join('\n')
       localStorage.setItem(LS_KEY, JSON.stringify({
         prenom, nom, email, telephone, entreprise, adresse, secteur, fuseau, logo,
         capital, siret, tvaIntra, assurance,
       }))
+    } catch {}
+    // Persistance serveur — champs qui correspondent à company_settings
+    try {
+      await fetch('/api/settings/company', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name:       entreprise || undefined,
+          address:    adresse    || undefined,
+          phone:      telephone  || undefined,
+          email:      email      || undefined,
+          siret:      siret      || undefined,
+          capital:    capital    || undefined,
+          tva_intra:  tvaIntra   || undefined,
+          assurance:  assurance  || undefined,
+        }),
+      })
+      window.dispatchEvent(new Event('company-settings-updated'))
     } catch {}
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
@@ -64,8 +83,8 @@ function CompteTab() {
       <Field label="Téléphone" value={telephone} onChange={setTelephone} placeholder="+33 6 00 00 00 00"  type="tel" />
       <Field label="Entreprise" value={entreprise} onChange={setEntreprise} placeholder="Qorpo" />
 
-      <div className="border-t border-[#E5E7EB] pt-5">
-        <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider mb-4">Coordonnées</p>
+      <div className="border-t border-soren-border pt-5">
+        <p className="text-xs font-bold text-soren-subtle uppercase tracking-wider mb-4">Coordonnées</p>
         <div className="space-y-4">
           <Field label="Rue" value={adresseRue} onChange={setAdresseRue} placeholder="215, avenue Clément Ader" />
           <div className="grid grid-cols-2 gap-4">
@@ -75,11 +94,11 @@ function CompteTab() {
         </div>
       </div>
       <div>
-        <label className="block text-xs font-medium text-[#6B7280] mb-1.5">Secteur</label>
+        <label className="block text-xs font-medium text-soren-muted mb-1.5">Secteur</label>
         <select
           value={secteur}
           onChange={e => setSecteur(e.target.value)}
-          className="w-full bg-white border border-[#E5E7EB] text-[#111111] text-sm rounded-xl px-3 py-2.5 outline-none focus:border-[#3462EE] transition-colors appearance-none"
+          className="w-full bg-soren-card border border-soren-border text-soren-text text-sm rounded-xl px-3 py-2.5 outline-none focus:border-[#3462EE] transition-colors appearance-none"
         >
           <option>BTP / Construction</option>
           <option>Immobilier</option>
@@ -89,11 +108,11 @@ function CompteTab() {
         </select>
       </div>
       <div>
-        <label className="block text-xs font-medium text-[#6B7280] mb-1.5">Fuseau horaire</label>
+        <label className="block text-xs font-medium text-soren-muted mb-1.5">Fuseau horaire</label>
         <select
           value={fuseau}
           onChange={e => setFuseau(e.target.value)}
-          className="w-full bg-white border border-[#E5E7EB] text-[#111111] text-sm rounded-xl px-3 py-2.5 outline-none focus:border-[#3462EE] transition-colors appearance-none"
+          className="w-full bg-soren-card border border-soren-border text-soren-text text-sm rounded-xl px-3 py-2.5 outline-none focus:border-[#3462EE] transition-colors appearance-none"
         >
           <option>Europe/Paris (UTC+1)</option>
           <option>Europe/London (UTC+0)</option>
@@ -101,12 +120,12 @@ function CompteTab() {
         </select>
       </div>
       <div>
-        <label className="block text-xs font-medium text-[#6B7280] mb-1.5">Logo entreprise</label>
+        <label className="block text-xs font-medium text-soren-muted mb-1.5">Logo entreprise</label>
         <div className="flex items-center gap-3">
-          <label className="w-16 h-16 rounded-xl bg-white border border-[#E5E7EB] flex items-center justify-center cursor-pointer hover:border-[#3462EE] transition-colors overflow-hidden flex-shrink-0">
+          <label className="w-16 h-16 rounded-xl bg-soren-card border border-soren-border flex items-center justify-center cursor-pointer hover:border-[#3462EE] transition-colors overflow-hidden flex-shrink-0">
             {logo
               ? <img src={logo} alt="logo" style={{ width: 64, height: 64, objectFit: 'contain', display: 'block' }} />
-              : <Building2 size={20} className="text-[#6B7280]" />
+              : <Building2 size={20} className="text-soren-muted" />
             }
             <input
               type="file"
@@ -148,8 +167,8 @@ function CompteTab() {
           </div>
         </div>
       </div>
-      <div className="border-t border-[#E5E7EB] pt-5 mt-1">
-        <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider mb-4">Mentions légales (pied de devis)</p>
+      <div className="border-t border-soren-border pt-5 mt-1">
+        <p className="text-xs font-bold text-soren-subtle uppercase tracking-wider mb-4">Mentions légales (pied de devis)</p>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Field label="Capital social" value={capital} onChange={setCapital} placeholder="50 000 euros" />
@@ -185,13 +204,13 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-[#6B7280] mb-1.5">{label}</label>
+      <label className="block text-xs font-medium text-soren-muted mb-1.5">{label}</label>
       <input
         type={type}
         placeholder={placeholder}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-white border border-[#E5E7EB] text-[#111111] text-sm rounded-xl px-3 py-2.5 outline-none focus:border-[#3462EE] placeholder-[#9CA3AF] transition-colors"
+        className="w-full bg-soren-card border border-soren-border text-soren-text text-sm rounded-xl px-3 py-2.5 outline-none focus:border-[#3462EE] placeholder-[#9CA3AF] transition-colors"
       />
     </div>
   )
@@ -209,7 +228,7 @@ function IntegrationRow({
   badge?: string
 }) {
   return (
-    <div className="flex items-center justify-between py-3.5 border-b border-[#E5E7EB] last:border-0">
+    <div className="flex items-center justify-between py-3.5 border-b border-soren-border last:border-0">
       <div className="flex items-center gap-3">
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
           status === 'connected' ? 'bg-[#22c55e]' :
@@ -218,25 +237,25 @@ function IntegrationRow({
         }`} />
         <div>
           <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold text-[#111111]">{name}</p>
+            <p className="text-sm font-semibold text-soren-text">{name}</p>
             {badge && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#6B7280]/12 text-[#6B7280]">
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#6B7280]/12 text-soren-muted">
                 {badge}
               </span>
             )}
           </div>
-          <p className="text-[11px] text-[#9CA3AF] mt-0.5">{description}</p>
+          <p className="text-[11px] text-soren-subtle mt-0.5">{description}</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
         {status === 'connected' ? (
           <CheckCircle size={14} className="text-[#22c55e]" />
         ) : (
-          <XCircle size={14} className="text-[#9CA3AF]" />
+          <XCircle size={14} className="text-soren-subtle" />
         )}
         <button className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
           status === 'connected'
-            ? 'border-[#E5E7EB] text-[#6B7280] hover:text-[#111111] hover:border-[#3D4F6B]'
+            ? 'border-soren-border text-soren-muted hover:text-soren-text hover:border-[#3D4F6B]'
             : 'border-[#3462EE]/40 text-[#3462EE] hover:bg-[#3462EE]/10'
         }`}>
           {status === 'connected' ? 'Configurer' : 'Connecter'}
@@ -249,9 +268,9 @@ function IntegrationRow({
 function IntegrationsTab() {
   return (
     <div className="max-w-xl">
-      <div className="bg-white border border-[#E5E7EB] rounded-2xl divide-y divide-[#E5E7EB]">
+      <div className="bg-soren-card border border-soren-border rounded-2xl divide-y divide-[#E5E7EB]">
         <div className="px-4 py-3">
-          <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider">CRM & Communication</p>
+          <p className="text-xs font-bold text-soren-subtle uppercase tracking-wider">CRM & Communication</p>
         </div>
         <div className="px-4">
           <IntegrationRow
@@ -269,9 +288,9 @@ function IntegrationsTab() {
         </div>
       </div>
 
-      <div className="bg-white border border-[#E5E7EB] rounded-2xl divide-y divide-[#E5E7EB] mt-4">
+      <div className="bg-soren-card border border-soren-border rounded-2xl divide-y divide-[#E5E7EB] mt-4">
         <div className="px-4 py-3">
-          <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider">IA & Automatisation</p>
+          <p className="text-xs font-bold text-soren-subtle uppercase tracking-wider">IA & Automatisation</p>
         </div>
         <div className="px-4">
           <IntegrationRow
@@ -330,25 +349,25 @@ function PaiementTab() {
         {PLANS.map(plan => (
           <div key={plan.name} className={`rounded-2xl p-4 border ${
             plan.current
-              ? 'border-[#111111] bg-[#111111]/4'
-              : 'border-[#E5E7EB] bg-white'
+              ? 'border-[#111111] bg-soren-sidebar/4'
+              : 'border-soren-border bg-soren-card'
           }`}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-bold text-[#111111]">{plan.name}</p>
+              <p className="text-sm font-bold text-soren-text">{plan.name}</p>
               {plan.current && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#111111] text-white">
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-soren-sidebar text-white">
                   ACTUEL
                 </span>
               )}
             </div>
-            <p className="text-xl font-bold text-[#111111]">
+            <p className="text-xl font-bold text-soren-text">
               {plan.price}
-              <span className="text-xs font-normal text-[#9CA3AF]">{plan.period}</span>
+              <span className="text-xs font-normal text-soren-subtle">{plan.period}</span>
             </p>
             <ul className="mt-3 space-y-1">
               {plan.features.map(f => (
-                <li key={f} className="text-[11px] text-[#6B7280] flex items-center gap-1.5">
-                  <span className="text-[#111111] font-bold">·</span> {f}
+                <li key={f} className="text-[11px] text-soren-muted flex items-center gap-1.5">
+                  <span className="text-soren-text font-bold">·</span> {f}
                 </li>
               ))}
             </ul>
@@ -362,17 +381,17 @@ function PaiementTab() {
       </div>
 
       {/* Billing history */}
-      <div className="bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#E5E7EB]">
-          <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider">Historique de facturation</p>
+      <div className="bg-soren-card border border-soren-border rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-soren-border">
+          <p className="text-xs font-bold text-soren-subtle uppercase tracking-wider">Historique de facturation</p>
         </div>
         {BILLING.map(b => (
-          <div key={b.date} className="flex items-center justify-between px-4 py-3 border-b border-[#E5E7EB] last:border-0">
-            <span className="text-sm text-[#111111]">{b.date}</span>
+          <div key={b.date} className="flex items-center justify-between px-4 py-3 border-b border-soren-border last:border-0">
+            <span className="text-sm text-soren-text">{b.date}</span>
             <div className="flex items-center gap-4">
-              <span className="text-sm font-semibold text-[#111111]">{b.amount}</span>
+              <span className="text-sm font-semibold text-soren-text">{b.amount}</span>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#22c55e]/10 text-[#22c55e]">{b.status}</span>
-              <button className="text-[#9CA3AF] hover:text-[#111111] transition-colors">
+              <button className="text-soren-subtle hover:text-soren-text transition-colors">
                 <ExternalLink size={12} />
               </button>
             </div>
@@ -397,20 +416,20 @@ export default function ParametresView() {
     <div className="p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-lg font-bold text-[#111111]">Paramètres</h1>
-        <p className="text-xs text-[#6B7280] mt-0.5">Configuration de votre espace Soren</p>
+        <h1 className="text-lg font-bold text-soren-text">Paramètres</h1>
+        <p className="text-xs text-soren-muted mt-0.5">Configuration de votre espace Soren</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-[#E5E7EB] pb-0">
+      <div className="flex gap-1 mb-6 border-b border-soren-border pb-0">
         {TABS.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2.5 text-sm font-medium transition-all border-b-2 -mb-px ${
               activeTab === tab.id
-                ? 'border-[#111111] text-[#111111] font-semibold'
-                : 'border-transparent text-[#6B7280] hover:text-[#111111] hover:border-[#D1D5DB]'
+                ? 'border-[#111111] text-soren-text font-semibold'
+                : 'border-transparent text-soren-muted hover:text-soren-text hover:border-[#D1D5DB]'
             }`}
           >
             {tab.label}

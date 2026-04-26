@@ -2,12 +2,31 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendGHLMessage } from '@/lib/ghl'
 import { sendDevisEmail } from '@/lib/resend'
-import { generatePdfFromHtml } from '@/lib/apitemplate'
+import { generatePdfBuffer } from '@/lib/pdf'
 import { buildDevisHtml } from '@/lib/devisHtmlBuilder'
 import type { CompanyForTemplate } from '@/components/devis/DevisTemplateStatic'
 
 function generateToken(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
+}
+
+function buildCompany(settings: Record<string, unknown> | null, logoBase64: string | null): CompanyForTemplate {
+  if (!settings) {
+    return { name: 'Mon Entreprise', tagline: '', address: '', phone: '', email: '', logoBase64: null, capital: '', siret: '', tvaIntra: '', assurance: '', brandColor: '#111111' }
+  }
+  return {
+    name:       (settings.name       as string) ?? 'Mon Entreprise',
+    tagline:    (settings.tagline    as string) ?? '',
+    address:    (settings.address    as string) ?? '',
+    phone:      (settings.phone      as string) ?? '',
+    email:      (settings.email      as string) ?? '',
+    logoBase64,
+    capital:    (settings.capital    as string) ?? '',
+    siret:      (settings.siret      as string) ?? '',
+    tvaIntra:   (settings.tva_intra  as string) ?? '',
+    assurance:  (settings.assurance  as string) ?? '',
+    brandColor: (settings.brand_color as string) ?? '#111111',
+  }
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -26,14 +45,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // Réutiliser le token existant ou en générer un nouveau
   const token = (devis.signature_token as string | null) ?? generateToken()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-  const signatureUrl = `${appUrl}/api/devis/signature/${token}`
+  const signatureUrl = `${appUrl}/signer/${token}`
+  const envoyeLe = new Date().toISOString()
 
   await supabase
     .from('devis')
     .update({
       signature_token:  token,
       signature_statut: 'envoye',
-      updated_at:       new Date().toISOString(),
+      envoye_le:        envoyeLe,
+      updated_at:       envoyeLe,
     })
     .eq('id', params.id)
 
@@ -42,49 +63,29 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return Response.json({ error: 'Aucun email contact renseigné sur ce devis' }, { status: 422 })
     }
 
-    // Générer le PDF si pas encore disponible
-    let pdfUrl: string | null = (devis.pdf_url as string | null) ?? null
-    if (!pdfUrl) {
-      try {
-        const svgRaw: string | null = settings?.logo_svg ?? null
-        const logoBase64 = svgRaw ? Buffer.from(svgRaw).toString('base64') : null
-        const company: CompanyForTemplate = settings ? {
-          name:       settings.name       ?? 'Mon Entreprise',
-          tagline:    settings.tagline    ?? '',
-          address:    settings.address    ?? '',
-          phone:      settings.phone      ?? '',
-          email:      settings.email      ?? '',
-          logoBase64,
-          capital:    settings.capital    ?? '',
-          siret:      settings.siret      ?? '',
-          tvaIntra:   settings.tva_intra  ?? '',
-          assurance:  settings.assurance  ?? '',
-          brandColor: settings.brand_color ?? '#111111',
-        } : {
-          name: 'Mon Entreprise', tagline: '', address: '', phone: '', email: '',
-          logoBase64: null, capital: '', siret: '', tvaIntra: '', assurance: '',
-          brandColor: '#111111',
-        }
+    // Générer le PDF en local via Puppeteer
+    let pdfBuffer: Buffer | null = null
+    try {
+      const svgRaw: string | null = (settings as Record<string, unknown> | null)?.logo_svg as string | null ?? null
+      const logoBase64 = svgRaw ? Buffer.from(svgRaw).toString('base64') : null
+      const company = buildCompany(settings as Record<string, unknown> | null, logoBase64)
 
-        const lignes = Array.isArray(devis.lignes) ? devis.lignes : []
-        const html = buildDevisHtml({
-          numero:          devis.numero           ?? null,
-          titre:           devis.titre            ?? '',
-          lignes,
-          notes:           devis.notes            ?? '',
-          ville:           devis.ville            ?? '',
-          dateValidite:    devis.date_validite     ?? '',
-          adresseChantier: devis.adresse_chantier ?? '',
-          contactName:     devis.contact_name      ?? null,
-          adresseClient:   devis.adresse_client    ?? '',
-          createdAt:       devis.created_at        ?? '',
-        }, company)
+      const html = buildDevisHtml({
+        numero:          (devis.numero           as string | null) ?? null,
+        titre:           (devis.titre            as string)        ?? '',
+        lignes:          Array.isArray(devis.lignes) ? devis.lignes : [],
+        notes:           (devis.notes            as string)        ?? '',
+        ville:           (devis.ville            as string)        ?? '',
+        dateValidite:    (devis.date_validite     as string)        ?? '',
+        adresseChantier: (devis.adresse_chantier as string)        ?? '',
+        contactName:     (devis.contact_name      as string | null) ?? null,
+        adresseClient:   (devis.adresse_client    as string)        ?? '',
+        createdAt:       (devis.created_at        as string)        ?? '',
+      }, company)
 
-        pdfUrl = await generatePdfFromHtml(html)
-        await supabase.from('devis').update({ pdf_url: pdfUrl }).eq('id', params.id)
-      } catch {
-        // PDF non généré — on continue sans pièce jointe
-      }
+      pdfBuffer = await generatePdfBuffer(html)
+    } catch {
+      // PDF non généré — on continue sans pièce jointe
     }
 
     type Ligne = { quantite: number; prixUnitaire: number; tvaRate: number }
@@ -100,13 +101,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       montantHT:    montantHT  > 0 ? montantHT  : ((devis.montant_ht as number | null) ?? 0),
       montantTTC:   montantTTC > 0 ? montantTTC : ((devis.montant_ht as number | null) ?? 0) * 1.2,
       signatureUrl,
-      pdfUrl,
-      companyName:  settings?.name        ?? 'Mon Entreprise',
-      companyEmail: settings?.email       ?? '',
-      brandColor:   settings?.brand_color ?? '#111111',
+      pdfBuffer,
+      companyName:  (settings as Record<string, unknown> | null)?.name as string        ?? 'Mon Entreprise',
+      companyEmail: (settings as Record<string, unknown> | null)?.email as string       ?? '',
+      brandColor:   (settings as Record<string, unknown> | null)?.brand_color as string ?? '#111111',
     })
 
-    return Response.json({ signature_url: signatureUrl, token, channel: 'email' })
+    return Response.json({ signature_url: signatureUrl, token, channel: 'email', envoye_le: envoyeLe })
   }
 
   // Canal WhatsApp (comportement original)
@@ -121,5 +122,5 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     ).catch(() => null)
   }
 
-  return Response.json({ signature_url: signatureUrl, token, channel: 'whatsapp' })
+  return Response.json({ signature_url: signatureUrl, token, channel: 'whatsapp', envoye_le: envoyeLe })
 }

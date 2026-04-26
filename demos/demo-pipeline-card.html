@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Valeur Pipeline — 6 Options</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #000;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    h1 {
+      color: rgba(255,255,255,0.3);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 40px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 280px);
+      gap: 32px 28px;
+    }
+
+    .card-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-label {
+      color: rgba(255,255,255,0.3);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* ─── BASE CARD ─── */
+    .card {
+      width: 280px;
+      height: 220px;
+      background: #E2FF8D;
+      border-radius: 24px;
+      padding: 20px;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+      cursor: default;
+    }
+    .card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 12px 40px rgba(226,255,141,0.18);
+    }
+
+    /* ══════════════════════════════════════
+       OPTION 1 — Chiffre dominant (Brutalist)
+    ══════════════════════════════════════ */
+    .card-1 {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .c1-top-right {
+      position: absolute;
+      top: 18px;
+      right: 20px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      color: rgba(0,0,0,0.6);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .c1-top-right svg {
+      width: 10px;
+      height: 10px;
+    }
+
+    .c1-number {
+      font-family: 'Outfit', sans-serif;
+      font-size: 72px;
+      font-weight: 800;
+      color: #000;
+      line-height: 1;
+      margin-bottom: 10px;
+      letter-spacing: -2px;
+    }
+
+    .c1-bottom {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 10px;
+      font-weight: 500;
+      color: rgba(0,0,0,0.5);
+      letter-spacing: 0.02em;
+    }
+
+    /* ══════════════════════════════════════
+       OPTION 2 — Split horizontal (Bento)
+    ══════════════════════════════════════ */
+    .card-2 {
+      display: flex;
+      flex-direction: row;
+      gap: 0;
+      padding: 0;
+    }
+
+    .c2-left {
+      flex: 0 0 60%;
+      padding: 20px 16px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .c2-divider {
+      width: 1px;
+      background: rgba(0,0,0,0.1);
+      margin: 16px 0;
+      flex-shrink: 0;
+    }
+
+    .c2-right {
+      flex: 1;
+      padding: 20px 20px 20px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0;
+    }
+
+    .c2-label {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.5);
+      letter-spacing: 0.02em;
+    }
+
+    .c2-main {
+      font-family: 'Outfit', sans-serif;
+      font-size: 44px;
+      font-weight: 800;
+      color: #000;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+
+    .c2-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      padding: 12px 0;
+    }
+
+    .c2-stat + .c2-stat {
+      border-top: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .c2-stat-num {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      color: #000;
+      line-height: 1;
+    }
+
+    .c2-stat-lbl {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 10px;
+      font-weight: 500;
+      color: rgba(0,0,0,0.5);
+    }
+
+    /* ══════════════════════════════════════
+       OPTION 3 — Ring + Chiffre (Donut)
+    ══════════════════════════════════════ */
+    .card-3 {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-align: center;
+    }
+
+    .c3-label {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.6);
+      letter-spacing: 0.02em;
+    }
+
+    .c3-ring-wrap {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .c3-ring-wrap svg {
+      position: absolute;
+      top: 0; left: 0;
+      width: 80px;
+      height: 80px;
+      transform: rotate(-90deg);
+    }
+
+    .c3-ring-inner {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      color: #000;
+      position: relative;
+      z-index: 1;
+    }
+
+    .c3-main {
+      font-family: 'Outfit', sans-serif;
+      font-size: 36px;
+      font-weight: 800;
+      color: #000;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+
+    .c3-bottom {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 10px;
+      font-weight: 500;
+      color: rgba(0,0,0,0.5);
+    }
+
+    /* ══════════════════════════════════════
+       OPTION 4 — Funnel visuel
+    ══════════════════════════════════════ */
+    .card-4 {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .c4-header {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-bottom: 14px;
+    }
+
+    .c4-label {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.5);
+    }
+
+    .c4-main {
+      font-family: 'Outfit', sans-serif;
+      font-size: 40px;
+      font-weight: 800;
+      color: #000;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+
+    .c4-funnel {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .c4-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .c4-row-label {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 9px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.5);
+      width: 46px;
+      flex-shrink: 0;
+    }
+
+    .c4-bar-track {
+      flex: 1;
+      height: 6px;
+      background: rgba(0,0,0,0.12);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .c4-bar-fill {
+      height: 100%;
+      background: #000;
+      border-radius: 99px;
+    }
+
+    .c4-row-count {
+      font-family: 'Outfit', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(0,0,0,0.7);
+      width: 16px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* ══════════════════════════════════════
+       OPTION 5 — Carte chiffre + badges
+    ══════════════════════════════════════ */
+    .card-5 {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .c5-top {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .c5-label {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.5);
+    }
+
+    .c5-main {
+      font-family: 'Outfit', sans-serif;
+      font-size: 48px;
+      font-weight: 800;
+      color: #000;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+
+    .c5-chips {
+      display: flex;
+      gap: 6px;
+    }
+
+    .c5-chip {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      flex: 1;
+    }
+
+    .c5-chip.white { background: rgba(255,255,255,0.75); }
+    .c5-chip.dark  { background: rgba(0,0,0,0.1); }
+
+    .c5-chip-num {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      color: #000;
+      line-height: 1;
+    }
+
+    .c5-chip-lbl {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 9px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.55);
+    }
+
+    .c5-footer {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding-top: 8px;
+      border-top: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .c5-link {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.55);
+      letter-spacing: 0.01em;
+    }
+
+    /* ══════════════════════════════════════
+       OPTION 6 — Typographie seule (Raw)
+    ══════════════════════════════════════ */
+    .card-6 {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px 20px 20px 20px;
+    }
+
+    .c6-eyebrow {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(0,0,0,0.4);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .c6-number-zone {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      margin: 0 -20px;
+    }
+
+    .c6-giant {
+      font-family: 'Outfit', sans-serif;
+      font-size: 108px;
+      font-weight: 800;
+      color: #000;
+      line-height: 1;
+      letter-spacing: -4px;
+      padding-left: 14px;
+      user-select: none;
+    }
+
+    .c6-euro {
+      position: absolute;
+      top: 8px;
+      left: 20px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: rgba(0,0,0,0.6);
+      line-height: 1;
+    }
+
+    .c6-k {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: rgba(0,0,0,0.6);
+      line-height: 1;
+    }
+
+    .c6-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .c6-left {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.6);
+    }
+
+    .c6-right {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(0,0,0,0.6);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Valeur Pipeline — 6 options de design</h1>
+
+  <div class="grid">
+
+    <!-- ─── OPTION 1 ─── -->
+    <div class="card-wrap">
+      <div class="card card-1">
+        <div class="c1-top-right">
+          <svg viewBox="0 0 10 10" fill="none">
+            <path d="M5 8V2M2 5l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          +18%
+        </div>
+        <div class="c1-number">€342k</div>
+        <div class="c1-bottom">47 actifs · 26% conv.</div>
+      </div>
+      <span class="card-label">01 — Chiffre dominant</span>
+    </div>
+
+    <!-- ─── OPTION 2 ─── -->
+    <div class="card-wrap">
+      <div class="card card-2">
+        <div class="c2-left">
+          <span class="c2-label">Valeur Pipeline</span>
+          <span class="c2-main">€342k</span>
+        </div>
+        <div class="c2-divider"></div>
+        <div class="c2-right">
+          <div class="c2-stat">
+            <span class="c2-stat-num">47</span>
+            <span class="c2-stat-lbl">actifs</span>
+          </div>
+          <div class="c2-stat">
+            <span class="c2-stat-num">26%</span>
+            <span class="c2-stat-lbl">conv.</span>
+          </div>
+        </div>
+      </div>
+      <span class="card-label">02 — Split horizontal</span>
+    </div>
+
+    <!-- ─── OPTION 3 ─── -->
+    <div class="card-wrap">
+      <div class="card card-3">
+        <span class="c3-label">Valeur Pipeline</span>
+        <div class="c3-ring-wrap">
+          <svg viewBox="0 0 80 80">
+            <!-- Track -->
+            <circle
+              cx="40" cy="40" r="32"
+              fill="none"
+              stroke="rgba(0,0,0,0.1)"
+              stroke-width="8"
+            />
+            <!-- Progress: 26% of circumference = 0.26 × 2π × 32 ≈ 52.2; full = 201.1 -->
+            <circle
+              cx="40" cy="40" r="32"
+              fill="none"
+              stroke="#000"
+              stroke-width="8"
+              stroke-linecap="round"
+              stroke-dasharray="52.2 201.1"
+            />
+          </svg>
+          <span class="c3-ring-inner">26%</span>
+        </div>
+        <span class="c3-main">€342k</span>
+        <span class="c3-bottom">47 leads actifs</span>
+      </div>
+      <span class="card-label">03 — Ring + Chiffre</span>
+    </div>
+
+    <!-- ─── OPTION 4 ─── -->
+    <div class="card-wrap">
+      <div class="card card-4">
+        <div class="c4-header">
+          <span class="c4-label">Valeur Pipeline</span>
+          <span class="c4-main">€342k</span>
+        </div>
+        <div class="c4-funnel">
+          <!-- Nouveau: 18/18 = 100% -->
+          <div class="c4-row">
+            <span class="c4-row-label">Nouveau</span>
+            <div class="c4-bar-track">
+              <div class="c4-bar-fill" style="width:100%"></div>
+            </div>
+            <span class="c4-row-count">18</span>
+          </div>
+          <!-- Contact: 14/18 = 78% -->
+          <div class="c4-row">
+            <span class="c4-row-label">Contact</span>
+            <div class="c4-bar-track">
+              <div class="c4-bar-fill" style="width:78%"></div>
+            </div>
+            <span class="c4-row-count">14</span>
+          </div>
+          <!-- Devis: 8/18 = 44% -->
+          <div class="c4-row">
+            <span class="c4-row-label">Devis</span>
+            <div class="c4-bar-track">
+              <div class="c4-bar-fill" style="width:44%"></div>
+            </div>
+            <span class="c4-row-count">8</span>
+          </div>
+          <!-- Signé: 7/18 = 39% -->
+          <div class="c4-row">
+            <span class="c4-row-label">Signé</span>
+            <div class="c4-bar-track">
+              <div class="c4-bar-fill" style="width:39%"></div>
+            </div>
+            <span class="c4-row-count">7</span>
+          </div>
+        </div>
+      </div>
+      <span class="card-label">04 — Funnel visuel</span>
+    </div>
+
+    <!-- ─── OPTION 5 ─── -->
+    <div class="card-wrap">
+      <div class="card card-5">
+        <div class="c5-top">
+          <span class="c5-label">Pipeline actif</span>
+          <span class="c5-main">€342k</span>
+        </div>
+        <div class="c5-chips">
+          <div class="c5-chip white">
+            <span class="c5-chip-num">47</span>
+            <span class="c5-chip-lbl">leads</span>
+          </div>
+          <div class="c5-chip dark">
+            <span class="c5-chip-num">12</span>
+            <span class="c5-chip-lbl">gagnés</span>
+          </div>
+          <div class="c5-chip dark">
+            <span class="c5-chip-num">26%</span>
+            <span class="c5-chip-lbl">conv.</span>
+          </div>
+        </div>
+        <div class="c5-footer">
+          <span class="c5-link">Vue pipeline →</span>
+        </div>
+      </div>
+      <span class="card-label">05 — Chiffre + badges</span>
+    </div>
+
+    <!-- ─── OPTION 6 ─── -->
+    <div class="card-wrap">
+      <div class="card card-6">
+        <span class="c6-eyebrow">Pipeline</span>
+        <div class="c6-number-zone">
+          <span class="c6-euro">€</span>
+          <span class="c6-giant">342</span>
+          <span class="c6-k">k</span>
+        </div>
+        <div class="c6-footer">
+          <span class="c6-left">47 actifs</span>
+          <span class="c6-right">↑ +18%</span>
+        </div>
+      </div>
+      <span class="card-label">06 — Typographie seule</span>
+    </div>
+
+  </div>
+
+</body>
+</html>

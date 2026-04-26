@@ -1,7 +1,7 @@
 import AnalyseView from '@/components/analyse/AnalyseView'
 import { getOpportunities, getPipelines, type GHLOpportunity, type GHLPipeline } from '@/lib/ghl'
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 type SearchParams = { pipeline?: string; period?: string }
 

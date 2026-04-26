@@ -11,7 +11,7 @@ export default function AnalyseLoading() {
 
       <div className="grid grid-cols-4 gap-3 mb-4 flex-shrink-0">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-2xl p-4 border border-[#E5E7EB] shadow-sm">
+          <div key={i} className="bg-soren-card rounded-2xl p-4 border border-soren-border shadow-sm">
             <div className="h-2.5 w-20 bg-[#E5E7EB] rounded mb-3" />
             <div className="h-7 w-14 bg-[#D9DDD6] rounded-lg" />
           </div>
@@ -20,7 +20,7 @@ export default function AnalyseLoading() {
 
       <div className="flex-1 grid grid-cols-2 gap-3 min-h-0">
         {Array.from({ length: 2 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-2xl p-4 border border-[#E5E7EB] shadow-sm flex flex-col">
+          <div key={i} className="bg-soren-card rounded-2xl p-4 border border-soren-border shadow-sm flex flex-col">
             <div className="h-3 w-32 bg-[#E5E7EB] rounded mb-4" />
             <div className="flex-1 flex items-end gap-2 pb-2">
               {Array.from({ length: 8 }).map((_, j) => (

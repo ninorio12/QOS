@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Objectives v2</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #EEF0EB;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  padding: 32px 24px;
+  color: #111;
+}
+.label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: #999; margin-bottom: 10px; }
+.option { margin-bottom: 48px; }
+
+/* ── OPTION A — Donut rings sombres ── */
+.opt-a {
+  background: #1C1C1E;
+  border-radius: 24px;
+  padding: 24px 32px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.opt-a-item { display: flex; flex-direction: column; align-items: center; padding: 0 20px; border-right: 1px solid rgba(255,255,255,0.06); }
+.opt-a-item:last-child { border-right: none; }
+.opt-a-kpi { font-size: 10px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 14px; align-self: flex-start; }
+.donut-wrap { position: relative; width: 96px; height: 96px; }
+.donut-wrap svg { transform: rotate(-90deg); }
+.donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.donut-num { font-size: 18px; font-weight: 900; line-height: 1; letter-spacing: -1px; }
+.donut-pct { font-size: 9px; color: #555; margin-top: 2px; }
+.opt-a-target { font-size: 10px; color: #444; margin-top: 10px; }
+
+/* ── OPTION B — Jauges demi-cercle blanches ── */
+.opt-b {
+  background: #fff;
+  border-radius: 24px;
+  padding: 20px 32px 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.opt-b-item { display: flex; flex-direction: column; align-items: center; padding: 0 20px; border-right: 1px solid #F0F0EB; }
+.opt-b-item:last-child { border-right: none; }
+.opt-b-kpi { font-size: 10px; font-weight: 600; color: #bbb; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px; align-self: flex-start; }
+.gauge-wrap { position: relative; width: 110px; height: 62px; overflow: hidden; }
+.gauge-num { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font-size: 22px; font-weight: 900; letter-spacing: -1px; line-height: 1; }
+.opt-b-target { font-size: 10px; color: #ccc; margin-top: 8px; }
+
+/* ── OPTION C — Sparkbars + chiffre ── */
+.opt-c { background: #1C1C1E; border-radius: 24px; overflow: hidden; }
+.opt-c-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.opt-c-title { font-size: 10px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: .7px; }
+.opt-c-month { font-size: 10px; color: #444; }
+.opt-c-row { display: flex; align-items: center; padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 16px; }
+.opt-c-row:last-child { border-bottom: none; }
+.opt-c-name { font-size: 11px; color: #555; font-weight: 500; width: 148px; flex-shrink: 0; }
+.opt-c-chart { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.opt-c-bars { display: flex; gap: 2px; align-items: flex-end; height: 24px; }
+.opt-c-bar { flex: 1; border-radius: 2px 2px 0 0; background: #2E2E2E; }
+.opt-c-bartrack { height: 3px; background: #2E2E2E; border-radius: 2px; overflow: hidden; }
+.opt-c-barfill { height: 100%; border-radius: 2px; }
+.opt-c-num { font-size: 22px; font-weight: 900; letter-spacing: -1px; width: 90px; text-align: right; flex-shrink: 0; }
+.opt-c-target { font-size: 10px; color: #444; width: 50px; text-align: right; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- OPTION A -->
+<div class="option">
+  <div class="label">Option A — Donuts circulaires · fond sombre</div>
+  <div class="opt-a">
+    <div class="opt-a-item">
+      <div class="opt-a-kpi">Chiffre d'affaires</div>
+      <div class="donut-wrap">
+        <svg width="96" height="96" viewBox="0 0 96 96">
+          <circle cx="48" cy="48" r="38" fill="none" stroke="#2E2E2E" stroke-width="10"/>
+          <circle cx="48" cy="48" r="38" fill="none" stroke="#E2FF8D" stroke-width="10"
+            stroke-dasharray="238.76" stroke-dashoffset="28.65" stroke-linecap="round"/>
+        </svg>
+        <div class="donut-center">
+          <span class="donut-num" style="color:#E2FF8D">88k€</span>
+          <span class="donut-pct">88%</span>
+        </div>
+      </div>
+      <div class="opt-a-target" style="color:#555">/ 100k objectif</div>
+    </div>
+    <div class="opt-a-item">
+      <div class="opt-a-kpi">Leads qualifiés</div>
+      <div class="donut-wrap">
+        <svg width="96" height="96" viewBox="0 0 96 96">
+          <circle cx="48" cy="48" r="38" fill="none" stroke="#2E2E2E" stroke-width="10"/>
+          <circle cx="48" cy="48" r="38" fill="none" stroke="#ffffff" stroke-width="10"
+            stroke-dasharray="238.76" stroke-dashoffset="95.5" stroke-linecap="round"/>
+        </svg>
+        <div class="donut-center">
+          <span class="donut-num" style="color:#fff">18</span>
+          <span class="donut-pct">60%</span>
+        </div>
+      </div>
+      <div class="opt-a-target">/ 30 objectif</div>
+    </div>
+    <div class="opt-a-item">
+      <div class="opt-a-kpi">Taux de conversion</div>
+      <div class="donut-wrap">
+        <svg width="96" height="96" viewBox="0 0 96 96">
+          <circle cx="48" cy="48" r="38" fill="none" stroke="#2E2E2E" stroke-width="10"/>
+          <circle cx="48" cy="48" r="38" fill="none" stroke="#ffffff" stroke-width="10"
+            stroke-dasharray="238.76" stroke-dashoffset="66.85" stroke-linecap="round"/>
+        </svg>
+        <div class="donut-center">
+          <span class="donut-num" style="color:#fff">18%</span>
+          <span class="donut-pct">72%</span>
+        </div>
+      </div>
+      <div class="opt-a-target">/ 25% objectif</div>
+    </div>
+  </div>
+</div>
+
+<!-- OPTION B -->
+<div class="option">
+  <div class="label">Option B — Jauges demi-cercle · fond blanc</div>
+  <div class="opt-b">
+    <div class="opt-b-item">
+      <div class="opt-b-kpi">Chiffre d'affaires</div>
+      <div class="gauge-wrap">
+        <svg width="110" height="62" viewBox="0 0 110 62">
+          <path d="M10,56 A45,45 0 0,1 100,56" fill="none" stroke="#F0F0EB" stroke-width="9" stroke-linecap="round"/>
+          <path d="M10,56 A45,45 0 0,1 100,56" fill="none" stroke="#9ab800" stroke-width="9"
+            stroke-linecap="round" stroke-dasharray="141.37" stroke-dashoffset="16.96"/>
+        </svg>
+        <div class="gauge-num" style="color:#9ab800">88k€</div>
+      </div>
+      <div class="opt-b-target">/ 100k objectif</div>
+    </div>
+    <div class="opt-b-item">
+      <div class="opt-b-kpi">Leads qualifiés</div>
+      <div class="gauge-wrap">
+        <svg width="110" height="62" viewBox="0 0 110 62">
+          <path d="M10,56 A45,45 0 0,1 100,56" fill="none" stroke="#F0F0EB" stroke-width="9" stroke-linecap="round"/>
+          <path d="M10,56 A45,45 0 0,1 100,56" fill="none" stroke="#111" stroke-width="9"
+            stroke-linecap="round" stroke-dasharray="141.37" stroke-dashoffset="56.55"/>
+        </svg>
+        <div class="gauge-num" style="color:#111">18</div>
+      </div>
+      <div class="opt-b-target">/ 30 objectif</div>
+    </div>
+    <div class="opt-b-item">
+      <div class="opt-b-kpi">Taux de conversion</div>
+      <div class="gauge-wrap">
+        <svg width="110" height="62" viewBox="0 0 110 62">
+          <path d="M10,56 A45,45 0 0,1 100,56" fill="none" stroke="#F0F0EB" stroke-width="9" stroke-linecap="round"/>
+          <path d="M10,56 A45,45 0 0,1 100,56" fill="none" stroke="#111" stroke-width="9"
+            stroke-linecap="round" stroke-dasharray="141.37" stroke-dashoffset="39.58"/>
+        </svg>
+        <div class="gauge-num" style="color:#111">18%</div>
+      </div>
+      <div class="opt-b-target">/ 25% objectif</div>
+    </div>
+  </div>
+</div>
+
+<!-- OPTION C -->
+<div class="option">
+  <div class="label">Option C — Sparkbars hebdo + chiffre · fond sombre</div>
+  <div class="opt-c">
+    <div class="opt-c-header">
+      <span class="opt-c-title">Objectifs</span>
+      <span class="opt-c-month">Avril 2026</span>
+    </div>
+    <div class="opt-c-row">
+      <span class="opt-c-name">Chiffre d'affaires</span>
+      <div class="opt-c-chart">
+        <div class="opt-c-bars">
+          <div class="opt-c-bar" style="height:35%;background:#E2FF8D;opacity:.3"></div>
+          <div class="opt-c-bar" style="height:50%;background:#E2FF8D;opacity:.4"></div>
+          <div class="opt-c-bar" style="height:45%;background:#E2FF8D;opacity:.45"></div>
+          <div class="opt-c-bar" style="height:70%;background:#E2FF8D;opacity:.55"></div>
+          <div class="opt-c-bar" style="height:60%;background:#E2FF8D;opacity:.6"></div>
+          <div class="opt-c-bar" style="height:80%;background:#E2FF8D;opacity:.75"></div>
+          <div class="opt-c-bar" style="height:88%;background:#E2FF8D"></div>
+          <div class="opt-c-bar"></div>
+          <div class="opt-c-bar"></div>
+          <div class="opt-c-bar"></div>
+        </div>
+        <div class="opt-c-bartrack"><div class="opt-c-barfill" style="width:88%;background:#E2FF8D"></div></div>
+      </div>
+      <span class="opt-c-num" style="color:#E2FF8D">88k€</span>
+      <span class="opt-c-target">/ 100k</span>
+    </div>
+    <div class="opt-c-row">
+      <span class="opt-c-name">Leads qualifiés</span>
+      <div class="opt-c-chart">
+        <div class="opt-c-bars">
+          <div class="opt-c-bar" style="height:30%;background:#fff;opacity:.2"></div>
+          <div class="opt-c-bar" style="height:55%;background:#fff;opacity:.3"></div>
+          <div class="opt-c-bar" style="height:40%;background:#fff;opacity:.35"></div>
+          <div class="opt-c-bar" style="height:65%;background:#fff;opacity:.45"></div>
+          <div class="opt-c-bar" style="height:50%;background:#fff;opacity:.5"></div>
+          <div class="opt-c-bar" style="height:60%;background:#fff;opacity:.6"></div>
+          <div class="opt-c-bar"></div>
+          <div class="opt-c-bar"></div>
+          <div class="opt-c-bar"></div>
+          <div class="opt-c-bar"></div>
+        </div>
+        <div class="opt-c-bartrack"><div class="opt-c-barfill" style="width:60%;background:#fff"></div></div>
+      </div>
+      <span class="opt-c-num" style="color:#fff">18</span>
+      <span class="opt-c-target">/ 30</span>
+    </div>
+    <div class="opt-c-row">
+      <span class="opt-c-name">Taux de conversion</span>
+      <div class="opt-c-chart">
+        <div class="opt-c-bars">
+          <div class="opt-c-bar" style="height:45%;background:#fff;opacity:.25"></div>
+          <div class="opt-c-bar" style="height:60%;background:#fff;opacity:.35"></div>
+          <div class="opt-c-bar" style="height:55%;background:#fff;opacity:.4"></div>
+          <div class="opt-c-bar" style="height:70%;background:#fff;opacity:.5"></div>
+          <div class="opt-c-bar" style="height:65%;background:#fff;opacity:.55"></div>
+          <div class="opt-c-bar" style="height:72%;background:#fff;opacity:.65"></div>
+          <div class="opt-c-bar" style="height:72%;background:#fff;opacity:.7"></div>
+          <div class="opt-c-bar"></div>
+          <div class="opt-c-bar"></div>
+          <div class="opt-c-bar"></div>
+        </div>
+        <div class="opt-c-bartrack"><div class="opt-c-barfill" style="width:72%;background:#fff"></div></div>
+      </div>
+      <span class="opt-c-num" style="color:#fff">18%</span>
+      <span class="opt-c-target">/ 25%</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -84,27 +84,27 @@ function MiniCal({
   const grid  = getMonthGrid(year, month)
 
   return (
-    <div className="bg-white border border-[#E5E7EB] rounded-2xl p-4">
+    <div className="bg-soren-card border border-soren-border rounded-2xl p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <button
           onClick={() => { const d = new Date(year, month - 1, 1); onNav(d.getFullYear(), d.getMonth()) }}
-          className="w-6 h-6 rounded-full hover:bg-[#F5F5F0] flex items-center justify-center transition-colors"
+          className="w-6 h-6 rounded-full hover:bg-soren-elevated flex items-center justify-center transition-colors"
         >
-          <ChevronLeft size={13} className="text-[#6B7280]" />
+          <ChevronLeft size={13} className="text-soren-muted" />
         </button>
-        <p className="text-xs font-bold text-[#111111]">{MONTHS_FR[month]} {year}</p>
+        <p className="text-xs font-bold text-soren-text">{MONTHS_FR[month]} {year}</p>
         <button
           onClick={() => { const d = new Date(year, month + 1, 1); onNav(d.getFullYear(), d.getMonth()) }}
-          className="w-6 h-6 rounded-full hover:bg-[#F5F5F0] flex items-center justify-center transition-colors"
+          className="w-6 h-6 rounded-full hover:bg-soren-elevated flex items-center justify-center transition-colors"
         >
-          <ChevronRight size={13} className="text-[#6B7280]" />
+          <ChevronRight size={13} className="text-soren-muted" />
         </button>
       </div>
       {/* Day labels */}
       <div className="grid grid-cols-7 mb-1">
         {DAYS_SHORT.map(d => (
-          <p key={d} className="text-center text-[9px] font-semibold text-[#9CA3AF] py-0.5">{d[0]}</p>
+          <p key={d} className="text-center text-[9px] font-semibold text-soren-subtle py-0.5">{d[0]}</p>
         ))}
       </div>
       {/* Days */}
@@ -120,8 +120,8 @@ function MiniCal({
               className={`
                 w-7 h-7 mx-auto flex items-center justify-center rounded-full text-[11px] font-medium transition-colors
                 ${isToday  ? 'bg-[#3462EE] text-white font-bold' : ''}
-                ${isSel && !isToday ? 'bg-[#E2FF8D] text-[#111111] font-bold' : ''}
-                ${!isToday && !isSel && isThisMonth  ? 'text-[#111111] hover:bg-[#F5F5F0]' : ''}
+                ${isSel && !isToday ? 'bg-[#E2FF8D] text-soren-text font-bold' : ''}
+                ${!isToday && !isSel && isThisMonth  ? 'text-soren-text hover:bg-soren-elevated' : ''}
                 ${!isThisMonth ? 'text-[#D1D5DB]' : ''}
               `}
             >
@@ -150,7 +150,7 @@ function EventPill({ appt, onClick }: { appt: Appointment; onClick: () => void }
           className="absolute left-0 bottom-full mb-1.5 z-50 w-52 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"
           style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.18))' }}
         >
-          <div className="bg-[#111111] text-white text-[10px] leading-relaxed rounded-xl px-3 py-2 whitespace-pre-line">
+          <div className="bg-soren-sidebar text-white text-[10px] leading-relaxed rounded-xl px-3 py-2 whitespace-pre-line">
             {appt.notes}
           </div>
         </div>
@@ -175,11 +175,11 @@ function MonthGrid({
   for (let i = 0; i < grid.length; i += 7) weeks.push(grid.slice(i, i + 7))
 
   return (
-    <div className="flex flex-col flex-1 bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden">
+    <div className="flex flex-col flex-1 bg-soren-card border border-soren-border rounded-2xl overflow-hidden">
       {/* Column headers */}
-      <div className="grid grid-cols-7 border-b border-[#E5E7EB]">
+      <div className="grid grid-cols-7 border-b border-soren-border">
         {DAYS_SHORT.map(d => (
-          <div key={d} className="py-2.5 text-center text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider">
+          <div key={d} className="py-2.5 text-center text-[11px] font-semibold text-soren-subtle uppercase tracking-wider">
             {d}
           </div>
         ))}
@@ -187,7 +187,7 @@ function MonthGrid({
       {/* Weeks */}
       <div className="flex flex-col flex-1">
         {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7 flex-1 border-b border-[#E5E7EB] last:border-0" style={{ minHeight: 96 }}>
+          <div key={wi} className="grid grid-cols-7 flex-1 border-b border-soren-border last:border-0" style={{ minHeight: 96 }}>
             {week.map((day, di) => {
               const isThisMonth = day.getMonth() === month
               const isToday     = sameDay(day, today)
@@ -201,8 +201,8 @@ function MonthGrid({
                   key={di}
                   onClick={() => onDayClick(day)}
                   className={`
-                    relative p-1.5 border-r border-[#E5E7EB] last:border-r-0 cursor-pointer transition-colors
-                    ${isSel ? 'bg-[#F5F5F0]' : 'hover:bg-[#FAFAF8]'}
+                    relative p-1.5 border-r border-soren-border last:border-r-0 cursor-pointer transition-colors
+                    ${isSel ? 'bg-soren-elevated' : 'hover:bg-[#FAFAF8]'}
                     ${!isThisMonth ? 'bg-[#FAFAF8]' : ''}
                   `}
                 >
@@ -211,7 +211,7 @@ function MonthGrid({
                     <span className={`
                       w-6 h-6 flex items-center justify-center rounded-full text-[11px] font-bold
                       ${isToday  ? 'bg-[#3462EE] text-white' : ''}
-                      ${!isToday && isThisMonth  ? 'text-[#111111]' : ''}
+                      ${!isToday && isThisMonth  ? 'text-soren-text' : ''}
                       ${!isThisMonth ? 'text-[#C4C4C0]' : ''}
                     `}>
                       {day.getDate()}
@@ -223,7 +223,7 @@ function MonthGrid({
                       <EventPill key={appt.id} appt={appt} onClick={() => onApptClick(appt)} />
                     ))}
                     {dayAppts.length > 3 && (
-                      <p className="text-[9px] text-[#9CA3AF] pl-1">+{dayAppts.length - 3} autres</p>
+                      <p className="text-[9px] text-soren-subtle pl-1">+{dayAppts.length - 3} autres</p>
                     )}
                   </div>
                 </div>
@@ -273,7 +273,7 @@ function WeekCard({
           className="absolute left-0 bottom-full mb-1.5 z-50 w-52 pointer-events-none opacity-0 group-hover/card:opacity-100 transition-opacity"
           style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.18))' }}
         >
-          <div className="bg-[#111111] text-white text-[10px] leading-relaxed rounded-xl px-3 py-2 whitespace-pre-line">
+          <div className="bg-soren-sidebar text-white text-[10px] leading-relaxed rounded-xl px-3 py-2 whitespace-pre-line">
             {appt.notes}
           </div>
         </div>
@@ -300,7 +300,7 @@ function WeekCard({
           <button
             onMouseDown={e => e.stopPropagation()}
             onClick={onDelete}
-            className="absolute top-0.5 right-0.5 z-10 w-4 h-4 rounded-full bg-white/80 text-[#EF4444] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-[#EF4444] hover:text-white"
+            className="absolute top-0.5 right-0.5 z-10 w-4 h-4 rounded-full bg-soren-card/80 text-[#EF4444] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-[#EF4444] hover:text-white"
             title="Supprimer"
           >
             <X size={9} />
@@ -548,28 +548,28 @@ function WeekGrid({
 
   return (
     <div
-      className="flex flex-col flex-1 overflow-hidden bg-white"
+      className="flex flex-col flex-1 overflow-hidden bg-soren-card"
       style={{ borderRadius: 32, border: '1px solid #E5E7EB', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}
     >
       {/* ── Day headers — sticky ── */}
       <div
-        className="flex flex-shrink-0 border-b border-[#E8E8E6] sticky top-0 z-20 bg-white"
+        className="flex flex-shrink-0 border-b border-[#E8E8E6] sticky top-0 z-20 bg-soren-card"
         style={{ borderRadius: '32px 32px 0 0', overflow: 'hidden' }}
       >
         {/* Gutter */}
-        <div className="w-20 flex-shrink-0 border-r border-[#E8E8E6] bg-white" />
+        <div className="w-20 flex-shrink-0 border-r border-[#E8E8E6] bg-soren-card" />
         {days.map((day, i) => {
           const isToday = sameDay(day, today)
           return (
             <div
               key={i}
               className="flex-1 py-3 px-2 border-r border-[#E8E8E6] last:border-r-0 flex flex-col items-center gap-0.5"
-              style={{ background: isToday ? '#EEF0EB' : 'white' }}
+              style={{ background: isToday ? 'var(--bg-app)' : 'white' }}
             >
-              <p className={`text-[10px] font-semibold uppercase tracking-wider ${isToday ? 'text-[#3462EE]' : 'text-[#9CA3AF]'}`}>
+              <p className={`text-[10px] font-semibold uppercase tracking-wider ${isToday ? 'text-[#3462EE]' : 'text-soren-subtle'}`}>
                 {DAYS_SHORT[i]}
               </p>
-              <p className={`text-[22px] font-black leading-none ${isToday ? 'text-[#3462EE]' : 'text-[#111111]'}`}>
+              <p className={`text-[22px] font-black leading-none ${isToday ? 'text-[#3462EE]' : 'text-soren-text'}`}>
                 {day.getDate()}
               </p>
             </div>
@@ -587,7 +587,7 @@ function WeekGrid({
           <div className="flex" style={{ height: totalH }}>
 
             {/* Time labels column */}
-            <div className="w-20 flex-shrink-0 bg-white border-r border-[#E8E8E6] flex flex-col">
+            <div className="w-20 flex-shrink-0 bg-soren-card border-r border-[#E8E8E6] flex flex-col">
               {hours.map((h, hi) => (
                 <div
                   key={h}
@@ -722,7 +722,7 @@ function DetailCard({
   }
 
   return (
-    <div className="bg-white border border-[#E5E7EB] overflow-hidden" style={{ borderRadius: 12 }}>
+    <div className="bg-soren-card border border-soren-border overflow-hidden" style={{ borderRadius: 12 }}>
       {/* Header — dark */}
       <div
         className="flex items-start justify-between gap-2 px-4 py-3"
@@ -756,20 +756,20 @@ function DetailCard({
         </DetailRow>
 
         <DetailRow label="Heure">
-          <span className="text-[12px] font-semibold text-[#111111]">
+          <span className="text-[12px] font-semibold text-soren-text">
             {fmt(appt.startTime)} – {fmt(appt.endTime)}
-            <span className="text-[#9CA3AF] font-normal ml-1">({duration(appt.startTime, appt.endTime)})</span>
+            <span className="text-soren-subtle font-normal ml-1">({duration(appt.startTime, appt.endTime)})</span>
           </span>
         </DetailRow>
 
         {appt.contactName !== '—' && (
           <DetailRow label="Contact">
-            <span className="text-[12px] text-[#111111]">{appt.contactName}</span>
+            <span className="text-[12px] text-soren-text">{appt.contactName}</span>
           </DetailRow>
         )}
 
         <DetailRow label="Calendrier">
-          <span className="text-[12px] text-[#111111]">{appt.calendarName}</span>
+          <span className="text-[12px] text-soren-text">{appt.calendarName}</span>
         </DetailRow>
 
         {appt.meetLink && (
@@ -788,8 +788,8 @@ function DetailCard({
 
         {appt.notes && (
           <div className="px-4 py-3">
-            <p className="text-[10px] text-[#9CA3AF] font-semibold uppercase tracking-wider mb-1">Notes</p>
-            <p className="text-[12px] text-[#6B7280] leading-relaxed whitespace-pre-line">{appt.notes}</p>
+            <p className="text-[10px] text-soren-subtle font-semibold uppercase tracking-wider mb-1">Notes</p>
+            <p className="text-[12px] text-soren-muted leading-relaxed whitespace-pre-line">{appt.notes}</p>
           </div>
         )}
       </div>
@@ -805,7 +805,7 @@ function DetailCard({
         </button>
         <button
           onClick={onClose}
-          className="text-[11px] font-semibold text-[#6B7280] hover:text-[#111111] px-3 py-1.5 rounded-full border border-[#E5E7EB] hover:border-[#111111] transition-all"
+          className="text-[11px] font-semibold text-soren-muted hover:text-soren-text px-3 py-1.5 rounded-full border border-soren-border hover:border-[#111111] transition-all"
         >
           Fermer
         </button>
@@ -817,7 +817,7 @@ function DetailCard({
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-start gap-2 px-4 py-2.5">
-      <p className="text-[10px] text-[#9CA3AF] font-medium w-16 pt-0.5 flex-shrink-0">{label}</p>
+      <p className="text-[10px] text-soren-subtle font-medium w-16 pt-0.5 flex-shrink-0">{label}</p>
       <div>{children}</div>
     </div>
   )
@@ -932,27 +932,27 @@ export default function CalendarView({
         <div className="flex items-center justify-between flex-shrink-0 gap-2 min-w-0">
           {/* Left: title + nav */}
           <div className="flex items-center gap-2 min-w-0 shrink-0">
-            <h1 className="text-2xl font-black text-[#111111] leading-none whitespace-nowrap">Calendrier</h1>
+            <h1 className="text-2xl font-black text-soren-text leading-none whitespace-nowrap">Calendrier</h1>
             <div className="flex items-center gap-1">
               <button
                 onClick={goToday}
-                className="px-2.5 py-1 text-[11px] font-semibold rounded-full bg-white border border-[#E5E7EB] text-[#6B7280] hover:bg-[#F5F5F0] hover:text-[#111111] transition-colors whitespace-nowrap"
+                className="px-2.5 py-1 text-[11px] font-semibold rounded-full bg-soren-card border border-soren-border text-soren-muted hover:bg-soren-elevated hover:text-soren-text transition-colors whitespace-nowrap"
               >
                 Aujourd'hui
               </button>
               <button
                 onClick={prevPeriod}
-                className="w-6 h-6 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:bg-[#F5F5F0] transition-colors"
+                className="w-6 h-6 rounded-full bg-soren-card border border-soren-border flex items-center justify-center text-soren-muted hover:bg-soren-elevated transition-colors"
               >
                 <ChevronLeft size={12} />
               </button>
               <button
                 onClick={nextPeriod}
-                className="w-6 h-6 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:bg-[#F5F5F0] transition-colors"
+                className="w-6 h-6 rounded-full bg-soren-card border border-soren-border flex items-center justify-center text-soren-muted hover:bg-soren-elevated transition-colors"
               >
                 <ChevronRight size={12} />
               </button>
-              <span className="text-sm font-bold text-[#111111] ml-1 whitespace-nowrap">{periodLabel}</span>
+              <span className="text-sm font-bold text-soren-text ml-1 whitespace-nowrap">{periodLabel}</span>
             </div>
           </div>
 
@@ -967,7 +967,7 @@ export default function CalendarView({
             ) : (
               <a
                 href="/api/auth/google"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E5E7EB] text-[11px] font-semibold text-[#6B7280] hover:text-[#111111] hover:border-[#111111] transition-colors whitespace-nowrap"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-soren-border text-[11px] font-semibold text-soren-muted hover:text-soren-text hover:border-[#111111] transition-colors whitespace-nowrap"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -983,18 +983,18 @@ export default function CalendarView({
               onClick={handleRefresh}
               disabled={refreshing}
               title="Rafraîchir"
-              className="w-7 h-7 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:bg-[#F5F5F0] disabled:opacity-50 transition-colors"
+              className="w-7 h-7 rounded-full bg-soren-card border border-soren-border flex items-center justify-center text-soren-muted hover:bg-soren-elevated disabled:opacity-50 transition-colors"
             >
               <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
             </button>
             {/* View tabs */}
-            <div className="flex items-center bg-white border border-[#E5E7EB] rounded-full p-0.5">
+            <div className="flex items-center bg-soren-card border border-soren-border rounded-full p-0.5">
               {(['month', 'week'] as ViewMode[]).map(v => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
                   className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
-                    view === v ? 'bg-[#111111] text-white' : 'text-[#6B7280] hover:text-[#111111]'
+                    view === v ? 'bg-soren-sidebar text-white' : 'text-soren-muted hover:text-soren-text'
                   }`}
                 >
                   {v === 'month' ? 'Mois' : 'Semaine'}
@@ -1004,7 +1004,7 @@ export default function CalendarView({
             {/* New button */}
             <button
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-1.5 bg-[#111111] hover:bg-[#2a2a2a] text-white text-[13px] font-semibold px-3.5 py-2 rounded-full transition-colors whitespace-nowrap"
+              className="flex items-center gap-1.5 bg-soren-sidebar hover:bg-[#2a2a2a] text-white text-[13px] font-semibold px-3.5 py-2 rounded-full transition-colors whitespace-nowrap"
             >
               <Plus size={12} />
               Nouveau RDV
@@ -1036,7 +1036,7 @@ export default function CalendarView({
       </div>
 
       {/* ── Right sidebar ── */}
-      <div className="w-[260px] flex-shrink-0 flex flex-col gap-4 p-4 overflow-y-auto border-l border-[#E5E7EB] bg-[#EEF0EB]">
+      <div className="w-[260px] flex-shrink-0 flex flex-col gap-4 p-4 overflow-y-auto border-l border-soren-border bg-soren-app">
 
         {/* Mini calendar */}
         <MiniCal
@@ -1058,8 +1058,8 @@ export default function CalendarView({
 
         {/* Events on selected day */}
         {selectedDay && !selectedAppt && upcomingOnDay.length > 0 && (
-          <div className="bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden">
-            <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider px-4 pt-3 pb-2">
+          <div className="bg-soren-card border border-soren-border rounded-2xl overflow-hidden">
+            <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-wider px-4 pt-3 pb-2">
               {selectedDay.getDate()} {MONTHS_FR[selectedDay.getMonth()]}
             </p>
             {upcomingOnDay.map(appt => (
@@ -1070,8 +1070,8 @@ export default function CalendarView({
               >
                 <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: appt.color }} />
                 <div className="min-w-0">
-                  <p className="text-[12px] font-semibold text-[#111111] truncate">{appt.title}</p>
-                  <p className="text-[10px] text-[#9CA3AF]">{fmt(appt.startTime)} – {fmt(appt.endTime)}</p>
+                  <p className="text-[12px] font-semibold text-soren-text truncate">{appt.title}</p>
+                  <p className="text-[10px] text-soren-subtle">{fmt(appt.startTime)} – {fmt(appt.endTime)}</p>
                 </div>
               </button>
             ))}
@@ -1080,15 +1080,15 @@ export default function CalendarView({
 
         {/* Selected day empty state */}
         {selectedDay && !selectedAppt && upcomingOnDay.length === 0 && (
-          <div className="bg-white border border-[#E5E7EB] rounded-2xl p-4 text-center">
-            <p className="text-xs text-[#9CA3AF]">Aucun RDV ce jour</p>
+          <div className="bg-soren-card border border-soren-border rounded-2xl p-4 text-center">
+            <p className="text-xs text-soren-subtle">Aucun RDV ce jour</p>
           </div>
         )}
 
         {/* Upcoming appointments */}
         {!selectedDay && !selectedAppt && (
-          <div className="bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden">
-            <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider px-4 pt-3 pb-2">À venir</p>
+          <div className="bg-soren-card border border-soren-border rounded-2xl overflow-hidden">
+            <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-wider px-4 pt-3 pb-2">À venir</p>
             {appointments
               .filter(a => new Date(a.startTime) >= new Date())
               .sort((a,b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
@@ -1101,15 +1101,15 @@ export default function CalendarView({
                 >
                   <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: appt.color }} />
                   <div className="min-w-0">
-                    <p className="text-[12px] font-semibold text-[#111111] truncate">{appt.title}</p>
-                    <p className="text-[10px] text-[#9CA3AF]">
+                    <p className="text-[12px] font-semibold text-soren-text truncate">{appt.title}</p>
+                    <p className="text-[10px] text-soren-subtle">
                       {new Date(appt.startTime).getDate()} {MONTHS_FR[new Date(appt.startTime).getMonth()]} · {fmt(appt.startTime)}
                     </p>
                   </div>
                 </button>
               ))}
             {appointments.filter(a => new Date(a.startTime) >= new Date()).length === 0 && (
-              <p className="text-xs text-[#9CA3AF] text-center py-4">Aucun rendez-vous à venir</p>
+              <p className="text-xs text-soren-subtle text-center py-4">Aucun rendez-vous à venir</p>
             )}
           </div>
         )}

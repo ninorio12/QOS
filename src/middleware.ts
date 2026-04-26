@@ -31,6 +31,12 @@ export async function middleware(request: NextRequest) {
   // Routes API et webhooks — pas d'auth session requise
   if (pathname.startsWith('/api/')) return supabaseResponse
 
+  // Pages publiques — pas d'auth requise
+  const PUBLIC_PATHS = ['/formulaire', '/signer']
+  if (PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))) {
+    return supabaseResponse
+  }
+
   // Non connecté → login
   if (!user && pathname !== '/login') {
     return NextResponse.redirect(new URL('/login', request.url))

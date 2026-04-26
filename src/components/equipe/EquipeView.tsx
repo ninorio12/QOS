@@ -1,7 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Cpu, Users, Database, Code2, Megaphone, BarChart2, Play, Square, RefreshCw } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import {
+  Cpu, Users, Database, Code2, Megaphone, BarChart2,
+  Play, Square, RefreshCw,
+  Target, Inbox, Search, MessageSquare, Wrench, Zap, Brain, FileText, BookOpen, Landmark,
+  type LucideIcon,
+} from 'lucide-react'
 import { EQUIPE_AGENTS, type EquipeAgent } from './agents'
 import { useGatewayEvents }  from '@/hooks/useGatewayEvents'
 import { useAgentStatus }    from '@/hooks/useAgentStatus'
@@ -15,6 +20,12 @@ const ICON_MAP = {
   megaphone: Megaphone,
   chart:     BarChart2,
 } as const
+
+// ─── Skill icon map ───────────────────────────────────────────
+const SKILL_ICON_MAP: Record<string, LucideIcon> = {
+  Cpu, Users, BarChart2, Target, RefreshCw, Inbox,
+  Search, MessageSquare, Wrench, Zap, Brain, FileText, BookOpen, Landmark,
+}
 
 // ─── Types ────────────────────────────────────────────────────
 type AgentRunState = {
@@ -136,98 +147,75 @@ function SorenHeroCard({
       className="relative rounded-2xl overflow-hidden cursor-pointer select-none"
       style={{
         background: '#F2F3F0',
-        border: isSelected ? '2px solid #C8F135' : '2px solid #E2E4DF',
+        border: '2px solid #E2E4DF',
         boxShadow: isSelected
-          ? '0 6px 20px rgba(0,0,0,0.10)'
+          ? '0 8px 24px rgba(0,0,0,0.18)'
           : '0 4px 16px rgba(0,0,0,0.07)',
-        transform: isSelected ? 'scale(1.01)' : 'scale(1)',
+        transform: isSelected ? 'scale(1.015)' : 'scale(1)',
         transition: 'transform 150ms ease-out, box-shadow 150ms ease-out, border-color 150ms ease-out',
       }}
     >
-      <div className="flex items-stretch" style={{ minHeight: 128 }}>
+      <div className="flex items-stretch" style={{ minHeight: 80 }}>
 
         {/* LEFT: avatar zone */}
-        <div className="relative flex-shrink-0 overflow-hidden rounded-l-2xl" style={{ width: 165, background: '#F2F3F0' }}>
-          {/* Ombre grise classique derrière avatar */}
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-28 h-28 rounded-full pointer-events-none"
-            style={{ background: 'rgba(0,0,0,0.10)', filter: 'blur(20px)', bottom: '-8px' }} />
-          {/* Right-edge fade */}
-          <div className="absolute inset-y-0 right-0 w-12 pointer-events-none"
+        <div className="relative flex-shrink-0 overflow-hidden rounded-l-2xl" style={{ width: 150, background: '#F2F3F0' }}>
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full pointer-events-none"
+            style={{ background: 'rgba(0,0,0,0.10)', filter: 'blur(16px)', bottom: '-6px' }} />
+          <div className="absolute inset-y-0 right-0 w-10 pointer-events-none"
             style={{ background: 'linear-gradient(to left, #F2F3F0 20%, transparent)', zIndex: 2 }} />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/soren-avatar.png" alt="Soren"
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-auto object-contain"
-            style={{ height: '120px', zIndex: 3, filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.18))' }} />
+            className="absolute left-[58%] -translate-x-1/2 w-auto object-contain"
+            style={{ bottom: '0px', height: '115px', zIndex: 3, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.18))' }} />
         </div>
 
         {/* RIGHT: contenu */}
-        <div className="flex flex-col justify-between flex-1 min-w-0 px-4 py-2.5">
+        <div className="flex flex-col justify-between flex-1 min-w-0 px-4 py-2">
 
           {/* Header */}
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-[8.5px] font-black uppercase tracking-widest text-[#0D0D0D] bg-[#C8F135] px-2 py-0.5 rounded-full">COO</span>
-              <span className="text-[10px] text-[#6B7280] font-medium">Orchestrateur Système</span>
-              <div className="ml-auto flex items-center gap-1.5">
-                {isStart ? <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse" />
-                  : isOnline ? <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse shadow-[0_0_5px_#22c55e]" />
-                  : <span className="w-1.5 h-1.5 rounded-full bg-[#D1D5DB]" />}
-                <span className="text-[8.5px] font-medium text-[#6B7280]">
-                  {isStart ? 'Démarrage…' : isOnline ? 'En ligne' : 'Hors ligne'}
-                </span>
+            <div className="flex items-start justify-between mb-1">
+              <div>
+                <p className="text-[13px] font-black text-[#0D0D0D] leading-tight">Soren</p>
+                <p className="text-[7px] font-bold uppercase tracking-widest text-soren-subtle mt-0.5">Assistant COO</p>
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="w-2 h-2 rounded-full bg-[#22c55e] animate-pulse shadow-[0_0_5px_#22c55e]" />
+                <span className="text-[11px] font-semibold text-soren-muted">En ligne</span>
               </div>
             </div>
-
-            <h2 className="text-[16px] font-black text-[#0D0D0D] leading-tight tracking-tight mb-1">
-              Bonjour{prenom ? `, ${prenom}` : ''}, je suis Soren. 👋
-            </h2>
-            <p className="text-[10.5px] text-[#4B5563] leading-relaxed line-clamp-1 max-w-[460px]">
+            <p className="text-[9px] text-[#4B5563] leading-relaxed">
               {agent.description}
             </p>
           </div>
 
-          {/* Skills */}
-          <div className="flex flex-wrap gap-1 my-1.5">
-            {agent.tools.slice(0, 3).map(tool => (
-              <span key={tool} className="text-[8.5px] font-medium px-2 py-0.5 rounded-full"
-                style={{ background: '#E6E8E4', color: '#374151', border: '1px solid #D8DAD5' }}>
-                {formatTool(tool)}
-              </span>
-            ))}
-            {agent.tools.length > 3 && (
-              <span className="text-[8.5px] font-medium px-2 py-0.5 rounded-full"
-                style={{ background: '#E6E8E4', color: '#9CA3AF', border: '1px solid #D8DAD5' }}>
-                +{agent.tools.length - 3}
-              </span>
-            )}
+          {/* Compétences */}
+          <div className="my-1.5">
+            <p className="text-[6.5px] font-bold uppercase tracking-widest text-soren-subtle mb-1">Compétences</p>
+            <div className="flex flex-wrap gap-1">
+              {['Délégation', 'Organisation', 'Compte-rendu', 'Orchestration', 'Analyse'].map(skill => (
+                <span key={skill} className="text-[7.5px] font-medium px-1.5 py-0.5 rounded-full"
+                  style={{ background: '#E6E8E4', color: '#374151', border: '1px solid #D8DAD5' }}>
+                  {skill}
+                </span>
+              ))}
+            </div>
           </div>
 
           {/* Footer */}
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1 text-[8.5px] text-[#2AABEE]">
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.17 13.857l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.978.702z"/></svg>
+          <div className="pt-1.5 border-t border-[#E2E4DF] flex items-center gap-1.5">
+            <span className="text-[7px] font-mono px-1.5 py-0.5 rounded-full"
+              style={{ background: '#E6E8E4', color: '#6B7280', border: '1px solid #D8DAD5' }}>
+              Modèle : hermes
+            </span>
+            <span className="text-[7px] px-1.5 py-0.5 rounded-full"
+              style={{ background: '#E6E8E4', color: '#6B7280', border: '1px solid #D8DAD5' }}>
+              Heartbeat : 15min
+            </span>
+            <span className="ml-auto flex items-center gap-1.5 text-[11px] font-semibold text-[#2AABEE]">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.17 13.857l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.978.702z"/></svg>
               Telegram
             </span>
-            <span className="text-[#E5E7EB]">·</span>
-            <span className="text-[8.5px] font-mono text-[#6B7280]">{agent.model.replace(/-20\d{6}$/, '')}</span>
-            <div className="ml-auto" onClick={e => e.stopPropagation()}>
-              {isOnline ? (
-                <button onClick={onStop}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-[#374151] text-[9px] font-semibold border border-[#E5E7EB] hover:bg-[#F9FAF7] transition-colors">
-                  <Square size={7} /> Arrêter
-                </button>
-              ) : isStart ? (
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-[#92750C] text-[9px] font-semibold border border-[#FDE68A] bg-[#FFFBEB]">
-                  <RefreshCw size={7} className="animate-spin" /> Initialisation…
-                </div>
-              ) : (
-                <button onClick={onStart}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-[#0D0D0D] text-[9px] font-bold hover:brightness-95 transition-all"
-                  style={{ background: '#C8F135', border: '1px solid #aad420' }}>
-                  <Play size={7} /> Démarrer
-                </button>
-              )}
-            </div>
           </div>
         </div>
 
@@ -254,7 +242,7 @@ function AgentCard({
   return (
     <div
       onClick={onClick}
-      className="relative rounded-2xl overflow-hidden cursor-pointer select-none flex-1 min-w-0"
+      className="relative rounded-2xl overflow-hidden cursor-pointer select-none flex-1 min-w-0 max-w-[520px]"
       style={{
         background: agent.accentColor,
         transform: isSelected ? 'scale(1.015)' : 'scale(1)',
@@ -264,66 +252,67 @@ function AgentCard({
         transition: 'transform 150ms ease-out, box-shadow 150ms ease-out',
       }}
     >
-      <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/8 pointer-events-none" />
+      <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-soren-card/8 pointer-events-none" />
       <div className="absolute -bottom-12 -left-6 w-28 h-28 rounded-full bg-black/8 pointer-events-none" />
 
-      <div className="relative z-10 flex flex-col h-full p-4 gap-2">
+      <div className="relative z-10 flex flex-col p-3 gap-2">
 
         {/* Header */}
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
               style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.25)' }}
             >
-              <Icon size={16} color="white" />
+              <Icon size={13} color="white" />
             </div>
             <div>
-              <p className="text-[14px] font-black text-white leading-tight">{agent.name}</p>
-              <p className="text-[8px] font-bold uppercase tracking-widest text-white/55 mt-0.5">
-                {agent.role.split(' / ')[0]}
+              <p className="text-[12px] font-black text-white leading-tight">{agent.name}</p>
+              <p className="text-[7px] font-bold uppercase tracking-widest text-white/70 mt-0.5">
+                Assistant {agent.role.split(' / ')[0]}
               </p>
             </div>
           </div>
           {isStart ? (
-            <span className="w-2 h-2 mt-1 rounded-full block bg-white/70 animate-pulse flex-shrink-0" />
+            <span className="w-2 h-2 mt-1 rounded-full block bg-soren-card/70 animate-pulse flex-shrink-0" />
           ) : isOnline ? (
-            <span className="w-2 h-2 mt-1 rounded-full block bg-white animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.9)] flex-shrink-0" />
+            <span className="w-2 h-2 mt-1 rounded-full block bg-soren-card animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.9)] flex-shrink-0" />
           ) : (
-            <span className="w-2 h-2 mt-1 rounded-full block bg-white/20 flex-shrink-0" />
+            <span className="w-2 h-2 mt-1 rounded-full block bg-soren-card/20 flex-shrink-0" />
           )}
         </div>
 
-        <p className="text-[10px] text-white/70 leading-relaxed line-clamp-1">{agent.description}</p>
+        <p className="text-[9px] text-white/85 leading-relaxed">{agent.description}</p>
 
-        <div className="flex-1">
-          <p className="text-[7px] font-bold uppercase tracking-widest text-white/35 mb-1">Skills</p>
+        <div>
+          <p className="text-[6.5px] font-bold uppercase tracking-widest text-white/35 mb-1">Compétences</p>
           <div className="flex flex-wrap gap-1">
-            {agent.tools.slice(0, 3).map(tool => (
-              <span
-                key={tool}
-                className="text-[8.5px] font-medium px-2 py-0.5 rounded-full"
-                style={{ background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)', border: '1px solid rgba(255,255,255,0.2)' }}
-              >
-                {formatTool(tool)}
-              </span>
-            ))}
-            {agent.tools.length > 3 && (
-              <span
-                className="text-[8.5px] font-medium px-2 py-0.5 rounded-full"
-                style={{ background: 'rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.15)' }}
-              >
-                +{agent.tools.length - 3}
-              </span>
-            )}
+            {agent.skills.map(skill => {
+              const SkillIcon = SKILL_ICON_MAP[skill.icon]
+              return (
+                <span
+                  key={skill.label}
+                  className="flex items-center gap-1 text-[7.5px] font-medium px-1.5 py-0.5 rounded-full"
+                  style={{ background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)', border: '1px solid rgba(255,255,255,0.2)' }}
+                >
+                  {SkillIcon && <SkillIcon size={9} />}
+                  {skill.label}
+                </span>
+              )
+            })}
           </div>
         </div>
 
-        <div className="pt-1.5 border-t border-white/15 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[8px] font-mono text-white/50 truncate">{shortModel(agent.model)}</span>
-            <span className="text-white/20">·</span>
-            <span className="text-[8px] text-white/50">{isOnline ? runState.lastHeartbeat : 'Jamais'}</span>
+        <div className="pt-1 border-t border-white/15 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 min-w-0">
+            <span className="text-[7px] font-mono px-1.5 py-0.5 rounded-full"
+              style={{ background: 'rgba(0,0,0,0.18)', color: 'rgba(255,255,255,0.75)', border: '1px solid rgba(255,255,255,0.15)' }}>
+              Modèle : {shortModel(agent.model)}
+            </span>
+            <span className="text-[7px] px-1.5 py-0.5 rounded-full"
+              style={{ background: 'rgba(0,0,0,0.18)', color: 'rgba(255,255,255,0.75)', border: '1px solid rgba(255,255,255,0.15)' }}>
+              Heartbeat : {isOnline ? runState.lastHeartbeat : 'Jamais'}
+            </span>
           </div>
           <div onClick={e => e.stopPropagation()} className="flex-shrink-0">
             {isOnline ? (
@@ -358,21 +347,21 @@ function AgentCardInTraining({ agent }: { agent: EquipeAgent }) {
 
   return (
     <div
-      className="relative rounded-2xl overflow-hidden flex-1 min-w-0 select-none"
+      className="relative rounded-2xl overflow-hidden flex-1 min-w-0 max-w-[520px] select-none"
       style={{ background: '#E8EAEB', border: '1px solid #D2D5D8' }}
     >
 
-      <div className="relative z-10 flex flex-col h-full p-4 gap-2">
+      <div className="relative z-10 flex flex-col p-3 gap-2">
 
         {/* Header */}
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#D2D5D8' }}>
-              <Icon size={16} color="#9CA3AF" />
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#D2D5D8' }}>
+              <Icon size={13} color="#9CA3AF" />
             </div>
             <div>
-              <p className="text-[14px] font-black text-[#9CA3AF] leading-tight">{agent.name}</p>
-              <p className="text-[8px] font-bold uppercase tracking-widest text-[#AAAEB3] mt-0.5">{roleLabel}</p>
+              <p className="text-[12px] font-black text-soren-subtle leading-tight">{agent.name}</p>
+              <p className="text-[7px] font-bold uppercase tracking-widest text-[#AAAEB3] mt-0.5">Assistant {roleLabel}</p>
             </div>
           </div>
           <span className="text-[8.5px] font-bold text-[#7B8086] bg-[#D2D5D8] border border-[#C4C8CC] px-2.5 py-0.5 rounded-full whitespace-nowrap">
@@ -380,33 +369,35 @@ function AgentCardInTraining({ agent }: { agent: EquipeAgent }) {
           </span>
         </div>
 
-        <p className="text-[10px] text-[#AAAEB3] leading-relaxed line-clamp-1">{agent.description}</p>
+        <p className="text-[9px] text-[#AAAEB3] leading-relaxed">{agent.description}</p>
 
-        <div className="flex-1">
-          <p className="text-[7px] font-bold uppercase tracking-widest text-[#BDC1C5] mb-1">Skills</p>
+        <div>
+          <p className="text-[6.5px] font-bold uppercase tracking-widest text-[#BDC1C5] mb-1">Compétences</p>
           <div className="flex flex-wrap gap-1">
-            {agent.tools.slice(0, 3).map(tool => (
-              <span key={tool}
-                className="text-[8.5px] font-medium px-2 py-0.5 rounded-full"
-                style={{ background: '#D8DBDE', color: '#9CA3AF', border: '1px solid #C8CCD0' }}>
-                {formatTool(tool)}
-              </span>
-            ))}
-            {agent.tools.length > 3 && (
-              <span
-                className="text-[8.5px] font-medium px-2 py-0.5 rounded-full"
-                style={{ background: '#D8DBDE', color: '#AAAEB3', border: '1px solid #C8CCD0' }}>
-                +{agent.tools.length - 3}
-              </span>
-            )}
+            {agent.skills.map(skill => {
+              const SkillIcon = SKILL_ICON_MAP[skill.icon]
+              return (
+                <span key={skill.label}
+                  className="flex items-center gap-1 text-[7.5px] font-medium px-1.5 py-0.5 rounded-full"
+                  style={{ background: '#D8DBDE', color: '#9CA3AF', border: '1px solid #C8CCD0' }}>
+                  {SkillIcon && <SkillIcon size={9} />}
+                  {skill.label}
+                </span>
+              )
+            })}
           </div>
         </div>
 
-        <div className="pt-1.5 border-t border-[#D2D5D8] flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-[8px] font-mono text-[#AAAEB3]">{shortModel(agent.model)}</span>
-            <span className="text-[#C8CCD0]">·</span>
-            <span className="text-[8px] text-[#AAAEB3]">Actuellement en formation</span>
+        <div className="pt-1 border-t border-[#D2D5D8] flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1">
+            <span className="text-[7px] font-mono px-1.5 py-0.5 rounded-full"
+              style={{ background: '#D2D5D8', color: '#7B8086', border: '1px solid #C4C8CC' }}>
+              Modèle : {shortModel(agent.model)}
+            </span>
+            <span className="text-[7px] px-1.5 py-0.5 rounded-full"
+              style={{ background: '#D2D5D8', color: '#7B8086', border: '1px solid #C4C8CC' }}>
+              Heartbeat : Jamais
+            </span>
           </div>
           <button disabled
             className="flex items-center gap-1 px-3 py-1 rounded-xl text-[9.5px] font-bold cursor-not-allowed"
@@ -497,13 +488,13 @@ export default function EquipeView() {
   const interAgentEvents = gatewayEvents.filter(e => agentIds.has(e.from) && agentIds.has(e.to)).slice(-3).reverse()
 
   return (
-    <div className="flex flex-col bg-[#EEF0EB] px-8 py-5" style={{ height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
+    <div className="flex flex-col justify-center bg-soren-app px-4 pt-4 pb-3" style={{ height: 'calc(100vh - 56px)', overflow: 'hidden', overflowX: 'hidden' }}>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 flex-shrink-0" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
+      <div className="flex items-center justify-between mb-2 flex-shrink-0" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
         <div>
-          <h1 className="text-xl font-black text-[#111111] leading-none">Équipe IA</h1>
-          <p className="text-xs text-[#9CA3AF] mt-0.5">Vos agents autonomes et leur organisation</p>
+          <h1 className="text-xl font-black text-soren-text leading-none">Équipe IA</h1>
+          <p className="text-xs text-soren-subtle mt-0.5">Vos agents autonomes et leur organisation</p>
         </div>
         {anyOnline && (
           <span className="flex items-center gap-1.5 text-[10px] font-bold text-[#16a34a] bg-[#22c55e]/10 px-2.5 py-1 rounded-full border border-[#22c55e]/20">
@@ -515,11 +506,13 @@ export default function EquipeView() {
 
       {/* 3-row grid — full width */}
       <div
-        className="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto pr-0.5"
+        className="flex flex-col gap-2 flex-1 min-h-0 overflow-hidden mt-6"
         style={{ animation: 'fadeSlideUp 400ms ease-out 90ms both' }}
       >
 
         {/* Row 1: Soren */}
+        <div className="w-full flex justify-center">
+        <div className="w-full max-w-[1052px]">
         <SorenHeroCard
           agent={soren}
           runState={runStates.soren}
@@ -529,9 +522,11 @@ export default function EquipeView() {
           onStop={() => stopAgent('soren')}
           prenom={prenom}
         />
+        </div>
+        </div>
 
         {/* Row 2: Kai + Mia (actifs) */}
-        <div className="flex gap-3" style={{ height: 168 }}>
+        <div className="flex gap-2 min-w-0 w-full justify-center items-stretch">
           <AgentCard agent={kai} runState={runStates.kai}
             isSelected={selectedAgent === 'kai'} onClick={() => setSelectedAgent(p => p === 'kai' ? null : 'kai')}
             onStart={() => startAgent('kai')} onStop={() => stopAgent('kai')} />
@@ -541,7 +536,7 @@ export default function EquipeView() {
         </div>
 
         {/* Row 3: Alex + Leo (en formation) */}
-        <div className="flex gap-3" style={{ height: 155 }}>
+        <div className="flex gap-2 min-w-0 w-full justify-center items-stretch">
           <AgentCardInTraining agent={alex} />
           <AgentCardInTraining agent={leo} />
         </div>
@@ -550,7 +545,7 @@ export default function EquipeView() {
         {interAgentEvents.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pb-1">
             {interAgentEvents.map((ev, i) => (
-              <span key={i} className="text-[9px] font-mono text-[#6B7280] bg-white/60 px-2 py-0.5 rounded-full border border-[#E5E7EB]">
+              <span key={i} className="text-[9px] font-mono text-soren-muted bg-soren-card/60 px-2 py-0.5 rounded-full border border-soren-border">
                 {ev.from} → {ev.to}: {ev.msg?.slice(0, 50)}
               </span>
             ))}

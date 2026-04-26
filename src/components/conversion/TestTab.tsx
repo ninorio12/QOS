@@ -14,7 +14,7 @@ type ChatMessage = {
 
 // ─── Section label ────────────────────────────────────────────
 function SectionLabel({ label }: { label: string }) {
-  return <p className="text-[9px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-3">{label}</p>
+  return <p className="text-[9px] font-bold uppercase tracking-widest text-soren-subtle mb-3">{label}</p>
 }
 
 // ─── Call status badge ────────────────────────────────────────
@@ -141,9 +141,9 @@ function VocalTestSection() {
     <div className="space-y-5">
       <SectionLabel label="Tester Kai Vocal" />
 
-      <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 space-y-4">
+      <div className="bg-soren-card border border-soren-border rounded-2xl p-5 space-y-4">
         {/* Description */}
-        <p className="text-xs text-[#6B7280]">
+        <p className="text-xs text-soren-muted">
           Kai prend en charge les appels sortants pour qualifier les leads BTP. Ce test lance un appel web via le SDK Vapi.
         </p>
 
@@ -161,7 +161,7 @@ function VocalTestSection() {
 
         {/* Phone input */}
         <div>
-          <label className="block text-[9px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-1.5">
+          <label className="block text-[9px] font-bold uppercase tracking-widest text-soren-subtle mb-1.5">
             Numéro de téléphone
           </label>
           <input
@@ -169,7 +169,7 @@ function VocalTestSection() {
             onChange={e => setPhone(e.target.value)}
             disabled={isBusy}
             placeholder="+33 6 00 00 00 00"
-            className="w-full bg-[#EEF0EB] border border-[#E5E7EB] text-[#111111] text-sm rounded-xl px-3 py-2.5 outline-none focus:border-[#3462EE] placeholder-[#9CA3AF] transition-colors disabled:opacity-50"
+            className="w-full bg-soren-app border border-soren-border text-soren-text text-sm rounded-xl px-3 py-2.5 outline-none focus:border-[#3462EE] placeholder-[#9CA3AF] transition-colors disabled:opacity-50"
           />
         </div>
 
@@ -197,7 +197,7 @@ function VocalTestSection() {
                 className={`flex items-center gap-2 text-sm font-semibold px-3 py-2.5 rounded-xl border transition-colors ${
                   isMuted
                     ? 'border-[#EF4444] text-[#EF4444] bg-[#EF444415]'
-                    : 'border-[#E5E7EB] text-[#6B7280] hover:border-[#3D4F6B] hover:text-[#111111]'
+                    : 'border-soren-border text-soren-muted hover:border-[#3D4F6B] hover:text-soren-text'
                 }`}
               >
                 {isMuted ? <MicOff size={14} /> : <Mic size={14} />}
@@ -206,7 +206,7 @@ function VocalTestSection() {
             </>
           )}
           {(callStatus === 'ended' || callStatus === 'error') && (
-            <button onClick={reset} className="flex items-center gap-1.5 text-xs text-[#9CA3AF] hover:text-[#111111] transition-colors ml-1">
+            <button onClick={reset} className="flex items-center gap-1.5 text-xs text-soren-subtle hover:text-soren-text transition-colors ml-1">
               <RotateCcw size={12} />
               Réinitialiser
             </button>
@@ -216,13 +216,13 @@ function VocalTestSection() {
 
       {/* Call log */}
       {callLog.length > 0 && (
-        <div className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-2xl overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-[#E5E7EB]">
-            <p className="text-[9px] font-bold uppercase tracking-widest text-[#9CA3AF]">Log de l&apos;appel</p>
+        <div className="bg-[#F9FAFB] border border-soren-border rounded-2xl overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-soren-border">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-soren-subtle">Log de l&apos;appel</p>
           </div>
           <div className="p-3 space-y-1 max-h-40 overflow-y-auto">
             {callLog.map((l, i) => (
-              <p key={i} className="text-[11px] font-mono text-[#6B7280]">{l}</p>
+              <p key={i} className="text-[11px] font-mono text-soren-muted">{l}</p>
             ))}
           </div>
         </div>
@@ -312,7 +312,7 @@ function MessagingTestSection() {
         {messages.length > 0 && (
           <button
             onClick={() => setMessages([])}
-            className="flex items-center gap-1.5 text-xs text-[#9CA3AF] hover:text-[#111111] transition-colors -mt-3"
+            className="flex items-center gap-1.5 text-xs text-soren-subtle hover:text-soren-text transition-colors -mt-3"
           >
             <RotateCcw size={12} />
             Réinitialiser
@@ -321,16 +321,16 @@ function MessagingTestSection() {
       </div>
 
       {/* Chat window */}
-      <div className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-2xl overflow-hidden flex flex-col" style={{ height: 380 }}>
+      <div className="bg-[#F9FAFB] border border-soren-border rounded-2xl overflow-hidden flex flex-col" style={{ height: 380 }}>
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full gap-2 opacity-50">
-              <div className="w-10 h-10 rounded-2xl bg-white border border-[#E5E7EB] flex items-center justify-center">
-                <MessageSquare size={18} className="text-[#9CA3AF]" />
+              <div className="w-10 h-10 rounded-2xl bg-soren-card border border-soren-border flex items-center justify-center">
+                <MessageSquare size={18} className="text-soren-subtle" />
               </div>
-              <p className="text-xs text-[#9CA3AF]">Envoyez un message pour tester Kai</p>
+              <p className="text-xs text-soren-subtle">Envoyez un message pour tester Kai</p>
             </div>
           )}
 
@@ -356,7 +356,7 @@ function MessagingTestSection() {
                   <div className={`rounded-2xl px-4 py-2.5 text-sm leading-5 ${
                     isUser
                       ? 'bg-[#E2FF8D]/15 border border-[#E2FF8D]/20 text-[#E8F8A0] rounded-tr-sm'
-                      : 'bg-white border border-[#E5E7EB] text-[#374151] rounded-tl-sm'
+                      : 'bg-soren-card border border-soren-border text-[#374151] rounded-tl-sm'
                   }`}>
                     {msg.content || (msg.streaming ? (
                       <span className="inline-flex gap-1">
@@ -374,7 +374,7 @@ function MessagingTestSection() {
         </div>
 
         {/* Input */}
-        <div className="border-t border-[#E5E7EB] p-3 flex items-end gap-2">
+        <div className="border-t border-soren-border p-3 flex items-end gap-2">
           <textarea
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -382,7 +382,7 @@ function MessagingTestSection() {
             placeholder="Écrivez un message à Kai… (Entrée pour envoyer)"
             disabled={isStreaming}
             rows={1}
-            className="flex-1 bg-white border border-[#E5E7EB] text-[#111111] text-sm rounded-xl px-3 py-2.5 outline-none resize-none placeholder-[#9CA3AF] focus:border-[#3462EE] transition-colors disabled:opacity-50 leading-5"
+            className="flex-1 bg-soren-card border border-soren-border text-soren-text text-sm rounded-xl px-3 py-2.5 outline-none resize-none placeholder-[#9CA3AF] focus:border-[#3462EE] transition-colors disabled:opacity-50 leading-5"
             style={{ maxHeight: 80 }}
           />
           <button
@@ -396,7 +396,7 @@ function MessagingTestSection() {
       </div>
 
       {/* Note */}
-      <p className="text-[10px] text-[#9CA3AF] italic text-center">{KAI_SYSTEM_NOTE}</p>
+      <p className="text-[10px] text-soren-subtle italic text-center">{KAI_SYSTEM_NOTE}</p>
     </div>
   )
 }

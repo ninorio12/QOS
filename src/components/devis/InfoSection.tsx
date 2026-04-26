@@ -3,24 +3,30 @@
 
 import { useState, useRef } from 'react'
 
+type SignatureStatut = 'non_envoye' | 'envoye' | 'vu' | 'signe'
+
 type TimelineEvent = {
   label:  string
-  detail: string
+  detail: string | null
   date:   string | null
   icon:   React.ReactNode
   done:   boolean
 }
 
 interface InfoSectionProps {
-  devisId:         string
-  contactId:       string | null
-  contactName:     string | null
-  conversationId:  string | null
-  source:          string
-  createdAt:       string
-  envoyeLe:        string | null
-  pdfUrl:          string | null
-  montantHt:       number | null
+  devisId:          string
+  contactId:        string | null
+  contactName:      string | null
+  contactEmail:     string | null
+  conversationId:   string | null
+  source:           string
+  createdAt:        string
+  envoyeLe:         string | null
+  pdfUrl:           string | null
+  montantHt:        number | null
+  sigStatut:        SignatureStatut
+  signatureVuLe:    string | null
+  signatureSigne:   string | null
 }
 
 function fmtDate(iso: string) {
@@ -51,20 +57,38 @@ const IconSend = () => (
   </svg>
 )
 
+const IconEye = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+    <circle cx="12" cy="12" r="3"/>
+  </svg>
+)
+
+const IconCheck = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+)
+
 export default function InfoSection({
-  devisId, contactId, contactName, conversationId, source,
+  devisId, contactId, contactName, contactEmail, conversationId, source,
   createdAt, envoyeLe, pdfUrl, montantHt,
+  sigStatut, signatureVuLe, signatureSigne,
 }: InfoSectionProps) {
   const [acompteRate, setAcompteRate] = useState(30)
-  const [editing, setEditing]         = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const acompteAmount = montantHt != null ? montantHt * (acompteRate / 100) : null
+  const acompteAmount = (montantHt ?? 0) * (acompteRate / 100)
 
   function handleRateChange(raw: string) {
     const n = parseInt(raw, 10)
     if (!isNaN(n) && n >= 0 && n <= 100) setAcompteRate(n)
   }
+
+  // L'envoi peut venir du WhatsApp (envoyeLe) ou de l'email (sigStatut !== 'non_envoye')
+  const estEnvoye = !!envoyeLe || sigStatut !== 'non_envoye'
+  const envoyeDetail = envoyeLe ? 'par WhatsApp' : sigStatut !== 'non_envoye' ? `par email — ${contactEmail ?? ''}` : null
+  const envoyeDate = envoyeLe ?? null  // pour email on n'a pas encore la date dans le champ envoye_le
 
   const timeline: TimelineEvent[] = [
     {
@@ -75,18 +99,25 @@ export default function InfoSection({
       done:   true,
     },
     {
-      label:  'PDF généré',
-      detail: pdfUrl ? '2.3 Mo' : 'non généré',
-      date:   pdfUrl ? createdAt : null,
-      icon:   <IconPdf />,
-      done:   !!pdfUrl,
+      label:  'Envoyé',
+      detail: envoyeDetail,
+      date:   envoyeDate,
+      icon:   <IconSend />,
+      done:   estEnvoye,
     },
     {
-      label:  'Envoyé',
-      detail: envoyeLe ? 'par WhatsApp' : 'non envoyé',
-      date:   envoyeLe,
-      icon:   <IconSend />,
-      done:   !!envoyeLe,
+      label:  'Vu',
+      detail: signatureVuLe ? 'lien ouvert par le client' : null,
+      date:   signatureVuLe,
+      icon:   <IconEye />,
+      done:   sigStatut === 'vu' || sigStatut === 'signe',
+    },
+    {
+      label:  'Signé',
+      detail: signatureSigne ? 'signature électronique' : null,
+      date:   signatureSigne,
+      icon:   <IconCheck />,
+      done:   sigStatut === 'signe',
     },
   ]
 
@@ -97,7 +128,7 @@ export default function InfoSection({
       <div className="flex flex-col gap-2">
         {contactName && (
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-[#9CA3AF] font-medium">Contact</span>
+            <span className="text-[11px] text-soren-subtle font-medium">Contact</span>
             <a
               href={contactId ? `/contacts/${contactId}` : '#'}
               className="text-[11px] font-semibold text-[#111] hover:text-[#3462EE] transition-colors"
@@ -108,7 +139,7 @@ export default function InfoSection({
         )}
         {conversationId && (
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-[#9CA3AF] font-medium">Conversation</span>
+            <span className="text-[11px] text-soren-subtle font-medium">Conversation</span>
             <a
               href={`/conversations?id=${conversationId}`}
               className="text-[11px] font-semibold text-[#111] hover:text-[#3462EE] transition-colors"
@@ -118,7 +149,7 @@ export default function InfoSection({
           </div>
         )}
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-[#9CA3AF] font-medium">Source</span>
+          <span className="text-[11px] text-soren-subtle font-medium">Source</span>
           <span
             className="text-[10px] font-bold px-2 py-0.5 rounded-full"
             style={source === 'n8n'
@@ -129,42 +160,40 @@ export default function InfoSection({
             {source === 'n8n' ? 'IA · N8N' : 'Manuel'}
           </span>
         </div>
-        {acompteAmount != null && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] text-[#9CA3AF] font-medium">Acompte</span>
-              <div className="flex items-center gap-0.5">
-                {[20, 30, 50].map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setAcompteRate(p)}
-                    className={`text-[10px] font-semibold px-1.5 py-0.5 rounded transition-all ${
-                      acompteRate === p
-                        ? 'bg-[#E2FF8D] text-[#111]'
-                        : 'text-[#C8CCC6] hover:text-[#9CA3AF]'
-                    }`}
-                  >
-                    {p}%
-                  </button>
-                ))}
-                <div className="flex items-center gap-0.5 bg-[#F3F4F6] rounded-md px-1.5 py-0.5">
-                  <input
-                    ref={inputRef}
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={acompteRate}
-                    onChange={e => handleRateChange(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && inputRef.current?.blur()}
-                    className="w-5 text-[10px] font-semibold text-[#111] text-center outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  <span className="text-[10px] font-semibold text-[#111]">%</span>
-                </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-soren-subtle font-medium">Acompte</span>
+            <div className="flex items-center gap-0.5">
+              {[20, 30, 50].map(p => (
+                <button
+                  key={p}
+                  onClick={() => setAcompteRate(p)}
+                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded transition-all ${
+                    acompteRate === p
+                      ? 'bg-[#E2FF8D] text-[#111]'
+                      : 'text-[#C8CCC6] hover:text-soren-subtle'
+                  }`}
+                >
+                  {p}%
+                </button>
+              ))}
+              <div className="flex items-center gap-0.5 bg-[#F3F4F6] rounded-md px-1.5 py-0.5">
+                <input
+                  ref={inputRef}
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={acompteRate}
+                  onChange={e => handleRateChange(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && inputRef.current?.blur()}
+                  className="w-5 text-[10px] font-semibold text-[#111] text-center outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <span className="text-[10px] font-semibold text-[#111]">%</span>
               </div>
             </div>
-            <span className="text-[11px] font-semibold text-[#111]">{fmtEUR(acompteAmount)}</span>
           </div>
-        )}
+          <span className="text-[11px] font-semibold text-[#111]">{fmtEUR(acompteAmount)}</span>
+        </div>
         {pdfUrl && (
           <a
             href={pdfUrl}
@@ -173,12 +202,12 @@ export default function InfoSection({
             className="flex items-center justify-between gap-3 bg-[#f9f9f7] hover:bg-[#f0f0eb] border border-[#f0f0eb] rounded-xl px-3 py-2.5 transition-colors group"
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-white border border-[#e5e7eb] flex items-center justify-center flex-shrink-0 group-hover:border-[#3462EE]/30 transition-colors">
+              <div className="w-7 h-7 rounded-lg bg-soren-card border border-[#e5e7eb] flex items-center justify-center flex-shrink-0 group-hover:border-[#3462EE]/30 transition-colors">
                 <IconPdf />
               </div>
               <div>
                 <p className="text-[12px] font-semibold text-[#111] leading-none">Devis PDF</p>
-                <p className="text-[10px] text-[#9CA3AF] mt-0.5">Télécharger</p>
+                <p className="text-[10px] text-soren-subtle mt-0.5">Télécharger</p>
               </div>
             </div>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-[#3462EE] transition-colors flex-shrink-0">
@@ -195,7 +224,7 @@ export default function InfoSection({
 
       {/* Timeline */}
       <div>
-        <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3">Historique</p>
+        <p className="text-[10px] font-semibold text-soren-subtle uppercase tracking-widest mb-3">Historique</p>
         <div className="flex flex-col">
           {timeline.map((ev, i) => {
             const isLast = i === timeline.length - 1
@@ -237,12 +266,12 @@ export default function InfoSection({
                       >
                         {ev.label}
                       </p>
-                      {ev.done && (
-                        <p className="text-[10px] text-[#9CA3AF] mt-0.5">{ev.detail}</p>
+                      {ev.done && ev.detail && (
+                        <p className="text-[10px] text-soren-subtle mt-0.5 truncate max-w-[120px]">{ev.detail}</p>
                       )}
                     </div>
                     {ev.date && (
-                      <p className="text-[10px] text-[#9CA3AF] flex-shrink-0 mt-0.5">
+                      <p className="text-[10px] text-soren-subtle flex-shrink-0 mt-0.5">
                         {fmtDate(ev.date)}
                       </p>
                     )}

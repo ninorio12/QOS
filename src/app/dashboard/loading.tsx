@@ -10,7 +10,7 @@ export default function DashboardLoading() {
       {/* Stat cards row */}
       <div className="grid grid-cols-4 gap-3 mb-4 flex-shrink-0">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-2xl p-4 shadow-sm border border-[#E5E7EB]">
+          <div key={i} className="bg-soren-card rounded-2xl p-4 shadow-sm border border-soren-border">
             <div className="h-3 w-20 bg-[#E5E7EB] rounded mb-3" />
             <div className="h-8 w-16 bg-[#D9DDD6] rounded-lg" />
           </div>
@@ -20,7 +20,7 @@ export default function DashboardLoading() {
       {/* Main content row */}
       <div className="flex gap-3 flex-1 min-h-0">
         {/* Weekly chart */}
-        <div className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-[#E5E7EB]">
+        <div className="flex-1 bg-soren-card rounded-2xl p-4 shadow-sm border border-soren-border">
           <div className="h-3 w-32 bg-[#E5E7EB] rounded mb-4" />
           <div className="h-full flex items-end gap-2 pb-4">
             {Array.from({ length: 7 }).map((_, i) => (
@@ -36,7 +36,7 @@ export default function DashboardLoading() {
         </div>
 
         {/* Funnel */}
-        <div className="w-56 bg-white rounded-2xl p-4 shadow-sm border border-[#E5E7EB] flex flex-col gap-2">
+        <div className="w-56 bg-soren-card rounded-2xl p-4 shadow-sm border border-soren-border flex flex-col gap-2">
           <div className="h-3 w-24 bg-[#E5E7EB] rounded mb-2" />
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex items-center gap-2">
@@ -47,7 +47,7 @@ export default function DashboardLoading() {
         </div>
 
         {/* Recent opps */}
-        <div className="w-72 bg-white rounded-2xl p-4 shadow-sm border border-[#E5E7EB] flex flex-col gap-3">
+        <div className="w-72 bg-soren-card rounded-2xl p-4 shadow-sm border border-soren-border flex flex-col gap-3">
           <div className="h-3 w-28 bg-[#E5E7EB] rounded mb-1" />
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3">

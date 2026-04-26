@@ -163,8 +163,8 @@ function TranscriptRow({
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-4 py-3.5 flex items-start gap-3 transition-colors border-b border-[#E5E7EB] last:border-0 ${
-        isSelected ? 'bg-white shadow-sm border-l-2 border-l-[#3462EE]' : 'hover:bg-[#F5F5F0]'
+      className={`w-full text-left px-4 py-3.5 flex items-start gap-3 transition-colors border-b border-soren-border last:border-0 ${
+        isSelected ? 'bg-soren-card shadow-sm border-l-2 border-l-[#3462EE]' : 'hover:bg-soren-elevated'
       }`}
     >
       {/* avatar */}
@@ -173,14 +173,14 @@ function TranscriptRow({
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 mb-1">
-          <p className="text-sm font-semibold text-[#111111] truncate">{t.contact}</p>
-          <div className="flex items-center gap-1 text-[10px] text-[#9CA3AF] flex-shrink-0">
+          <p className="text-sm font-semibold text-soren-text truncate">{t.contact}</p>
+          <div className="flex items-center gap-1 text-[10px] text-soren-subtle flex-shrink-0">
             <Clock size={9} />
             {t.duration}
           </div>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] text-[#9CA3AF]">{t.date}</p>
+          <p className="text-[10px] text-soren-subtle">{t.date}</p>
           <CanalBadge canal={t.canal} />
         </div>
       </div>
@@ -193,12 +193,12 @@ function TranscriptDetail({ t }: { t: Transcript }) {
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {/* Header */}
-      <div className="px-6 py-5 border-b border-[#E5E7EB] flex-shrink-0">
+      <div className="px-6 py-5 border-b border-soren-border flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-bold text-[#111111]">{t.contact}</h2>
+          <h2 className="text-lg font-bold text-soren-text">{t.contact}</h2>
           <CanalBadge canal={t.canal} />
         </div>
-        <div className="flex items-center gap-3 text-xs text-[#9CA3AF]">
+        <div className="flex items-center gap-3 text-xs text-soren-subtle">
           <span>{t.date}</span>
           <span>·</span>
           <Clock size={11} className="inline" />
@@ -209,18 +209,18 @@ function TranscriptDetail({ t }: { t: Transcript }) {
       <div className="px-6 py-5 space-y-6 flex-1">
         {/* Summary */}
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Résumé IA</p>
-          <p className="text-sm text-[#6B7280] leading-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
+          <p className="text-[9px] font-bold uppercase tracking-widest text-soren-subtle mb-2">Résumé IA</p>
+          <p className="text-sm text-soren-muted leading-6 bg-soren-card border border-soren-border rounded-xl p-4">
             {t.summary}
           </p>
         </div>
 
         {/* Actions */}
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Actions détectées</p>
+          <p className="text-[9px] font-bold uppercase tracking-widest text-soren-subtle mb-2">Actions détectées</p>
           <div className="space-y-2">
             {t.actions.map((a, i) => (
-              <div key={i} className="flex items-start gap-2.5 bg-white border border-[#E5E7EB] rounded-xl px-4 py-3">
+              <div key={i} className="flex items-start gap-2.5 bg-soren-card border border-soren-border rounded-xl px-4 py-3">
                 <CheckSquare size={13} className="text-[#E2FF8D] flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-[#374151]">{a}</p>
               </div>
@@ -230,7 +230,7 @@ function TranscriptDetail({ t }: { t: Transcript }) {
 
         {/* Transcript */}
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Transcription</p>
+          <p className="text-[9px] font-bold uppercase tracking-widest text-soren-subtle mb-2">Transcription</p>
           <div className="space-y-3">
             {t.messages.map((m, i) => {
               const isAgent = m.speaker === 'Agent'
@@ -238,7 +238,7 @@ function TranscriptDetail({ t }: { t: Transcript }) {
                 <div key={i} className={`flex gap-2 ${isAgent ? '' : 'flex-row-reverse'}`}>
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${
-                      isAgent ? 'bg-[#3462EE] text-white' : 'bg-[#EEF0EB] text-[#6B7280]'
+                      isAgent ? 'bg-[#3462EE] text-white' : 'bg-soren-app text-soren-muted'
                     }`}
                   >
                     {isAgent ? 'IA' : t.contact[0]}
@@ -247,7 +247,7 @@ function TranscriptDetail({ t }: { t: Transcript }) {
                     className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 text-xs leading-5 ${
                       isAgent
                         ? 'bg-[#EEF3FF] border border-[#DBEAFE] text-[#1e3a8a] rounded-tl-sm'
-                        : 'bg-white border border-[#E5E7EB] text-[#374151] rounded-tr-sm shadow-sm'
+                        : 'bg-soren-card border border-soren-border text-[#374151] rounded-tr-sm shadow-sm'
                     }`}
                   >
                     {m.text}
@@ -267,13 +267,13 @@ export default function TranscriptsView() {
   const [selected, setSelected] = useState<Transcript>(MOCK_TRANSCRIPTS[0])
 
   return (
-    <div className="flex h-[calc(100vh-56px)] overflow-hidden bg-[#EEF0EB]">
+    <div className="flex h-[calc(100vh-56px)] overflow-hidden bg-soren-app">
 
       {/* Left list */}
-      <div className="flex flex-col w-[300px] flex-shrink-0 bg-white border-r border-[#E5E7EB]">
-        <div className="px-4 pt-5 pb-4 border-b border-[#E5E7EB]">
-          <h1 className="text-sm font-bold text-[#111111]">Transcripts</h1>
-          <p className="text-xs text-[#6B7280] mt-0.5">{MOCK_TRANSCRIPTS.length} conversations</p>
+      <div className="flex flex-col w-[300px] flex-shrink-0 bg-soren-card border-r border-soren-border">
+        <div className="px-4 pt-5 pb-4 border-b border-soren-border">
+          <h1 className="text-sm font-bold text-soren-text">Transcripts</h1>
+          <p className="text-xs text-soren-muted mt-0.5">{MOCK_TRANSCRIPTS.length} conversations</p>
         </div>
         <div className="flex-1 overflow-y-auto">
           {MOCK_TRANSCRIPTS.map(t => (

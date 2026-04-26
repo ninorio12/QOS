@@ -53,7 +53,7 @@ export function SoulTab({ agentId, onLoad }: SoulTabProps) {
   }
 
   if (loading) {
-    return <div className="animate-pulse h-64 bg-white/5 rounded-xl" />
+    return <div className="animate-pulse h-64 bg-soren-card/5 rounded-xl" />
   }
 
   if (error) {

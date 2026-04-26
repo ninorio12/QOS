@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#111; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:32px 20px 48px; }
+  h2 { color:#fff; font-size:22px; font-weight:800; letter-spacing:-0.5px; margin-bottom:6px; text-align:center; }
+  .subtitle { color:#555; font-size:14px; text-align:center; margin-bottom:36px; }
+
+  .phones-row { display:flex; gap:24px; flex-wrap:wrap; justify-content:center; }
+
+  .phone-card {
+    background:#1a1a1a; border:2px solid #2a2a2a; border-radius:24px; padding:20px 16px;
+    cursor:pointer; transition:all 0.2s ease; display:flex; flex-direction:column; align-items:center; gap:14px;
+    width:200px;
+  }
+  .phone-card:hover { border-color:#E2FF8D50; transform:translateY(-3px); box-shadow:0 12px 40px rgba(0,0,0,0.4); }
+  .phone-card.selected { border-color:#E2FF8D; background:#E2FF8D05; }
+  .phone-card h3 { color:#fff; font-size:13px; font-weight:700; text-align:center; }
+  .phone-card p { color:#555; font-size:11px; text-align:center; line-height:1.5; }
+
+  .rec { background:#E2FF8D; color:#1A5C38; font-size:9px; font-weight:800; padding:2px 8px; border-radius:20px; }
+
+  /* Phone shell */
+  .ph {
+    width:156px; height:320px; border-radius:28px; overflow:hidden;
+    background:#EEF0EB; box-shadow:0 8px 24px rgba(0,0,0,0.3);
+    display:flex; flex-direction:column;
+    font-size:10px; position:relative;
+  }
+
+  /* ---- LAYOUT A: 2×2 Grid ---- */
+  .ph-a { background:#EEF0EB; }
+  .ph-a .sb { background:#EEF0EB; padding:8px 12px 4px; display:flex; justify-content:space-between; font-size:8px; font-weight:700; color:#111; }
+  .ph-a .tb { padding:4px 12px 6px; display:flex; justify-content:space-between; align-items:center; }
+  .ph-a .tb-title { font-size:15px; font-weight:900; color:#111; letter-spacing:-0.6px; }
+  .ph-a .tb-icon { width:22px; height:22px; background:#E2FF8D; border-radius:6px; }
+  .ph-a .grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:0 10px; margin-bottom:8px; }
+  .ph-a .kpi { background:white; border-radius:14px; padding:10px 10px 8px; }
+  .ph-a .kl { font-size:7px; color:#9CA3AF; margin-bottom:4px; }
+  .ph-a .kv { font-size:14px; font-weight:900; color:#111; letter-spacing:-0.5px; }
+  .ph-a .kv.blue { color:#3462EE; }
+  .ph-a .section { margin:0 10px 8px; background:white; border-radius:14px; padding:8px 10px; }
+  .ph-a .sec-title { font-size:7px; font-weight:700; color:#9CA3AF; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:6px; }
+  .ph-a .agent-row { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+  .ph-a .av { width:20px; height:20px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:white; }
+  .ph-a .an { font-size:9px; font-weight:700; color:#111; }
+  .ph-a .dot { width:5px; height:5px; border-radius:50%; margin-left:auto; }
+  .ph-a .dot.on { background:#34D399; }
+  .ph-a .dot.off { background:#D1D5DB; }
+  .ph-a .bnav { margin-top:auto; background:white; border-top:1px solid #f0f0f0; padding:5px 8px 8px; display:flex; justify-content:space-around; }
+  .ph-a .ti { display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .ph-a .ti-icon { width:16px; height:16px; border-radius:5px; }
+  .ph-a .ti-label { font-size:6px; font-weight:600; }
+
+  /* ---- LAYOUT B: Hero Banner ---- */
+  .ph-b { background:#EEF0EB; }
+  .ph-b .sb { background:#EEF0EB; padding:8px 12px 4px; display:flex; justify-content:space-between; font-size:8px; font-weight:700; color:#111; }
+  .ph-b .tb { padding:4px 12px 8px; display:flex; justify-content:space-between; align-items:center; }
+  .ph-b .tb-title { font-size:15px; font-weight:900; color:#111; letter-spacing:-0.6px; }
+  .ph-b .tb-icon { width:22px; height:22px; background:#E2FF8D; border-radius:6px; }
+  .ph-b .hero { margin:0 10px 8px; background:#3462EE; border-radius:16px; padding:14px 14px; }
+  .ph-b .hero-label { font-size:7px; color:rgba(255,255,255,0.6); margin-bottom:2px; }
+  .ph-b .hero-value { font-size:22px; font-weight:900; color:#fff; letter-spacing:-1px; line-height:1; }
+  .ph-b .hero-sub { font-size:7px; color:rgba(255,255,255,0.5); margin-top:4px; }
+  .ph-b .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; padding:0 10px; margin-bottom:8px; }
+  .ph-b .mini { background:white; border-radius:12px; padding:8px 8px 6px; text-align:center; }
+  .ph-b .ml { font-size:6px; color:#9CA3AF; margin-bottom:3px; }
+  .ph-b .mv { font-size:12px; font-weight:900; color:#111; }
+  .ph-b .qa { margin:0 10px 8px; display:flex; gap:5px; }
+  .ph-b .qa-btn { flex:1; background:white; border-radius:12px; padding:8px 4px; text-align:center; }
+  .ph-b .qa-ico { font-size:12px; margin-bottom:2px; }
+  .ph-b .qa-lbl { font-size:6px; font-weight:700; color:#111; }
+  .ph-b .bnav { margin-top:auto; background:white; border-top:1px solid #f0f0f0; padding:5px 8px 8px; display:flex; justify-content:space-around; }
+  .ph-b .ti { display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .ph-b .ti-icon { width:16px; height:16px; border-radius:5px; }
+  .ph-b .ti-label { font-size:6px; font-weight:600; }
+
+  /* ---- LAYOUT C: Scroll Cards ---- */
+  .ph-c { background:#EEF0EB; }
+  .ph-c .sb { background:#EEF0EB; padding:8px 12px 4px; display:flex; justify-content:space-between; font-size:8px; font-weight:700; color:#111; }
+  .ph-c .tb { padding:4px 12px 6px; display:flex; justify-content:space-between; align-items:center; }
+  .ph-c .tb-title { font-size:15px; font-weight:900; color:#111; letter-spacing:-0.6px; }
+  .ph-c .tb-icon { width:22px; height:22px; background:#E2FF8D; border-radius:6px; }
+  .ph-c .scroll-row { display:flex; gap:6px; padding:0 10px; overflow:hidden; margin-bottom:8px; }
+  .ph-c .sc { width:90px; flex-shrink:0; border-radius:16px; padding:12px 10px; }
+  .ph-c .sc.blue { background:#3462EE; }
+  .ph-c .sc.lime { background:#E2FF8D; }
+  .ph-c .sc.white { background:white; }
+  .ph-c .sc-label { font-size:7px; margin-bottom:4px; }
+  .ph-c .sc-label.light { color:rgba(255,255,255,0.6); }
+  .ph-c .sc-label.dark { color:#9CA3AF; }
+  .ph-c .sc-label.green { color:#1A5C38; }
+  .ph-c .sc-value { font-size:16px; font-weight:900; letter-spacing:-0.8px; }
+  .ph-c .sc-value.white { color:#fff; }
+  .ph-c .sc-value.dark { color:#111; }
+  .ph-c .sc-value.green { color:#1A5C38; }
+  .ph-c .dots { display:flex; gap:3px; justify-content:center; margin-bottom:8px; }
+  .ph-c .d { width:5px; height:5px; border-radius:50%; }
+  .ph-c .d.on { background:#3462EE; width:12px; border-radius:3px; }
+  .ph-c .d.off { background:#D1D5DB; }
+  .ph-c .convs { margin:0 10px 0; background:white; border-radius:14px; overflow:hidden; }
+  .ph-c .conv-title { font-size:7px; font-weight:700; color:#9CA3AF; text-transform:uppercase; padding:8px 10px 4px; }
+  .ph-c .conv-row { display:flex; align-items:center; gap:6px; padding:6px 10px; border-top:1px solid #f5f5f5; }
+  .ph-c .cav { width:20px; height:20px; border-radius:50%; background:#3462EE20; display:flex; align-items:center; justify-content:center; font-size:7px; font-weight:700; color:#3462EE; }
+  .ph-c .cn { font-size:9px; font-weight:700; color:#111; }
+  .ph-c .cm { font-size:7px; color:#9CA3AF; }
+  .ph-c .cu { width:14px; height:14px; background:#3462EE; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:6px; color:white; font-weight:700; margin-left:auto; }
+  .ph-c .bnav { background:white; border-top:1px solid #f0f0f0; padding:5px 8px 8px; display:flex; justify-content:space-around; margin-top:8px; }
+  .ph-c .ti { display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .ph-c .ti-icon { width:16px; height:16px; border-radius:5px; }
+  .ph-c .ti-label { font-size:6px; font-weight:600; }
+</style>
+</head>
+<body>
+  <h2>Layout de l'écran Home</h2>
+  <p class="subtitle">Comment organiser les infos sur la page principale ?</p>
+
+  <div class="phones-row">
+
+    <!-- A: 2×2 Grid -->
+    <div class="phone-card" onclick="pick(this,'a')">
+      <span class="rec">Actuel dans le plan</span>
+      <div class="ph ph-a">
+        <div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="tb"><div><div style="font-size:8px;color:#9CA3AF;">Bonjour,</div><div class="tb-title">Soren</div></div><div class="tb-icon"></div></div>
+        <div class="grid">
+          <div class="kpi"><div class="kl">Pipeline</div><div class="kv">93.8k€</div></div>
+          <div class="kpi"><div class="kl">Messages</div><div class="kv blue">3</div></div>
+          <div class="kpi"><div class="kl">Contacts</div><div class="kv">47</div></div>
+          <div class="kpi"><div class="kl">Deals gagnés</div><div class="kv">8</div></div>
+        </div>
+        <div class="section">
+          <div class="sec-title">Équipe IA</div>
+          <div class="agent-row"><div class="av" style="background:#4A91A8">S</div><div><div class="an">Soren</div></div><div class="dot on"></div></div>
+          <div class="agent-row"><div class="av" style="background:#1A5C38">K</div><div><div class="an">Kai</div></div><div class="dot on"></div></div>
+          <div class="agent-row"><div class="av" style="background:#E8836A">M</div><div><div class="an">Mia</div></div><div class="dot off"></div></div>
+        </div>
+        <div class="bnav">
+          <div class="ti"><div class="ti-icon" style="background:#3462EE"></div><div class="ti-label" style="color:#3462EE">Home</div></div>
+          <div class="ti"><div class="ti-icon" style="background:#E5E7EB"></div><div class="ti-label" style="color:#9CA3AF">Msgs</div></div>
+          <div class="ti"><div class="ti-icon" style="background:#E5E7EB"></div><div class="ti-label" style="color:#9CA3AF">Contacts</div></div>
+          <div class="ti"><div class="ti-icon" style="background:#E5E7EB"></div><div class="ti-label" style="color:#9CA3AF">Agents</div></div>
+          <div class="ti"><div class="ti-icon" style="background:#E5E7EB"></div><div class="ti-label" style="color:#9CA3AF">Plus</div></div>
+        </div>
+      </div>
+      <h3>A — 2×2 Grille</h3>
+      <p>4 KPIs en grille + agents. Dense, scannable, tout en vue.</p>
+    </div>
+
+    <!-- B: Hero Banner -->
+    <div class="phone-card" onclick="pick(this,'b')">
+      <span class="rec" style="background:#3462EE;color:white;">⭐ Recommandé</span>
+      <div class="ph ph-b">
+        <div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="tb"><div><div style="font-size:8px;color:#9CA3AF;">Bonjour,</div><div class="tb-title">Soren</div></div><div class="tb-icon"></div></div>
+        <div class="hero">
+          <div class="hero-label">Valeur pipeline</div>
+          <div class="hero-value">93 800 €</div>
+          <div class="hero-sub">12 deals actifs · +8% ce mois</div>
+        </div>
+        <div class="row3">
+          <div class="mini"><div class="ml">Msgs</div><div class="mv">3</div></div>
+          <div class="mini"><div class="ml">Contacts</div><div class="mv">47</div></div>
+          <div class="mini"><div class="ml">RDV</div><div class="mv">2</div></div>
+        </div>
+        <div class="qa">
+          <div class="qa-btn"><div class="qa-ico">➕</div><div class="qa-lbl">Contact</div></div>
+          <div class="qa-btn"><div class="qa-ico">💬</div><div class="qa-lbl">Message</div></div>
+          <div class="qa-btn"><div class="qa-ico">📄</div><div class="qa-lbl">Devis</div></div>
+        </div>
+        <div class="bnav">
+          <div class="ti"><div class="ti-icon" style="background:#3462EE"></div><div class="ti-label" style="color:#3462EE">Home</div></div>
+          <div class="ti"><div class="ti-icon" style="background:#E5E7EB"></div><div class="ti-label" style="color:#9CA3AF">Msgs</div></div>
+          <div class="ti"><div class="ti-icon" style="background:#E5E7EB"></div><div class="ti-label" style="color:#9CA3AF">Contacts</div></div>
+          <div class="ti"><div class="ti-icon" style="background:#E5E7EB"></div><div class="ti-label" style="color:#9CA3AF">Agents</div></div>
+          <div class="ti"><div class="ti-icon" style="background:#E5E7EB"></div><div class="ti-label" style="color:#9CA3AF">Plus</div></div>
+        </div>
+      </div>
+      <h3>B — Hero Banner</h3>
+      <p>Pipeline en gros au-dessus, 3 micro-métriques + actions rapides. Impact immédiat.</p>
+    </div>
+
+    <!-- C: Scroll Cards + Feed -->
+    <div class="phone-card" onclick="pick(this,'c')">
+      <span class="rec" style="background:#9333EA;color:white;">Mobile Native</span>
+      <div class="ph ph-c">
+        <div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="tb"><div><div style="font-size:8px;color:#9CA3AF;">Bonjour,</div><div class="tb-title">Soren</div></div><div class="tb-icon"></div></div>
+        <div class="scroll-row">
+          <div class="sc blue"><div class="sc-label light">Pipeline</div><div class="sc-value white">93.8k€</div></div>
+          <div class="sc lime"><div class="sc-label green">Gagnés</div><div class="sc-value green">8 deals</div></div>
+          <div class="sc white"><div class="sc-label dark">Messages</div><div class="sc-value dark">3</div></div>
+        </div>
+        <div class="dots"><div class="d on"></div><div class="d off"></div><div class="d off"></div></div>
+        <div class="convs">
+          <div class="conv-title">Activité récente</div>
+          <div class="conv-row"><div class="cav">XL</div><div><div class="cn">Xavier L.</div><div class="cm">salut</div></div><div class="cu">1</div></div>
+          <div class="conv-row"><div class="cav">ID</div><div><div class="cn">Inès D.</div><div class="cm">disponibilités...</div></div><div class="cu">2</div></div>
+          <div class="conv-row"><div class="cav">MD</div><div><div class="cn">Marie D.</div><div class="cm">Salut</div></div></div>
+        </div>
+        <div class="bnav">
+          <div class="ti"><div class="ti-icon" style="background:#3462EE"></div><div class="ti-label" style="color:#3462EE">Home</div></div>
+          <div class="ti"><div class="ti-icon" style="background:#E5E7EB"></div><div class="ti-label" style="color:#9CA3AF">Msgs</div></div>
+          <div class="ti"><div class="ti-icon" style="background:#E5E7EB"></div><div class="ti-label" style="color:#9CA3AF">Contacts</div></div>
+          <div class="ti"><div class="ti-icon" style="background:#E5E7EB"></div><div class="ti-label" style="color:#9CA3AF">Agents</div></div>
+          <div class="ti"><div class="ti-icon" style="background:#E5E7EB"></div><div class="ti-label" style="color:#9CA3AF">Plus</div></div>
+        </div>
+      </div>
+      <h3>C — Scroll + Feed</h3>
+      <p>Cards horizontales swipables + feed conversations. Ultra mobile-native, très fluide.</p>
+    </div>
+
+  </div>
+
+<script>
+function pick(el, choice) {
+  document.querySelectorAll('.phone-card').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  if (window.logChoice) window.logChoice(choice, el.querySelector('h3').textContent);
+}
+</script>
+</body>
+</html>

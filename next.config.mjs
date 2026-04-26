@@ -6,6 +6,14 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  compress: true,
+
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
+
+  serverExternalPackages: ['puppeteer'],
+
   webpack: (config, { dev }) => {
     if (dev) {
       config.watchOptions = {

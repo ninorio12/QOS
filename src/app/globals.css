@@ -6,11 +6,24 @@
   --bg-app:     #EEF0EB;
   --bg-card:    #FFFFFF;
   --bg-sidebar: #111111;
+  --bg-elevated:#F5F5F0;
   --accent:     #E2FF8D;
   --text:       #111111;
   --muted:      #6B7280;
   --subtle:     #9CA3AF;
   --border:     #E5E7EB;
+}
+
+html.dark {
+  --bg-app:     #1C1C1E;
+  --bg-card:    #2C2C2E;
+  --bg-sidebar: #000000;
+  --bg-elevated:#3A3A3C;
+  --accent:     #E2FF8D;
+  --text:       #FFFFFF;
+  --muted:      #8E8E93;
+  --subtle:     #636366;
+  --border:     #38383A;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -23,6 +36,21 @@ body {
   color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* ── Mobile nav frosted glass ── */
+.mob-nav-blur {
+  background-color: rgba(238, 240, 235, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+html.dark .mob-nav-blur {
+  background-color: rgba(28, 28, 30, 0.92);
+}
+
+/* ── Safe area (iPhone home bar) ── */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
 }
 
 /* ── Tooltips globaux ── */
@@ -69,7 +97,7 @@ body {
 
 .kanban-scroll { overflow-x: scroll; }
 .kanban-scroll::-webkit-scrollbar { height: 6px; }
-.kanban-scroll::-webkit-scrollbar-track { background: #F5F5F0; border-radius: 999px; }
+.kanban-scroll::-webkit-scrollbar-track { background: var(--bg-elevated); border-radius: 999px; }
 .kanban-scroll::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 999px; }
 
 /* Vertical scroll inside kanban columns */
@@ -79,7 +107,7 @@ body {
 
 /* Calendar weekly view vertical scroll */
 .calendar-scroll::-webkit-scrollbar { width: 6px; }
-.calendar-scroll::-webkit-scrollbar-track { background: #F5F5F0; border-radius: 999px; }
+.calendar-scroll::-webkit-scrollbar-track { background: var(--bg-elevated); border-radius: 999px; }
 .calendar-scroll::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 999px; }
 
 /* ── Select globaux ── */
@@ -111,4 +139,14 @@ select:focus {
 
 .page-fade-in {
   animation: page-fade-in 150ms ease-out;
+}
+
+/* Page transitions between modules */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+.page-enter {
+  animation: page-enter 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }

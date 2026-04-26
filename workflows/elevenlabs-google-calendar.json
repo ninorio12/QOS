@@ -1,0 +1,498 @@
+{
+  "name": "ElevenLabs Receptionniste — Google Calendar",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "elevenlabs-rdv",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-node",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [100, 400],
+      "webhookId": "elevenlabs-rdv-webhook"
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action ?? ($json.parameters ? $json.parameters.action : '') ?? $json.tool_name ?? $json.name ?? '' }}",
+                    "rightValue": "check_availability",
+                    "operator": { "type": "string", "operation": "contains" }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "check_availability"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action ?? ($json.parameters ? $json.parameters.action : '') ?? $json.tool_name ?? $json.name ?? '' }}",
+                    "rightValue": "check_next",
+                    "operator": { "type": "string", "operation": "contains" }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "check_next_slots"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action ?? ($json.parameters ? $json.parameters.action : '') ?? $json.tool_name ?? $json.name ?? '' }}",
+                    "rightValue": "create",
+                    "operator": { "type": "string", "operation": "contains" }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "create_event"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "switch-node",
+      "name": "Switch — Type d'action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [320, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// check_availability — lecture directe du datetime sans OpenAI\n// Fix timezone : VPS en UTC, datetime ElevenLabs sans timezone = heure Paris\nconst body = $input.first().json;\nconst params = body.parameters ?? body;\nconst toolCallId = body.tool_call_id ?? body.id ?? 'unknown';\n\nconst datetimeRaw = params.datetime ?? '';\nif (!datetimeRaw) throw new Error('datetime manquant dans les params');\n\n// Detecte le decalage Paris/UTC dynamiquement (gere heure ete/hiver)\nfunction parisToUTC(dtStr) {\n  if (dtStr.endsWith('Z') || /[+-]\\d{2}:\\d{2}$/.test(dtStr)) {\n    return new Date(dtStr).toISOString(); // deja avec timezone\n  }\n  // Pas de timezone = heure Paris. Calcul decalage actuel.\n  const now = new Date();\n  const parisMs = Date.parse(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));\n  const utcMs   = Date.parse(now.toLocaleString('en-US', { timeZone: 'UTC' }));\n  const offsetMs = parisMs - utcMs; // ex: +7200000 en ete (UTC+2)\n  // dtStr parse comme UTC (9h UTC), on soustrait l'offset pour obtenir vrai UTC (7h UTC)\n  return new Date(new Date(dtStr + 'Z').getTime() - offsetMs).toISOString();\n}\n\nconst dureeMin = parseInt(params.duree_minutes ?? 60);\nconst startISO = parisToUTC(datetimeRaw);\nconst endISO   = new Date(new Date(startISO).getTime() + dureeMin * 60000).toISOString();\n\nconst dateLisible = new Date(startISO).toLocaleString('fr-FR', {\n  weekday: 'long', day: 'numeric', month: 'long',\n  hour: '2-digit', minute: '2-digit',\n  timeZone: 'Europe/Paris'\n});\n\nreturn [{\n  json: {\n    toolCallId,\n    mode: 'check_availability',\n    nomClient:   params.nom_client   ?? params.name  ?? 'Client',\n    emailClient: params.email_client ?? params.email ?? null,\n    tel:         params.telephone    ?? params.phone ?? null,\n    description: params.description  ?? 'Rendez-vous',\n    dateTimeStart: startISO,\n    dateTimeEnd:   endISO,\n    dureeMin,\n    dateLisible,\n  }\n}];"
+      },
+      "id": "code-direct-avail",
+      "name": "Extraire dispo — Direct",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// check_next_slots — prepare le prompt OpenAI avec heure Paris correcte\nconst body = $input.first().json;\nconst params = body.parameters ?? body;\nconst toolCallId = body.tool_call_id ?? body.id ?? 'unknown';\n\n// Heure Paris pour le prompt\nconst nowParis = new Date().toLocaleString('fr-FR', {\n  weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',\n  hour: '2-digit', minute: '2-digit',\n  timeZone: 'Europe/Paris'\n});\n\nconst rawInput = JSON.stringify(params);\n\nreturn [{\n  json: {\n    toolCallId,\n    mode: 'check_next_slots',\n    rawParams: params,\n    nomClient:   params.nom_client   ?? null,\n    emailClient: params.email_client ?? null,\n    tel:         params.telephone    ?? null,\n    description: params.description  ?? 'Rendez-vous',\n    promptUser: `Parametres recus : ${rawInput}\\n\\nDate et heure actuelles a Paris : ${nowParis}\\n\\nExtrais la plage de dates pour chercher les prochains creneaux (defaut : les 7 prochains jours).`,\n  }\n}];"
+      },
+      "id": "code-prep-next",
+      "name": "Preparer prompt — Prochains creneaux",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 440]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Tu analyses une demande de prochains creneaux disponibles. Retourne UNIQUEMENT un JSON valide avec : search_from_iso (ISO 8601 avec offset Europe/Paris, ex: 2026-04-14T09:00:00+02:00), search_to_iso (ISO 8601, defaut +7 jours), duration_minutes (integer, defaut 60). Utilise toujours le bon offset timezone Europe/Paris.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"={{ $json.promptUser }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "openai-next",
+      "name": "OpenAI — Extraire plage (prochains)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [760, 440]
+    },
+    {
+      "parameters": {
+        "jsCode": "// FIX: search_to_iso absent => default +7 jours (pas +1h)\n// FIX: parisToUTC retourne null si dtStr vide — check avant appel\nconst openaiResp = $input.first().json;\nconst extracted = JSON.parse(openaiResp.choices[0].message.content);\n\nconst prev = $('Preparer prompt — Prochains creneaux').first().json;\n\nfunction parisToUTC(dtStr) {\n  if (!dtStr) return null; // null explicite — pas de valeur par defaut ici\n  if (dtStr.endsWith('Z') || /[+-]\\d{2}:\\d{2}$/.test(dtStr)) return new Date(dtStr).toISOString();\n  const now = new Date();\n  const parisMs = Date.parse(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));\n  const utcMs   = Date.parse(now.toLocaleString('en-US', { timeZone: 'UTC' }));\n  const offsetMs = parisMs - utcMs;\n  return new Date(new Date(dtStr + 'Z').getTime() - offsetMs).toISOString();\n}\n\n// search_from absent => now + 1h (acceptable comme borne de depart)\nconst searchFrom = extracted.search_from_iso\n  ? parisToUTC(extracted.search_from_iso)\n  : new Date(Date.now() + 3600000).toISOString();\n\n// search_to absent => +7 jours (fenetre par defaut)\nconst searchTo = extracted.search_to_iso\n  ? parisToUTC(extracted.search_to_iso)\n  : new Date(Date.now() + 7 * 86400000).toISOString();\n\nreturn [{\n  json: {\n    ...prev,\n    dateTimeStart: searchFrom,\n    dateTimeEnd:   searchTo,\n    dureeMin: extracted.duration_minutes ?? 60,\n  }\n}];"
+      },
+      "id": "code-parse-next",
+      "name": "Parser resultat — Prochains creneaux",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [980, 440]
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "getAll",
+        "calendarId": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list",
+          "cachedResultName": "Calendrier principal"
+        },
+        "returnAll": true,
+        "options": {
+          "timeMin": "={{ $json.dateTimeStart }}",
+          "timeMax": "={{ $json.dateTimeEnd }}",
+          "singleEvents": true,
+          "orderBy": "startTime"
+        }
+      },
+      "id": "gcal-get-avail",
+      "name": "GCal — Recuperer events (dispo)",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.1,
+      "position": [760, 200],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "1",
+          "name": "Google Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "getAll",
+        "calendarId": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list",
+          "cachedResultName": "Calendrier principal"
+        },
+        "returnAll": true,
+        "options": {
+          "timeMin": "={{ $json.dateTimeStart }}",
+          "timeMax": "={{ $json.dateTimeEnd }}",
+          "singleEvents": true,
+          "orderBy": "startTime"
+        }
+      },
+      "id": "gcal-get-next",
+      "name": "GCal — Recuperer events (prochains)",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.1,
+      "position": [1200, 440],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "1",
+          "name": "Google Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// check_availability : verifie si le creneau est libre\n// Inclut timed events ET all-day opaques, exclut les marques 'libre'\nconst events = $input.all();\nconst calItems = events.filter(e => {\n  if (!e.json.id) return false;\n  if (e.json.transparency === 'transparent') return false;\n  return true;\n});\n\nconst ctx = $('Extraire dispo — Direct').first().json;\n\nconst creneaux = calItems.map(e => ({\n  titre: e.json.summary ?? '(sans titre)',\n  debut: e.json.start.dateTime ?? e.json.start.date,\n  fin:   e.json.end.dateTime   ?? e.json.end.date,\n}));\n\nconst isAvailable = creneaux.length === 0;\n\n// Sauvegarde le creneau si disponible (pour create_event)\nif (isAvailable) {\n  const staticData = $getWorkflowStaticData('global');\n  staticData.pendingSlot = {\n    dateTimeStart: ctx.dateTimeStart,\n    dateTimeEnd:   ctx.dateTimeEnd,\n    dateLisible:   ctx.dateLisible,\n    nomClient:     ctx.nomClient,\n    description:   ctx.description,\n    savedAt:       new Date().toISOString(),\n  };\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    isAvailable,\n    conflits: creneaux,\n    nbConflits: creneaux.length,\n  }\n}];"
+      },
+      "id": "aggregate-avail",
+      "name": "Agreger — Verifier dispo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [980, 200]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// check_next_slots : trouve les creneaux libres (9h-18h, lun-ven)\nconst events = $input.all();\nconst calItems = events.filter(e => {\n  if (!e.json.id) return false;\n  if (e.json.transparency === 'transparent') return false;\n  if (!e.json.start.dateTime) return false; // all-day non pris en compte ici\n  return true;\n});\n\nconst ctx = $('Parser resultat — Prochains creneaux').first().json;\nconst dureeMs = (ctx.dureeMin || 60) * 60 * 1000;\n\nconst busySlots = calItems.map(e => ({\n  start: new Date(e.json.start.dateTime).getTime(),\n  end:   new Date(e.json.end.dateTime).getTime(),\n})).sort((a, b) => a.start - b.start);\n\nconst searchFrom = ctx.dateTimeStart ? new Date(ctx.dateTimeStart) : new Date();\nconst searchTo   = ctx.dateTimeEnd   ? new Date(ctx.dateTimeEnd)   : new Date(Date.now() + 7 * 86400000);\n\nconst freeSlots = [];\nlet cursor = new Date(searchFrom);\ncursor.setSeconds(0, 0);\n\nwhile (cursor < searchTo && freeSlots.length < 5) {\n  const dow = cursor.getDay();\n  if (dow !== 0 && dow !== 6) {\n    const dayStart = new Date(cursor); dayStart.setHours(9, 0, 0, 0);\n    const dayEnd   = new Date(cursor); dayEnd.setHours(18, 0, 0, 0);\n    let slotStart = Math.max(dayStart.getTime(), Date.now() + 3600000);\n    const dayBusy = busySlots.filter(b => b.end > dayStart.getTime() && b.start < dayEnd.getTime());\n    for (const busy of dayBusy) {\n      if (slotStart + dureeMs <= busy.start && slotStart + dureeMs <= dayEnd.getTime()) {\n        freeSlots.push(new Date(slotStart));\n        if (freeSlots.length >= 5) break;\n      }\n      if (busy.end > slotStart) slotStart = busy.end;\n    }\n    if (freeSlots.length < 5 && slotStart + dureeMs <= dayEnd.getTime()) {\n      freeSlots.push(new Date(slotStart));\n    }\n  }\n  cursor.setDate(cursor.getDate() + 1);\n  cursor.setHours(0, 0, 0, 0);\n}\n\nconst fmt = (d) => new Date(d).toLocaleString('fr-FR', {\n  weekday: 'long', day: 'numeric', month: 'long',\n  hour: '2-digit', minute: '2-digit',\n  timeZone: 'Europe/Paris'\n});\n\nreturn [{\n  json: {\n    ...ctx,\n    isAvailable: freeSlots.length > 0,\n    freeSlots: freeSlots.map(d => ({ iso: d.toISOString(), lisible: fmt(d) })),\n  }\n}];"
+      },
+      "id": "aggregate-next",
+      "name": "Agreger — Prochains creneaux",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1420, 440]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-available",
+              "leftValue": "={{ $json.isAvailable }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-available",
+      "name": "IF — Disponible ? (dispo)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1200, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-next",
+              "leftValue": "={{ $json.isAvailable }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-next",
+      "name": "IF — Creneaux trouves ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1640, 440]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $input.first().json;\nconst message = `Oui, le creneau du ${ctx.dateLisible} est disponible. Souhaitez-vous que je confirme le rendez-vous ?`;\nreturn [{ json: { toolCallId: ctx.toolCallId, result: message } }];"
+      },
+      "id": "msg-available",
+      "name": "Message — Disponible",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1420, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $input.first().json;\nconst conflitsDesc = (ctx.conflits || []).slice(0, 2).map(c => {\n  const d = new Date(c.debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });\n  const f = new Date(c.fin).toLocaleTimeString('fr-FR',   { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });\n  return `${c.titre} (${d}-${f})`;\n}).join(', ');\nconst message = conflitsDesc\n  ? `Je suis desole, ce creneau n'est pas disponible : ${conflitsDesc}. Souhaitez-vous que je vous propose d'autres horaires ?`\n  : `Je suis desole, ce creneau n'est pas disponible. Souhaitez-vous que je vous propose d'autres horaires ?`;\nreturn [{ json: { toolCallId: ctx.toolCallId, result: message } }];"
+      },
+      "id": "msg-unavailable",
+      "name": "Message — Indisponible",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1420, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $input.first().json;\nconst slots = ctx.freeSlots || [];\nconst slotsList = slots.map((s, i) => `${i + 1}. ${s.lisible}`).join('. ');\nconst message = `Voici les prochains creneaux disponibles : ${slotsList}. Lequel vous conviendrait ?`;\nreturn [{ json: { toolCallId: ctx.toolCallId, result: message } }];"
+      },
+      "id": "msg-slots-found",
+      "name": "Message — Creneaux proposes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1860, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $input.first().json;\nconst message = `Je suis desole, je ne trouve pas de creneau disponible dans la periode demandee. Souhaitez-vous chercher sur une periode plus longue ou me donner une date precise ?`;\nreturn [{ json: { toolCallId: ctx.toolCallId, result: message } }];"
+      },
+      "id": "msg-no-slots",
+      "name": "Message — Aucun creneau",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1860, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { tool_call_id: $json.toolCallId, result: $json.result } }}",
+        "options": {}
+      },
+      "id": "respond-available",
+      "name": "Respond — Disponible",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1640, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { tool_call_id: $json.toolCallId, result: $json.result } }}",
+        "options": {}
+      },
+      "id": "respond-unavailable",
+      "name": "Respond — Indisponible",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1640, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { tool_call_id: $json.toolCallId, result: $json.result } }}",
+        "options": {}
+      },
+      "id": "respond-slots",
+      "name": "Respond — Creneaux",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2080, 380]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { tool_call_id: $json.toolCallId, result: $json.result } }}",
+        "options": {}
+      },
+      "id": "respond-no-slots",
+      "name": "Respond — Aucun creneau",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2080, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// FIX: fallback params.start/params.end si pendingSlot absent\n// Permet create_event direct avec datetime sans passer par check_availability\nconst body = $input.first().json;\nconst params = body.parameters ?? body;\nconst toolCallId = body.tool_call_id ?? body.id ?? 'unknown';\n\nconst staticData = $getWorkflowStaticData('global');\nconst pending = staticData.pendingSlot || {};\n\nfunction parisToUTC(dtStr) {\n  if (!dtStr) return null;\n  if (dtStr.endsWith('Z') || /[+-]\\d{2}:\\d{2}$/.test(dtStr)) return new Date(dtStr).toISOString();\n  const now = new Date();\n  const parisMs = Date.parse(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));\n  const utcMs   = Date.parse(now.toLocaleString('en-US', { timeZone: 'UTC' }));\n  return new Date(new Date(dtStr + 'Z').getTime() - (parisMs - utcMs)).toISOString();\n}\n\n// Priorite : params.datetime > params.start > pendingSlot.dateTimeStart\nconst startISO = parisToUTC(params.datetime)\n  ?? parisToUTC(params.start)\n  ?? pending.dateTimeStart\n  ?? null;\n\nif (!startISO) throw new Error('Aucune date exploitable — fournir datetime, start, ou appeler check_availability en premier');\n\nconst dureeMin = parseInt(params.duree_minutes ?? 60);\n\n// endISO : pendingSlot > params.end > calcul depuis start\nconst endISO = pending.dateTimeEnd\n  ?? parisToUTC(params.end)\n  ?? new Date(new Date(startISO).getTime() + dureeMin * 60000).toISOString();\n\nconst dateLisible = pending.dateLisible ?? new Date(startISO).toLocaleString('fr-FR', {\n  weekday: 'long', day: 'numeric', month: 'long',\n  hour: '2-digit', minute: '2-digit',\n  timeZone: 'Europe/Paris'\n});\n\ndelete staticData.pendingSlot;\n\nreturn [{\n  json: {\n    toolCallId,\n    nomClient:   params.nom_client   ?? params.name  ?? pending.nomClient  ?? 'Client',\n    emailClient: params.email_client ?? params.email ?? null,\n    tel:         params.telephone    ?? params.phone ?? null,\n    description: params.description  ?? pending.description ?? 'Rendez-vous',\n    dateTimeStart: startISO,\n    dateTimeEnd:   endISO,\n    dateLisible,\n  }\n}];"
+      },
+      "id": "prepare-create",
+      "name": "Preparer creation evenement",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 700]
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "create",
+        "calendarId": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list",
+          "cachedResultName": "Calendrier principal"
+        },
+        "start": "={{ $json.dateTimeStart }}",
+        "end": "={{ $json.dateTimeEnd }}",
+        "additionalFields": {
+          "summary": "={{ $json.nomClient + ' — ' + $json.description }}",
+          "description": "={{ 'RDV cree par Lucie (agent IA)\\nClient : ' + $json.nomClient + ($json.emailClient ? '\\nEmail : ' + $json.emailClient : '') + ($json.tel ? '\\nTel : ' + $json.tel : '') }}"
+        }
+      },
+      "id": "gcal-create",
+      "name": "Creer le rendez-vous",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.1,
+      "position": [760, 700],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "1",
+          "name": "Google Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { tool_call_id: $('Preparer creation evenement').first().json.toolCallId, result: 'Parfait ! Votre rendez-vous est confirme pour le ' + $('Preparer creation evenement').first().json.dateLisible + '. Y a-t-il autre chose que je puisse faire pour vous ?' } }}",
+        "options": {}
+      },
+      "id": "respond-created",
+      "name": "Respond — Confirme",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [980, 700]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Switch — Type d'action", "type": "main", "index": 0 }]
+      ]
+    },
+    "Switch — Type d'action": {
+      "main": [
+        [{ "node": "Extraire dispo — Direct", "type": "main", "index": 0 }],
+        [{ "node": "Preparer prompt — Prochains creneaux", "type": "main", "index": 0 }],
+        [{ "node": "Preparer creation evenement", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extraire dispo — Direct": {
+      "main": [
+        [{ "node": "GCal — Recuperer events (dispo)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Preparer prompt — Prochains creneaux": {
+      "main": [
+        [{ "node": "OpenAI — Extraire plage (prochains)", "type": "main", "index": 0 }]
+      ]
+    },
+    "OpenAI — Extraire plage (prochains)": {
+      "main": [
+        [{ "node": "Parser resultat — Prochains creneaux", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parser resultat — Prochains creneaux": {
+      "main": [
+        [{ "node": "GCal — Recuperer events (prochains)", "type": "main", "index": 0 }]
+      ]
+    },
+    "GCal — Recuperer events (dispo)": {
+      "main": [
+        [{ "node": "Agreger — Verifier dispo", "type": "main", "index": 0 }]
+      ]
+    },
+    "GCal — Recuperer events (prochains)": {
+      "main": [
+        [{ "node": "Agreger — Prochains creneaux", "type": "main", "index": 0 }]
+      ]
+    },
+    "Agreger — Verifier dispo": {
+      "main": [
+        [{ "node": "IF — Disponible ? (dispo)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Agreger — Prochains creneaux": {
+      "main": [
+        [{ "node": "IF — Creneaux trouves ?", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF — Disponible ? (dispo)": {
+      "main": [
+        [{ "node": "Message — Disponible", "type": "main", "index": 0 }],
+        [{ "node": "Message — Indisponible", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF — Creneaux trouves ?": {
+      "main": [
+        [{ "node": "Message — Creneaux proposes", "type": "main", "index": 0 }],
+        [{ "node": "Message — Aucun creneau", "type": "main", "index": 0 }]
+      ]
+    },
+    "Message — Disponible": {
+      "main": [
+        [{ "node": "Respond — Disponible", "type": "main", "index": 0 }]
+      ]
+    },
+    "Message — Indisponible": {
+      "main": [
+        [{ "node": "Respond — Indisponible", "type": "main", "index": 0 }]
+      ]
+    },
+    "Message — Creneaux proposes": {
+      "main": [
+        [{ "node": "Respond — Creneaux", "type": "main", "index": 0 }]
+      ]
+    },
+    "Message — Aucun creneau": {
+      "main": [
+        [{ "node": "Respond — Aucun creneau", "type": "main", "index": 0 }]
+      ]
+    },
+    "Preparer creation evenement": {
+      "main": [
+        [{ "node": "Creer le rendez-vous", "type": "main", "index": 0 }]
+      ]
+    },
+    "Creer le rendez-vous": {
+      "main": [
+        [{ "node": "Respond — Confirme", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "meta": { "templateCredsSetupCompleted": false },
+  "tags": [
+    { "name": "ElevenLabs" },
+    { "name": "Google Calendar" },
+    { "name": "Reception IA" }
+  ]
+}

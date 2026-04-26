@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mobile Layout — Soren</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Inter', sans-serif; background: #F2F2F7; color: #111; min-height: 100vh; padding: 24px 16px 40px; }
+
+  h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 13px; color: #6B7280; text-align: center; margin-bottom: 24px; }
+
+  .split { display: flex; gap: 32px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .phone-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #6B7280; }
+
+  .phone {
+    width: 240px;
+    height: 480px;
+    border-radius: 36px;
+    border: 6px solid #1C1C1E;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    display: flex;
+    flex-direction: column;
+    background: #EEF0EB;
+  }
+  .phone.dark { background: #1C1C1E; border-color: #000; }
+
+  /* Notch */
+  .notch {
+    width: 80px; height: 22px;
+    background: #1C1C1E;
+    border-radius: 0 0 14px 14px;
+    margin: 0 auto;
+    position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    z-index: 10;
+  }
+  .phone.dark .notch { background: #000; }
+
+  /* Mobile header */
+  .mob-header {
+    padding: 28px 14px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .mob-header-title { font-size: 18px; font-weight: 700; color: #111; }
+  .phone.dark .mob-header-title { color: #fff; }
+  .mob-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #E2FF8D;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: #111;
+  }
+
+  /* Content area */
+  .mob-content { flex: 1; overflow: hidden; padding: 8px 12px; display: flex; flex-direction: column; gap: 8px; }
+
+  /* Cards */
+  .mob-kpi-row { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .mob-kpi {
+    background: #fff; border-radius: 14px; padding: 10px 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .phone.dark .mob-kpi { background: #2C2C2E; }
+  .mob-kpi-label { font-size: 9px; color: #9CA3AF; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+  .phone.dark .mob-kpi-label { color: #636366; }
+  .mob-kpi-value { font-size: 17px; font-weight: 700; color: #111; margin-top: 2px; }
+  .phone.dark .mob-kpi-value { color: #fff; }
+  .mob-kpi-sub { font-size: 9px; color: #6B7280; margin-top: 1px; }
+
+  .mob-card {
+    background: #fff; border-radius: 14px; padding: 11px 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    flex-shrink: 0;
+  }
+  .phone.dark .mob-card { background: #2C2C2E; }
+  .mob-card-title { font-size: 11px; font-weight: 700; color: #111; margin-bottom: 8px; }
+  .phone.dark .mob-card-title { color: #fff; }
+  .mob-lead-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #F0F0EC; }
+  .phone.dark .mob-lead-row { border-color: #38383A; }
+  .mob-lead-row:last-child { border-bottom: none; }
+  .mob-lead-avatar { width: 22px; height: 22px; border-radius: 50%; background: #E2FF8D; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; color: #111; flex-shrink: 0; }
+  .mob-lead-name { font-size: 10px; font-weight: 600; color: #111; }
+  .phone.dark .mob-lead-name { color: #fff; }
+  .mob-lead-status { font-size: 8px; color: #9CA3AF; }
+  .mob-lead-badge { margin-left: auto; font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 20px; }
+  .badge-hot { background: #FEE2E2; color: #EF4444; }
+  .badge-warm { background: #FEF3C7; color: #D97706; }
+
+  /* Bottom nav */
+  .mob-nav {
+    display: flex; align-items: center; justify-content: space-around;
+    padding: 8px 4px 16px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(0,0,0,.08);
+    flex-shrink: 0;
+  }
+  .phone.dark .mob-nav {
+    background: rgba(28,28,30,0.92);
+    border-top-color: rgba(255,255,255,.1);
+  }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 2px 8px; }
+  .nav-icon {
+    width: 22px; height: 22px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .nav-icon svg { width: 16px; height: 16px; }
+  .nav-item.active .nav-icon { background: #E2FF8D; }
+  .nav-label { font-size: 8px; font-weight: 600; color: #9CA3AF; }
+  .nav-item.active .nav-label { color: #111; }
+  .phone.dark .nav-item.active .nav-label { color: #111; }
+  .phone.dark .nav-label { color: #636366; }
+
+  /* Desktop preview */
+  .desktop {
+    width: 540px;
+    height: 340px;
+    background: #EEF0EB;
+    border-radius: 16px;
+    border: 3px solid #D1D5DB;
+    overflow: hidden;
+    display: flex;
+    box-shadow: 0 8px 32px rgba(0,0,0,.12);
+  }
+  .desktop.dark { background: #1C1C1E; border-color: #3A3A3C; }
+  .desk-sidebar {
+    width: 100px;
+    background: #111;
+    display: flex; flex-direction: column;
+    padding: 12px 8px;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .phone.dark .desk-sidebar, .desktop.dark .desk-sidebar { background: #000; }
+  .desk-logo { font-size: 10px; font-weight: 800; color: #fff; padding: 0 4px 8px; border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 6px; }
+  .desk-nav-item { padding: 5px 6px; border-radius: 8px; font-size: 8px; color: rgba(255,255,255,.4); font-weight: 600; }
+  .desk-nav-item.active { background: #E2FF8D; color: #111; }
+  .desk-main { flex: 1; display: flex; flex-direction: column; }
+  .desk-header { height: 28px; background: rgba(255,255,255,.5); border-bottom: 1px solid rgba(0,0,0,.06); display: flex; align-items: center; padding: 0 12px; justify-content: space-between; flex-shrink: 0; }
+  .desktop.dark .desk-header { background: rgba(44,44,46,.8); border-color: rgba(255,255,255,.06); }
+  .desk-header-title { font-size: 8px; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: .06em; }
+  .desk-header-avatar { width: 14px; height: 14px; border-radius: 50%; background: #E2FF8D; }
+  .desk-content { flex: 1; padding: 10px 12px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; align-content: start; }
+  .desk-card { background: #fff; border-radius: 8px; padding: 8px; }
+  .desktop.dark .desk-card { background: #2C2C2E; }
+  .desk-card-label { font-size: 6px; color: #9CA3AF; font-weight: 700; text-transform: uppercase; }
+  .desktop.dark .desk-card-label { color: #636366; }
+  .desk-card-val { font-size: 13px; font-weight: 800; color: #111; margin-top: 2px; }
+  .desktop.dark .desk-card-val { color: #fff; }
+
+  .note { font-size: 11px; color: #6B7280; text-align: center; margin-top: 20px; line-height: 1.5; }
+  .accent-note { color: #059669; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h2>Design mobile + thème — Soren</h2>
+<p class="subtitle">Le sidebar gauche disparaît sur mobile. Une bottom nav remplace la navigation.</p>
+
+<div class="split" style="margin-bottom: 32px;">
+
+  <!-- Mobile Light -->
+  <div class="phone-wrap">
+    <div class="phone-label">Mobile · Light</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="mob-header">
+        <div class="mob-header-title">Dashboard</div>
+        <div class="mob-avatar">T</div>
+      </div>
+      <div class="mob-content">
+        <div class="mob-kpi-row">
+          <div class="mob-kpi">
+            <div class="mob-kpi-label">Pipeline</div>
+            <div class="mob-kpi-value">93.8K€</div>
+            <div class="mob-kpi-sub">+12% ce mois</div>
+          </div>
+          <div class="mob-kpi">
+            <div class="mob-kpi-label">Leads</div>
+            <div class="mob-kpi-value">47</div>
+            <div class="mob-kpi-sub">8 chauds</div>
+          </div>
+        </div>
+        <div class="mob-kpi-row">
+          <div class="mob-kpi">
+            <div class="mob-kpi-label">RDV</div>
+            <div class="mob-kpi-value">5</div>
+            <div class="mob-kpi-sub">cette semaine</div>
+          </div>
+          <div class="mob-kpi">
+            <div class="mob-kpi-label">Devis</div>
+            <div class="mob-kpi-value">12</div>
+            <div class="mob-kpi-sub">en attente</div>
+          </div>
+        </div>
+        <div class="mob-card">
+          <div class="mob-card-title">Leads récents</div>
+          <div class="mob-lead-row">
+            <div class="mob-lead-avatar">MF</div>
+            <div><div class="mob-lead-name">Martin Faure</div><div class="mob-lead-status">Rénovation cuisine</div></div>
+            <div class="mob-lead-badge badge-hot">Chaud</div>
+          </div>
+          <div class="mob-lead-row">
+            <div class="mob-lead-avatar">SL</div>
+            <div><div class="mob-lead-name">Sophie Laurent</div><div class="mob-lead-status">Extension maison</div></div>
+            <div class="mob-lead-badge badge-warm">Tiède</div>
+          </div>
+        </div>
+      </div>
+      <div class="mob-nav">
+        <div class="nav-item active">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          </div>
+          <span class="nav-label">Home</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,.3)" stroke-width="2"><path d="M22 12H3M22 12l-4-4M22 12l-4 4"/></svg>
+          </div>
+          <span class="nav-label">Pipeline</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,.3)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <span class="nav-label">Contacts</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,.3)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <span class="nav-label">Messages</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,.3)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
+          </div>
+          <span class="nav-label">Agents IA</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Dark -->
+  <div class="phone-wrap">
+    <div class="phone-label">Mobile · Dark</div>
+    <div class="phone dark">
+      <div class="notch"></div>
+      <div class="mob-header">
+        <div class="mob-header-title">Dashboard</div>
+        <div class="mob-avatar">T</div>
+      </div>
+      <div class="mob-content">
+        <div class="mob-kpi-row">
+          <div class="mob-kpi">
+            <div class="mob-kpi-label">Pipeline</div>
+            <div class="mob-kpi-value">93.8K€</div>
+            <div class="mob-kpi-sub" style="color:#636366;">+12% ce mois</div>
+          </div>
+          <div class="mob-kpi">
+            <div class="mob-kpi-label">Leads</div>
+            <div class="mob-kpi-value">47</div>
+            <div class="mob-kpi-sub" style="color:#636366;">8 chauds</div>
+          </div>
+        </div>
+        <div class="mob-kpi-row">
+          <div class="mob-kpi">
+            <div class="mob-kpi-label">RDV</div>
+            <div class="mob-kpi-value">5</div>
+            <div class="mob-kpi-sub" style="color:#636366;">cette semaine</div>
+          </div>
+          <div class="mob-kpi">
+            <div class="mob-kpi-label">Devis</div>
+            <div class="mob-kpi-value">12</div>
+            <div class="mob-kpi-sub" style="color:#636366;">en attente</div>
+          </div>
+        </div>
+        <div class="mob-card">
+          <div class="mob-card-title">Leads récents</div>
+          <div class="mob-lead-row">
+            <div class="mob-lead-avatar">MF</div>
+            <div><div class="mob-lead-name">Martin Faure</div><div class="mob-lead-status" style="color:#636366;">Rénovation cuisine</div></div>
+            <div class="mob-lead-badge badge-hot">Chaud</div>
+          </div>
+          <div class="mob-lead-row">
+            <div class="mob-lead-avatar">SL</div>
+            <div><div class="mob-lead-name">Sophie Laurent</div><div class="mob-lead-status" style="color:#636366;">Extension maison</div></div>
+            <div class="mob-lead-badge badge-warm">Tiède</div>
+          </div>
+        </div>
+      </div>
+      <div class="mob-nav">
+        <div class="nav-item active">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          </div>
+          <span class="nav-label">Home</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="2"><path d="M22 12H3M22 12l-4-4M22 12l-4 4"/></svg>
+          </div>
+          <span class="nav-label">Pipeline</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          </div>
+          <span class="nav-label">Contacts</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <span class="nav-label">Messages</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3"/></svg>
+          </div>
+          <span class="nav-label">Agents IA</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desktop preview -->
+  <div class="phone-wrap">
+    <div class="phone-label">Desktop · inchangé</div>
+    <div class="desktop">
+      <div class="desk-sidebar">
+        <div class="desk-logo">Soren</div>
+        <div class="desk-nav-item active">Dashboard</div>
+        <div class="desk-nav-item">Pipeline</div>
+        <div class="desk-nav-item">Contacts</div>
+        <div class="desk-nav-item">Messages</div>
+        <div class="desk-nav-item">Calendrier</div>
+        <div class="desk-nav-item">Analyse</div>
+        <div class="desk-nav-item" style="margin-top:8px;color:rgba(255,255,255,.2);font-size:7px;">AGENTIQUE</div>
+        <div class="desk-nav-item">Équipe IA</div>
+        <div class="desk-nav-item">Tâches</div>
+      </div>
+      <div class="desk-main">
+        <div class="desk-header">
+          <div class="desk-header-title">SOREN › Dashboard</div>
+          <div class="desk-header-avatar"></div>
+        </div>
+        <div class="desk-content">
+          <div class="desk-card"><div class="desk-card-label">Pipeline</div><div class="desk-card-val">93.8K€</div></div>
+          <div class="desk-card"><div class="desk-card-label">Leads</div><div class="desk-card-val">47</div></div>
+          <div class="desk-card"><div class="desk-card-label">RDV</div><div class="desk-card-val">5</div></div>
+          <div class="desk-card"><div class="desk-card-label">Taux conv.</div><div class="desk-card-val">24%</div></div>
+          <div class="desk-card"><div class="desk-card-label">Devis</div><div class="desk-card-val">12</div></div>
+          <div class="desk-card"><div class="desk-card-label">CA mois</div><div class="desk-card-val">18K€</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="note">Sidebar gauche : <span class="accent-note">hidden md:flex</span><br>Bottom nav : <span class="accent-note">flex md:hidden</span><br>Desktop : aucun changement de layout</div>
+  </div>
+
+</div>
+
+<script>
+// No selection needed — this is a preview, not a choice screen
+</script>
+</body>
+</html>

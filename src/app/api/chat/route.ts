@@ -65,8 +65,9 @@ export async function POST(req: NextRequest) {
           const ordered = [...ghlMsgs].reverse()
           const withoutLast = ordered.slice(0, -1)
           for (const m of withoutLast) {
+            if (!m.body?.trim()) continue
             const role = m.direction === 'inbound' ? 'user' : 'assistant'
-            history.push({ role, content: m.body })
+            history.push({ role, content: m.body.trim() })
           }
         }
       }

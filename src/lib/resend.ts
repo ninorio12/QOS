@@ -10,7 +10,7 @@ export interface SendDevisEmailParams {
   montantHT:     number
   montantTTC:    number
   signatureUrl:  string
-  pdfUrl:        string | null
+  pdfBuffer:     Buffer | null
   companyName:   string
   companyEmail:  string
   brandColor:    string
@@ -21,7 +21,8 @@ function fmtEUR(n: number): string {
 }
 
 function buildEmailHtml(p: SendDevisEmailParams): string {
-  const greeting = p.contactName ? `Bonjour ${p.contactName},` : 'Bonjour,'
+  const prenom = p.contactName ? p.contactName.trim().split(/\s+/)[0] : null
+  const greeting = prenom ? `👋 Bonjour ${prenom},` : '👋 Bonjour,'
   const ref = p.devisNumero ? `Devis n°${p.devisNumero}` : 'Votre devis'
 
   return `<!DOCTYPE html>
@@ -49,8 +50,7 @@ function buildEmailHtml(p: SendDevisEmailParams): string {
             <td style="padding:36px 36px 28px;">
               <p style="margin:0 0 16px;font-size:15px;color:#374151;">${greeting}</p>
               <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
-                Veuillez trouver ci-joint votre <strong>${ref}</strong> intitulé <strong>${p.devisTitre}</strong>,
-                prêt à être signé électroniquement.
+                Veuillez trouver ci-joint votre devis pour votre prochain projet, prêt à être signé électroniquement.
               </p>
 
               <!-- Montants -->
@@ -107,21 +107,12 @@ function buildEmailHtml(p: SendDevisEmailParams): string {
 export async function sendDevisEmail(params: SendDevisEmailParams): Promise<void> {
   const html = buildEmailHtml(params)
 
-  // Télécharger le PDF pour l'attacher
   const attachments: { filename: string; content: Buffer }[] = []
-  if (params.pdfUrl) {
-    try {
-      const res = await fetch(params.pdfUrl)
-      if (res.ok) {
-        const buffer = await res.arrayBuffer()
-        const label = params.devisNumero
-          ? `Devis-${params.devisNumero}`
-          : `Devis-${params.devisTitre.slice(0, 30).replace(/[^a-zA-Z0-9-_]/g, '_')}`
-        attachments.push({ filename: `${label}.pdf`, content: Buffer.from(buffer) })
-      }
-    } catch {
-      // PDF non disponible — on envoie quand même l'email sans pièce jointe
-    }
+  if (params.pdfBuffer) {
+    const label = params.devisNumero
+      ? `Devis-${params.devisNumero}`
+      : `Devis-${params.devisTitre.slice(0, 30).replace(/[^a-zA-Z0-9-_]/g, '_')}`
+    attachments.push({ filename: `${label}.pdf`, content: params.pdfBuffer })
   }
 
   const from = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev'

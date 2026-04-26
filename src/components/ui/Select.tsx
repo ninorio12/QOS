@@ -69,14 +69,14 @@ export default function Select({ value, onChange, options, className = '', size 
         <span className="truncate">{current?.label ?? value}</span>
         <ChevronDown
           size={isSm ? 11 : 13}
-          className={`flex-shrink-0 text-[#9CA3AF] transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+          className={`flex-shrink-0 text-soren-subtle transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
       {open && typeof document !== 'undefined' && createPortal(
         <div
           ref={dropdownRef}
-          className="bg-white border border-[#E5E7EB] rounded-xl shadow-xl overflow-hidden"
+          className="bg-soren-card border border-soren-border rounded-xl shadow-xl overflow-hidden"
           style={{
             position: 'absolute',
             top:      pos.top,
@@ -90,7 +90,7 @@ export default function Select({ value, onChange, options, className = '', size 
               key={opt.value}
               type="button"
               onClick={() => { onChange(opt.value); setOpen(false) }}
-              className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-[12px] transition-colors hover:bg-[#F5F5F0] ${
+              className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-[12px] transition-colors hover:bg-soren-elevated ${
                 opt.value === value ? 'text-[#111] font-semibold' : 'text-[#374151]'
               }`}
             >

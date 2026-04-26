@@ -5,10 +5,10 @@ const CAL_ID = () => process.env.GOOGLE_CALENDAR_ID || 'primary'
 const RANGE_MS = 90 * 24 * 60 * 60 * 1000
 
 export async function GET() {
-  if (!isGoogleConfigured()) return NextResponse.json({ events: [] })
+  if (!await isGoogleConfigured()) return NextResponse.json({ events: [] })
 
   try {
-    const cal     = getCalendarClient()
+    const cal     = await getCalendarClient()
     const now     = new Date()
     const timeMin = new Date(now.getTime() - RANGE_MS).toISOString()
     const timeMax = new Date(now.getTime() + RANGE_MS).toISOString()
@@ -30,7 +30,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  if (!isGoogleConfigured()) return NextResponse.json({ event: null })
+  if (!await isGoogleConfigured()) return NextResponse.json({ event: null })
 
   const { title, startTime, endTime, notes, withMeet = true } = await req.json() as {
     title:     string
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const cal = getCalendarClient()
+    const cal = await getCalendarClient()
     const res = await cal.events.insert({
       calendarId:          CAL_ID(),
       conferenceDataVersion: withMeet ? 1 : 0,

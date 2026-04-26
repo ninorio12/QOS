@@ -183,7 +183,7 @@ export default function FormulaireForm({ companyName, companyTagline, brandColor
                   <div key={text} className="flex items-center gap-3 text-[13px] text-[#444]">
                     <span
                       className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
-                      style={{ backgroundColor: brandColor, color: '#111' }}
+                      style={{ backgroundColor: brandColor, color: '#fff' }}
                     >
                       ✓
                     </span>

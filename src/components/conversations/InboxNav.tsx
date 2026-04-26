@@ -49,8 +49,8 @@ function NavButton({
       className={`
         w-full text-left text-sm px-3 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 focus:ring-offset-1 focus:ring-offset-[#111111]
         ${active
-          ? 'bg-[#E2FF8D] text-[#111111] font-medium'
-          : 'text-[#9CA3AF] hover:text-white hover:bg-white/5'
+          ? 'bg-[#E2FF8D] text-soren-text font-medium'
+          : 'text-soren-subtle hover:text-white hover:bg-soren-card/5'
         }
       `}
     >
@@ -61,13 +61,13 @@ function NavButton({
 
 export default function InboxNav({ activeFilter, onFilterChange, totalUnread, pipelines }: Props) {
   return (
-    <div className="flex flex-col w-[200px] flex-shrink-0 bg-[#111111] h-full overflow-y-auto">
+    <div className="flex flex-col w-[200px] flex-shrink-0 bg-soren-sidebar h-full overflow-y-auto">
       {/* Title */}
       <div className="px-4 pt-6 pb-4">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-white">Conversations</span>
           {totalUnread > 0 && (
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#E2FF8D] text-[#111111]">
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#E2FF8D] text-soren-text">
               {totalUnread}
             </span>
           )}
@@ -76,7 +76,7 @@ export default function InboxNav({ activeFilter, onFilterChange, totalUnread, pi
 
       {/* Main filters */}
       <nav aria-label="Filtres principaux" className="px-2">
-        <div className="flex flex-col gap-0.5 bg-white/5 rounded-2xl p-1">
+        <div className="flex flex-col gap-0.5 bg-soren-card/5 rounded-2xl p-1">
           <NavButton label="Toutes"         filter="all"        activeFilter={activeFilter} onFilterChange={onFilterChange} />
           <NavButton label="Non assignées"  filter="unassigned" activeFilter={activeFilter} onFilterChange={onFilterChange} />
           <NavButton label="Fermées"        filter="closed"     activeFilter={activeFilter} onFilterChange={onFilterChange} />

@@ -39,8 +39,18 @@ export const env = {
   googleClientId:     () => requireEnv('GOOGLE_CLIENT_ID'),
   googleClientSecret: () => requireEnv('GOOGLE_CLIENT_SECRET'),
 
-  // Vapi
+  // Vapi (legacy)
   vapiKey: () => optionalEnv('VAPI_API_KEY', ''),
+
+  // ElevenLabs
+  elevenLabsKey:       () => optionalEnv('ELEVENLABS_API_KEY', ''),
+  elevenLabsAgentId:   () => optionalEnv('ELEVENLABS_AGENT_ID', ''),
+  elevenLabsWebhookSecret: () => optionalEnv('ELEVENLABS_WEBHOOK_SECRET', ''),
+  voiceProvider:       () => optionalEnv('VOICE_PROVIDER', 'legacy') as 'elevenlabs' | 'legacy',
+
+  // Email sender
+  emailFromName:    () => optionalEnv('EMAIL_FROM_NAME', 'Thomas Alves Do Rio'),
+  emailFromAddress: () => optionalEnv('EMAIL_FROM_ADDRESS', 'thomas@qorpoia.com'),
 
   // App
   appUrl: () => optionalEnv('NEXT_PUBLIC_APP_URL', 'http://localhost:3000'),

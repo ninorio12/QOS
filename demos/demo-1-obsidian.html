@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Soren — Tableau de bord · Obsidian</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,300&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-base: #0a0a0a;
+    --bg-elevated: #0d0d0d;
+    --card-bg: rgba(255,255,255,0.04);
+    --card-border: rgba(255,255,255,0.08);
+    --card-hover-bg: rgba(255,255,255,0.06);
+    --lime: #E2FF8D;
+    --lime-dim: rgba(226,255,141,0.12);
+    --lime-glow: rgba(226,255,141,0.25);
+    --text-primary: #EEF0EB;
+    --text-secondary: rgba(238,240,235,0.5);
+    --text-tertiary: rgba(238,240,235,0.3);
+    --blue: #5B8BFF;
+    --indigo: #8B7CF8;
+    --green: #4ADE80;
+    --sidebar-w: 220px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    min-height: 100vh;
+    background: rgba(255,255,255,0.02);
+    border-right: 1px solid var(--card-border);
+    display: flex;
+    flex-direction: column;
+    padding: 28px 0;
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    backdrop-filter: blur(40px);
+    z-index: 100;
+  }
+
+  .sidebar-logo {
+    padding: 0 24px 32px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-mark {
+    width: 32px; height: 32px;
+    background: var(--lime);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: #0a0a0a;
+    flex-shrink: 0;
+  }
+
+  .logo-text {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+
+  .nav-section {
+    padding: 0 12px;
+    flex: 1;
+  }
+
+  .nav-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    padding: 0 12px;
+    margin-bottom: 6px;
+    margin-top: 20px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    font-weight: 400;
+    position: relative;
+    text-decoration: none;
+  }
+
+  .nav-item:hover {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+  }
+
+  .nav-item.active {
+    background: var(--lime-dim);
+    color: var(--lime);
+  }
+
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 50%; transform: translateY(-50%);
+    width: 3px; height: 18px;
+    background: var(--lime);
+    border-radius: 0 3px 3px 0;
+    box-shadow: 0 0 8px var(--lime-glow);
+  }
+
+  .nav-icon {
+    width: 18px; height: 18px;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+
+  .nav-item.active .nav-icon { opacity: 1; }
+
+  .sidebar-footer {
+    padding: 16px 24px 0;
+    border-top: 1px solid var(--card-border);
+    margin-top: 16px;
+  }
+
+  .user-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .user-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3462EE, #8B7CF8);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .user-info .name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .user-info .role {
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+
+  /* ── Main ── */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    min-height: 100vh;
+    overflow-y: auto;
+    padding: 32px 36px;
+    max-height: 100vh;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  .page-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 28px;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .btn {
+    padding: 9px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+    border: none;
+  }
+
+  .btn-ghost {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text-secondary);
+  }
+
+  .btn-ghost:hover {
+    background: rgba(255,255,255,0.07);
+    color: var(--text-primary);
+  }
+
+  .btn-lime {
+    background: var(--lime);
+    color: #0a0a0a;
+    font-weight: 600;
+    box-shadow: 0 0 20px var(--lime-glow);
+  }
+
+  .btn-lime:hover {
+    box-shadow: 0 0 30px rgba(226,255,141,0.4);
+    transform: translateY(-1px);
+  }
+
+  /* ── Grid ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    backdrop-filter: blur(40px);
+    padding: 24px;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card:hover {
+    background: var(--card-hover-bg);
+    border-color: rgba(255,255,255,0.12);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+  }
+
+  /* Pipeline hero card */
+  .card-pipeline {
+    position: relative;
+  }
+
+  .card-pipeline::after {
+    content: '';
+    position: absolute;
+    bottom: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(226,255,141,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .kpi-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .kpi-label-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--lime);
+    box-shadow: 0 0 6px var(--lime);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.8); }
+  }
+
+  .kpi-value {
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+    font-size: 52px;
+    color: var(--lime);
+    letter-spacing: -2px;
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(226,255,141,0.4);
+  }
+
+  .kpi-value-sm {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 36px;
+    color: var(--text-primary);
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .kpi-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+  }
+
+  .kpi-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--lime);
+    background: rgba(226,255,141,0.1);
+    padding: 2px 7px;
+    border-radius: 20px;
+    margin-top: 10px;
+  }
+
+  /* Conversion ring */
+  .ring-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ring-svg {
+    width: 80px; height: 80px;
+    transform: rotate(-90deg);
+  }
+
+  .ring-bg {
+    fill: none;
+    stroke: rgba(255,255,255,0.06);
+    stroke-width: 6;
+  }
+
+  .ring-fg {
+    fill: none;
+    stroke: var(--lime);
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-dasharray: 219.9;
+    stroke-dashoffset: 219.9;
+    transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 0 4px var(--lime));
+  }
+
+  .ring-value {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+  }
+
+  /* ── Bottom grid ── */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1.2fr;
+    gap: 16px;
+  }
+
+  /* Stage bars */
+  .stage-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 16px;
+  }
+
+  .stage-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .stage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .stage-name {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+  }
+
+  .stage-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .stage-bar-track {
+    height: 5px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .stage-bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 0;
+  }
+
+  /* Opps list */
+  .opp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 16px;
+  }
+
+  .opp-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    transition: background 0.2s;
+    cursor: pointer;
+  }
+
+  .opp-item:hover {
+    background: rgba(255,255,255,0.04);
+  }
+
+  .opp-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .opp-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .opp-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .opp-company {
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+
+  .opp-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+
+  .opp-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  .badge-nouveau { background: rgba(91,139,255,0.15); color: var(--blue); }
+  .badge-contact { background: rgba(139,124,248,0.15); color: var(--indigo); }
+  .badge-devis { background: rgba(226,255,141,0.12); color: var(--lime); }
+  .badge-signe { background: rgba(74,222,128,0.15); color: var(--green); }
+
+  /* Agent feed */
+  .agent-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .agent-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 14px;
+  }
+
+  .agent-dot-wrap {
+    position: relative;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .agent-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+
+  .agent-dot::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    animation: agent-pulse 2s ease-in-out infinite;
+  }
+
+  .dot-blue { background: var(--blue); box-shadow: 0 0 8px var(--blue); }
+  .dot-blue::after { background: rgba(91,139,255,0.3); }
+
+  .dot-indigo { background: var(--indigo); box-shadow: 0 0 8px var(--indigo); }
+  .dot-indigo::after { background: rgba(139,124,248,0.3); }
+
+  .dot-green { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .dot-green::after { background: rgba(74,222,128,0.3); }
+
+  @keyframes agent-pulse {
+    0%, 100% { opacity: 0; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.5); }
+  }
+
+  .agent-name {
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .agent-action {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  .agent-time {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+  }
+
+  /* Weekly chart */
+  .chart-wrap {
+    margin-top: 16px;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 80px;
+  }
+
+  .chart-bar-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    height: 100%;
+    justify-content: flex-end;
+  }
+
+  .chart-bar {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    transition: height 1s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 0;
+  }
+
+  .chart-label {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    text-align: center;
+  }
+
+  .card-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 0;
+  }
+
+  .scroll-area {
+    overflow-y: auto;
+    max-height: 280px;
+  }
+
+  .scroll-area::-webkit-scrollbar { width: 4px; }
+  .scroll-area::-webkit-scrollbar-track { background: transparent; }
+  .scroll-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+  .divider {
+    height: 1px;
+    background: var(--card-border);
+    margin: 16px 0;
+  }
+
+  .top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .see-all {
+    font-size: 12px;
+    color: var(--lime);
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+  }
+  .see-all:hover { opacity: 1; }
+
+  /* Scrollbar for main */
+  .main::-webkit-scrollbar { width: 6px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 6px; }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--lime);
+    background: rgba(226,255,141,0.08);
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(226,255,141,0.15);
+  }
+
+  .status-badge-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--lime);
+    box-shadow: 0 0 5px var(--lime);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">S</div>
+    <span class="logo-text">Soren</span>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Principal</div>
+
+    <a class="nav-item active">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="1" y="1" width="6" height="6" rx="1.5"/>
+        <rect x="11" y="1" width="6" height="6" rx="1.5"/>
+        <rect x="1" y="11" width="6" height="6" rx="1.5"/>
+        <rect x="11" y="11" width="6" height="6" rx="1.5"/>
+      </svg>
+      Tableau de bord
+    </a>
+
+    <a class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M3 14V8l6-5 6 5v6a1 1 0 01-1 1h-3v-3H7v3H4a1 1 0 01-1-1z"/>
+      </svg>
+      Pipeline
+    </a>
+
+    <a class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="9" cy="6" r="3"/>
+        <path d="M2 16c0-3.314 3.134-6 7-6s7 2.686 7 6"/>
+      </svg>
+      Contacts
+    </a>
+
+    <a class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M2 4h14a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V5a1 1 0 011-1z"/>
+        <path d="M1 5l8 5 8-5"/>
+      </svg>
+      Conversations
+    </a>
+
+    <a class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M4 4h10a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/>
+        <path d="M6 8h6M6 11h4"/>
+      </svg>
+      Devis
+    </a>
+
+    <div class="nav-label">Automatisation</div>
+
+    <a class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M3 9h3l2-5 3 9 2-4h2"/>
+      </svg>
+      Workflows
+    </a>
+
+    <a class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="9" cy="9" r="3"/>
+        <path d="M9 1v2M9 15v2M1 9h2M15 9h2M3.22 3.22l1.42 1.42M13.36 13.36l1.42 1.42M3.22 14.78l1.42-1.42M13.36 4.64l1.42-1.42"/>
+      </svg>
+      Agents
+    </a>
+
+    <a class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="1" y="1" width="7" height="7" rx="1"/>
+        <rect x="10" y="1" width="7" height="7" rx="1"/>
+        <rect x="1" y="10" width="7" height="7" rx="1"/>
+        <path d="M14 10v7M10.5 13.5h7"/>
+      </svg>
+      Architecture
+    </a>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="user-avatar">TM</div>
+      <div class="user-info">
+        <div class="name">Thomas M.</div>
+        <div class="role">Administrateur</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="main">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Tableau de bord</h1>
+      <p class="page-subtitle">Semaine du 7 avril 2026 · Données en temps réel</p>
+    </div>
+    <div class="header-actions">
+      <div class="status-badge">
+        <span class="status-badge-dot"></span>
+        3 agents actifs
+      </div>
+      <button class="btn btn-ghost">Exporter</button>
+      <button class="btn btn-lime">+ Opportunité</button>
+    </div>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="kpi-grid">
+    <!-- Pipeline hero -->
+    <div class="card card-pipeline">
+      <div class="kpi-label">
+        <span class="kpi-label-dot"></span>
+        Pipeline actif
+      </div>
+      <div class="kpi-value" id="val-pipeline">€0</div>
+      <div class="kpi-sub">Valeur totale des opportunités ouvertes</div>
+      <div class="kpi-delta">↑ +18% vs mois dernier</div>
+
+      <div class="divider"></div>
+
+      <div class="chart-wrap" id="weekly-chart">
+        <!-- bars rendered by JS -->
+      </div>
+      <div style="display:flex; gap:8px; margin-top:8px;" id="chart-labels"></div>
+    </div>
+
+    <!-- Leads actifs -->
+    <div class="card">
+      <div class="kpi-label">Leads actifs</div>
+      <div class="kpi-value-sm" id="val-leads">0</div>
+      <div class="kpi-sub">+5 cette semaine</div>
+      <div class="kpi-delta">↑ Tendance positive</div>
+    </div>
+
+    <!-- Gagnés -->
+    <div class="card">
+      <div class="kpi-label">Deals gagnés</div>
+      <div class="kpi-value-sm" id="val-won">0</div>
+      <div class="kpi-sub">Ce mois · 12 contrats</div>
+      <div class="kpi-delta">↑ +3 vs mois préc.</div>
+    </div>
+
+    <!-- Conversion -->
+    <div class="card" style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
+      <div class="kpi-label" style="margin-bottom:16px;">Taux de conv.</div>
+      <div class="ring-wrap">
+        <svg class="ring-svg" viewBox="0 0 80 80">
+          <circle class="ring-bg" cx="40" cy="40" r="35"/>
+          <circle class="ring-fg" id="conv-ring" cx="40" cy="40" r="35"/>
+        </svg>
+        <div class="ring-value" id="val-conv">0%</div>
+      </div>
+      <div class="kpi-sub" style="margin-top:8px; text-align:center;">Sur 47 leads qualifiés</div>
+    </div>
+  </div>
+
+  <!-- Bottom Row -->
+  <div class="bottom-grid">
+    <!-- Stages -->
+    <div class="card">
+      <div class="top-row">
+        <span class="card-section-title">Étapes du pipeline</span>
+        <span class="see-all">Voir tout →</span>
+      </div>
+      <div class="stage-list" id="stage-list"></div>
+    </div>
+
+    <!-- Opportunités récentes -->
+    <div class="card">
+      <div class="top-row">
+        <span class="card-section-title">Opportunités récentes</span>
+        <span class="see-all">Voir tout →</span>
+      </div>
+      <div class="scroll-area">
+        <div class="opp-list" id="opp-list"></div>
+      </div>
+    </div>
+
+    <!-- Agent feed -->
+    <div class="card">
+      <div class="top-row">
+        <span class="card-section-title">Activité IA · Live</span>
+        <span class="see-all" id="agent-count">3 en ligne</span>
+      </div>
+      <div class="agent-feed" id="agent-feed"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────
+const weeklyData = [
+  { day: 'Lun', value: 8, max: 14 },
+  { day: 'Mar', value: 12, max: 14 },
+  { day: 'Mer', value: 6, max: 14 },
+  { day: 'Jeu', value: 14, max: 14 },
+  { day: 'Ven', value: 10, max: 14 },
+  { day: 'Sam', value: 4, max: 14 },
+  { day: 'Dim', value: 2, max: 14 },
+];
+
+const stages = [
+  { name: 'Nouveau', count: 18, total: 47, color: '#5B8BFF' },
+  { name: 'Contact établi', count: 14, total: 47, color: '#8B7CF8' },
+  { name: 'Devis envoyé', count: 8, total: 47, color: '#E2FF8D' },
+  { name: 'Signé', count: 7, total: 47, color: '#4ADE80' },
+];
+
+const opps = [
+  { initials: 'AB', color: '#3462EE', name: 'Renovation Dupont', company: 'Batipro SAS', value: '42 000 €', stage: 'devis' },
+  { initials: 'CG', color: '#8B7CF8', name: 'Chantier Garel', company: 'Maison & Toit', value: '28 500 €', stage: 'contact' },
+  { initials: 'MB', color: '#4ADE80', name: 'Extension Bernard', company: 'Bernard & Fils', value: '67 000 €', stage: 'signe' },
+  { initials: 'LM', color: '#FF6B6B', name: 'Surélévation Martin', company: 'Groupe Martel', value: '91 000 €', stage: 'nouveau' },
+  { initials: 'PC', color: '#FFB347', name: 'Réno Intérieure', company: 'Artisan Côté', value: '19 200 €', stage: 'contact' },
+];
+
+const agents = [
+  { name: 'Kai', dot: 'dot-blue', nameColor: '#5B8BFF', action: 'Analyse du devis Dupont — extraction des lots techniques en cours', time: 'il y a 2 min' },
+  { name: 'Soren', dot: 'dot-indigo', nameColor: '#8B7CF8', action: 'Réponse email envoyée à Maison & Toit · Relance planifiée J+3', time: 'il y a 5 min' },
+  { name: 'Mia', dot: 'dot-green', nameColor: '#4ADE80', action: 'Nouveau lead qualifié ajouté au pipeline depuis le formulaire site', time: 'il y a 11 min' },
+];
+
+// ── Render ─────────────────────────────────────────────────────────────
+// Weekly chart
+const chartWrap = document.getElementById('weekly-chart');
+const labelsWrap = document.getElementById('chart-labels');
+weeklyData.forEach(d => {
+  const group = document.createElement('div');
+  group.className = 'chart-bar-group';
+  const pct = (d.value / d.max) * 100;
+  const isMax = d.value === d.max;
+  group.innerHTML = `<div class="chart-bar" data-h="${pct}" style="background: ${isMax ? 'var(--lime)' : 'rgba(255,255,255,0.12)'}; ${isMax ? 'box-shadow: 0 0 10px rgba(226,255,141,0.4)' : ''}; height: 0;"></div>`;
+  chartWrap.appendChild(group);
+
+  const lbl = document.createElement('div');
+  lbl.style.cssText = 'flex:1; text-align:center; font-size:10px; color:var(--text-tertiary);';
+  lbl.textContent = d.day;
+  labelsWrap.appendChild(lbl);
+});
+
+// Stages
+const stageList = document.getElementById('stage-list');
+stages.forEach(s => {
+  const pct = Math.round((s.count / s.total) * 100);
+  const el = document.createElement('div');
+  el.className = 'stage-item';
+  el.innerHTML = `
+    <div class="stage-header">
+      <span class="stage-name">${s.name}</span>
+      <span class="stage-count">${s.count}</span>
+    </div>
+    <div class="stage-bar-track">
+      <div class="stage-bar-fill" data-w="${pct}" style="background:${s.color}; ${s.color === '#E2FF8D' ? 'box-shadow: 0 0 6px rgba(226,255,141,0.5)' : ''}"></div>
+    </div>`;
+  stageList.appendChild(el);
+});
+
+// Opps
+const oppList = document.getElementById('opp-list');
+opps.forEach(o => {
+  const el = document.createElement('div');
+  el.className = 'opp-item';
+  el.innerHTML = `
+    <div class="opp-avatar" style="background:${o.color}22; color:${o.color}">${o.initials}</div>
+    <div class="opp-info">
+      <div class="opp-name">${o.name}</div>
+      <div class="opp-company">${o.company}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="opp-value">${o.value}</div>
+      <div class="opp-badge badge-${o.stage}">${o.stage.charAt(0).toUpperCase() + o.stage.slice(1)}</div>
+    </div>`;
+  oppList.appendChild(el);
+});
+
+// Agent feed
+const agentFeed = document.getElementById('agent-feed');
+agents.forEach(a => {
+  const el = document.createElement('div');
+  el.className = 'agent-item';
+  el.innerHTML = `
+    <div class="agent-dot-wrap">
+      <div class="agent-dot ${a.dot}"></div>
+    </div>
+    <div>
+      <div class="agent-name" style="color:${a.nameColor}">${a.name}</div>
+      <div class="agent-action">${a.action}</div>
+      <div class="agent-time">${a.time}</div>
+    </div>`;
+  agentFeed.appendChild(el);
+});
+
+// ── Animate on load ───────────────────────────────────────────────────
+function countUp(el, start, end, duration, prefix = '', suffix = '') {
+  const startTime = performance.now();
+  const update = (time) => {
+    const elapsed = time - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = Math.round(start + (end - start) * eased);
+    el.textContent = prefix + current.toLocaleString('fr-FR') + suffix;
+    if (progress < 1) requestAnimationFrame(update);
+  };
+  requestAnimationFrame(update);
+}
+
+function formatEuro(n) {
+  if (n >= 1000) return '€' + Math.round(n/1000) + 'k';
+  return '€' + n;
+}
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    // Counters
+    const pipelineEl = document.getElementById('val-pipeline');
+    const startT = performance.now();
+    const animPipeline = (t) => {
+      const progress = Math.min((t - startT) / 1800, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const val = Math.round(342000 * eased);
+      pipelineEl.textContent = '€' + Math.round(val / 1000) + 'k';
+      if (progress < 1) requestAnimationFrame(animPipeline);
+    };
+    requestAnimationFrame(animPipeline);
+
+    countUp(document.getElementById('val-leads'), 0, 47, 1400, '', '');
+    countUp(document.getElementById('val-won'), 0, 12, 1200, '', '');
+
+    // Conversion ring
+    const ring = document.getElementById('conv-ring');
+    const convEl = document.getElementById('val-conv');
+    const circumference = 219.9;
+    const target = 26;
+    const startT2 = performance.now();
+    const animConv = (t) => {
+      const progress = Math.min((t - startT2) / 1600, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const pct = target * eased;
+      ring.style.strokeDashoffset = circumference - (circumference * pct / 100);
+      convEl.textContent = Math.round(pct) + '%';
+      if (progress < 1) requestAnimationFrame(animConv);
+    };
+    requestAnimationFrame(animConv);
+
+    // Chart bars
+    document.querySelectorAll('.chart-bar').forEach((bar, i) => {
+      setTimeout(() => {
+        const h = parseFloat(bar.dataset.h);
+        bar.style.height = h + '%';
+      }, i * 80);
+    });
+
+    // Stage bars
+    document.querySelectorAll('.stage-bar-fill').forEach((fill, i) => {
+      setTimeout(() => {
+        fill.style.width = fill.dataset.w + '%';
+      }, 200 + i * 100);
+    });
+  }, 100);
+});
+</script>
+</body>
+</html>

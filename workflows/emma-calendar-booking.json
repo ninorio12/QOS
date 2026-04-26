@@ -1,0 +1,489 @@
+{
+  "name": "lucie-calendar-booking",
+  "nodes": [
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "emma-calendar-booking",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [100, 400],
+      "webhookId": "emma-calendar-booking-webhook"
+    },
+
+    {
+      "parameters": {
+        "jsCode": "// ── Validate required fields ────────────────────────────────────────────────\nconst body = $input.first().json.body ?? $input.first().json;\n\nconst REQUIRED = ['contact_id', 'name', 'phone', 'requested_start', 'requested_end'];\nconst missing  = REQUIRED.filter(k => !body[k]?.toString().trim());\nif (missing.length > 0) {\n  return [{ json: {\n    _error:          true,\n    status:          'error',\n    trace_id:        body.trace_id ?? 'unknown',\n    idempotency_key: '',\n    message:         'Champs requis manquants: ' + missing.join(', '),\n  }}];\n}\n\n// ── Normalise ────────────────────────────────────────────────────────────────\nconst trace_id        = body.trace_id ?? Math.random().toString(36).slice(2, 8);\nconst idempotency_key = `${body.contact_id}::${body.requested_start}`;\n\nreturn [{ json: {\n  _error:           false,\n  trace_id,\n  idempotency_key,\n  contact_id:       body.contact_id,\n  name:             body.name,\n  phone:            body.phone,\n  email:            body.email       ?? null,\n  requested_start:  body.requested_start,\n  requested_end:    body.requested_end,\n  timezone:         body.timezone    ?? 'Europe/Paris',\n}}];"
+      },
+      "id": "a1b2c3d4-0002-0002-0002-000000000002",
+      "name": "Validate & Build Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 400]
+    },
+
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "err-check",
+              "leftValue":  "={{ $json._error }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0003-0003-0003-000000000003",
+      "name": "Has Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [540, 400]
+    },
+
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'error', trace_id: $json.trace_id, idempotency_key: $json.idempotency_key, message: $json.message }) }}",
+        "options": { "responseCode": 400 }
+      },
+      "id": "a1b2c3d4-0004-0004-0004-000000000004",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 240]
+    },
+
+    {
+      "parameters": {
+        "jsCode": "// ── Idempotency guard (n8n static workflow data) ─────────────────────────────\n// Static data persists across executions on self-hosted n8n.\n// TTL de 7 jours : on nettoie les entrées > 7 jours.\nconst staticData      = $getWorkflowStaticData('global');\nconst key             = $input.first().json.idempotency_key;\nconst now             = Date.now();\nconst TTL_MS          = 7 * 24 * 60 * 60 * 1000;\n\n// Purge expired keys\nfor (const k of Object.keys(staticData)) {\n  if (now - (staticData[k] ?? 0) > TTL_MS) delete staticData[k];\n}\n\n// Check — clé déjà traitée → NOOP, pas de double sync ni double message\nif (staticData[key]) {\n  return [{ json: {\n    _noop:           true,\n    status:          'noop',\n    trace_id:        $input.first().json.trace_id,\n    idempotency_key: key,\n    message:         'Déjà traité — clé: ' + key,\n  }}];\n}\n\n// Mark as processed\nstaticData[key] = now;\n\nreturn [{ json: {\n  _noop:           false,\n  ...$input.first().json,\n}}];"
+      },
+      "id": "a1b2c3d4-0005-0005-0005-000000000005",
+      "name": "Idempotency Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 400]
+    },
+
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "noop-check",
+              "leftValue":  "={{ $json._noop }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0006-0006-0006-000000000006",
+      "name": "Is Noop?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [980, 400]
+    },
+
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'noop', trace_id: $json.trace_id, idempotency_key: $json.idempotency_key, message: $json.message }) }}",
+        "options": { "responseCode": 200 }
+      },
+      "id": "a1b2c3d4-0007-0007-0007-000000000007",
+      "name": "Respond Noop",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1200, 240]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/calendar/v3/freeBusy",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ timeMin: $json.requested_start, timeMax: $json.requested_end, timeZone: $json.timezone ?? 'Europe/Paris', items: [{ id: $env.GOOGLE_CALENDAR_ID }] }) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0010-0010-0010-000000000010",
+      "name": "FreeBusy Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 480],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GOOGLE_OAUTH2_CREDENTIAL_ID",
+          "name": "Google Calendar — Thomas"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "jsCode": "// ── Parse FreeBusy response + generate alternatives ─────────────────────────\nconst freeBusyResp = $input.first().json;\nconst booking      = $('Is Noop?').first().json;\n\nconst calId   = $env.GOOGLE_CALENDAR_ID;\nconst busyArr = freeBusyResp?.calendars?.[calId]?.busy ?? [];\nconst isBusy  = busyArr.length > 0;\n\n// Durée du créneau demandé (en ms)\nconst durationMs = new Date(booking.requested_end).getTime() - new Date(booking.requested_start).getTime();\n\n// Propose 2 alternatives : +1h et +2h depuis requested_start\nfunction makeAlt(hours) {\n  const start = new Date(new Date(booking.requested_start).getTime() + hours * 3600000);\n  const end   = new Date(start.getTime() + durationMs);\n  return { start: start.toISOString(), end: end.toISOString() };\n}\n\nconst alternatives = isBusy ? [ makeAlt(1), makeAlt(2) ] : [];\n\nreturn [{ json: {\n  ...booking,\n  _conflict:    isBusy,\n  busy_slots:   busyArr,\n  alternatives,\n}}];"
+      },
+      "id": "a1b2c3d4-0011-0011-0011-000000000011",
+      "name": "Parse FreeBusy",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1420, 480]
+    },
+
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "slot-check",
+              "leftValue":  "={{ $json._conflict }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0012-0012-0012-000000000012",
+      "name": "Slot libre?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1640, 480]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent($env.GOOGLE_CALENDAR_ID) + '/events' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ summary: '[QOS][DEMO] ' + $json.name + ' - RDV qualification', description: 'contact_id: ' + $json.contact_id + '\\nphone: ' + $json.phone + '\\nemail: ' + ($json.email ?? 'N/A') + '\\ntrace_id: ' + $json.trace_id, start: { dateTime: $json.requested_start, timeZone: $json.timezone ?? 'Europe/Paris' }, end: { dateTime: $json.requested_end, timeZone: $json.timezone ?? 'Europe/Paris' } }) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0013-0013-0013-000000000013",
+      "name": "Create Calendar Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1860, 360],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GOOGLE_OAUTH2_CREDENTIAL_ID",
+          "name": "Google Calendar — Thomas"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "jsCode": "// ── Build booked output — passe la donnée vers step 3 ────────────────────────\nconst eventResp = $input.first().json;\nconst booking   = $('Parse FreeBusy').first().json;\n\nreturn [{ json: {\n  status:              'booked',\n  trace_id:            booking.trace_id,\n  idempotency_key:     booking.idempotency_key,\n  contact_id:          booking.contact_id,\n  name:                booking.name,\n  phone:               booking.phone,\n  email:               booking.email,\n  timezone:            booking.timezone ?? 'Europe/Paris',\n  requested_start:     booking.requested_start,\n  requested_end:       booking.requested_end,\n  calendar_event_id:   eventResp.id            ?? null,\n  calendar_event_link: eventResp.htmlLink       ?? null,\n  summary:             eventResp.summary        ?? null,\n  start:               eventResp.start?.dateTime ?? booking.requested_start,\n  end:                 eventResp.end?.dateTime   ?? booking.requested_end,\n}}];"
+      },
+      "id": "a1b2c3d4-0014-0014-0014-000000000014",
+      "name": "Build Booked Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2080, 360]
+    },
+
+    {
+      "parameters": {
+        "jsCode": "// ── Step 3 — GHL Sync Prep + format confirmation messages ────────────────────\nconst b = $input.first().json;\n\n// Format date/heure lisible en Europe/Paris\nconst startDt  = new Date(b.start ?? b.requested_start);\nconst tz       = 'Europe/Paris';\n\nconst dateStr  = startDt.toLocaleDateString('fr-FR', {\n  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: tz\n});\nconst timeStr  = startDt.toLocaleTimeString('fr-FR', {\n  hour: '2-digit', minute: '2-digit', timeZone: tz\n});\n\n// Note GHL — récap complet pour historique contact\nconst noteBody = [\n  '✅ RDV confirmé — [QOS][DEMO]',\n  'Date : ' + dateStr + ' à ' + timeStr + ' (' + tz + ')',\n  'Google Event ID : ' + (b.calendar_event_id ?? 'N/A'),\n  'Lien calendrier : ' + (b.calendar_event_link ?? 'N/A'),\n  'trace_id : ' + b.trace_id,\n  'contact_id : ' + b.contact_id,\n].join('\\n');\n\n// SMS/WhatsApp confirmation client\nconst firstName = ((b.name ?? '').split(' ')[0]) || (b.name ?? 'Client');\nconst msgBody   = [\n  'Bonjour ' + firstName + ',',\n  '',\n  'Votre RDV de qualification est confirmé ✅',\n  '📅 ' + dateStr,\n  '⏰ ' + timeStr + ' (heure de Paris)',\n  '',\n  'Pour replanifier, répondez REPLANIFIER.',\n  '— Lucie, Qorpo IA',\n].join('\\n');\n\nreturn [{ json: {\n  ...b,\n  _date_str:       dateStr,\n  _time_str:       timeStr,\n  _ghl_note_body:  noteBody,\n  _ghl_sms_body:   msgBody,\n  _ghl_key_set:    !!(($env.GHL_API_KEY ?? '').trim()),\n}}];"
+      },
+      "id": "a1b2c3d4-0017-0017-0017-000000000017",
+      "name": "GHL Sync Prep",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2300, 360]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://services.leadconnectorhq.com/contacts/' + $json.contact_id + '/notes' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.GHL_API_KEY }}" },
+            { "name": "Version",       "value": "2021-07-28" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ body: $json._ghl_note_body }) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0018-0018-0018-000000000018",
+      "name": "GHL Add Note",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2520, 360],
+      "continueOnFail": true
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/conversations/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.GHL_API_KEY }}" },
+            { "name": "Version",       "value": "2021-04-15" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'SMS', contactId: $('GHL Sync Prep').first().json.contact_id, message: $('GHL Sync Prep').first().json._ghl_sms_body }) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0019-0019-0019-000000000019",
+      "name": "GHL Send Confirmation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2740, 360],
+      "continueOnFail": true
+    },
+
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "sms-check",
+              "leftValue":  "={{ String($json.error ?? '') }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0021-0021-0021-000000000021",
+      "name": "SMS réussi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2960, 360]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/conversations/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.GHL_API_KEY }}" },
+            { "name": "Version",       "value": "2021-04-15" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'WhatsApp', contactId: $('GHL Sync Prep').first().json.contact_id, message: $('GHL Sync Prep').first().json._ghl_sms_body }) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0022-0022-0022-000000000022",
+      "name": "GHL WhatsApp Fallback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3180, 480],
+      "continueOnFail": true
+    },
+
+    {
+      "parameters": {
+        "jsCode": "// ── Internal Log + alert detection ──────────────────────────────────────────\nconst b        = $('GHL Sync Prep').first().json;\nconst noteResp = (() => { try { return $('GHL Add Note').first().json; }          catch(e) { return {}; } })();\nconst smsResp  = (() => { try { return $('GHL Send Confirmation').first().json;  } catch(e) { return {}; } })();\nconst waResp   = (() => { try { return $('GHL WhatsApp Fallback').first().json;  } catch(e) { return {}; } })();\n\nconst ghlNoteOk = !!(noteResp?.id) && !(noteResp?.error);\nconst ghlSmsOk  = !!(smsResp?.messageId || smsResp?.id || smsResp?.conversationId) && !(smsResp?.error);\nconst ghlWaOk   = !!(waResp?.messageId  || waResp?.id  || waResp?.conversationId)  && !(waResp?.error);\nconst ghlMsgOk  = ghlSmsOk || ghlWaOk;\n\nconst alertNeeded = !ghlNoteOk || !ghlMsgOk;\n\nconst alertPayload = alertNeeded ? {\n  event:      'booking_alert',\n  trace_id:   b.trace_id,\n  contact_id: b.contact_id,\n  flags: {\n    ghl_note_ok: ghlNoteOk,\n    ghl_sms_ok:  ghlSmsOk,\n    ghl_wa_ok:   ghlWaOk,\n    ghl_key_set: b._ghl_key_set,\n  },\n  ts: new Date().toISOString(),\n} : null;\n\nreturn [{ json: {\n  status:              'confirmed',\n  trace_id:            b.trace_id,\n  idempotency_key:     b.idempotency_key,\n  contact_id:          b.contact_id,\n  calendar_event_id:   b.calendar_event_id,\n  calendar_event_link: b.calendar_event_link,\n  start:               b.start,\n  end:                 b.end,\n  ghl_sync:            ghlNoteOk ? 'done' : 'partial',\n  ghl_note_ok:         ghlNoteOk,\n  ghl_sms_ok:          ghlSmsOk,\n  ghl_wa_ok:           ghlWaOk,\n  _alert_needed:       alertNeeded,\n  _alert_payload:      alertPayload,\n  _internal_log: {\n    event:             'booking_confirmed',\n    trace_id:          b.trace_id,\n    contact_id:        b.contact_id,\n    calendar_event_id: b.calendar_event_id,\n    ghl_note_ok:       ghlNoteOk,\n    ghl_sms_ok:        ghlSmsOk,\n    ghl_wa_ok:         ghlWaOk,\n    rdv_date:          b._date_str,\n    rdv_time:          b._time_str,\n    ts:                new Date().toISOString(),\n  },\n}}];"
+      },
+      "id": "a1b2c3d4-0020-0020-0020-000000000020",
+      "name": "Internal Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3400, 360]
+    },
+
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "alert-check",
+              "leftValue":  "={{ $json._alert_needed }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0023-0023-0023-000000000023",
+      "name": "Alert nécessaire?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3620, 360]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ALERT_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json._alert_payload) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0024-0024-0024-000000000024",
+      "name": "Alert Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3840, 240],
+      "continueOnFail": true
+    },
+
+    {
+      "parameters": {
+        "jsCode": "// ── Build final response — toujours lu depuis Internal Log ──────────────────\nconst d = $('Internal Log').first().json;\nreturn [{ json: {\n  status:              d.status,\n  trace_id:            d.trace_id,\n  idempotency_key:     d.idempotency_key,\n  calendar_event_id:   d.calendar_event_id,\n  calendar_event_link: d.calendar_event_link,\n  start:               d.start,\n  end:                 d.end,\n  ghl_sync:            d.ghl_sync,\n}}];"
+      },
+      "id": "a1b2c3d4-0025-0025-0025-000000000025",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4060, 360]
+    },
+
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": { "responseCode": 200 }
+      },
+      "id": "a1b2c3d4-0015-0015-0015-000000000015",
+      "name": "Respond Booked",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [4280, 360]
+    },
+
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'conflict', trace_id: $json.trace_id, idempotency_key: $json.idempotency_key, message: 'Créneau indisponible — ' + $json.busy_slots.length + ' conflit(s) détecté(s)', alternatives: $json.alternatives }) }}",
+        "options": { "responseCode": 409 }
+      },
+      "id": "a1b2c3d4-0016-0016-0016-000000000016",
+      "name": "Respond Conflict",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1860, 600]
+    }
+
+  ],
+
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Validate & Build Key", "type": "main", "index": 0 }]]
+    },
+    "Validate & Build Key": {
+      "main": [[{ "node": "Has Error?", "type": "main", "index": 0 }]]
+    },
+    "Has Error?": {
+      "main": [
+        [{ "node": "Respond Error",     "type": "main", "index": 0 }],
+        [{ "node": "Idempotency Check", "type": "main", "index": 0 }]
+      ]
+    },
+    "Idempotency Check": {
+      "main": [[{ "node": "Is Noop?", "type": "main", "index": 0 }]]
+    },
+    "Is Noop?": {
+      "main": [
+        [{ "node": "Respond Noop",   "type": "main", "index": 0 }],
+        [{ "node": "FreeBusy Check", "type": "main", "index": 0 }]
+      ]
+    },
+    "FreeBusy Check": {
+      "main": [[{ "node": "Parse FreeBusy", "type": "main", "index": 0 }]]
+    },
+    "Parse FreeBusy": {
+      "main": [[{ "node": "Slot libre?", "type": "main", "index": 0 }]]
+    },
+    "Slot libre?": {
+      "main": [
+        [{ "node": "Create Calendar Event", "type": "main", "index": 0 }],
+        [{ "node": "Respond Conflict",      "type": "main", "index": 0 }]
+      ]
+    },
+    "Create Calendar Event": {
+      "main": [[{ "node": "Build Booked Output", "type": "main", "index": 0 }]]
+    },
+    "Build Booked Output": {
+      "main": [[{ "node": "GHL Sync Prep", "type": "main", "index": 0 }]]
+    },
+    "GHL Sync Prep": {
+      "main": [[{ "node": "GHL Add Note", "type": "main", "index": 0 }]]
+    },
+    "GHL Add Note": {
+      "main": [[{ "node": "GHL Send Confirmation", "type": "main", "index": 0 }]]
+    },
+    "GHL Send Confirmation": {
+      "main": [[{ "node": "SMS réussi?", "type": "main", "index": 0 }]]
+    },
+    "SMS réussi?": {
+      "main": [
+        [{ "node": "Internal Log",         "type": "main", "index": 0 }],
+        [{ "node": "GHL WhatsApp Fallback", "type": "main", "index": 0 }]
+      ]
+    },
+    "GHL WhatsApp Fallback": {
+      "main": [[{ "node": "Internal Log", "type": "main", "index": 0 }]]
+    },
+    "Internal Log": {
+      "main": [[{ "node": "Alert nécessaire?", "type": "main", "index": 0 }]]
+    },
+    "Alert nécessaire?": {
+      "main": [
+        [{ "node": "Alert Webhook",  "type": "main", "index": 0 }],
+        [{ "node": "Build Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Alert Webhook": {
+      "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]]
+    },
+    "Build Response": {
+      "main": [[{ "node": "Respond Booked", "type": "main", "index": 0 }]]
+    }
+  },
+
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": ["lucie", "calendar", "booking"]
+}

@@ -12,9 +12,9 @@ export default function ContactsLoading() {
       </div>
 
       {/* Table */}
-      <div className="flex-1 mx-6 bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden">
+      <div className="flex-1 mx-6 bg-soren-card rounded-2xl border border-soren-border shadow-sm overflow-hidden">
         {/* Table header */}
-        <div className="flex items-center px-4 py-3 border-b border-[#E5E7EB] gap-4">
+        <div className="flex items-center px-4 py-3 border-b border-soren-border gap-4">
           {[120, 100, 80, 100, 80, 70].map((w, i) => (
             <div key={i} className="h-2.5 bg-[#E5E7EB] rounded" style={{ width: w }} />
           ))}

@@ -168,7 +168,7 @@ function SkillBadge({ skill }: { skill: string }) {
   const meta = SKILL_META[skill] ?? { label: skill, icon: Zap, color: '#9CA3AF' }
   const Icon = meta.icon
   return (
-    <div className="flex items-center gap-2 bg-[#F5F6F3] rounded-xl px-3 py-2">
+    <div className="flex items-center gap-2 bg-soren-elevated rounded-xl px-3 py-2">
       <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: meta.color + '18' }}>
         <Icon size={12} style={{ color: meta.color }} />
       </div>
@@ -302,11 +302,11 @@ export default function KnowledgeView() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-56px)] bg-[#EEF0EB]">
+    <div className="flex h-[calc(100vh-56px)] bg-soren-app">
 
       {/* ── Sidebar ──────────────────────────────────────────── */}
-      <div className="w-56 flex-shrink-0 flex flex-col p-3 gap-1 border-r border-[#E5E7EB] bg-white" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
-        <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-widest px-2 pt-1 pb-2">Agents</p>
+      <div className="w-56 flex-shrink-0 flex flex-col p-3 gap-1 border-r border-soren-border bg-soren-card" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
+        <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-widest px-2 pt-1 pb-2">Agents</p>
 
         {AGENTS.map(a => {
           const active = selection.type === 'agent' && selection.id === a.id
@@ -314,50 +314,50 @@ export default function KnowledgeView() {
             <button
               key={a.id}
               onClick={() => selectAgent(a.id)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${active ? 'bg-[#F5F6F3]' : 'hover:bg-[#F9FAF8]'}`}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${active ? 'bg-soren-elevated' : 'hover:bg-[#F9FAF8]'}`}
             >
               <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: a.color + '18' }}>
                 <a.Icon size={15} style={{ color: a.color }} />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[#111111] leading-none">{a.name}</p>
-                <p className="text-[10px] text-[#9CA3AF] mt-0.5 truncate">{a.role.split('·')[0].trim()}</p>
+                <p className="text-sm font-semibold text-soren-text leading-none">{a.name}</p>
+                <p className="text-[10px] text-soren-subtle mt-0.5 truncate">{a.role.split('·')[0].trim()}</p>
               </div>
-              {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#111111] flex-shrink-0" />}
+              {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-soren-sidebar flex-shrink-0" />}
             </button>
           )
         })}
 
         <div className="border-t border-[#F3F4F6] my-2" />
-        <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-widest px-2 pb-1">Commun</p>
+        <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-widest px-2 pb-1">Commun</p>
 
         <button
           onClick={selectCommun}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${selection.type === 'commun' ? 'bg-[#F5F6F3]' : 'hover:bg-[#F9FAF8]'}`}
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${selection.type === 'commun' ? 'bg-soren-elevated' : 'hover:bg-[#F9FAF8]'}`}
         >
           <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#E2FF8D]/60">
             <FileText size={15} className="text-[#5C7A00]" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-[#111111] leading-none">Entreprise</p>
-            <p className="text-[10px] text-[#9CA3AF] mt-0.5">Tous les agents</p>
+            <p className="text-sm font-semibold text-soren-text leading-none">Entreprise</p>
+            <p className="text-[10px] text-soren-subtle mt-0.5">Tous les agents</p>
           </div>
-          {selection.type === 'commun' && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#111111] flex-shrink-0" />}
+          {selection.type === 'commun' && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-soren-sidebar flex-shrink-0" />}
         </button>
 
         <div className="border-t border-[#F3F4F6] my-2" />
-        <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-widest px-2 pb-1">Agents autonomes</p>
+        <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-widest px-2 pb-1">Agents autonomes</p>
 
         <button
           onClick={() => { setShowKb(true); setKbSelected(null); setKbEditing(false) }}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${showKb ? 'bg-[#F5F6F3]' : 'hover:bg-[#F9FAF8]'}`}
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${showKb ? 'bg-soren-elevated' : 'hover:bg-[#F9FAF8]'}`}
         >
           <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#7C3AED]/10">
             <Database size={15} className="text-[#7C3AED]" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-[#111111] leading-none">Base de connaissance</p>
-            <p className="text-[10px] text-[#9CA3AF] mt-0.5">{kbDocs.length} documents</p>
+            <p className="text-sm font-semibold text-soren-text leading-none">Base de connaissance</p>
+            <p className="text-[10px] text-soren-subtle mt-0.5">{kbDocs.length} documents</p>
           </div>
           {showKb && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#7C3AED] flex-shrink-0" />}
         </button>
@@ -376,10 +376,10 @@ export default function KnowledgeView() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-base font-bold text-[#111111]">{agent.name}</h2>
-                    <span className="text-[10px] font-mono text-[#9CA3AF] bg-[#F5F6F3] px-2 py-0.5 rounded-full">{agent.model}</span>
+                    <h2 className="text-base font-bold text-soren-text">{agent.name}</h2>
+                    <span className="text-[10px] font-mono text-soren-subtle bg-soren-elevated px-2 py-0.5 rounded-full">{agent.model}</span>
                   </div>
-                  <p className="text-xs text-[#9CA3AF]">{agent.role}</p>
+                  <p className="text-xs text-soren-subtle">{agent.role}</p>
                 </div>
               </div>
 
@@ -388,7 +388,7 @@ export default function KnowledgeView() {
                   {!editing ? (
                     <button
                       onClick={() => setEditing(true)}
-                      className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-[#111111] text-white hover:bg-[#333] transition-colors"
+                      className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-soren-sidebar text-white hover:bg-[#333] transition-colors"
                     >
                       <Pencil size={12} />
                       Modifier
@@ -418,7 +418,7 @@ export default function KnowledgeView() {
                   key={t.id}
                   onClick={() => { setTab(t.id); setEditing(false) }}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                    tab === t.id ? 'bg-[#111111] text-white' : 'bg-white text-[#6B7280] hover:text-[#111111]'
+                    tab === t.id ? 'bg-soren-sidebar text-white' : 'bg-soren-card text-soren-muted hover:text-soren-text'
                   }`}
                 >
                   <t.icon size={12} />
@@ -428,10 +428,10 @@ export default function KnowledgeView() {
             </div>
 
             {/* Content */}
-            <div className="flex-1 bg-white rounded-2xl overflow-hidden min-h-0">
+            <div className="flex-1 bg-soren-card rounded-2xl overflow-hidden min-h-0">
               {tab === 'skills' ? (
                 <div className="h-full p-5 overflow-y-auto">
-                  <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">Capacités de {agent.name}</p>
+                  <p className="text-[11px] font-bold text-soren-subtle uppercase tracking-wider mb-3">Capacités de {agent.name}</p>
                   <div className="grid grid-cols-2 gap-2">
                     {agent.skills.map(s => <SkillBadge key={s} skill={s} />)}
                   </div>
@@ -443,7 +443,7 @@ export default function KnowledgeView() {
                     ...prev,
                     [agent.id]: { ...prev[agent.id], [tab]: e.target.value },
                   }))}
-                  className="w-full h-full bg-white text-xs text-[#374151] font-mono leading-6 p-5 outline-none resize-none border-2 border-[#E2FF8D] rounded-2xl"
+                  className="w-full h-full bg-soren-card text-xs text-[#374151] font-mono leading-6 p-5 outline-none resize-none border-2 border-[#E2FF8D] rounded-2xl"
                   spellCheck={false}
                   autoFocus
                 />
@@ -467,8 +467,8 @@ export default function KnowledgeView() {
                   <FileText size={20} className="text-[#5C7A00]" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-[#111111]">Document entreprise</h2>
-                  <p className="text-xs text-[#9CA3AF]">Partagé avec tous les agents · Mia maintient ce document à jour</p>
+                  <h2 className="text-base font-bold text-soren-text">Document entreprise</h2>
+                  <p className="text-xs text-soren-subtle">Partagé avec tous les agents · Mia maintient ce document à jour</p>
                 </div>
               </div>
 
@@ -476,7 +476,7 @@ export default function KnowledgeView() {
                 <button
                   onClick={scrape}
                   disabled={scraping}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-white border border-[#E5E7EB] text-[#374151] hover:border-[#9CA3AF] transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-soren-card border border-soren-border text-[#374151] hover:border-[#9CA3AF] transition-colors disabled:opacity-50"
                 >
                   <Globe size={12} className={scraping ? 'animate-spin' : ''} />
                   {scraping ? 'Scraping...' : 'Scraper le site'}
@@ -485,7 +485,7 @@ export default function KnowledgeView() {
                 {!editing ? (
                   <button
                     onClick={() => setEditing(true)}
-                    className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-[#111111] text-white hover:bg-[#333] transition-colors"
+                    className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-soren-sidebar text-white hover:bg-[#333] transition-colors"
                   >
                     <Pencil size={12} />
                     Modifier
@@ -514,7 +514,7 @@ export default function KnowledgeView() {
 
             {/* Agents qui lisent ce doc */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-[11px] text-[#9CA3AF]">Lu par</span>
+              <span className="text-[11px] text-soren-subtle">Lu par</span>
               {AGENTS.map(a => (
                 <div key={a.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold" style={{ background: a.color + '18', color: a.color }}>
                   <a.Icon size={10} />
@@ -524,12 +524,12 @@ export default function KnowledgeView() {
             </div>
 
             {/* Editor / Viewer */}
-            <div className="flex-1 bg-white rounded-2xl overflow-hidden min-h-0">
+            <div className="flex-1 bg-soren-card rounded-2xl overflow-hidden min-h-0">
               {editing ? (
                 <textarea
                   value={companyDoc}
                   onChange={e => setCompanyDoc(e.target.value)}
-                  className="w-full h-full bg-white text-xs text-[#374151] font-mono leading-6 p-5 outline-none resize-none border-2 border-[#E2FF8D] rounded-2xl"
+                  className="w-full h-full bg-soren-card text-xs text-[#374151] font-mono leading-6 p-5 outline-none resize-none border-2 border-[#E2FF8D] rounded-2xl"
                   spellCheck={false}
                   autoFocus
                 />
@@ -547,13 +547,13 @@ export default function KnowledgeView() {
           <>
             <div className="flex items-center justify-between flex-shrink-0">
               <div>
-                <h2 className="text-base font-bold text-[#111111]">Base de connaissance</h2>
-                <p className="text-xs text-[#9CA3AF]">{kbDocs.length} documents · mis à jour par Hermes et les agents</p>
+                <h2 className="text-base font-bold text-soren-text">Base de connaissance</h2>
+                <p className="text-xs text-soren-subtle">{kbDocs.length} documents · mis à jour par Hermes et les agents</p>
               </div>
               {kbSelected && !kbEditing && (
                 <button
                   onClick={() => setKbEditing(true)}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-[#111111] text-white hover:bg-[#333] transition-colors"
+                  className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-soren-sidebar text-white hover:bg-[#333] transition-colors"
                 >
                   <Pencil size={12} />
                   Modifier
@@ -576,16 +576,16 @@ export default function KnowledgeView() {
               {/* Doc list */}
               <div className="w-48 flex-shrink-0 flex flex-col gap-1 overflow-y-auto">
                 {kbDocs.length === 0 && (
-                  <p className="text-xs text-[#9CA3AF] px-2">Aucun document</p>
+                  <p className="text-xs text-soren-subtle px-2">Aucun document</p>
                 )}
                 {kbDocs.map(doc => (
                   <button
                     key={doc.slug}
                     onClick={() => loadKbDoc(doc)}
-                    className={`text-left px-3 py-2.5 rounded-xl transition-all ${kbSelected?.slug === doc.slug ? 'bg-[#F5F6F3]' : 'hover:bg-[#F9FAF8]'}`}
+                    className={`text-left px-3 py-2.5 rounded-xl transition-all ${kbSelected?.slug === doc.slug ? 'bg-soren-elevated' : 'hover:bg-[#F9FAF8]'}`}
                   >
-                    <p className="text-xs font-semibold text-[#111111] truncate">{doc.title}</p>
-                    <p className="text-[9px] text-[#9CA3AF] mt-0.5 truncate">
+                    <p className="text-xs font-semibold text-soren-text truncate">{doc.title}</p>
+                    <p className="text-[9px] text-soren-subtle mt-0.5 truncate">
                       {doc.updated_by} · {new Date(doc.updated_at).toLocaleDateString('fr-FR')}
                     </p>
                   </button>
@@ -593,20 +593,20 @@ export default function KnowledgeView() {
               </div>
 
               {/* Doc viewer/editor */}
-              <div className="flex-1 bg-white rounded-2xl overflow-hidden min-h-0">
+              <div className="flex-1 bg-soren-card rounded-2xl overflow-hidden min-h-0">
                 {!kbSelected ? (
                   <div className="h-full flex items-center justify-center">
-                    <p className="text-sm text-[#9CA3AF]">Sélectionnez un document</p>
+                    <p className="text-sm text-soren-subtle">Sélectionnez un document</p>
                   </div>
                 ) : kbLoadingDoc ? (
                   <div className="h-full flex items-center justify-center">
-                    <p className="text-sm text-[#9CA3AF]">Chargement…</p>
+                    <p className="text-sm text-soren-subtle">Chargement…</p>
                   </div>
                 ) : kbEditing ? (
                   <textarea
                     value={kbContent}
                     onChange={e => setKbContent(e.target.value)}
-                    className="w-full h-full bg-white text-xs text-[#374151] font-mono leading-6 p-5 outline-none resize-none border-2 border-[#E2FF8D] rounded-2xl"
+                    className="w-full h-full bg-soren-card text-xs text-[#374151] font-mono leading-6 p-5 outline-none resize-none border-2 border-[#E2FF8D] rounded-2xl"
                     spellCheck={false}
                     autoFocus
                   />

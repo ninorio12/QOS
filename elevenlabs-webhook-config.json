@@ -1,0 +1,82 @@
+{
+  "type": "webhook",
+  "name": "N8N_Calendar_Webhook",
+  "description": "Outil de gestion du calendrier. TROIS ETAPES STRICTES : (1) Si client propose une date, appelle check_availability. (2) Si client ne sait pas quand, appelle check_next_slots. (3) Des que le client dit oui ou confirme, appelle create_event IMMEDIATEMENT sans rien dire avant. INTERDIT d'annoncer un RDV confirme sans avoir recu la reponse de create_event.",
+  "disable_interruptions": true,
+  "force_pre_tool_speech": "force",
+  "tool_call_sound": null,
+  "tool_call_sound_behavior": "auto",
+  "execution_mode": "immediate",
+  "api_schema": {
+    "url": "https://n8n.qorpoia.com/webhook/elevenlabs-rdv",
+    "method": "POST",
+    "path_params_schema": [],
+    "query_params_schema": [],
+    "request_body_schema": {
+      "id": "body",
+      "type": "object",
+      "description": "Parametres envoyes au calendrier.",
+      "properties": [
+        {
+          "id": "action",
+          "type": "string",
+          "value_type": "llm_prompt",
+          "description": "Action a executer. Valeurs : check_availability pour verifier un creneau precis, check_next_slots pour trouver les prochains creneaux libres, create_event pour creer le RDV apres confirmation explicite du client uniquement.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "enum": [
+            "check_availability",
+            "check_next_slots",
+            "create_event"
+          ],
+          "is_system_provided": false,
+          "required": true
+        },
+        {
+          "id": "datetime",
+          "type": "string",
+          "value_type": "llm_prompt",
+          "description": "Date et heure au format ISO 8601, exemple : 2026-04-15T09:00:00. Obligatoire pour check_availability et create_event. Convertir depuis le langage naturel.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "enum": null,
+          "is_system_provided": false,
+          "required": false
+        },
+        {
+          "id": "nom_client",
+          "type": "string",
+          "value_type": "llm_prompt",
+          "description": "Nom complet du client tel que mentionne dans la conversation.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "enum": null,
+          "is_system_provided": false,
+          "required": false
+        },
+        {
+          "id": "description",
+          "type": "string",
+          "value_type": "llm_prompt",
+          "description": "Objet du rendez-vous, exemple : devis renovation cuisine, visite chantier.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "enum": null,
+          "is_system_provided": false,
+          "required": false
+        }
+      ],
+      "required": false,
+      "value_type": "llm_prompt"
+    },
+    "request_headers": [],
+    "content_type": "application/json",
+    "auth_connection": null
+  },
+  "assignments": [],
+  "response_timeout_secs": 20,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "response_mocks": []
+}

@@ -44,10 +44,15 @@ type Contact = {
   postalCode?:  string | null
 }
 
+function capitalize(name: string): string {
+  return name.split(' ').map(w => w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : '').join(' ')
+}
+
 function contactDisplayName(c: Contact): string {
-  return c.contactName?.trim() ||
+  const raw = c.contactName?.trim() ||
     [c.firstName, c.lastName].filter(Boolean).join(' ') ||
     c.email || c.phone || '—'
+  return raw === c.email || raw === c.phone || raw === '—' ? raw : capitalize(raw)
 }
 
 function contactInitials(c: Contact): string {
@@ -102,6 +107,16 @@ function NewDevisModal({ onClose, onCreate }: {
 
   async function pick(contact?: Contact) {
     setCreating(true)
+    if (contact) {
+      // Fetcher la fiche complète pour avoir l'adresse
+      try {
+        const res = await fetch(`/api/contact/${contact.id}`)
+        if (res.ok) {
+          const data = await res.json() as { contact?: Contact }
+          if (data.contact) contact = { ...contact, ...data.contact }
+        }
+      } catch { /* on continue avec les données partielles */ }
+    }
     await onCreate(contact)
     setCreating(false)
   }
@@ -112,14 +127,14 @@ function NewDevisModal({ onClose, onCreate }: {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+        className="bg-soren-card rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4">
           <div>
             <h2 className="text-[16px] font-extrabold text-[#111]">Nouveau devis</h2>
-            <p className="text-[12px] text-[#9CA3AF] mt-0.5">Avec un client existant ou depuis zéro</p>
+            <p className="text-[12px] text-soren-subtle mt-0.5">Avec un client existant ou depuis zéro</p>
           </div>
           <button
             onClick={onClose}
@@ -132,14 +147,14 @@ function NewDevisModal({ onClose, onCreate }: {
         {/* Recherche client */}
         <div className="px-6 pb-3">
           <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-soren-subtle" />
             <input
               ref={inputRef}
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Rechercher un client..."
-              className="w-full bg-[#f9f9f7] border border-[#f0f0eb] rounded-xl pl-9 pr-4 py-2.5 text-[13px] text-[#111] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#3462EE] transition-colors"
+              className="w-full bg-[#f9f9f7] border border-[#f0f0eb] rounded-xl pl-9 pr-4 py-2.5 text-[13px] text-[#111] placeholder:text-soren-subtle focus:outline-none focus:border-[#3462EE] transition-colors"
             />
           </div>
         </div>
@@ -148,7 +163,7 @@ function NewDevisModal({ onClose, onCreate }: {
         {search.trim() && (
           <div className="mx-6 mb-3 border border-[#f0f0eb] rounded-xl overflow-hidden">
             {loading ? (
-              <div className="px-4 py-3 text-[12px] text-[#9CA3AF]">Recherche…</div>
+              <div className="px-4 py-3 text-[12px] text-soren-subtle">Recherche…</div>
             ) : contacts.length > 0 ? (
               contacts.map(c => (
                 <button
@@ -171,12 +186,12 @@ function NewDevisModal({ onClose, onCreate }: {
                   })()}
                   <div className="min-w-0">
                     <p className="text-[13px] font-semibold text-[#111] truncate">{contactDisplayName(c)}</p>
-                    <p className="text-[11px] text-[#9CA3AF] truncate">{c.email ?? c.phone ?? '—'}</p>
+                    <p className="text-[11px] text-soren-subtle truncate">{c.email ?? c.phone ?? '—'}</p>
                   </div>
                 </button>
               ))
             ) : (
-              <div className="px-4 py-3 text-[12px] text-[#9CA3AF]">Aucun contact trouvé</div>
+              <div className="px-4 py-3 text-[12px] text-soren-subtle">Aucun contact trouvé</div>
             )}
           </div>
         )}
@@ -184,7 +199,7 @@ function NewDevisModal({ onClose, onCreate }: {
         {/* Séparateur */}
         <div className="flex items-center gap-3 px-6 mb-4">
           <div className="flex-1 h-px bg-[#f0f0eb]" />
-          <span className="text-[11px] text-[#9CA3AF] font-medium">ou</span>
+          <span className="text-[11px] text-soren-subtle font-medium">ou</span>
           <div className="flex-1 h-px bg-[#f0f0eb]" />
         </div>
 
@@ -195,7 +210,7 @@ function NewDevisModal({ onClose, onCreate }: {
             disabled={creating}
             className="w-full flex items-center gap-3 bg-[#111] text-white rounded-2xl px-5 py-3.5 hover:bg-[#222] transition-colors disabled:opacity-50"
           >
-            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-soren-card/10 flex items-center justify-center flex-shrink-0">
               <Plus size={14} />
             </div>
             <div className="text-left">
@@ -268,7 +283,7 @@ export default function DevisView({ devisList: initial, brandColor = '#d28e46' }
   }
 
   return (
-    <div className="h-full flex flex-col bg-[#EEF0EB]">
+    <div className="h-full flex flex-col bg-soren-app">
       <Toaster toasts={toasts} dismiss={dismiss} />
       <div className="flex-1 overflow-hidden flex flex-col">
         {view === 'list' && (
@@ -277,6 +292,7 @@ export default function DevisView({ devisList: initial, brandColor = '#d28e46' }
             brandColor={brandColor}
             onNew={() => setShowModal(true)}
             onSelect={d => { setSelected(d as unknown as Devis); setView('detail') }}
+            onDelete={id => setDevisList(p => p.filter(x => x.id !== id))}
           />
         )}
         {view === 'detail' && selected && (

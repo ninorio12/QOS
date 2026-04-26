@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Choisissez votre card Agentique — Soren IA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,700;0,9..144,900;1,9..144,700&family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&family=Share+Tech+Mono&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700&family=Lexend:wght@300;400;500;600;700&family=Unbounded:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #000000;
+      font-family: 'Space Grotesk', sans-serif;
+      padding: 48px 40px 72px;
+      min-height: 100vh;
+    }
+
+    /* Subtle grain texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.5;
+    }
+
+    h1 {
+      text-align: center;
+      font-family: 'Fraunces', serif;
+      font-size: 30px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 14px;
+      color: rgba(255,255,255,0.35);
+      margin-bottom: 48px;
+      font-family: 'Space Grotesk', sans-serif;
+      position: relative;
+      z-index: 1;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 280px);
+      gap: 32px 24px;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 0.5px;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .card-font-name {
+      font-size: 9px;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 0.3px;
+      font-family: 'Space Grotesk', sans-serif;
+      margin-top: 2px;
+    }
+
+    /* ALL CARDS: same base dimensions */
+    .card {
+      width: 280px;
+      height: 200px;
+      border-radius: 14px;
+      overflow: hidden;
+      position: relative;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: scale(1.02);
+    }
+
+    /* ---- Per-card font assignments ---- */
+    .font-fraunces        { font-family: 'Fraunces', serif; }
+    .font-space-grotesk   { font-family: 'Space Grotesk', sans-serif; }
+    .font-syne            { font-family: 'Syne', sans-serif; }
+    .font-share-tech-mono { font-family: 'Share Tech Mono', monospace; }
+    .font-plus-jakarta    { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-dm-serif        { font-family: 'DM Serif Display', serif; }
+    .font-outfit          { font-family: 'Outfit', sans-serif; }
+    .font-manrope         { font-family: 'Manrope', sans-serif; }
+    .font-lexend          { font-family: 'Lexend', sans-serif; }
+    .font-unbounded       { font-family: 'Unbounded', sans-serif; }
+
+    /* ---- Inline SVG icons ---- */
+    .agent-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+    .agent-icon svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Online → colored, Offline → dim gray */
+    .icon-soren-on  { color: #3462EE; }
+    .icon-kai-on    { color: #4A91A8; }
+    .icon-mia-on    { color: #C8F135; }
+    .icon-off       { color: #555; }
+
+    /* =============================================
+       CARD 1 — Minimal Pulse  |  font: Fraunces
+    ============================================= */
+    .c1 {
+      background: #0a0a0a;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .c1:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.8); }
+
+    .c1 .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .c1 .brand-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #E2FF8D;
+      text-transform: uppercase;
+    }
+    .c1 .badge {
+      font-size: 10px;
+      font-weight: 500;
+      color: #aaa;
+      background: rgba(255,255,255,0.05);
+      padding: 3px 8px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .c1 .agent-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .c1 .agent-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .c1 .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-online { background: #22c55e; }
+    .dot-offline { background: #444; }
+    .c1 .agent-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      flex: 1;
+    }
+    .c1 .agent-role {
+      font-size: 11px;
+      color: #555;
+    }
+    .c1 .cta {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.3px;
+    }
+
+
+    /* =============================================
+       CARD 2 — Glow Orbs  |  font: Space Grotesk
+    ============================================= */
+    .c2 {
+      background: #0F0F11;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .c2:hover { box-shadow: 0 12px 48px rgba(52,98,238,0.25), 0 0 0 1px rgba(226,255,141,0.1); }
+
+    .c2::before {
+      content: '';
+      position: absolute;
+      top: -30px; right: -30px;
+      width: 140px; height: 140px;
+      background: radial-gradient(circle, rgba(52,98,238,0.22) 0%, transparent 70%);
+      pointer-events: none;
+      border-radius: 50%;
+    }
+    .c2::after {
+      content: '';
+      position: absolute;
+      bottom: -40px; left: -20px;
+      width: 120px; height: 120px;
+      background: radial-gradient(circle, rgba(226,255,141,0.15) 0%, transparent 70%);
+      pointer-events: none;
+      border-radius: 50%;
+    }
+
+    .c2 .c2-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+    .c2 .c2-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .c2 .c2-status {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      color: #22c55e;
+    }
+    .c2 .c2-live-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 6px #22c55e;
+      animation: pulse-green 1.8s infinite;
+    }
+    @keyframes pulse-green {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .c2 .c2-agents {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      position: relative;
+      z-index: 1;
+    }
+    .c2 .c2-agent {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .c2 .avatar {
+      width: 28px; height: 28px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .avatar-soren { background: rgba(52,98,238,0.3); }
+    .avatar-kai   { background: rgba(74,145,168,0.3); }
+    .avatar-mia   { background: rgba(200,241,53,0.12); }
+
+    .c2 .c2-info { flex: 1; }
+    .c2 .c2-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .c2 .c2-role {
+      font-size: 10px;
+      color: #555;
+    }
+    .c2 .online-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+    }
+    .online-dot-on  { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+    .online-dot-off { background: #333; }
+
+    .c2 .c2-btn {
+      position: relative;
+      z-index: 1;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 20px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 500;
+      font-family: 'Space Grotesk', sans-serif;
+      padding: 7px 16px;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      width: 100%;
+    }
+    .c2 .c2-btn:hover {
+      background: #E2FF8D;
+      border-color: #E2FF8D;
+      color: #111;
+    }
+
+
+    /* =============================================
+       CARD 3 — Neon Borders  |  font: Syne
+    ============================================= */
+    .c3 {
+      background: #111;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid transparent;
+      background-clip: padding-box;
+      position: relative;
+    }
+    .c3::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      padding: 1px;
+      background: linear-gradient(135deg, #E2FF8D 0%, rgba(52,98,238,0.8) 100%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+    .c3:hover { box-shadow: 0 0 0 1px rgba(226,255,141,0.3), 0 12px 40px rgba(226,255,141,0.08); }
+
+    .c3 .c3-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .c3 .c3-label {
+      font-size: 9px;
+      font-weight: 700;
+      color: #E2FF8D;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .c3 .c3-counter {
+      text-align: right;
+    }
+    .c3 .c3-num {
+      font-size: 36px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+    }
+    .c3 .c3-num-label {
+      font-size: 9px;
+      color: #555;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .c3 .c3-agents {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .c3 .c3-agent {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .c3 .c3-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      flex: 1;
+    }
+    .c3 .c3-role {
+      font-size: 10px;
+      color: #555;
+      flex: 1;
+    }
+    .c3 .pill {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 20px;
+      letter-spacing: 1px;
+    }
+    .pill-live { background: rgba(34,197,94,0.15); color: #22c55e; }
+    .pill-off  { background: rgba(255,255,255,0.05); color: #444; }
+
+
+    /* =============================================
+       CARD 4 — Terminal  |  font: Share Tech Mono
+    ============================================= */
+    .c4 {
+      background: #0d1117;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .c4:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px #E2FF8D33; }
+
+    .c4 .term-prompt {
+      font-size: 11px;
+      color: #E2FF8D;
+      margin-bottom: 14px;
+    }
+    .c4 .term-body {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+    .c4 .term-line {
+      font-size: 11px;
+      line-height: 1.4;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .c4 .term-arrow {
+      color: #555;
+      flex-shrink: 0;
+    }
+    .c4 .term-agent {
+      color: #8b949e;
+    }
+    .c4 .term-status-on {
+      color: #22c55e;
+    }
+    .c4 .term-status-off {
+      color: #444;
+    }
+    .c4 .term-role {
+      color: #30363d;
+    }
+    .c4 .term-cursor {
+      display: inline-block;
+      width: 7px;
+      height: 12px;
+      background: #E2FF8D;
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .c4 .term-footer {
+      font-size: 10px;
+      color: #30363d;
+      margin-top: 10px;
+      border-top: 1px solid #21262d;
+      padding-top: 8px;
+    }
+
+
+    /* =============================================
+       CARD 5 — Frosted Dark  |  font: Plus Jakarta Sans
+    ============================================= */
+    .c5-outer {
+      background: #080808;
+      border-radius: 14px;
+      overflow: hidden;
+      position: relative;
+    }
+    .c5-outer::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 30% 0%, rgba(52,98,238,0.12) 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 100%, rgba(226,255,141,0.08) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .c5 {
+      background: rgba(255,255,255,0.03);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .c5:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+
+    .c5 .c5-title {
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .c5 .c5-avatars {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      padding: 4px 0;
+    }
+    .c5 .c5-avatar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .c5 .c5-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .c5-av-soren { background: rgba(52,98,238,0.25); border: 2px solid #3462EE; }
+    .c5-av-kai   { background: rgba(74,145,168,0.25); border: 2px solid #4A91A8; }
+    .c5-av-mia   { background: rgba(200,241,53,0.1);  border: 2px solid #333; }
+
+    .c5 .c5-av-name {
+      font-size: 9px;
+      color: rgba(255,255,255,0.5);
+      font-weight: 500;
+    }
+    .c5 .c5-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .c5 .c5-footer-text {
+      font-size: 10px;
+      color: rgba(255,255,255,0.3);
+    }
+    .c5 .c5-bar-bg {
+      height: 3px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .c5 .c5-bar-fill {
+      height: 100%;
+      width: 66.6%;
+      background: #E2FF8D;
+      border-radius: 2px;
+    }
+
+
+    /* =============================================
+       CARD 6 — Stats Focus  |  font: DM Serif Display
+    ============================================= */
+    .c6 {
+      background: #1a1a2e;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .c6:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(226,255,141,0.15); }
+
+    .c6 .c6-top {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+    }
+    .c6 .c6-big-num {
+      font-size: 64px;
+      font-weight: 400;
+      color: #E2FF8D;
+      line-height: 1;
+    }
+    .c6 .c6-big-label {
+      font-size: 11px;
+      color: #555;
+      padding-bottom: 10px;
+      line-height: 1.4;
+      font-family: 'DM Serif Display', serif;
+      font-style: italic;
+    }
+
+    .c6 .c6-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .c6 .c6-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .c6 .c6-rname {
+      font-size: 14px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.8);
+    }
+
+    .c6 .c6-accent {
+      height: 1px;
+      background: linear-gradient(90deg, #E2FF8D, transparent);
+      margin-top: 4px;
+    }
+
+
+    /* =============================================
+       CARD 7 — Card Stack  |  font: Outfit
+    ============================================= */
+    .c7-outer {
+      width: 280px;
+      height: 200px;
+      position: relative;
+    }
+    .c7-ghost2 {
+      position: absolute;
+      top: -8px; left: 8px; right: -8px;
+      height: 200px;
+      background: #2e2e30;
+      border-radius: 14px;
+      z-index: 0;
+    }
+    .c7-ghost1 {
+      position: absolute;
+      top: -4px; left: 4px; right: -4px;
+      height: 200px;
+      background: #252527;
+      border-radius: 14px;
+      z-index: 1;
+    }
+    .c7 {
+      position: relative;
+      z-index: 2;
+      background: #1C1C1E;
+      border-radius: 14px;
+      padding: 20px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 200px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .c7:hover {
+      transform: scale(1.02);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    }
+
+    .c7 .c7-eyebrow {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .c7 .c7-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .c7 .c7-deployed {
+      font-size: 11px;
+      color: #555;
+    }
+    .c7 .c7-stats {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .c7 .c7-stat-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #E2FF8D;
+      box-shadow: 0 0 6px #E2FF8D;
+      animation: pulse-lime 1.5s infinite;
+    }
+    @keyframes pulse-lime {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.8); }
+    }
+    .c7 .c7-counter {
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+    }
+    .c7 .c7-count-num {
+      font-size: 15px;
+      color: #E2FF8D;
+      font-weight: 700;
+    }
+    .c7 .c7-cta {
+      font-size: 11px;
+      font-weight: 600;
+      color: #E2FF8D;
+      letter-spacing: 0.3px;
+    }
+
+
+    /* =============================================
+       CARD 8 — Activity Feed  |  font: Manrope
+    ============================================= */
+    .c8 {
+      background: #111;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .c8:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06); }
+
+    .c8 .c8-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .c8 .c8-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
+    }
+    .c8 .c8-live-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9px;
+      font-weight: 700;
+      color: #22c55e;
+      letter-spacing: 1px;
+    }
+    .c8 .c8-live-pulse {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 6px #22c55e;
+      animation: pulse-green 1.2s infinite;
+    }
+
+    .c8 .c8-feed {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+    .c8 .c8-feed::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 28px;
+      background: linear-gradient(transparent, #111);
+      pointer-events: none;
+    }
+
+    .c8 .feed-track {
+      animation: scroll-feed 6s linear infinite;
+    }
+    @keyframes scroll-feed {
+      0%   { transform: translateY(0); }
+      33%  { transform: translateY(0); }
+      40%  { transform: translateY(-42px); }
+      66%  { transform: translateY(-42px); }
+      73%  { transform: translateY(-84px); }
+      99%  { transform: translateY(-84px); }
+      100% { transform: translateY(0); }
+    }
+
+    .c8 .feed-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 5px 0;
+      height: 42px;
+    }
+    .c8 .feed-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+    .c8 .feed-text { font-size: 11px; line-height: 1.5; }
+    .c8 .feed-agent { font-weight: 600; }
+    .c8 .feed-action { color: #555; }
+
+    .c8 .c8-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.05);
+    }
+    .c8 .c8-footer {
+      font-size: 10px;
+      color: #333;
+    }
+
+
+    /* =============================================
+       CARD 9 — Orbit  |  font: Lexend
+    ============================================= */
+    .c9 {
+      background: #0a0a0a;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .c9:hover { box-shadow: 0 12px 40px rgba(52,98,238,0.2), 0 0 0 1px rgba(255,255,255,0.05); }
+
+    .c9 .orbit-scene {
+      position: relative;
+      width: 80px;
+      height: 80px;
+    }
+    .c9 .orbit-center {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .c9 .orbit-num {
+      font-size: 24px;
+      font-weight: 300;
+      color: #fff;
+      line-height: 1;
+    }
+    .c9 .orbit-label {
+      font-size: 8px;
+      color: #444;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .c9 .orbit-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .c9 .orbit-dot {
+      position: absolute;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      top: 50%; left: 50%;
+      transform-origin: 0 0;
+    }
+
+    .orbit-dot-1 {
+      background: #3462EE;
+      box-shadow: 0 0 10px #3462EE;
+      animation: orbit 3s linear infinite;
+      margin: -5px 0 0 -5px;
+    }
+    .orbit-dot-2 {
+      background: #4A91A8;
+      box-shadow: 0 0 10px #4A91A8;
+      animation: orbit 3s linear infinite;
+      animation-delay: -1s;
+      margin: -5px 0 0 -5px;
+    }
+    .orbit-dot-3 {
+      background: #C8F135;
+      box-shadow: 0 0 10px #C8F135;
+      animation: orbit 3s linear infinite;
+      animation-delay: -2s;
+      margin: -5px 0 0 -5px;
+    }
+
+    @keyframes orbit {
+      from { transform: rotate(0deg) translateX(35px) rotate(0deg); }
+      to   { transform: rotate(360deg) translateX(35px) rotate(-360deg); }
+    }
+
+    .c9 .c9-names {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+    }
+    .c9 .c9-name {
+      font-size: 10px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.5);
+    }
+    .c9 .c9-name-soren { color: #3462EE; }
+    .c9 .c9-name-kai   { color: #4A91A8; }
+    .c9 .c9-name-mia   { color: rgba(200,241,53,0.6); }
+
+    .c9 .c9-eyebrow {
+      position: absolute;
+      top: 16px; left: 20px;
+      font-size: 9px;
+      font-weight: 300;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+
+    /* =============================================
+       CARD 10 — Bento Split  |  font: Unbounded
+    ============================================= */
+    .c10 {
+      background: #111;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .c10:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(226,255,141,0.2); }
+
+    .c10 .c10-header {
+      padding: 12px 18px 8px;
+      font-size: 7px;
+      font-weight: 700;
+      color: #E2FF8D;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .c10 .c10-body {
+      display: flex;
+      flex: 1;
+      padding: 12px 18px;
+      gap: 16px;
+    }
+
+    .c10 .c10-left {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      flex-shrink: 0;
+      width: 80px;
+      border-right: 1px solid rgba(255,255,255,0.05);
+      padding-right: 16px;
+    }
+    .c10 .c10-fraction {
+      font-size: 48px;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .c10 .c10-frac-top { color: #E2FF8D; }
+    .c10 .c10-frac-sep { color: rgba(255,255,255,0.2); font-size: 28px; font-weight: 300; }
+    .c10 .c10-frac-bot { color: rgba(255,255,255,0.3); }
+    .c10 .c10-sublabel {
+      font-size: 7px;
+      color: #444;
+      margin-top: 4px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .c10 .c10-right {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 9px;
+      flex: 1;
+    }
+    .c10 .c10-agent {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .c10 .c10-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .c10-dot-soren { background: #3462EE; }
+    .c10-dot-kai   { background: #4A91A8; }
+    .c10-dot-mia   { background: #333; }
+    .c10 .c10-aname {
+      font-size: 9px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.8);
+      flex: 1;
+    }
+    .c10 .c10-arole {
+      font-size: 7px;
+      color: #444;
+    }
+
+    .c10 .c10-bar-bg {
+      height: 3px;
+      background: rgba(255,255,255,0.05);
+    }
+    .c10 .c10-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #E2FF8D, rgba(226,255,141,0.4));
+      animation: grow-bar 1.2s ease-out 0.3s forwards;
+    }
+    @keyframes grow-bar {
+      from { width: 0%; }
+      to   { width: 66.6%; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Choisissez votre card Agentique</h1>
+  <p class="subtitle">Soren IA — 10 variations de design · 10 typographies distinctes</p>
+
+  <div class="grid">
+
+    <!-- CARD 1 — Minimal Pulse | Fraunces -->
+    <div class="card-wrapper font-fraunces">
+      <div class="card c1">
+        <div class="top-row">
+          <span class="brand-label">Agentique</span>
+          <span class="badge">2/3 en ligne</span>
+        </div>
+        <div class="agent-list">
+          <div class="agent-row">
+            <span class="agent-icon icon-soren-on">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="8" cy="8" r="2.5"/>
+                <circle cx="3" cy="3" r="1.5"/><line x1="4.06" y1="4.06" x2="6.4" y2="6.4"/>
+                <circle cx="13" cy="3" r="1.5"/><line x1="11.94" y1="4.06" x2="9.6" y2="6.4"/>
+                <circle cx="8" cy="14" r="1.5"/><line x1="8" y1="10.5" x2="8" y2="12.5"/>
+              </svg>
+            </span>
+            <span class="agent-name">Soren</span>
+            <span class="agent-role">Orchestrateur</span>
+          </div>
+          <div class="agent-row">
+            <span class="agent-icon icon-kai-on">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H6l-3 3V11H2a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                <path d="M9 4.5L7 8h3L8 11" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <span class="agent-name">Kai</span>
+            <span class="agent-role">Commercial IA</span>
+          </div>
+          <div class="agent-row">
+            <span class="agent-icon icon-off">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M3 2h8a1 1 0 011 1v10a1 1 0 01-1 1H3"/>
+                <path d="M3 2a1 1 0 00-1 1v10a1 1 0 001 1"/>
+                <line x1="6" y1="2" x2="6" y2="14"/>
+                <path d="M13 5l.5-.5M13.5 3l-.5.5M14 4h-1M13 4h-1" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <span class="agent-name">Mia</span>
+            <span class="agent-role">Knowledge</span>
+          </div>
+        </div>
+        <div class="cta">Gérer les agents →</div>
+      </div>
+      <span class="card-label">01 — Minimal Pulse</span>
+      <span class="card-font-name">Fraunces</span>
+    </div>
+
+    <!-- CARD 2 — Glow Orbs | Space Grotesk -->
+    <div class="card-wrapper font-space-grotesk">
+      <div class="card c2">
+        <div class="c2-top">
+          <span class="c2-title">Agentique</span>
+          <span class="c2-status"><span class="c2-live-dot"></span>2 actifs</span>
+        </div>
+        <div class="c2-agents">
+          <div class="c2-agent">
+            <div class="avatar avatar-soren agent-icon icon-soren-on" style="width:28px;height:28px;border-radius:7px;">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="8" cy="8" r="2.5"/>
+                <circle cx="3" cy="3" r="1.5"/><line x1="4.06" y1="4.06" x2="6.4" y2="6.4"/>
+                <circle cx="13" cy="3" r="1.5"/><line x1="11.94" y1="4.06" x2="9.6" y2="6.4"/>
+                <circle cx="8" cy="14" r="1.5"/><line x1="8" y1="10.5" x2="8" y2="12.5"/>
+              </svg>
+            </div>
+            <div class="c2-info">
+              <div class="c2-name">Soren</div>
+              <div class="c2-role">Orchestrateur</div>
+            </div>
+            <span class="online-dot online-dot-on"></span>
+          </div>
+          <div class="c2-agent">
+            <div class="avatar avatar-kai agent-icon icon-kai-on" style="width:28px;height:28px;border-radius:7px;">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H6l-3 3V11H2a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                <path d="M9 4.5L7 8h3L8 11" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="c2-info">
+              <div class="c2-name">Kai</div>
+              <div class="c2-role">Commercial IA</div>
+            </div>
+            <span class="online-dot online-dot-on"></span>
+          </div>
+          <div class="c2-agent">
+            <div class="avatar avatar-mia agent-icon icon-off" style="width:28px;height:28px;border-radius:7px;">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M3 2h8a1 1 0 011 1v10a1 1 0 01-1 1H3"/>
+                <path d="M3 2a1 1 0 00-1 1v10a1 1 0 001 1"/>
+                <line x1="6" y1="2" x2="6" y2="14"/>
+                <path d="M13 5l.5-.5M13.5 3l-.5.5M14 4h-1M13 4h-1" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="c2-info">
+              <div class="c2-name">Mia</div>
+              <div class="c2-role">Knowledge</div>
+            </div>
+            <span class="online-dot online-dot-off"></span>
+          </div>
+        </div>
+        <button class="c2-btn">Voir les agents</button>
+      </div>
+      <span class="card-label">02 — Glow Orbs</span>
+      <span class="card-font-name">Space Grotesk</span>
+    </div>
+
+    <!-- CARD 3 — Neon Borders | Syne -->
+    <div class="card-wrapper font-syne">
+      <div class="card c3">
+        <div class="c3-top">
+          <span class="c3-label">Agentique</span>
+          <div class="c3-counter">
+            <div class="c3-num">3</div>
+            <div class="c3-num-label">agents</div>
+          </div>
+        </div>
+        <div class="c3-agents">
+          <div class="c3-agent">
+            <span class="agent-icon icon-soren-on">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="8" cy="8" r="2.5"/>
+                <circle cx="3" cy="3" r="1.5"/><line x1="4.06" y1="4.06" x2="6.4" y2="6.4"/>
+                <circle cx="13" cy="3" r="1.5"/><line x1="11.94" y1="4.06" x2="9.6" y2="6.4"/>
+                <circle cx="8" cy="14" r="1.5"/><line x1="8" y1="10.5" x2="8" y2="12.5"/>
+              </svg>
+            </span>
+            <span class="c3-name">Soren</span>
+            <span class="c3-role">Orchestrateur</span>
+            <span class="pill pill-live">LIVE</span>
+          </div>
+          <div class="c3-agent">
+            <span class="agent-icon icon-kai-on">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H6l-3 3V11H2a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                <path d="M9 4.5L7 8h3L8 11" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <span class="c3-name">Kai</span>
+            <span class="c3-role">Commercial IA</span>
+            <span class="pill pill-live">LIVE</span>
+          </div>
+          <div class="c3-agent">
+            <span class="agent-icon icon-off">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M3 2h8a1 1 0 011 1v10a1 1 0 01-1 1H3"/>
+                <path d="M3 2a1 1 0 00-1 1v10a1 1 0 001 1"/>
+                <line x1="6" y1="2" x2="6" y2="14"/>
+                <path d="M13 5l.5-.5M13.5 3l-.5.5M14 4h-1M13 4h-1" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <span class="c3-name">Mia</span>
+            <span class="c3-role">Knowledge</span>
+            <span class="pill pill-off">OFF</span>
+          </div>
+        </div>
+      </div>
+      <span class="card-label">03 — Neon Borders</span>
+      <span class="card-font-name">Syne</span>
+    </div>
+
+    <!-- CARD 4 — Terminal | Share Tech Mono -->
+    <div class="card-wrapper font-share-tech-mono">
+      <div class="card c4">
+        <div class="term-prompt">$ agents --status</div>
+        <div class="term-body">
+          <div class="term-line">
+            <span class="agent-icon icon-soren-on" style="margin-right:2px;">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="8" cy="8" r="2.5"/>
+                <circle cx="3" cy="3" r="1.5"/><line x1="4.06" y1="4.06" x2="6.4" y2="6.4"/>
+                <circle cx="13" cy="3" r="1.5"/><line x1="11.94" y1="4.06" x2="9.6" y2="6.4"/>
+                <circle cx="8" cy="14" r="1.5"/><line x1="8" y1="10.5" x2="8" y2="12.5"/>
+              </svg>
+            </span>
+            <span class="term-agent">soren</span>
+            <span class="term-status-on"> [ONLINE]</span>
+            <span class="term-role"> — orchestrateur</span>
+          </div>
+          <div class="term-line">
+            <span class="agent-icon icon-kai-on" style="margin-right:2px;">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H6l-3 3V11H2a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                <path d="M9 4.5L7 8h3L8 11" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <span class="term-agent">kai</span>
+            <span class="term-status-on"> [ONLINE]</span>
+            <span class="term-role"> — commercial ia</span>
+          </div>
+          <div class="term-line">
+            <span class="agent-icon icon-off" style="margin-right:2px;">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M3 2h8a1 1 0 011 1v10a1 1 0 01-1 1H3"/>
+                <path d="M3 2a1 1 0 00-1 1v10a1 1 0 001 1"/>
+                <line x1="6" y1="2" x2="6" y2="14"/>
+                <path d="M13 5l.5-.5M13.5 3l-.5.5M14 4h-1M13 4h-1" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <span class="term-agent">mia</span>
+            <span class="term-status-off"> [OFFLINE]</span>
+            <span class="term-role"> — knowledge</span>
+          </div>
+          <div class="term-line" style="margin-top:2px;">
+            <span class="term-arrow">_ </span><span class="term-cursor"></span>
+          </div>
+        </div>
+        <div class="term-footer">2/3 agents actifs · soren-ia.com</div>
+      </div>
+      <span class="card-label">04 — Terminal</span>
+      <span class="card-font-name">Share Tech Mono</span>
+    </div>
+
+    <!-- CARD 5 — Frosted Dark | Plus Jakarta Sans -->
+    <div class="card-wrapper font-plus-jakarta">
+      <div class="card c5-outer">
+        <div class="c5" style="width:280px;height:200px;">
+          <div class="c5-title">Agentique</div>
+          <div class="c5-avatars">
+            <div class="c5-avatar-wrap">
+              <div class="c5-avatar c5-av-soren agent-icon icon-soren-on" style="width:36px;height:36px;">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="8" cy="8" r="2.5"/>
+                  <circle cx="3" cy="3" r="1.5"/><line x1="4.06" y1="4.06" x2="6.4" y2="6.4"/>
+                  <circle cx="13" cy="3" r="1.5"/><line x1="11.94" y1="4.06" x2="9.6" y2="6.4"/>
+                  <circle cx="8" cy="14" r="1.5"/><line x1="8" y1="10.5" x2="8" y2="12.5"/>
+                </svg>
+              </div>
+              <span class="c5-av-name">Soren</span>
+            </div>
+            <div class="c5-avatar-wrap">
+              <div class="c5-avatar c5-av-kai agent-icon icon-kai-on" style="width:36px;height:36px;">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H6l-3 3V11H2a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                  <path d="M9 4.5L7 8h3L8 11" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="c5-av-name">Kai</span>
+            </div>
+            <div class="c5-avatar-wrap">
+              <div class="c5-avatar c5-av-mia agent-icon icon-off" style="width:36px;height:36px;">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M3 2h8a1 1 0 011 1v10a1 1 0 01-1 1H3"/>
+                  <path d="M3 2a1 1 0 00-1 1v10a1 1 0 001 1"/>
+                  <line x1="6" y1="2" x2="6" y2="14"/>
+                  <path d="M13 5l.5-.5M13.5 3l-.5.5M14 4h-1M13 4h-1" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="c5-av-name">Mia</span>
+            </div>
+          </div>
+          <div class="c5-footer">
+            <div class="c5-footer-text">2 actifs sur 3</div>
+            <div class="c5-bar-bg"><div class="c5-bar-fill"></div></div>
+          </div>
+        </div>
+      </div>
+      <span class="card-label">05 — Frosted Dark</span>
+      <span class="card-font-name">Plus Jakarta Sans</span>
+    </div>
+
+    <!-- CARD 6 — Stats Focus | DM Serif Display -->
+    <div class="card-wrapper font-dm-serif">
+      <div class="card c6">
+        <div class="c6-top">
+          <div class="c6-big-num">2</div>
+          <div class="c6-big-label">agents<br>actifs</div>
+        </div>
+        <div class="c6-rows">
+          <div class="c6-row">
+            <span style="display:flex;align-items:center;gap:8px;" class="c6-rname">
+              <span class="agent-icon icon-soren-on">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="8" cy="8" r="2.5"/>
+                  <circle cx="3" cy="3" r="1.5"/><line x1="4.06" y1="4.06" x2="6.4" y2="6.4"/>
+                  <circle cx="13" cy="3" r="1.5"/><line x1="11.94" y1="4.06" x2="9.6" y2="6.4"/>
+                  <circle cx="8" cy="14" r="1.5"/><line x1="8" y1="10.5" x2="8" y2="12.5"/>
+                </svg>
+              </span>
+              Soren
+            </span>
+            <span class="pill pill-live">LIVE</span>
+          </div>
+          <div class="c6-row">
+            <span style="display:flex;align-items:center;gap:8px;" class="c6-rname">
+              <span class="agent-icon icon-kai-on">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H6l-3 3V11H2a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                  <path d="M9 4.5L7 8h3L8 11" stroke-linecap="round"/>
+                </svg>
+              </span>
+              Kai
+            </span>
+            <span class="pill pill-live">LIVE</span>
+          </div>
+          <div class="c6-row">
+            <span style="display:flex;align-items:center;gap:8px;" class="c6-rname">
+              <span class="agent-icon icon-off">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M3 2h8a1 1 0 011 1v10a1 1 0 01-1 1H3"/>
+                  <path d="M3 2a1 1 0 00-1 1v10a1 1 0 001 1"/>
+                  <line x1="6" y1="2" x2="6" y2="14"/>
+                  <path d="M13 5l.5-.5M13.5 3l-.5.5M14 4h-1M13 4h-1" stroke-linecap="round"/>
+                </svg>
+              </span>
+              Mia
+            </span>
+            <span class="pill pill-off">OFF</span>
+          </div>
+        </div>
+        <div class="c6-accent"></div>
+      </div>
+      <span class="card-label">06 — Stats Focus</span>
+      <span class="card-font-name">DM Serif Display</span>
+    </div>
+
+    <!-- CARD 7 — Card Stack | Outfit -->
+    <div class="card-wrapper font-outfit">
+      <div class="c7-outer">
+        <div class="c7-ghost2"></div>
+        <div class="c7-ghost1"></div>
+        <div class="c7">
+          <div>
+            <div class="c7-eyebrow">Infrastructure IAO</div>
+          </div>
+          <div>
+            <div class="c7-title">3 agents déployés</div>
+            <div class="c7-deployed">Environnement de production</div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center;">
+            <span class="agent-icon icon-soren-on">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="8" cy="8" r="2.5"/>
+                <circle cx="3" cy="3" r="1.5"/><line x1="4.06" y1="4.06" x2="6.4" y2="6.4"/>
+                <circle cx="13" cy="3" r="1.5"/><line x1="11.94" y1="4.06" x2="9.6" y2="6.4"/>
+                <circle cx="8" cy="14" r="1.5"/><line x1="8" y1="10.5" x2="8" y2="12.5"/>
+              </svg>
+            </span>
+            <span class="agent-icon icon-kai-on">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H6l-3 3V11H2a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                <path d="M9 4.5L7 8h3L8 11" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <span class="agent-icon icon-off">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M3 2h8a1 1 0 011 1v10a1 1 0 01-1 1H3"/>
+                <path d="M3 2a1 1 0 00-1 1v10a1 1 0 001 1"/>
+                <line x1="6" y1="2" x2="6" y2="14"/>
+                <path d="M13 5l.5-.5M13.5 3l-.5.5M14 4h-1M13 4h-1" stroke-linecap="round"/>
+              </svg>
+            </span>
+          </div>
+          <div class="c7-stats">
+            <span class="c7-stat-dot"></span>
+            <span class="c7-counter"><span class="c7-count-num">14</span> actions ce soir</span>
+          </div>
+          <div class="c7-cta">→ Voir l'équipe</div>
+        </div>
+      </div>
+      <span class="card-label">07 — Card Stack</span>
+      <span class="card-font-name">Outfit</span>
+    </div>
+
+    <!-- CARD 8 — Activity Feed | Manrope -->
+    <div class="card-wrapper font-manrope">
+      <div class="card c8">
+        <div class="c8-header">
+          <span class="c8-title">Activité IA</span>
+          <span class="c8-live-badge"><span class="c8-live-pulse"></span>LIVE</span>
+        </div>
+        <div class="c8-divider"></div>
+        <div class="c8-feed">
+          <div class="feed-track">
+            <div class="feed-item">
+              <span class="agent-icon icon-kai-on" style="margin-top:3px;">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H6l-3 3V11H2a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                  <path d="M9 4.5L7 8h3L8 11" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <div class="feed-text">
+                <span class="feed-agent" style="color:#4A91A8;">Kai</span>
+                <span class="feed-action"> · Lead qualifié — score 87/100</span>
+              </div>
+            </div>
+            <div class="feed-item">
+              <span class="agent-icon icon-soren-on" style="margin-top:3px;">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="8" cy="8" r="2.5"/>
+                  <circle cx="3" cy="3" r="1.5"/><line x1="4.06" y1="4.06" x2="6.4" y2="6.4"/>
+                  <circle cx="13" cy="3" r="1.5"/><line x1="11.94" y1="4.06" x2="9.6" y2="6.4"/>
+                  <circle cx="8" cy="14" r="1.5"/><line x1="8" y1="10.5" x2="8" y2="12.5"/>
+                </svg>
+              </span>
+              <div class="feed-text">
+                <span class="feed-agent" style="color:#3462EE;">Soren</span>
+                <span class="feed-action"> · Rapport pipeline transmis</span>
+              </div>
+            </div>
+            <div class="feed-item">
+              <span class="agent-icon icon-mia-on" style="margin-top:3px;">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M3 2h8a1 1 0 011 1v10a1 1 0 01-1 1H3"/>
+                  <path d="M3 2a1 1 0 00-1 1v10a1 1 0 001 1"/>
+                  <line x1="6" y1="2" x2="6" y2="14"/>
+                  <path d="M13 5l.5-.5M13.5 3l-.5.5M14 4h-1M13 4h-1" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <div class="feed-text">
+                <span class="feed-agent" style="color:#C8F135;">Mia</span>
+                <span class="feed-action"> · KB mise à jour — 3 docs</span>
+              </div>
+            </div>
+            <!-- loop repeat -->
+            <div class="feed-item">
+              <span class="agent-icon icon-kai-on" style="margin-top:3px;">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H6l-3 3V11H2a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                  <path d="M9 4.5L7 8h3L8 11" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <div class="feed-text">
+                <span class="feed-agent" style="color:#4A91A8;">Kai</span>
+                <span class="feed-action"> · Lead qualifié — score 87/100</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="c8-footer">Dernière sync · il y a 2 min</div>
+      </div>
+      <span class="card-label">08 — Activity Feed</span>
+      <span class="card-font-name">Manrope</span>
+    </div>
+
+    <!-- CARD 9 — Orbit | Lexend -->
+    <div class="card-wrapper font-lexend">
+      <div class="card c9">
+        <span class="c9-eyebrow">Agentique</span>
+        <div class="orbit-scene">
+          <div class="orbit-ring"></div>
+          <div class="orbit-center">
+            <div class="orbit-num">3</div>
+            <div class="orbit-label">agents</div>
+          </div>
+          <div class="orbit-dot orbit-dot-1"></div>
+          <div class="orbit-dot orbit-dot-2"></div>
+          <div class="orbit-dot orbit-dot-3"></div>
+        </div>
+        <div class="c9-names">
+          <span class="c9-name c9-name-soren">Soren</span>
+          <span class="c9-name c9-name-kai">Kai</span>
+          <span class="c9-name c9-name-mia">Mia</span>
+        </div>
+        <div style="display:flex;gap:14px;justify-content:center;">
+          <span class="agent-icon icon-soren-on">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="8" cy="8" r="2.5"/>
+              <circle cx="3" cy="3" r="1.5"/><line x1="4.06" y1="4.06" x2="6.4" y2="6.4"/>
+              <circle cx="13" cy="3" r="1.5"/><line x1="11.94" y1="4.06" x2="9.6" y2="6.4"/>
+              <circle cx="8" cy="14" r="1.5"/><line x1="8" y1="10.5" x2="8" y2="12.5"/>
+            </svg>
+          </span>
+          <span class="agent-icon icon-kai-on">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H6l-3 3V11H2a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+              <path d="M9 4.5L7 8h3L8 11" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="agent-icon icon-off">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M3 2h8a1 1 0 011 1v10a1 1 0 01-1 1H3"/>
+              <path d="M3 2a1 1 0 00-1 1v10a1 1 0 001 1"/>
+              <line x1="6" y1="2" x2="6" y2="14"/>
+              <path d="M13 5l.5-.5M13.5 3l-.5.5M14 4h-1M13 4h-1" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </div>
+      </div>
+      <span class="card-label">09 — Orbit</span>
+      <span class="card-font-name">Lexend</span>
+    </div>
+
+    <!-- CARD 10 — Bento Split | Unbounded -->
+    <div class="card-wrapper font-unbounded">
+      <div class="card c10">
+        <div class="c10-header">Agentique</div>
+        <div class="c10-body">
+          <div class="c10-left">
+            <div class="c10-fraction">
+              <span class="c10-frac-top">2</span><span class="c10-frac-sep">/</span><span class="c10-frac-bot">3</span>
+            </div>
+            <div class="c10-sublabel">actifs</div>
+          </div>
+          <div class="c10-right">
+            <div class="c10-agent">
+              <span class="agent-icon icon-soren-on">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="8" cy="8" r="2.5"/>
+                  <circle cx="3" cy="3" r="1.5"/><line x1="4.06" y1="4.06" x2="6.4" y2="6.4"/>
+                  <circle cx="13" cy="3" r="1.5"/><line x1="11.94" y1="4.06" x2="9.6" y2="6.4"/>
+                  <circle cx="8" cy="14" r="1.5"/><line x1="8" y1="10.5" x2="8" y2="12.5"/>
+                </svg>
+              </span>
+              <span class="c10-aname">Soren</span>
+              <span class="c10-arole">Orch.</span>
+            </div>
+            <div class="c10-agent">
+              <span class="agent-icon icon-kai-on">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H6l-3 3V11H2a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                  <path d="M9 4.5L7 8h3L8 11" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <span class="c10-aname">Kai</span>
+              <span class="c10-arole">Commercial</span>
+            </div>
+            <div class="c10-agent">
+              <span class="agent-icon icon-off">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M3 2h8a1 1 0 011 1v10a1 1 0 01-1 1H3"/>
+                  <path d="M3 2a1 1 0 00-1 1v10a1 1 0 001 1"/>
+                  <line x1="6" y1="2" x2="6" y2="14"/>
+                  <path d="M13 5l.5-.5M13.5 3l-.5.5M14 4h-1M13 4h-1" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <span class="c10-aname" style="color:rgba(255,255,255,0.3);">Mia</span>
+              <span class="c10-arole">Knowledge</span>
+            </div>
+          </div>
+        </div>
+        <div class="c10-bar-bg">
+          <div class="c10-bar-fill"></div>
+        </div>
+      </div>
+      <span class="card-label">10 — Bento Split</span>
+      <span class="card-font-name">Unbounded</span>
+    </div>
+
+  </div>
+
+</body>
+</html>

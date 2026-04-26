@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import FormulaireForm, { DEFAULT_FIELDS, type FormField } from './FormulaireForm'
 
+export const dynamic = 'force-dynamic'
+
 async function getCompanySettings() {
   try {
     const supabase = createClient(

@@ -5,7 +5,7 @@ import { Circle, Clock, AlertTriangle, CheckCircle2, AlertCircle, Plus, X, Histo
 
 // ─── Types ────────────────────────────────────────────────────
 type ColId     = 'todo' | 'inprogress' | 'error' | 'done' | 'archived'
-type AgentId   = 'soren' | 'kai' | 'mia' | 'ops' | 'doc'
+type AgentId   = 'soren' | 'kai' | 'mia'
 type FilterTab = 'all' | 'human'
 
 type Task = {
@@ -22,8 +22,6 @@ const AGENT_META: Record<AgentId, { label: string; color: string; bg: string }> 
   soren: { label: 'Soren', color: '#4A91A8', bg: '#4A91A815' },
   kai:   { label: 'Kai',   color: '#1A5C38', bg: '#1A5C3815' },
   mia:   { label: 'Mia',   color: '#E8836A', bg: '#E8836A15' },
-  ops:   { label: 'Ops',   color: '#7C3AED', bg: '#7C3AED15' },
-  doc:   { label: 'Doc',   color: '#0F766E', bg: '#0F766E15' },
 }
 
 type ColMeta = { label: string; icon: React.ElementType; iconColor: string; color: string; muted?: boolean }
@@ -41,8 +39,6 @@ const AGENTS_FILTER: { id: AgentId | 'all'; label: string }[] = [
   { id: 'soren', label: 'Soren' },
   { id: 'kai',   label: 'Kai' },
   { id: 'mia',   label: 'Mia' },
-  { id: 'ops',   label: 'Ops' },
-  { id: 'doc',   label: 'Doc' },
 ]
 
 // ─── Add task modal ───────────────────────────────────────────
@@ -62,11 +58,11 @@ function AddTaskModal({ onClose, onAdd }: { onClose: () => void; onAdd: (title: 
 
   return (
     <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-start justify-center pt-24">
-      <div className="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-sm mx-4">
+      <div className="bg-soren-card rounded-2xl shadow-2xl p-5 w-full max-w-sm mx-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold text-[#111111]">Nouvelle tâche</h2>
-          <button onClick={onClose} className="w-7 h-7 rounded-full bg-[#F5F5F0] flex items-center justify-center">
-            <X size={13} className="text-[#6B7280]" />
+          <h2 className="text-sm font-bold text-soren-text">Nouvelle tâche</h2>
+          <button onClick={onClose} className="w-7 h-7 rounded-full bg-soren-elevated flex items-center justify-center">
+            <X size={13} className="text-soren-muted" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -76,10 +72,10 @@ function AddTaskModal({ onClose, onAdd }: { onClose: () => void; onAdd: (title: 
             value={title}
             onChange={e => setTitle(e.target.value)}
             placeholder="Titre de la tâche…"
-            className="w-full bg-[#F5F5F0] rounded-xl px-3 py-2.5 text-sm text-[#111111] placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#4A91A8]/30"
+            className="w-full bg-soren-elevated rounded-xl px-3 py-2.5 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#4A91A8]/30"
           />
           <div className="flex gap-2">
-            {(['soren', 'kai', 'mia', 'ops', 'doc'] as AgentId[]).map(a => {
+            {(['soren', 'kai', 'mia'] as AgentId[]).map(a => {
               const m = AGENT_META[a]
               return (
                 <button key={a} type="button" onClick={() => setAgent(a)}
@@ -95,7 +91,7 @@ function AddTaskModal({ onClose, onAdd }: { onClose: () => void; onAdd: (title: 
             })}
           </div>
           <button type="submit" disabled={saving || !title.trim()}
-            className="bg-[#111111] disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-[#2a2a2a] transition-colors"
+            className="bg-soren-sidebar disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-[#2a2a2a] transition-colors"
           >
             {saving ? 'Ajout…' : 'Ajouter'}
           </button>
@@ -123,14 +119,14 @@ function TaskCard({ task, onMove, onSelect }: { task: Task; onMove: (id: string,
       onClick={() => onSelect(task)}
       className={`border rounded-lg px-3 py-2 flex flex-col gap-1 select-none transition-all group cursor-pointer ${
       archived
-        ? 'bg-[#F9FAFB] border-[#E5E7EB] opacity-60'
-        : 'bg-white border-[#E5E7EB] hover:border-[#C8CBD0] hover:shadow-sm'
+        ? 'bg-[#F9FAFB] border-soren-border opacity-60'
+        : 'bg-soren-card border-soren-border hover:border-[#C8CBD0] hover:shadow-sm'
     }`}>
       <div className="flex items-start justify-between gap-2">
-        <p className={`text-xs font-semibold leading-tight flex-1 ${archived ? 'text-[#9CA3AF] line-through' : 'text-[#111111]'}`}>
+        <p className={`text-xs font-semibold leading-tight flex-1 ${archived ? 'text-soren-subtle line-through' : 'text-soren-text'}`}>
           {task.title}
         </p>
-        <span className="text-[10px] text-[#9CA3AF] shrink-0">{date}</span>
+        <span className="text-[10px] text-soren-subtle shrink-0">{date}</span>
       </div>
       <div className="flex items-center justify-between gap-1 min-w-0">
         <div className="flex items-center gap-1 min-w-0 overflow-hidden">
@@ -152,7 +148,7 @@ function TaskCard({ task, onMove, onSelect }: { task: Task; onMove: (id: string,
         {nextCol[task.col] && (
           <button
             onClick={() => onMove(task.id, nextCol[task.col]!)}
-            className="text-[9px] font-medium text-[#9CA3AF] opacity-0 group-hover:opacity-100 transition-all shrink-0 hover:text-[#4A91A8]"
+            className="text-[9px] font-medium text-soren-subtle opacity-0 group-hover:opacity-100 transition-all shrink-0 hover:text-[#4A91A8]"
           >
             {nextLabel[task.col] ?? '→'}
           </button>
@@ -177,7 +173,7 @@ function KanbanCol({ colId, tasks, onMove, onSelect }: { colId: ColId; tasks: Ta
           {meta.label}
         </span>
         <span className={`text-[9px] font-bold border px-1.5 py-0.5 rounded-full min-w-[16px] text-center ml-auto ${
-          muted ? 'bg-[#F3F4F6] border-[#E5E7EB] text-[#C8CBD0]' : 'bg-white border-[#E5E7EB] text-[#6B7280] shadow-sm'
+          muted ? 'bg-[#F3F4F6] border-soren-border text-[#C8CBD0]' : 'bg-soren-card border-soren-border text-soren-muted shadow-sm'
         }`}>
           {tasks.length}
         </span>
@@ -185,13 +181,13 @@ function KanbanCol({ colId, tasks, onMove, onSelect }: { colId: ColId; tasks: Ta
 
       {/* Body */}
       <div className={`flex-1 flex flex-col rounded-xl p-2 overflow-hidden ${
-        muted ? 'bg-black/[0.02] border border-dashed border-[#E5E7EB]' : 'bg-black/[0.04]'
+        muted ? 'bg-black/[0.02] border border-dashed border-soren-border' : 'bg-black/[0.04]'
       }`}>
         <div className="flex-1 min-h-0 overflow-y-auto kanban-col flex flex-col gap-1.5">
           {tasks.map(t => <TaskCard key={t.id} task={t} onMove={onMove} onSelect={onSelect} />)}
           {tasks.length === 0 && (
             <div className="h-full flex items-center justify-center">
-              <p className={`text-[11px] ${muted ? 'text-[#D1D5DB]' : 'text-[#9CA3AF]'}`}>Aucune tâche</p>
+              <p className={`text-[11px] ${muted ? 'text-[#D1D5DB]' : 'text-soren-subtle'}`}>Aucune tâche</p>
             </div>
           )}
         </div>
@@ -228,25 +224,25 @@ function LogDrawer({ task, onClose }: { task: Task; onClose: () => void }) {
   }, [task.id])
 
   return (
-    <div className="fixed inset-y-0 right-0 w-80 bg-white border-l border-[#E5E7EB] shadow-2xl z-50 flex flex-col">
+    <div className="fixed inset-y-0 right-0 w-80 bg-soren-card border-l border-soren-border shadow-2xl z-50 flex flex-col">
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#F0F0EE] flex-shrink-0">
         <div className="min-w-0">
-          <p className="text-xs font-bold text-[#111111] truncate">{task.title}</p>
-          <p className="text-[10px] text-[#9CA3AF] mt-0.5">Logs d&apos;exécution</p>
+          <p className="text-xs font-bold text-soren-text truncate">{task.title}</p>
+          <p className="text-[10px] text-soren-subtle mt-0.5">Logs d&apos;exécution</p>
         </div>
-        <button onClick={onClose} className="w-7 h-7 rounded-full bg-[#F5F5F0] flex items-center justify-center ml-2 flex-shrink-0">
-          <X size={13} className="text-[#6B7280]" />
+        <button onClick={onClose} className="w-7 h-7 rounded-full bg-soren-elevated flex items-center justify-center ml-2 flex-shrink-0">
+          <X size={13} className="text-soren-muted" />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center h-20">
-            <p className="text-xs text-[#9CA3AF]">Chargement…</p>
+            <p className="text-xs text-soren-subtle">Chargement…</p>
           </div>
         ) : logs.length === 0 ? (
           <div className="flex items-center justify-center h-20">
-            <p className="text-xs text-[#9CA3AF]">Aucun log pour cette tâche</p>
+            <p className="text-xs text-soren-subtle">Aucun log pour cette tâche</p>
           </div>
         ) : (
           <div className="flex flex-col">
@@ -261,7 +257,7 @@ function LogDrawer({ task, onClose }: { task: Task; onClose: () => void }) {
                 <div className="pl-4">
                   <p className="text-[11px] text-[#374151] leading-tight">{log.message}</p>
                   {log.tool_used && (
-                    <p className="text-[9px] font-mono text-[#9CA3AF] mt-0.5">{log.tool_used}</p>
+                    <p className="text-[9px] font-mono text-soren-subtle mt-0.5">{log.tool_used}</p>
                   )}
                   <p className="text-[9px] text-[#C8CBD0] mt-0.5">
                     {new Date(log.created_at).toLocaleTimeString('fr-FR')}
@@ -376,33 +372,33 @@ export default function TachesView() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
         <div>
-          <h1 className="text-2xl font-black text-[#111111] leading-none">Tâches</h1>
-          <p className="text-xs text-[#6B7280] mt-1">Suivez l'activité de vos agents en temps réel</p>
+          <h1 className="text-2xl font-black text-soren-text leading-none">Tâches</h1>
+          <p className="text-xs text-soren-muted mt-1">Suivez l'activité de vos agents en temps réel</p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* KPI chips */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 bg-white border border-[#E5E7EB] rounded-xl px-3 py-1.5 shadow-sm">
-              <span className="text-[10px] font-medium text-[#9CA3AF]">Total</span>
-              <span className="text-sm font-bold text-[#111111]">{tasks.length}</span>
+            <div className="flex items-center gap-2 bg-soren-card border border-soren-border rounded-xl px-3 py-1.5 shadow-sm">
+              <span className="text-[10px] font-medium text-soren-subtle">Total</span>
+              <span className="text-sm font-bold text-soren-text">{tasks.length}</span>
             </div>
-            <div className="flex items-center gap-2 bg-white border border-[#E5E7EB] rounded-xl px-3 py-1.5 shadow-sm">
+            <div className="flex items-center gap-2 bg-soren-card border border-soren-border rounded-xl px-3 py-1.5 shadow-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] flex-shrink-0" />
-              <span className="text-[10px] font-medium text-[#9CA3AF]">Terminées</span>
-              <span className="text-sm font-bold text-[#111111]">{doneToday}</span>
+              <span className="text-[10px] font-medium text-soren-subtle">Terminées</span>
+              <span className="text-sm font-bold text-soren-text">{doneToday}</span>
             </div>
             {errorCount > 0 && (
-              <div className="flex items-center gap-2 bg-white border border-[#E5E7EB] rounded-xl px-3 py-1.5 shadow-sm">
+              <div className="flex items-center gap-2 bg-soren-card border border-soren-border rounded-xl px-3 py-1.5 shadow-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444] flex-shrink-0" />
-                <span className="text-[10px] font-medium text-[#9CA3AF]">Erreurs</span>
-                <span className="text-sm font-bold text-[#111111]">{errorCount}</span>
+                <span className="text-[10px] font-medium text-soren-subtle">Erreurs</span>
+                <span className="text-sm font-bold text-soren-text">{errorCount}</span>
               </div>
             )}
           </div>
 
           <button onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 bg-[#111111] hover:bg-[#222] text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors shadow-sm"
+            className="flex items-center gap-2 bg-soren-sidebar hover:bg-[#222] text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors shadow-sm"
           >
             <Plus size={13} />
             Nouvelle tâche
@@ -415,14 +411,14 @@ export default function TachesView() {
         <div className="flex gap-1">
           <button onClick={() => setTabFilter('all')}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-              tabFilter === 'all' ? 'bg-[#111111] text-white' : 'text-[#6B7280] hover:text-[#111111] hover:bg-white'
+              tabFilter === 'all' ? 'bg-soren-sidebar text-white' : 'text-soren-muted hover:text-soren-text hover:bg-soren-card'
             }`}
           >
             Tous
           </button>
           <button onClick={() => setTabFilter('human')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-              tabFilter === 'human' ? 'bg-[#111111] text-white' : 'text-[#6B7280] hover:text-[#111111] hover:bg-white'
+              tabFilter === 'human' ? 'bg-soren-sidebar text-white' : 'text-soren-muted hover:text-soren-text hover:bg-soren-card'
             }`}
           >
             <Clock size={11} />
@@ -439,7 +435,7 @@ export default function TachesView() {
           {AGENTS_FILTER.map(a => (
             <button key={a.id} onClick={() => setAgentFilter(a.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                agentFilter === a.id ? 'bg-white text-[#111111] shadow-sm' : 'text-[#6B7280] hover:text-[#111111]'
+                agentFilter === a.id ? 'bg-soren-card text-soren-text shadow-sm' : 'text-soren-muted hover:text-soren-text'
               }`}
             >
               {a.label}
@@ -452,7 +448,7 @@ export default function TachesView() {
       {loading ? (
         <div className="flex flex-col gap-2 px-2 animate-pulse">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 border border-[#E5E7EB]">
+            <div key={i} className="flex items-center gap-3 bg-soren-card rounded-xl px-4 py-3 border border-soren-border">
               <div className="w-4 h-4 rounded bg-[#E5E7EB] flex-shrink-0" />
               <div className="flex-1">
                 <div className="h-2.5 bg-[#D9DDD6] rounded mb-1.5" style={{ width: `${50 + (i * 17) % 35}%` }} />
@@ -467,12 +463,12 @@ export default function TachesView() {
           {/* Left fade mask */}
           <div
             className={`pointer-events-none absolute left-0 top-0 bottom-4 w-8 z-10 transition-opacity duration-200 ${scrolled ? 'opacity-100' : 'opacity-0'}`}
-            style={{ background: 'linear-gradient(to right, #EEF0EB 40%, transparent)' }}
+            style={{ background: 'linear-gradient(to right, var(--bg-app) 40%, transparent)' }}
           />
           {/* Right fade mask */}
           <div
             className="pointer-events-none absolute right-0 top-0 bottom-4 w-8 z-10"
-            style={{ background: 'linear-gradient(to left, #EEF0EB 40%, transparent)' }}
+            style={{ background: 'linear-gradient(to left, var(--bg-app) 40%, transparent)' }}
           />
           <div ref={boardRef} className="flex gap-4 overflow-x-auto px-6 pb-4 items-stretch h-full">
             {COL_ORDER.map(colId => (

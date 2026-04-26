@@ -63,7 +63,7 @@ export function SkillsTab({ agentId, status, onToggle }: SkillsTabProps) {
         return (
           <div
             key={tool}
-            className="flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10"
+            className="flex items-center justify-between px-4 py-3 rounded-xl bg-soren-card/5 border border-white/10"
           >
             <div className="flex-1 min-w-0 mr-4">
               <p className="text-sm font-medium text-white">{meta.label}</p>
@@ -78,12 +78,12 @@ export function SkillsTab({ agentId, status, onToggle }: SkillsTabProps) {
               disabled={isPending}
               className={`relative w-10 h-5 rounded-full transition-colors duration-200 flex-shrink-0
                 ${isPending ? 'opacity-50 cursor-wait' : 'cursor-pointer'}
-                ${isActive ? 'bg-[#3462EE]' : 'bg-white/20'}
+                ${isActive ? 'bg-[#3462EE]' : 'bg-soren-card/20'}
               `}
               aria-label={`${isActive ? 'Désactiver' : 'Activer'} ${meta.label}`}
             >
               <span
-                className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200
+                className={`absolute top-0.5 w-4 h-4 rounded-full bg-soren-card shadow transition-transform duration-200
                   ${isActive ? 'translate-x-5' : 'translate-x-0.5'}
                 `}
               />

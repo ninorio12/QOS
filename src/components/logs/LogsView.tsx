@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { Search, Radio } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
-type AgentId  = 'soren' | 'kai' | 'mia' | 'ops' | 'doc' | 'hermes'
+type AgentId  = 'soren' | 'kai' | 'mia'
 type LogLevel = 'info' | 'success' | 'error' | 'warning'
 
 type LogEntry = {
@@ -23,9 +23,6 @@ const AGENT_META: Record<AgentId, { label: string; color: string; bg: string }> 
   soren:  { label: 'Soren',  color: '#4A91A8', bg: '#4A91A815' },
   kai:    { label: 'Kai',    color: '#1A5C38', bg: '#1A5C3815' },
   mia:    { label: 'Mia',    color: '#E8836A', bg: '#E8836A15' },
-  ops:    { label: 'Ops',    color: '#7C3AED', bg: '#7C3AED15' },
-  doc:    { label: 'Doc',    color: '#0F766E', bg: '#0F766E15' },
-  hermes: { label: 'Hermes', color: '#1D4ED8', bg: '#1D4ED815' },
 }
 
 const LEVEL_META: Record<LogLevel, { label: string; color: string; bg: string }> = {
@@ -99,9 +96,6 @@ const AGENT_OPTIONS: { id: AgentFilter; label: string }[] = [
   { id: 'soren',  label: 'Soren' },
   { id: 'kai',    label: 'Kai' },
   { id: 'mia',    label: 'Mia' },
-  { id: 'ops',    label: 'Ops' },
-  { id: 'doc',    label: 'Doc' },
-  { id: 'hermes', label: 'Hermes' },
 ]
 const LEVEL_OPTIONS: { id: LevelFilter; label: string }[] = [
   { id: 'all', label: 'Tous' }, { id: 'info', label: 'Info' }, { id: 'success', label: 'Succès' },
@@ -116,7 +110,7 @@ function LogRow({ entry, isNew }: { entry: LogEntry; isNew?: boolean }) {
 
   return (
     <div
-      className={`relative border-b border-[#F3F4F6] last:border-0 transition-colors duration-500 ${isNew ? 'bg-[#F5F5F0]' : 'hover:bg-[#FAFAFA]'}`}
+      className={`relative border-b border-[#F3F4F6] last:border-0 transition-colors duration-500 ${isNew ? 'bg-soren-elevated' : 'hover:bg-[#FAFAFA]'}`}
       onClick={() => entry.detail && setOpen(o => !o)}
       style={{ cursor: entry.detail ? 'pointer' : 'default' }}
     >
@@ -134,7 +128,7 @@ function LogRow({ entry, isNew }: { entry: LogEntry; isNew?: boolean }) {
         </span>
 
         {/* Message — dominant element */}
-        <span className="text-[12.5px] text-[#6B7280] font-medium flex-1 truncate">
+        <span className="text-[12.5px] text-soren-muted font-medium flex-1 truncate">
           {entry.message}
         </span>
 
@@ -150,7 +144,7 @@ function LogRow({ entry, isNew }: { entry: LogEntry; isNew?: boolean }) {
       {/* Detail — slides in below */}
       {open && entry.detail && (
         <div className="pl-5 pr-4 pb-2.5 -mt-0.5">
-          <p className="text-[11px] font-mono text-[#6B7280] leading-relaxed pl-[calc(0.25rem+3.5rem)]">
+          <p className="text-[11px] font-mono text-soren-muted leading-relaxed pl-[calc(0.25rem+3.5rem)]">
             {entry.detail}
           </p>
         </div>
@@ -231,14 +225,14 @@ export default function LogsView() {
   const errorCount   = logs.filter(l => l.level === 'error').length
 
   return (
-    <div className="flex flex-col h-[calc(100vh-56px)] bg-[#EEF0EB]">
+    <div className="flex flex-col h-[calc(100vh-56px)] bg-soren-app">
 
       {/* Header */}
-      <div className="px-6 pt-5 pb-4 flex-shrink-0 bg-white border-b border-[#F0F0EE]">
+      <div className="px-6 pt-5 pb-4 flex-shrink-0 bg-soren-card border-b border-[#F0F0EE]">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-black text-[#111111] leading-none">Logs</h1>
-            <p className="text-xs text-[#9CA3AF] mt-1">Activité des agents en temps réel</p>
+            <h1 className="text-2xl font-black text-soren-text leading-none">Logs</h1>
+            <p className="text-xs text-soren-subtle mt-1">Activité des agents en temps réel</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -267,7 +261,7 @@ export default function LogsView() {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all border ${
                 liveMode
                   ? 'bg-[#84CC16]/10 text-[#4D7C0F] border-[#84CC16]/30'
-                  : 'bg-[#F5F5F0] text-[#9CA3AF] border-[#E5E7EB]'
+                  : 'bg-soren-elevated text-soren-subtle border-soren-border'
               }`}
             >
               <Radio size={10} className={liveMode ? 'animate-pulse' : ''} />
@@ -278,13 +272,13 @@ export default function LogsView() {
 
         {/* Filters */}
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 bg-[#F5F5F0] border border-[#E5E7EB] rounded-lg px-3 py-1.5 w-48">
-            <Search size={11} className="text-[#9CA3AF] flex-shrink-0" />
+          <div className="flex items-center gap-2 bg-soren-elevated border border-soren-border rounded-lg px-3 py-1.5 w-48">
+            <Search size={11} className="text-soren-subtle flex-shrink-0" />
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Rechercher…"
-              className="flex-1 bg-transparent text-xs text-[#111111] placeholder-[#9CA3AF] outline-none"
+              className="flex-1 bg-transparent text-xs text-soren-text placeholder-[#9CA3AF] outline-none"
             />
           </div>
 
@@ -293,7 +287,7 @@ export default function LogsView() {
             {AGENT_OPTIONS.map(o => (
               <button key={o.id} onClick={() => setAgentFilter(o.id)}
                 className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
-                  agentFilter === o.id ? 'bg-white text-[#111111] shadow-sm' : 'text-[#6B7280] hover:text-[#111111]'
+                  agentFilter === o.id ? 'bg-soren-card text-soren-text shadow-sm' : 'text-soren-muted hover:text-soren-text'
                 }`}
               >
                 {o.label}
@@ -309,7 +303,7 @@ export default function LogsView() {
               return (
                 <button key={o.id} onClick={() => setLevelFilter(o.id)}
                   className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all ${
-                    active && !meta ? 'bg-white text-[#111111] shadow-sm' : !active ? 'text-[#6B7280] hover:text-[#111111]' : ''
+                    active && !meta ? 'bg-soren-card text-soren-text shadow-sm' : !active ? 'text-soren-muted hover:text-soren-text' : ''
                   }`}
                   style={active && meta ? { background: meta.bg, color: meta.color } : {}}
                 >
@@ -322,10 +316,10 @@ export default function LogsView() {
       </div>
 
       {/* Log list */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto bg-white">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto bg-soren-card">
         {filtered.length === 0 ? (
           <div className="flex items-center justify-center h-40">
-            <p className="text-sm text-[#9CA3AF]">Aucun log trouvé</p>
+            <p className="text-sm text-soren-subtle">Aucun log trouvé</p>
           </div>
         ) : (
           filtered.map(entry => <LogRow key={entry.id} entry={entry} isNew={newIds.has(entry.id)} />)
@@ -333,8 +327,8 @@ export default function LogsView() {
       </div>
 
       {/* Footer */}
-      <div className="px-6 py-2 border-t border-[#F0F0EE] bg-white flex items-center justify-between flex-shrink-0">
-        <p className="text-[10px] text-[#9CA3AF]">{filtered.length} entrée{filtered.length !== 1 ? 's' : ''}</p>
+      <div className="px-6 py-2 border-t border-[#F0F0EE] bg-soren-card flex items-center justify-between flex-shrink-0">
+        <p className="text-[10px] text-soren-subtle">{filtered.length} entrée{filtered.length !== 1 ? 's' : ''}</p>
         {liveMode && (
           <p className="text-[10px] text-[#4D7C0F] flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#84CC16] animate-pulse inline-block" />

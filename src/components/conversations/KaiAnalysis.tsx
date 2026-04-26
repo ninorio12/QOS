@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { type Conversation, type Message } from './types'
 
 interface Props {
@@ -11,40 +11,18 @@ interface Props {
 
 type AnalysisState = 'idle' | 'loading' | 'done' | 'error'
 
-function ScoreBar({ score }: { score: number }) {
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-[#6B7280]">Score de conversion</span>
-        <span className="text-sm font-semibold text-[#111111]">{score}%</span>
-      </div>
-      <div className="h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden">
-        <div
-          className="h-full bg-[#3462EE] rounded-full transition-all duration-700"
-          style={{ width: `${score}%` }}
-        />
-      </div>
-    </div>
-  )
-}
-
 export default function KaiAnalysis({ conversation, messages }: Props) {
   const [state, setState] = useState<AnalysisState>('idle')
   const [summary, setSummary] = useState('')
-  const [score, setScore] = useState<number | null>(null)
-  const [suggestion, setSuggestion] = useState('')
   const [nextAction, setNextAction] = useState('')
-  const [streamingField, setStreamingField] = useState<'summary' | 'suggestion' | 'action' | null>(null)
-  const [copiedSuggestion, setCopiedSuggestion] = useState(false)
-  const [collapsed, setCollapsed] = useState(false)
-  const didAnalyze = useRef(false)
+  const [streamingField, setStreamingField] = useState<'summary' | 'action' | null>(null)
+  // Track the conversation ID that was last analyzed — resets on conversation change
+  const analyzedConvId = useRef<string | null>(null)
 
   const analyze = useCallback(async () => {
     setState('loading')
     setSummary('')
-    setSuggestion('')
     setNextAction('')
-    setScore(null)
 
     const history = messages
       .filter(m => m.role === 'user' || m.role === 'assistant')
@@ -85,43 +63,9 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
       fullText += dec.decode()
       setSummary(fullText.replace(/SCORE:\d+\n?/, '').trim())
 
-      // Parse score from response — format attendu: "SCORE:72\n..."
-      const scoreMatch = fullText.match(/SCORE:(\d+)/)
-      if (scoreMatch) {
-        setScore(parseInt(scoreMatch[1], 10))
-        setSummary(fullText.replace(/SCORE:\d+\n?/, '').trim())
-      } else {
-        setScore(65) // fallback
-      }
+      setSummary(fullText.replace(/SCORE:\d+\n?/, '').trim())
 
-      // ─── 2. Message suggéré ───────────────────────────────────
-      setStreamingField('suggestion')
-      const resSugg = await fetch('/api/kai-analysis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'suggestion',
-          contactName: conversation.contact_name,
-          contactCompany: conversation.contact_company,
-          leadStage: conversation.lead_stage,
-          history,
-        }),
-      })
-
-      if (!resSugg.ok || !resSugg.body) throw new Error('Erreur suggestion')
-
-      const reader2 = resSugg.body.getReader()
-      let suggText = ''
-      while (true) {
-        const { done, value } = await reader2.read()
-        if (done) break
-        suggText += dec.decode(value, { stream: true })
-        setSuggestion(suggText)
-      }
-      suggText += dec.decode()
-      setSuggestion(suggText.trim())
-
-      // ─── 3. Prochaine action ──────────────────────────────────
+      // ─── 2. Prochaine action ──────────────────────────────────
       setStreamingField('action')
       const resAction = await fetch('/api/kai-analysis', {
         method: 'POST',
@@ -137,10 +81,10 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
 
       if (!resAction.ok || !resAction.body) throw new Error('Erreur action')
 
-      const reader3 = resAction.body.getReader()
+      const reader2 = resAction.body.getReader()
       let actionText = ''
       while (true) {
-        const { done, value } = await reader3.read()
+        const { done, value } = await reader2.read()
         if (done) break
         actionText += dec.decode(value, { stream: true })
         setNextAction(actionText)
@@ -157,102 +101,25 @@ export default function KaiAnalysis({ conversation, messages }: Props) {
     }
   }, [conversation, messages])
 
-  // Auto-trigger on first load
+  // Re-analyze whenever the conversation changes or messages first load
   useEffect(() => {
-    if (messages.length === 0 || didAnalyze.current) return
-    didAnalyze.current = true
+    if (messages.length === 0) return
+    if (analyzedConvId.current === conversation.id) return
+    analyzedConvId.current = conversation.id
     void analyze()
-  }, [messages.length])
-
-  const copySuggestion = useCallback(async () => {
-    await navigator.clipboard.writeText(suggestion)
-    setCopiedSuggestion(true)
-    setTimeout(() => setCopiedSuggestion(false), 2000)
-  }, [suggestion])
+  }, [conversation.id, messages.length])
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto px-5 py-5 gap-4">
-
-      {/* Score bar */}
-      {score !== null && (
-        <div className="px-1">
-          <ScoreBar score={score} />
-        </div>
-      )}
+    <div className="flex flex-col overflow-y-auto px-5 py-5 gap-4">
 
       {state === 'error' && (
         <p className="text-xs text-red-500">Erreur lors de l'analyse. Vérifiez votre clé Anthropic.</p>
       )}
 
-      {/* Analysis results — collapsible */}
-      {(summary || suggestion || nextAction || streamingField !== null) && (
-        <div>
-          <button
-            onClick={() => setCollapsed(c => !c)}
-            className="flex items-center gap-1 text-xs text-[#6B7280] mb-2"
-          >
-            {collapsed ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
-            {collapsed ? "Afficher l'analyse" : 'Réduire'}
-          </button>
-
-          {!collapsed && (
-            <div className="flex flex-col gap-4">
-              {/* Summary */}
-              {(summary || streamingField === 'summary') && (
-                <div className="bg-white rounded-xl p-4 border border-[#E5E7EB]">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Résumé du lead</p>
-                  <p className="text-sm text-[#374151] leading-relaxed whitespace-pre-wrap">
-                    {summary}
-                    {streamingField === 'summary' && (
-                      <span className="inline-block w-0.5 h-3.5 bg-[#3462EE] ml-0.5 animate-pulse align-middle" />
-                    )}
-                  </p>
-                </div>
-              )}
-
-              {/* Suggested message */}
-              {(suggestion || streamingField === 'suggestion') && (
-                <div className="bg-white rounded-xl p-4 border border-[#E5E7EB]">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Message suggéré</p>
-                  <p className="text-sm text-[#374151] leading-relaxed whitespace-pre-wrap mb-3">
-                    {suggestion}
-                    {streamingField === 'suggestion' && (
-                      <span className="inline-block w-0.5 h-3.5 bg-[#3462EE] ml-0.5 animate-pulse align-middle" />
-                    )}
-                  </p>
-                  {state === 'done' && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => { copySuggestion().catch(() => {}) }}
-                        className="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-[#E5E7EB] text-[#6B7280] hover:border-[#111111] hover:text-[#111111] transition-colors"
-                      >
-                        {copiedSuggestion ? 'Copié !' : 'Copier'}
-                      </button>
-                      <button
-                        onClick={analyze}
-                        className="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-[#E5E7EB] text-[#6B7280] hover:border-[#111111] hover:text-[#111111] transition-colors"
-                      >
-                        Regénérer
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Next action */}
-              {(nextAction || streamingField === 'action') && (
-                <div className="bg-white rounded-xl p-4 border border-[#E5E7EB]">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Prochaine action</p>
-                  <p className="text-sm text-[#374151] leading-relaxed whitespace-pre-wrap">
-                    {nextAction}
-                    {streamingField === 'action' && (
-                      <span className="inline-block w-0.5 h-3.5 bg-[#3462EE] ml-0.5 animate-pulse align-middle" />
-                    )}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
+      {state === 'loading' && !summary && (
+        <div className="flex items-center gap-2 text-[11px] text-soren-subtle">
+          <Sparkles size={11} className="text-[#8B5CF6] animate-pulse" />
+          Analyse en cours…
         </div>
       )}
     </div>

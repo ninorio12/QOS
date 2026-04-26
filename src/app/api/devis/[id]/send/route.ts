@@ -1,7 +1,11 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendGHLMessage } from '@/lib/ghl'
-import { generatePdfFromHtml, buildDevisHtml, type LigneDevis, type CompanyInfo } from '@/lib/apitemplate'
+import { generatePdfFromHtml } from '@/lib/apitemplate'
+import { buildDevisHtml } from '@/lib/devisHtmlBuilder'
+import type { CompanyForTemplate } from '@/components/devis/DevisTemplateStatic'
+
+type Ligne = { description: string; quantite: number; unite: string; prixUnitaire: number; tvaRate: number }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const { channel, conversationId, contactId } = await req.json()
@@ -14,51 +18,49 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   if (!devis) return Response.json({ error: 'Devis introuvable' }, { status: 404 })
 
-  const company: CompanyInfo = settings ? {
-    name:        settings.name,
-    tagline:     settings.tagline,
-    address:     settings.address,
-    phone:       settings.phone,
-    email:       settings.email,
-    siret:       settings.siret,
-    capital:     settings.capital,
-    tvaIntra:    settings.tva_intra,
-    assurance:   settings.assurance,
-    brandColor:  settings.brand_color,
-    accentColor: '#ffffff',
-    logoSvg:     settings.logo_svg || null,
+  const svgRaw: string | null = settings?.logo_svg ?? null
+  const logoBase64 = svgRaw ? Buffer.from(svgRaw).toString('base64') : null
+
+  const company: CompanyForTemplate = settings ? {
+    name:       settings.name        ?? 'Mon Entreprise',
+    tagline:    settings.tagline      ?? '',
+    address:    settings.address      ?? '',
+    phone:      settings.phone        ?? '',
+    email:      settings.email        ?? '',
+    logoBase64,
+    capital:    settings.capital      ?? '',
+    siret:      settings.siret        ?? '',
+    tvaIntra:   settings.tva_intra    ?? '',
+    assurance:  settings.assurance    ?? '',
+    brandColor: settings.brand_color  ?? '#111111',
   } : {
-    name: 'Soren', brandColor: '#d28e46', accentColor: '#ffffff',
+    name: 'Soren', tagline: '', address: '', phone: '', email: '',
+    logoBase64: null, capital: '', siret: '', tvaIntra: '', assurance: '',
+    brandColor: '#d28e46',
   }
 
   const ghlChannel: 'WhatsApp' | 'SMS' | 'Email' =
     channel === 'Email' ? 'Email' : channel === 'SMS' ? 'SMS' : 'WhatsApp'
 
-  const lignes: LigneDevis[] = Array.isArray(devis.lignes) ? devis.lignes : []
+  const lignes: Ligne[] = Array.isArray(devis.lignes) ? devis.lignes : []
   const totalHT  = lignes.reduce((s, l) => s + l.quantite * l.prixUnitaire, 0)
   const totalTVA = lignes.reduce((s, l) => s + (l.quantite * l.prixUnitaire * l.tvaRate / 100), 0)
   const totalTTC = totalHT + totalTVA
 
   let pdfUrl: string | null = devis.pdf_url ?? null
   try {
-    const date = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
     const html = buildDevisHtml({
-      titre:           devis.titre,
-      numero:          devis.numero,
-      contactName:     devis.contact_name ?? 'Client',
-      contactEmail:    devis.contact_email,
-      contactPhone:    devis.contact_phone,
-      contactAddress:  null,
+      numero:          devis.numero ?? null,
+      titre:           devis.titre ?? '',
       lignes,
-      notes:           devis.notes,
-      date,
-      ville:           devis.ville,
-      dateValidite:    devis.date_validite
-        ? new Date(devis.date_validite).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-        : null,
-      adresseChantier: devis.adresse_chantier,
-      company,
-    })
+      notes:           devis.notes ?? '',
+      ville:           devis.ville ?? '',
+      dateValidite:    devis.date_validite ?? '',
+      adresseChantier: devis.adresse_chantier ?? '',
+      contactName:     devis.contact_name ?? null,
+      adresseClient:   devis.adresse_client ?? '',
+      createdAt:       devis.created_at ?? '',
+    }, company)
     pdfUrl = await generatePdfFromHtml(html)
   } catch (err) {
     console.error('[devis/send] PDF échoué:', err)
@@ -69,7 +71,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const message = [
     `📋 *${devis.titre}*`,
-    lignes.length > 0 ? lignes.slice(0, 3).map((l: LigneDevis) => `• ${l.description}`).join('\n') : '',
+    lignes.length > 0 ? lignes.slice(0, 3).map(l => `• ${l.description}`).join('\n') : '',
     '',
     `💰 Total HT : ${fmtEUR(totalHT)}`,
     `💰 Total TTC : ${fmtEUR(totalTTC)}`,

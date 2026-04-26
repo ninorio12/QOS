@@ -4,7 +4,7 @@ import { getContacts } from '@/lib/ghl'
 import { createClient } from '@/lib/supabase/server'
 import { type GHLContact } from '@/lib/ghl'
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 export type ContactPipelineInfo = { pipelineName: string; stageName: string; pipelineId: string }
 

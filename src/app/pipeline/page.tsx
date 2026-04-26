@@ -4,28 +4,28 @@ import KanbanBoard from '@/components/pipeline/KanbanBoard'
 import { getOpportunities, getPipelines, getUsers } from '@/lib/ghl'
 import { stageColor, type GHLPipelineData, type Opportunity } from '@/components/pipeline/types'
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 // ─── Empty state ──────────────────────────────────────────────
 function PipelineEmpty({ error }: { error?: string }) {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="px-6 pt-6 pb-4 flex-shrink-0">
-        <h1 className="text-3xl font-black text-[#111111] leading-tight">Pipeline</h1>
-        <p className="text-sm text-[#6B7280] mt-1">Aucun pipeline disponible</p>
+        <h1 className="text-3xl font-black text-soren-text leading-tight">Pipeline</h1>
+        <p className="text-sm text-soren-muted mt-1">Aucun pipeline disponible</p>
       </div>
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center max-w-[300px]">
-          <div className="w-12 h-12 rounded-2xl bg-white border border-[#E5E7EB] flex items-center justify-center mx-auto mb-4 shadow-sm">
-            <GitMerge size={20} className="text-[#9CA3AF]" />
+          <div className="w-12 h-12 rounded-2xl bg-soren-card border border-soren-border flex items-center justify-center mx-auto mb-4 shadow-sm">
+            <GitMerge size={20} className="text-soren-subtle" />
           </div>
-          <p className="text-sm font-semibold text-[#111111] mb-1.5">Connexion CRM échouée</p>
-          <p className="text-xs text-[#9CA3AF] leading-relaxed mb-5">
+          <p className="text-sm font-semibold text-soren-text mb-1.5">Connexion CRM échouée</p>
+          <p className="text-xs text-soren-subtle leading-relaxed mb-5">
             Vérifiez la connexion dans Paramètres → Intégrations
           </p>
           <Link
             href="/parametres"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#111111] bg-white border border-[#E5E7EB] hover:bg-[#F5F5F0] px-4 py-2 rounded-full transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-soren-text bg-soren-card border border-soren-border hover:bg-soren-elevated px-4 py-2 rounded-full transition-colors shadow-sm"
           >
             <Settings size={12} /> Paramètres → Intégrations
           </Link>

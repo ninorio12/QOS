@@ -58,7 +58,7 @@ export function AgentDrawer({ agent, events, status, onClose }: AgentDrawerProps
           </div>
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${status?.online ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-soren-card/10 text-gray-400 hover:text-white transition-colors">
               <X size={16} />
             </button>
           </div>
@@ -66,13 +66,13 @@ export function AgentDrawer({ agent, events, status, onClose }: AgentDrawerProps
 
         {/* Tabs */}
         <div className="px-4 pt-3 pb-2 border-b border-white/5">
-          <div className="flex gap-1 bg-white/5 rounded-xl p-1 w-fit">
+          <div className="flex gap-1 bg-soren-card/5 rounded-xl p-1 w-fit">
             {TABS.map(t => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  tab === t.id ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-gray-200'
+                  tab === t.id ? 'bg-soren-card/10 text-white' : 'text-gray-400 hover:text-gray-200'
                 }`}
               >
                 {t.label}

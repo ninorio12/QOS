@@ -309,14 +309,14 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   const DARK = '#1C1C1E' as const
 
   return (
-    <div className="h-[calc(100vh-56px)] overflow-y-auto bg-[#EEF0EB]">
+    <div className="h-[calc(100vh-56px)] overflow-y-auto bg-soren-app">
       <div className="p-5 flex flex-col gap-2.5 max-w-[1600px]">
 
         {/* ── Header + Filtres ── */}
-        <div className="flex items-center justify-between gap-4 mb-1">
-          <h1 className="text-[22px] font-black text-[#111111] tracking-tight">Analyse</h1>
+        <div className="flex items-center justify-between gap-4 mb-1" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
+          <h1 className="text-[22px] font-black text-soren-text tracking-tight">Analyse</h1>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-white border border-[#E5E7EB] rounded-[10px] p-[3px]">
+            <div className="flex items-center gap-1 bg-soren-card border border-soren-border rounded-[10px] p-[3px]">
               {pipelineTabs.map(tab => (
                 <button key={tab.id} onClick={() => setSelectedPipeline(tab.id)}
                   className={`text-[11px] font-medium px-3 py-[5px] rounded-[7px] transition-colors ${
@@ -326,7 +326,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-1 bg-white border border-[#E5E7EB] rounded-[10px] p-[3px]">
+            <div className="flex items-center gap-1 bg-soren-card border border-soren-border rounded-[10px] p-[3px]">
               {PERIODS.map(p => (
                 <button key={p.days} onClick={() => setPeriodDays(p.days)}
                   className={`text-[11px] font-medium px-3 py-[5px] rounded-[7px] transition-colors ${
@@ -340,8 +340,8 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
         </div>
 
         {/* ── Section 1 : Objectifs de vente ── */}
-        <p className="text-[9px] font-bold uppercase tracking-[.8px] text-[#aaa]">Objectifs de vente</p>
-        <div className="grid grid-cols-3 gap-2.5">
+        <p className="text-[9px] font-bold uppercase tracking-[.8px] text-[#aaa]" style={{ animation: 'fadeSlideUp 400ms ease-out 60ms both' }}>Objectifs de vente</p>
+        <div className="grid grid-cols-3 gap-2.5" style={{ animation: 'fadeSlideUp 400ms ease-out 80ms both' }}>
           {objectives.map((obj, idx) => {
             const S = [
               { bg: '#E2FF8D', text: '#111', muted: '#556b00', barBg: 'rgba(0,0,0,0.1)',          fillC: '#111111' },
@@ -363,14 +363,14 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
         </div>
 
         {/* ── Section 2 : KPI cards ── */}
-        <p className="text-[9px] font-bold uppercase tracking-[.8px] text-[#aaa]">Métriques</p>
-        <div className="grid grid-cols-6 gap-2.5">
+        <p className="text-[9px] font-bold uppercase tracking-[.8px] text-[#aaa]" style={{ animation: 'fadeSlideUp 400ms ease-out 150ms both' }}>Métriques</p>
+        <div className="grid grid-cols-6 gap-2.5" style={{ animation: 'fadeSlideUp 400ms ease-out 170ms both' }}>
           {[
             { label: 'Total leads',     value: String(kpis.total),        trend: `sur ${periodDays}j`,  bg: DARK,      text: '#fff', muted: '#666', trendC: '#E2FF8D' },
             { label: 'Pipeline',        value: fmt(kpis.pipelineValue),   trend: 'deals ouverts',    bg: '#ffffff', text: '#111', muted: '#888', trendC: '#111111' },
-            { label: 'Conversion',      value: `${kpis.conversionRate}%`, trend: `${kpis.wonCount} won`, bg: DARK, text: '#fff', muted: '#666', trendC: '#E2FF8D' },
+            { label: 'Conversion',      value: `${kpis.conversionRate}%`, trend: `${kpis.wonCount} gagné${kpis.wonCount > 1 ? 's' : ''}`, bg: DARK, text: '#fff', muted: '#666', trendC: '#E2FF8D' },
             { label: 'Durée moy.',      value: `${kpis.avgDays}j`,        trend: 'leads gagnés',     bg: '#ffffff', text: '#111', muted: '#888', trendC: '#888'    },
-            { label: 'Leads actifs',    value: String(kpis.activeCount),  trend: 'status open',      bg: DARK,      text: '#fff', muted: '#666', trendC: '#E2FF8D' },
+            { label: 'Leads actifs',    value: String(kpis.activeCount),  trend: 'statut ouvert',    bg: DARK,      text: '#fff', muted: '#666', trendC: '#E2FF8D' },
             { label: 'Valeur moy.',     value: fmt(kpis.avgValue),        trend: 'par lead',         bg: '#ffffff', text: '#111', muted: '#888', trendC: '#111111' },
           ].map(kpi => (
             <div key={kpi.label} className={`${CARD} p-3.5 flex flex-col gap-2`} style={{ background: kpi.bg, ...SHADOW }}>
@@ -382,8 +382,8 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
         </div>
 
         {/* ── Section 3 : Activité ── */}
-        <p className="text-[9px] font-bold uppercase tracking-[.8px] text-[#aaa]">Activité</p>
-        <div className="flex gap-2.5">
+        <p className="text-[9px] font-bold uppercase tracking-[.8px] text-[#aaa]" style={{ animation: 'fadeSlideUp 400ms ease-out 240ms both' }}>Activité</p>
+        <div className="flex gap-2.5" style={{ animation: 'fadeSlideUp 400ms ease-out 260ms both' }}>
 
           {/* Leads par jour — fond dark */}
           <div className={`flex-1 ${CARD} p-[18px]`} style={{ background: DARK, ...SHADOW }}>
@@ -413,7 +413,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
           <div className={`flex-1 ${CARD} p-[18px]`} style={{ background: '#fff', ...SHADOW }}>
             <p className="text-[12px] font-bold text-[#111] mb-3.5">Entonnoir de vente</p>
             {funnelData.length === 0 ? (
-              <p className="text-[11px] text-[#9CA3AF] text-center py-6">Aucun stage</p>
+              <p className="text-[11px] text-soren-subtle text-center py-6">Aucun stage</p>
             ) : (
               <div className="flex flex-col">
                 {funnelData.map(stage => (
@@ -515,7 +515,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
 
         {/* ── Section 6 : Table — fond blanc ── */}
         <p className="text-[9px] font-bold uppercase tracking-[.8px] text-[#aaa]">Détail par étape</p>
-        <div className={`${CARD} bg-white p-3`} style={SHADOW}>
+        <div className={`${CARD} bg-soren-card p-3`} style={SHADOW}>
           <div className="flex items-center px-3 pb-2 mb-1">
             <span className="text-[8px] font-bold text-[#C0C0B8] uppercase tracking-wider flex-1">Étape</span>
             <span className="text-[8px] font-bold text-[#C0C0B8] uppercase tracking-wider w-28">Volume</span>
@@ -524,7 +524,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
             <span className="text-[8px] font-bold text-[#C0C0B8] uppercase tracking-wider w-12 text-right">%</span>
           </div>
           {funnelData.length === 0 ? (
-            <p className="text-[11px] text-[#9CA3AF] text-center py-6">Aucune donnée</p>
+            <p className="text-[11px] text-soren-subtle text-center py-6">Aucune donnée</p>
           ) : (
             funnelData.map((stage, i) => (
               <div key={stage.id}

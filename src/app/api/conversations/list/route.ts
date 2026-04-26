@@ -28,11 +28,19 @@ export async function GET() {
   if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const [ghlConvs, ghlOpps, ghlPipelines] = await Promise.all([
+    const [convRes, oppRes, pipeRes] = await Promise.allSettled([
       getConversations(100),
       getOpportunities(100),
       getPipelines(),
     ])
+
+    if (convRes.status === 'rejected') {
+      console.error('[Conversations API] getConversations failed:', convRes.reason)
+    }
+
+    const ghlConvs     = convRes.status  === 'fulfilled' ? convRes.value  : []
+    const ghlOpps      = oppRes.status   === 'fulfilled' ? oppRes.value   : []
+    const ghlPipelines = pipeRes.status  === 'fulfilled' ? pipeRes.value  : []
 
     const pipelines = ghlPipelines.map(p => ({
       id: p.id, name: p.name,
@@ -54,8 +62,15 @@ export async function GET() {
       email: 'Email', phone: 'Appel', sms: 'SMS', whatsapp: 'WhatsApp', meeting: 'Réunion', note: 'Note',
     }
 
-    const conversations = ghlConvs.map(c => {
-      const channel = mapGHLType(c.type)
+    // Garder les échanges réels + conversations sans message encore (type null = nouvelle conv)
+    const REAL_MESSAGE_TYPES = new Set(['TYPE_WHATSAPP', 'TYPE_SMS', 'TYPE_EMAIL'])
+    const realConvs = ghlConvs.filter(c =>
+      REAL_MESSAGE_TYPES.has(c.lastMessageType ?? '') || !c.lastMessageType
+    )
+
+    const conversations = realConvs.map(c => {
+      // Préférer le type du dernier message (plus fiable que c.type)
+      const channel = mapGHLType(c.lastMessageType ?? c.type)
       const contactName = c.fullName ?? c.contactName ?? c.email ?? 'Contact inconnu'
       const opp = contactOppMap[c.contactId]
       return {
@@ -68,7 +83,8 @@ export async function GET() {
         contact_name: contactName,
         contact_company: c.companyName ?? undefined,
         contact_phone: c.phone ?? null,
-        last_message: undefined,
+        contact_email: c.email ?? null,
+        last_message: c.lastMessageBody ?? undefined,
         last_message_at: tsToISO(c.lastMessageDate),
         unread: c.unreadCount ?? 0,
         assigned_to: c.assignedTo ?? null,

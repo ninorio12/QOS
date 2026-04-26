@@ -4,7 +4,7 @@ import { type GHLContact, type GHLOpportunity, type GHLPipeline } from '@/lib/gh
 import ContactDetailPage from '@/components/contacts/ContactDetailPage'
 import { type ContactAttribution } from '@/components/contacts/types'
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 const GHL_HEADERS = () => ({
   Authorization:  `Bearer ${process.env.GHL_API_KEY!}`,

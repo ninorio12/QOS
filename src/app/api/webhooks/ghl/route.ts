@@ -3,8 +3,10 @@ import { revalidateTag } from 'next/cache'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { getCalendarClient, isGoogleConfigured } from '@/lib/google'
-import { sendGHLMessage } from '@/lib/ghl'
+import { sendGHLMessage, findOrCreateGHLConversation } from '@/lib/ghl'
 import { SYSTEM_PROMPT_DEFAULT } from '@/lib/agent-config'
+import { log } from '@/lib/logger'
+import crypto from 'crypto'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -19,6 +21,23 @@ type GHLInboundMessage = {
   direction?:     string
   dateAdded?:     string
   attachments?:   unknown[]
+}
+
+type GHLOpportunityEvent = {
+  type:            string
+  locationId?:     string
+  id?:             string
+  pipelineId?:     string
+  pipelineStageId?: string
+  contactId?:      string
+  contact?: {
+    id?:        string
+    name?:      string
+    firstName?: string
+    lastName?:  string
+    phone?:     string
+    email?:     string
+  }
 }
 
 function verifySecret(req: NextRequest): boolean {
@@ -37,15 +56,69 @@ function toGHLChannel(messageType?: string): 'WhatsApp' | 'SMS' | 'Email' {
 }
 
 export async function POST(req: NextRequest) {
+  const trace_id = crypto.randomBytes(6).toString('hex')
+
   try {
-    const body = await req.json() as GHLInboundMessage & { appointmentId?: string; id?: string }
+    const body = await req.json() as GHLInboundMessage & GHLOpportunityEvent & { appointmentId?: string; id?: string }
 
     if (!verifySecret(req)) {
-      console.warn('[ghl-webhook] Invalid secret')
+      log.warn('ghl_webhook_unauthorized', 'Invalid secret', { trace_id })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const eventType = body.type ?? ''
+
+    // ── OpportunityCreate : nouveau contact dans la pipeline commerciale ──
+    if (eventType === 'OpportunityCreate') {
+      const commercialPipelineId = process.env.GHL_ACQUISITION_PIPELINE_ID ?? ''
+
+      if (!commercialPipelineId || body.pipelineId !== commercialPipelineId) {
+        log.ok('ghl_opportunity_ignored', { trace_id, detail: `pipeline=${body.pipelineId}` })
+        return NextResponse.json({ ok: true })
+      }
+
+      const contactId = body.contactId ?? body.contact?.id
+      if (!contactId) {
+        log.warn('ghl_opportunity_no_contact', 'OpportunityCreate sans contactId', { trace_id })
+        return NextResponse.json({ ok: true })
+      }
+
+      const firstName = body.contact?.firstName ?? body.contact?.name?.split(' ')[0] ?? ''
+      const greeting  = firstName ? `Bonjour ${firstName} ! ` : 'Bonjour ! '
+
+      const initialMsg =
+        greeting +
+        `Je suis Kai, l'assistant IA de l'équipe. 😊 Votre projet nous a bien été transmis — ` +
+        `j'ai quelques questions rapides pour que nos experts puissent vous préparer la meilleure réponse possible.\n\n` +
+        `Quel type de travaux envisagez-vous ? (rénovation, gros œuvre, façade, plomberie…)`
+
+      try {
+        const conversationId = await findOrCreateGHLConversation(contactId)
+        await sendGHLMessage(conversationId, initialMsg, 'WhatsApp', undefined, contactId)
+        log.ok('ghl_kai_initial_sent', { trace_id, contact_id: contactId, detail: `conv=${conversationId}` })
+
+        const supabase = await createClient()
+        const { data: conv } = await supabase
+          .from('conversations')
+          .select('id')
+          .eq('contact_id', contactId)
+          .maybeSingle()
+
+        if (conv?.id) {
+          await supabase.from('messages').insert({
+            conversation_id: conv.id,
+            role:            'assistant',
+            content:         initialMsg,
+            metadata:        { auto: true, trigger: 'opportunity_create', trace_id },
+          })
+        }
+      } catch (err) {
+        log.error('ghl_kai_initial_failed', String(err), { trace_id, contact_id: contactId })
+      }
+
+      revalidateTag('ghl-conversations')
+      return NextResponse.json({ ok: true })
+    }
 
     // ── InboundMessage : message reçu d'un contact ────────────────────────
     if (eventType === 'InboundMessage') {
@@ -54,6 +127,8 @@ export async function POST(req: NextRequest) {
       if (!conversationId || !msgBody?.trim()) {
         return NextResponse.json({ ok: true })
       }
+
+      log.ok('ghl_inbound_message', { trace_id, contact_id: contactId, stage: 'qualification', detail: `conv=${conversationId} type=${messageType}` })
 
       const supabase = await createClient()
 
@@ -130,10 +205,33 @@ export async function POST(req: NextRequest) {
       const channel = toGHLChannel(messageType)
       try {
         await sendGHLMessage(conversationId, aiText, channel, undefined, contactId)
-        console.log(`[ghl-webhook] AI response sent via ${channel} for conversation ${conversationId}`)
+        log.ok('ghl_ai_reply_sent', { trace_id, contact_id: contactId, stage: 'qualification', detail: `channel=${channel}` })
       } catch (sendErr) {
-        console.error('[ghl-webhook] Envoi GHL échoué:', sendErr)
+        log.error('ghl_ai_reply_failed', String(sendErr), { trace_id, contact_id: contactId })
         // On continue — le message est déjà sauvegardé dans Supabase
+      }
+
+      // 8. Détecter le résumé projet et mettre à jour la fiche contact GHL
+      const resumeMatch = aiText.match(/\[RÉSUMÉ_PROJET\]([\s\S]*?)\[\/RÉSUMÉ_PROJET\]/)
+      if (resumeMatch && contactId) {
+        const resumeText = resumeMatch[1].trim()
+        try {
+          const baseUrl = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'
+          const apiKey  = process.env.GHL_API_KEY!
+          await fetch(`${baseUrl}/contacts/${contactId}`, {
+            method: 'PUT',
+            headers: {
+              Authorization:  `Bearer ${apiKey}`,
+              Version:        '2021-07-28',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ additionalNotes: resumeText }),
+            cache: 'no-store',
+          })
+          log.ok('ghl_contact_resume_updated', { trace_id, contact_id: contactId, stage: 'qualification' })
+        } catch (updateErr) {
+          log.error('ghl_contact_resume_failed', String(updateErr), { trace_id, contact_id: contactId })
+        }
       }
 
       revalidateTag('ghl-conversations')
@@ -152,9 +250,9 @@ export async function POST(req: NextRequest) {
         .eq('ghl_appointment_id', appointmentId)
         .maybeSingle()
 
-      if (link?.google_event_id && isGoogleConfigured()) {
+      if (link?.google_event_id && await isGoogleConfigured()) {
         try {
-          const cal   = getCalendarClient()
+          const cal   = await getCalendarClient()
           const calId = process.env.GOOGLE_CALENDAR_ID || 'primary'
           await cal.events.delete({ calendarId: calId, eventId: link.google_event_id })
           console.log(`[ghl-webhook] Deleted Google event ${link.google_event_id}`)
@@ -182,7 +280,7 @@ export async function POST(req: NextRequest) {
     revalidateTag('ghl-conversations')
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('[ghl-webhook] Error:', err)
+    log.error('ghl_webhook_error', String(err), { trace_id })
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }

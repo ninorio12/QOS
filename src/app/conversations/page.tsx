@@ -1,34 +1,45 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import useSWR from 'swr'
+import { useSearchParams } from 'next/navigation'
 import ConversationsView from '@/components/conversations/ConversationsView'
 import ConversationsLoading from './loading'
 import type { Conversation, Pipeline } from '@/components/conversations/types'
 
 type ConvData = { conversations: Conversation[]; pipelines: Pipeline[] }
 
+const fetcher = (url: string) =>
+  fetch(url)
+    .then(r => r.json())
+    .then((d: ConvData) => ({
+      conversations: d.conversations ?? [],
+      pipelines:     d.pipelines     ?? [],
+    }))
+
 export default function ConversationsPage() {
-  const [data, setData] = useState<ConvData | null>(null)
-  const [error, setError] = useState(false)
+  const searchParams = useSearchParams()
+  const contactParam = searchParams.get('contact') ?? undefined
 
-  useEffect(() => {
-    fetch('/api/conversations/list')
-      .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json() })
-      .then((d: ConvData) => setData(d))
-      .catch(() => setError(true))
-  }, [])
+  const { data, isLoading } = useSWR<ConvData>('/api/conversations/list', fetcher, {
+    revalidateOnFocus:  false,
+    dedupingInterval:   20_000,
+    revalidateIfStale:  true,
+    keepPreviousData:   true,
+    onErrorRetry: (error, _key, _config, revalidate, { retryCount }) => {
+      if (retryCount >= 2) return
+      setTimeout(() => revalidate({ retryCount }), 5000)
+    },
+  })
 
-  if (error) return (
-    <div className="h-full flex items-center justify-center text-sm text-[#6B7280] page-fade-in">
-      Impossible de charger les conversations. Actualise la page.
-    </div>
-  )
-
-  if (!data) return <ConversationsLoading />
+  if (isLoading && !data) return <ConversationsLoading />
 
   return (
     <div className="h-full page-fade-in">
-      <ConversationsView dbConversations={data.conversations} pipelines={data.pipelines} />
+      <ConversationsView
+        dbConversations={data?.conversations ?? []}
+        pipelines={data?.pipelines ?? []}
+        initialContactId={contactParam}
+      />
     </div>
   )
 }

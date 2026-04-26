@@ -1,14 +1,15 @@
 'use client'
 
 import { useState, useMemo, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { X, ChevronDown, Search, Check, Plus } from 'lucide-react'
 import { type GHLContact } from '@/lib/ghl'
 import { type GHLPipelineData, type Opportunity } from '@/components/pipeline/types'
 import { type ContactPipelineInfo } from '@/app/contacts/page'
 import { fetchJSON } from '@/lib/fetchJSON'
 
-const inputCls = 'w-full bg-[#F5F5F0] border-0 rounded-xl px-3 py-2.5 text-sm text-[#111111] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all'
-const labelCls = 'block text-xs font-medium text-[#6B7280] mb-1.5'
+const inputCls = 'w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all'
+const labelCls = 'block text-xs font-medium text-soren-muted mb-1.5'
 
 // ─── Pays ──────────────────────────────────────────────────────
 const COUNTRIES = [
@@ -129,21 +130,21 @@ function CustomSelect({
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full bg-[#F5F5F0] rounded-xl px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all flex items-center justify-between gap-2"
+        className="w-full bg-soren-elevated rounded-xl px-3 py-2.5 text-sm text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all flex items-center justify-between gap-2"
       >
-        <span className={selected ? 'text-[#111111]' : 'text-[#9CA3AF]'}>
+        <span className={selected ? 'text-soren-text' : 'text-soren-subtle'}>
           {selected?.label ?? 'Choisir…'}
         </span>
-        <ChevronDown size={13} className={`text-[#9CA3AF] transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown size={13} className={`text-soren-subtle transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-white border border-[#E5E7EB] rounded-2xl shadow-xl overflow-hidden">
+        <div className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-soren-card border border-soren-border rounded-2xl shadow-xl overflow-hidden">
           {options.map(o => (
             <button
               key={o.value}
               type="button"
               onClick={() => { onChange(o.value); setOpen(false) }}
-              className="w-full text-left flex items-center justify-between px-4 py-2.5 text-sm text-[#374151] hover:bg-[#F5F5F0] transition-colors"
+              className="w-full text-left flex items-center justify-between px-4 py-2.5 text-sm text-[#374151] hover:bg-soren-elevated transition-colors"
             >
               {o.label}
               {o.value === value && <Check size={13} className="text-[#3462EE]" />}
@@ -157,7 +158,7 @@ function CustomSelect({
 
 // ─── Section header ───────────────────────────────────────────
 function Section({ title }: { title: string }) {
-  return <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF]">{title}</p>
+  return <p className="text-[10px] font-bold uppercase tracking-widest text-soren-subtle">{title}</p>
 }
 
 // ─── Props ────────────────────────────────────────────────────
@@ -400,23 +401,23 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
     reception:    { bg: '#9CA3AF' },
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white w-full sm:rounded-2xl sm:max-w-xl shadow-2xl max-h-[92vh] flex flex-col">
+      <div className="relative bg-soren-card w-full sm:rounded-2xl sm:max-w-xl shadow-2xl max-h-[92vh] flex flex-col">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB] flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-soren-border flex-shrink-0">
           <div>
-            <h2 className="text-base font-bold text-[#111111]">
+            <h2 className="text-base font-bold text-soren-text">
               {isEdit ? 'Modifier le contact' : 'Nouveau lead'}
             </h2>
-            <p className="text-xs text-[#9CA3AF] mt-0.5">
+            <p className="text-xs text-soren-subtle mt-0.5">
               {isEdit ? 'Les modifications sont synchronisées avec le CRM.' : 'Contact + opportunité synchronisés automatiquement'}
             </p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#F5F5F0] flex items-center justify-center hover:bg-[#E5E7EB] transition-colors">
-            <X size={14} className="text-[#6B7280]" />
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-soren-elevated flex items-center justify-center hover:bg-[#E5E7EB] transition-colors">
+            <X size={14} className="text-soren-muted" />
           </button>
         </div>
 
@@ -454,27 +455,27 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               <div className="flex gap-2">
                 <div className="relative flex-shrink-0">
                   <button type="button" onClick={() => setShowCountry(s => !s)}
-                    className="flex items-center gap-1.5 bg-[#F5F5F0] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 whitespace-nowrap">
+                    className="flex items-center gap-1.5 bg-soren-elevated rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 whitespace-nowrap">
                     <span>{selectedCountry.flag}</span>
-                    <span className="font-medium text-[#111111]">{selectedCountry.dial}</span>
-                    <ChevronDown size={12} className={`text-[#9CA3AF] transition-transform ${showCountry ? 'rotate-180' : ''}`} />
+                    <span className="font-medium text-soren-text">{selectedCountry.dial}</span>
+                    <ChevronDown size={12} className={`text-soren-subtle transition-transform ${showCountry ? 'rotate-180' : ''}`} />
                   </button>
                   {showCountry && (
-                    <div className="absolute top-full mt-1.5 left-0 z-50 bg-white border border-[#E5E7EB] rounded-2xl shadow-xl w-64 flex flex-col" style={{ maxHeight: 240 }}>
-                      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[#F0F0EC]">
-                        <Search size={11} className="text-[#9CA3AF] flex-shrink-0" />
+                    <div className="absolute top-full mt-1.5 left-0 z-50 bg-soren-card border border-soren-border rounded-2xl shadow-xl w-64 flex flex-col" style={{ maxHeight: 240 }}>
+                      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-soren-border">
+                        <Search size={11} className="text-soren-subtle flex-shrink-0" />
                         <input autoFocus value={countrySearch} onChange={e => setCountrySearch(e.target.value)}
                           placeholder="Rechercher un pays…"
-                          className="flex-1 text-xs text-[#111111] placeholder-[#9CA3AF] outline-none bg-transparent" />
+                          className="flex-1 text-xs text-soren-text placeholder-[#9CA3AF] outline-none bg-transparent" />
                       </div>
                       <div className="overflow-y-auto flex-1">
                         {filteredCountries.map(c => (
                           <button key={c.code} type="button"
                             onClick={() => { setCountryCode(c.code); setShowCountry(false); setCountrySearch('') }}
-                            className={`w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-[#F5F5F0] ${c.code === countryCode ? 'bg-[#F0F0EC]' : ''}`}>
+                            className={`w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-soren-elevated ${c.code === countryCode ? 'bg-[#F0F0EC]' : ''}`}>
                             <span>{c.flag}</span>
-                            <span className="flex-1 text-[#111111] text-xs">{c.name}</span>
-                            <span className="text-[#9CA3AF] text-xs flex-shrink-0">{c.dial}</span>
+                            <span className="flex-1 text-soren-text text-xs">{c.name}</span>
+                            <span className="text-soren-subtle text-xs flex-shrink-0">{c.dial}</span>
                             {c.code === countryCode && <Check size={11} className="text-[#3462EE] flex-shrink-0" />}
                           </button>
                         ))}
@@ -489,7 +490,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           </div>
 
           {/* ── Adresse & Détails ── */}
-          <div className="flex flex-col gap-3 border-t border-[#F0F0EC] pt-5">
+          <div className="flex flex-col gap-3 border-t border-soren-border pt-5">
             <Section title="Adresse & Infos" />
 
             <div>
@@ -523,9 +524,9 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             {/* Tags */}
             <div>
               <label className={labelCls}>Balises</label>
-              <div className="bg-[#F5F5F0] rounded-xl px-3 py-2.5 flex flex-wrap gap-1.5 min-h-[42px] focus-within:ring-2 focus-within:ring-[#3462EE]/40 transition-all">
+              <div className="bg-soren-elevated rounded-xl px-3 py-2.5 flex flex-wrap gap-1.5 min-h-[42px] focus-within:ring-2 focus-within:ring-[#3462EE]/40 transition-all">
                 {tags.map(t => (
-                  <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white border border-[#E5E7EB] text-[#374151]">
+                  <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-soren-card border border-soren-border text-[#374151]">
                     {t}
                     <button type="button" onClick={() => removeTag(t)} className="hover:text-[#EF4444] transition-colors">
                       <X size={9} />
@@ -546,21 +547,21 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                   }}
                   onBlur={() => { if (tagInput.trim()) addTag(tagInput) }}
                   placeholder={tags.length === 0 ? 'Ajouter une balise…' : ''}
-                  className="flex-1 min-w-[120px] bg-transparent text-sm text-[#111111] placeholder-[#9CA3AF] outline-none"
+                  className="flex-1 min-w-[120px] bg-transparent text-sm text-soren-text placeholder-[#9CA3AF] outline-none"
                 />
               </div>
-              <p className="text-[10px] text-[#9CA3AF] mt-1">Appuyez sur Entrée ou virgule pour valider</p>
+              <p className="text-[10px] text-soren-subtle mt-1">Appuyez sur Entrée ou virgule pour valider</p>
             </div>
           </div>
 
           {/* ── Pipeline (edit only) ── */}
           {isEdit && (
-            <div className="border-t border-[#F0F0EC] pt-5 flex flex-col gap-3">
+            <div className="border-t border-soren-border pt-5 flex flex-col gap-3">
               <Section title="Pipeline" />
               {pipelines.length === 0 ? (
                 <div className="flex gap-2">
                   {['Acquisition', 'Réactivation'].map(n => (
-                    <div key={n} className="flex-1 h-14 bg-[#F5F5F0] rounded-xl animate-pulse" />
+                    <div key={n} className="flex-1 h-14 bg-soren-elevated rounded-xl animate-pulse" />
                   ))}
                 </div>
               ) : (
@@ -586,8 +587,8 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                           }}
                         >
                           <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
-                          <span className="text-[11px] font-bold text-[#111111] leading-tight text-center">{opt.label}</span>
-                          <span className="text-[10px] text-[#9CA3AF]">{opt.desc}</span>
+                          <span className="text-[11px] font-bold text-soren-text leading-tight text-center">{opt.label}</span>
+                          <span className="text-[10px] text-soren-subtle">{opt.desc}</span>
                           {isSelected && <Check size={11} style={{ color: opt.color }} />}
                         </button>
                       )
@@ -605,16 +606,16 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
 
           {/* ── Opportunité (create only) ── */}
           {!isEdit && (
-            <div className="border-t border-[#F0F0EC] pt-5 flex flex-col gap-4">
+            <div className="border-t border-soren-border pt-5 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <Section title="Opportunité" />
                 <button type="button" onClick={() => setWithOpp(v => !v)}
                   className="flex items-center gap-2 group">
-                  <span className={`text-[11px] font-semibold transition-colors ${withOpp ? 'text-[#111111]' : 'text-[#9CA3AF]'}`}>
+                  <span className={`text-[11px] font-semibold transition-colors ${withOpp ? 'text-soren-text' : 'text-soren-subtle'}`}>
                     {withOpp ? 'Activée' : 'Désactivée'}
                   </span>
-                  <div className={`relative w-10 h-5 rounded-full transition-all duration-300 ${withOpp ? 'bg-[#111111]' : 'bg-[#D1D5DB]'}`}>
-                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${withOpp ? 'left-5' : 'left-0.5'}`} />
+                  <div className={`relative w-10 h-5 rounded-full transition-all duration-300 ${withOpp ? 'bg-soren-sidebar' : 'bg-[#D1D5DB]'}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-soren-card shadow-sm transition-all duration-300 ${withOpp ? 'left-5' : 'left-0.5'}`} />
                   </div>
                 </button>
               </div>
@@ -626,7 +627,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                     {pipelines.length === 0 ? (
                       <div className="flex gap-2">
                         {['Acquisition', 'Réactivation', 'Réception'].map(n => (
-                          <div key={n} className="flex-1 h-10 bg-[#F5F5F0] rounded-xl animate-pulse" />
+                          <div key={n} className="flex-1 h-10 bg-soren-elevated rounded-xl animate-pulse" />
                         ))}
                       </div>
                     ) : (
@@ -647,14 +648,14 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                                 cursor:      isAuto ? 'not-allowed' : 'pointer',
                               }}>
                               <span className="w-2 h-2 rounded-full" style={{ background: isAuto ? '#9CA3AF' : style.bg }} />
-                              <span className="text-[11px] font-bold text-[#111111] leading-tight text-center">{p.name}</span>
+                              <span className="text-[11px] font-bold text-soren-text leading-tight text-center">{p.name}</span>
                               {isSelected && !isAuto && <Check size={11} style={{ color: style.bg }} />}
                             </button>
                           )
                         })}
                       </div>
                     )}
-                    <p className="text-[10px] text-[#9CA3AF] mt-1.5">Le lead sera placé automatiquement en 1ère étape.</p>
+                    <p className="text-[10px] text-soren-subtle mt-1.5">Le lead sera placé automatiquement en 1ère étape.</p>
                   </div>
 
                   <div>
@@ -673,11 +674,11 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
 
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-full border border-[#E5E7EB] text-sm text-[#6B7280] hover:border-[#D1D5DB] hover:text-[#111111] transition-colors">
+              className="flex-1 py-2.5 rounded-full border border-soren-border text-sm text-soren-muted hover:border-[#D1D5DB] hover:text-soren-text transition-colors">
               Annuler
             </button>
             <button type="submit" disabled={saving || !form.firstName.trim()}
-              className="flex-1 py-2.5 rounded-full bg-[#111111] hover:bg-[#2a2a2a] disabled:opacity-50 text-white text-sm font-semibold transition-colors">
+              className="flex-1 py-2.5 rounded-full bg-soren-sidebar hover:bg-[#2a2a2a] disabled:opacity-50 text-white text-sm font-semibold transition-colors">
               {saving
                 ? (isEdit ? 'Enregistrement…' : 'Création en cours…')
                 : (isEdit ? 'Enregistrer' : withOpp ? 'Créer le lead' : 'Créer le contact')}
@@ -685,6 +686,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

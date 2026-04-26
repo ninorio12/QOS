@@ -44,7 +44,7 @@ export function LiveTab({ agentId, events, status }: LiveTabProps) {
           {status.activeTools.map(tool => (
             <span
               key={tool}
-              className="px-2 py-0.5 rounded-full text-[11px] font-mono bg-white/5 text-gray-300 border border-white/10"
+              className="px-2 py-0.5 rounded-full text-[11px] font-mono bg-soren-card/5 text-gray-300 border border-white/10"
             >
               {tool}
             </span>

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Fraunces, Inter, Montserrat, Outfit, Plus_Jakarta_Sans } from 'next/font/google'
 import DataPrefetcher from '@/components/DataPrefetcher'
+import Providers from '@/components/Providers'
 import './globals.css'
 
 const fraunces = Fraunces({
@@ -45,10 +46,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${fraunces.variable} ${inter.variable} ${montserrat.variable} ${outfit.variable} ${jakarta.variable}`}>
+    <html lang="fr" suppressHydrationWarning className={`${fraunces.variable} ${inter.variable} ${montserrat.variable} ${outfit.variable} ${jakarta.variable}`}>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+      </head>
       <body>
-        <DataPrefetcher />
-        {children}
+        <Providers>
+          <DataPrefetcher />
+          {children}
+        </Providers>
       </body>
     </html>
   )

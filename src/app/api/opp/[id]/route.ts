@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { getAuthContext } from '@/lib/auth-context'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -24,5 +25,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const err = await res.text()
     return NextResponse.json({ error: err }, { status: res.status })
   }
+
+  // Invalide le cache pipeline pour que la vue Kanban reflète immédiatement
+  revalidateTag('ghl-opportunities')
+
   return NextResponse.json({ ok: true })
 }

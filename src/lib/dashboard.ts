@@ -78,20 +78,37 @@ export type DashboardData = {
   monthlyPipeline: MonthlyPoint[]
 }
 
+const EMPTY_DATA: DashboardData = {
+  metrics: { totalContacts: 0, pipelineValue: 0, activeDeals: 0, wonDeals: 0, totalDeals: 0 },
+  funnel: [], recentOpps: [], featuredContact: null, weeklyBreakdown: [], monthlyPipeline: [],
+}
+
 export async function getDashboardData(creds?: GHLCreds): Promise<DashboardData> {
   const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6); sevenDaysAgo.setHours(0, 0, 0, 0)
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(0, 0, 0, 0)
 
-  const [{ contacts, total }, rawOpportunities, pipelines, calendars] = await Promise.all([
+  const [contactsResult, oppsResult, pipelinesResult, calendarsResult] = await Promise.allSettled([
     getContactsLive(10, creds),
     getOpportunitiesLive(100, undefined, creds),
     getPipelinesLive(creds),
     getCalendars(),
   ])
 
-  const calendarEvents = (await Promise.all(
-    calendars.map(c => getCalendarEvents(c.id, sevenDaysAgo.getTime(), tomorrow.getTime()).catch(() => []))
-  )).flat()
+  const { contacts = [], total = 0 } = contactsResult.status === 'fulfilled' ? contactsResult.value : {}
+  const rawOpportunities = oppsResult.status === 'fulfilled' ? (oppsResult.value ?? []) : []
+  const pipelines        = pipelinesResult.status === 'fulfilled' ? (pipelinesResult.value ?? []) : []
+  const calendars        = calendarsResult.status === 'fulfilled' ? (calendarsResult.value ?? []) : []
+
+  if (contactsResult.status === 'rejected')  console.error('[Dashboard] getContactsLive failed',    contactsResult.reason)
+  if (oppsResult.status === 'rejected')      console.error('[Dashboard] getOpportunitiesLive failed', oppsResult.reason)
+  if (pipelinesResult.status === 'rejected') console.error('[Dashboard] getPipelinesLive failed',    pipelinesResult.reason)
+  if (calendarsResult.status === 'rejected') console.error('[Dashboard] getCalendars failed',        calendarsResult.reason)
+
+  const calendarEvents = calendars.length > 0
+    ? (await Promise.allSettled(
+        calendars.map(c => getCalendarEvents(c.id, sevenDaysAgo.getTime(), tomorrow.getTime()))
+      )).flatMap(r => r.status === 'fulfilled' ? r.value : [])
+    : []
 
   const opportunities = rawOpportunities
 

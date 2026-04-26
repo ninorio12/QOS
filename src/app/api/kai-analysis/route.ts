@@ -7,65 +7,55 @@ export const runtime = 'nodejs'
 
 const PROMPTS = {
   analysis: (contactName: string, company: string, stage: string, history: string) => `
-Tu es Kai, expert en qualification de leads BTP.
+Tu es Kai, assistant commercial. Analyse cette conversation en 3 lignes MAX.
 
-Analyse cette conversation avec ${contactName} (${company}) — statut actuel : ${stage || 'inconnu'}.
+Contact : ${contactName}${company ? ` (${company})` : ''} — étape : ${stage || 'inconnue'}
 
-HISTORIQUE :
+CONVERSATION :
 ${history}
 
-Réponds avec ce format EXACT (ne dévie pas) :
-SCORE:[nombre entre 0 et 100]
-[2-3 phrases de résumé du lead : projet, budget si mentionné, intérêt, maturité]
+Format STRICT — réponds exactement comme ceci, sans rien ajouter :
+SCORE:[0-100]
+Projet : [une phrase max]
+Budget : [montant ou "non mentionné"]
+Statut : [une phrase sur l'engagement et la maturité du lead]
 `.trim(),
 
   suggestion: (contactName: string, company: string, stage: string, history: string) => `
-Tu es Kai, commercial IA spécialisé BTP.
+Tu es Kai, commercial IA. Rédige UN message de relance court pour ${contactName}${company ? ` (${company})` : ''}, étape : ${stage || 'inconnue'}.
 
-Basé sur cette conversation avec ${contactName} (${company}) — statut : ${stage || 'inconnu'} :
-
-HISTORIQUE :
+CONVERSATION :
 ${history}
 
-Rédige UN message de suivi court (3-5 phrases max), naturel et professionnel, en français.
-Adapte le ton au statut du lead. Ne commence pas par "Bonjour" si la conversation est déjà engagée.
-Réponds UNIQUEMENT avec le message, sans explication.
+3 phrases MAX. Ton naturel et direct. Pas de "Bonjour" si déjà en cours. UNIQUEMENT le message.
 `.trim(),
 
   subject: (contactName: string, company: string, _stage: string, history: string) => `
-Tu es Kai, assistant commercial BTP.
+Résume en UNE phrase le projet de ${contactName}${company ? ` (${company})` : ''} : type de travaux, lieu si connu, budget si connu.
+Exemple : "Rénovation façade 450m² Lyon — budget ~15k€"
+UNIQUEMENT la phrase.
 
-Génère un sujet court (1-2 phrases max) résumant le contexte de cette conversation avec ${contactName} (${company}).
-Il doit mentionner : le type de projet, la zone géographique si connue, l'état d'avancement.
-Exemple : "Rénovation façade 450m² à Lyon — devis demandé, budget ~15k€."
-Réponds UNIQUEMENT avec le sujet, sans introduction.
-
-HISTORIQUE :
+CONVERSATION :
 ${history}
 `.trim(),
 
   priority: (contactName: string, company: string, stage: string, history: string) => `
-Tu es Kai, expert en qualification de leads BTP.
+Évalue la priorité de ${contactName}${company ? ` (${company})` : ''}, étape : ${stage || 'inconnue'}.
 
-Évalue la priorité de ce lead : ${contactName} (${company}) — statut : ${stage || 'inconnu'}.
-
-HISTORIQUE :
+CONVERSATION :
 ${history}
 
-Réponds UNIQUEMENT avec un de ces trois mots : haute / moyenne / faible
-Critères : urgence exprimée, budget mentionné, décision imminente = haute. Intérêt sans urgence = moyenne. Froid, peu engagé = faible.
+Réponds UNIQUEMENT avec : haute / moyenne / faible
 `.trim(),
 
   action: (contactName: string, company: string, stage: string, history: string) => `
-Tu es Kai, expert en stratégie commerciale BTP.
+Tu es Kai. Pour ${contactName}${company ? ` (${company})` : ''}, étape : ${stage || 'inconnue'} — quelle est la prochaine action ?
 
-Pour ${contactName} (${company}) — statut : ${stage || 'inconnu'} :
-
-HISTORIQUE :
+CONVERSATION :
 ${history}
 
-Propose UNE prochaine action concrète (1-2 phrases max). Exemple : "Envoyer un devis chiffré avant vendredi" ou "Appeler pour confirmer le RDV du 15".
-Réponds UNIQUEMENT avec l'action recommandée, sans introduction.
+1 phrase concrète et directe. Exemples : "Envoyer le devis avant vendredi." / "Appeler pour confirmer le RDV."
+UNIQUEMENT l'action, sans introduction.
 `.trim(),
 }
 
@@ -90,8 +80,8 @@ export async function POST(req: NextRequest) {
     }
 
     const stream = anthropic.messages.stream({
-      model: 'claude-opus-4-6',
-      max_tokens: 512,
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 200,
       messages: [{ role: 'user', content: promptFn(name, company, stage, history) }],
     })
 

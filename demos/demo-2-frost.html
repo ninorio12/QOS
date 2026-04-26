@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Soren — Tableau de bord · Frost</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,300&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F6F3;
+    --bg-warm: #F0F2EE;
+    --card-bg: rgba(255,255,255,0.88);
+    --card-shadow: 0 2px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+    --card-shadow-hover: 0 8px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+    --text-primary: #111111;
+    --text-secondary: #555B50;
+    --text-tertiary: #9BA595;
+    --lime: #E2FF8D;
+    --lime-dark: #8FB81A;
+    --blue: #3462EE;
+    --blue-light: rgba(52,98,238,0.08);
+    --blue-mid: rgba(52,98,238,0.15);
+    --sidebar-w: 240px;
+    --radius: 24px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    min-height: 100vh;
+    background: #fff;
+    border-right: 1px solid rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    padding: 28px 0;
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    z-index: 100;
+  }
+
+  .sidebar-logo {
+    padding: 0 24px 32px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-mark {
+    width: 34px; height: 34px;
+    background: var(--text-primary);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--lime);
+    flex-shrink: 0;
+  }
+
+  .logo-text {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 19px;
+    color: var(--text-primary);
+    letter-spacing: -0.4px;
+  }
+
+  .logo-badge {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    background: var(--lime);
+    color: #333;
+    padding: 1px 6px;
+    border-radius: 20px;
+    margin-left: 2px;
+    align-self: flex-start;
+    margin-top: 2px;
+  }
+
+  .nav-section {
+    padding: 0 12px;
+    flex: 1;
+  }
+
+  .nav-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    padding: 0 12px;
+    margin-bottom: 4px;
+    margin-top: 24px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    font-weight: 400;
+    position: relative;
+    text-decoration: none;
+    margin-bottom: 1px;
+  }
+
+  .nav-item:hover {
+    background: var(--bg);
+    color: var(--text-primary);
+  }
+
+  .nav-item.active {
+    background: var(--text-primary);
+    color: #fff;
+  }
+
+  .nav-icon {
+    width: 17px; height: 17px;
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
+
+  .nav-item.active .nav-icon { opacity: 1; }
+
+  .sidebar-footer {
+    padding: 20px 24px 0;
+    border-top: 1px solid rgba(0,0,0,0.06);
+    margin-top: 12px;
+  }
+
+  .user-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .user-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--text-primary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--lime);
+    flex-shrink: 0;
+  }
+
+  .user-info .name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .user-info .role {
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+
+  /* ── Main ── */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    min-height: 100vh;
+    overflow-y: auto;
+    padding: 36px 40px;
+    max-height: 100vh;
+  }
+
+  .main::-webkit-scrollbar { width: 6px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 6px; }
+
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+
+  .page-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 26px;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    margin-top: 3px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .btn {
+    padding: 9px 18px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+    border: none;
+  }
+
+  .btn-ghost {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.1);
+    color: var(--text-secondary);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+
+  .btn-ghost:hover {
+    border-color: rgba(0,0,0,0.2);
+    color: var(--text-primary);
+  }
+
+  .btn-primary {
+    background: var(--text-primary);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  }
+
+  /* ── HERO BENTO card ── */
+  .hero-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
+    padding: 32px 36px;
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+    align-items: center;
+    gap: 0;
+    transition: box-shadow 0.25s ease;
+    border: 1px solid rgba(255,255,255,0.8);
+  }
+
+  .hero-card:hover {
+    box-shadow: var(--card-shadow-hover);
+  }
+
+  .hero-divider {
+    width: 1px;
+    height: 60px;
+    background: rgba(0,0,0,0.07);
+    margin: 0 36px;
+  }
+
+  .hero-metric {}
+
+  .hero-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 8px;
+  }
+
+  .hero-value-xl {
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+    font-size: 48px;
+    color: var(--text-primary);
+    letter-spacing: -2px;
+    line-height: 1;
+  }
+
+  .hero-value-lg {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 36px;
+    color: var(--text-primary);
+    letter-spacing: -1.5px;
+    line-height: 1;
+  }
+
+  .hero-sub {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+  }
+
+  .hero-delta-pos {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #16A34A;
+    background: rgba(22,163,74,0.08);
+    padding: 3px 8px;
+    border-radius: 20px;
+    margin-top: 8px;
+  }
+
+  /* Blue conv ring */
+  .conv-ring-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .conv-ring-svg {
+    width: 64px; height: 64px;
+    transform: rotate(-90deg);
+    flex-shrink: 0;
+  }
+
+  .conv-ring-bg { fill: none; stroke: rgba(0,0,0,0.06); stroke-width: 5; }
+  .conv-ring-fg { fill: none; stroke: var(--blue); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 175.9; stroke-dashoffset: 175.9; transition: stroke-dashoffset 1.8s cubic-bezier(.4,0,.2,1); }
+
+  .conv-ring-text .pct {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 28px;
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: -1px;
+  }
+
+  /* ── Bento grid 2x2 ── */
+  .bento {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
+    padding: 24px 26px;
+    transition: all 0.25s ease;
+    border: 1px solid rgba(255,255,255,0.8);
+  }
+
+  .card:hover {
+    box-shadow: var(--card-shadow-hover);
+    transform: translateY(-2px);
+  }
+
+  .card-full {
+    grid-column: 1 / -1;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+
+  .see-all {
+    font-size: 12px;
+    color: var(--blue);
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  /* Opp list clean */
+  .opp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .opp-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .opp-item:last-child { border-bottom: none; }
+
+  .opp-item:hover .opp-name { color: var(--blue); }
+
+  .opp-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .opp-info { flex: 1; min-width: 0; }
+
+  .opp-name {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: color 0.15s;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .opp-company {
+    font-size: 11.5px;
+    color: var(--text-tertiary);
+    margin-top: 1px;
+  }
+
+  .opp-right { text-align: right; flex-shrink: 0; }
+
+  .opp-value {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .pill {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-top: 3px;
+    letter-spacing: 0.02em;
+  }
+
+  .pill-blue { background: var(--blue-light); color: var(--blue); }
+  .pill-lime { background: rgba(143,184,26,0.12); color: var(--lime-dark); }
+  .pill-green { background: rgba(22,163,74,0.1); color: #16A34A; }
+  .pill-purple { background: rgba(124,58,237,0.1); color: #7C3AED; }
+
+  /* Toast feed */
+  .toast-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .toast-chip {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: var(--bg);
+    border: 1px solid rgba(0,0,0,0.06);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .toast-chip:hover {
+    background: #fff;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+
+  .toast-indicator {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 3px;
+    flex-shrink: 0;
+    animation: toast-pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes toast-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .toast-body { flex: 1; }
+
+  .toast-agent {
+    font-size: 11.5px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .toast-action {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  .toast-time {
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--blue);
+    background: var(--blue-light);
+    padding: 3px 9px;
+    border-radius: 20px;
+  }
+
+  .live-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--blue);
+    animation: toast-pulse 1.5s ease-in-out infinite;
+  }
+
+  /* ── SVG chart shared styles ── */
+  .chart-svg {
+    width: 100%;
+    overflow: visible;
+  }
+
+  /* Bar chart tooltip */
+  .chart-tooltip {
+    position: absolute;
+    background: #111;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 8px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+    z-index: 10;
+  }
+
+  .chart-wrap {
+    position: relative;
+  }
+
+  /* Donut legend */
+  .donut-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .donut-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .donut-legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .donut-legend-label { flex: 1; }
+
+  .donut-legend-count {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-right: 4px;
+  }
+
+  .donut-legend-pct {
+    color: var(--text-tertiary);
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">S</div>
+    <div>
+      <span class="logo-text">Soren</span>
+      <span class="logo-badge">IA</span>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Principal</div>
+
+    <a class="nav-item active">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7">
+        <rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="11" y="1" width="6" height="6" rx="1.5"/>
+        <rect x="1" y="11" width="6" height="6" rx="1.5"/><rect x="11" y="11" width="6" height="6" rx="1.5"/>
+      </svg>
+      Tableau de bord
+    </a>
+    <a class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7">
+        <path d="M3 14V8l6-5 6 5v6a1 1 0 01-1 1h-3v-3H7v3H4a1 1 0 01-1-1z"/>
+      </svg>
+      Pipeline
+    </a>
+    <a class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7">
+        <circle cx="9" cy="6" r="3"/><path d="M2 16c0-3.314 3.134-6 7-6s7 2.686 7 6"/>
+      </svg>
+      Contacts
+    </a>
+    <a class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7">
+        <path d="M2 4h14a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V5a1 1 0 011-1z"/>
+        <path d="M1 5l8 5 8-5"/>
+      </svg>
+      Conversations
+    </a>
+    <a class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7">
+        <path d="M4 4h10a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/>
+        <path d="M6 8h6M6 11h4"/>
+      </svg>
+      Devis
+    </a>
+
+    <div class="nav-label">Automatisation</div>
+
+    <a class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7">
+        <path d="M3 9h3l2-5 3 9 2-4h2"/>
+      </svg>
+      Workflows
+    </a>
+    <a class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7">
+        <circle cx="9" cy="9" r="3"/>
+        <path d="M9 1v2M9 15v2M1 9h2M15 9h2M3.22 3.22l1.42 1.42M13.36 13.36l1.42 1.42M3.22 14.78l1.42-1.42M13.36 4.64l1.42-1.42"/>
+      </svg>
+      Agents
+    </a>
+    <a class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7">
+        <rect x="1" y="1" width="7" height="7" rx="1"/><rect x="10" y="1" width="7" height="7" rx="1"/>
+        <rect x="1" y="10" width="7" height="7" rx="1"/>
+        <path d="M14 10v7M10.5 13.5h7"/>
+      </svg>
+      Architecture
+    </a>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="user-avatar">TM</div>
+      <div class="user-info">
+        <div class="name">Thomas M.</div>
+        <div class="role">Administrateur</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="main">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Tableau de bord</h1>
+      <p class="page-subtitle">Semaine du 7 avril 2026 · Vue en temps réel</p>
+    </div>
+    <div class="header-actions">
+      <div class="live-badge"><span class="live-dot"></span> 3 agents actifs</div>
+      <button class="btn btn-ghost">Exporter</button>
+      <button class="btn btn-primary">+ Opportunité</button>
+    </div>
+  </div>
+
+  <!-- HERO card -->
+  <div class="hero-card">
+    <div class="hero-metric">
+      <div class="hero-label">Pipeline actif</div>
+      <div class="hero-value-xl" id="val-pipeline">€0k</div>
+      <div class="hero-sub">Valeur totale ouverte</div>
+      <div class="hero-delta-pos">↑ +18% vs mars</div>
+    </div>
+
+    <div class="hero-divider"></div>
+
+    <div class="hero-metric">
+      <div class="hero-label">Leads actifs</div>
+      <div class="hero-value-lg" id="val-leads">0</div>
+      <div class="hero-sub">+5 cette semaine</div>
+    </div>
+
+    <div class="hero-divider"></div>
+
+    <div class="hero-metric">
+      <div class="hero-label">Deals gagnés</div>
+      <div class="hero-value-lg" id="val-won">0</div>
+      <div class="hero-sub">Ce mois · 12 contrats</div>
+    </div>
+
+    <div class="hero-divider"></div>
+
+    <div class="hero-metric">
+      <div class="hero-label">Taux de conversion</div>
+      <div class="conv-ring-wrap">
+        <svg class="conv-ring-svg" viewBox="0 0 64 64">
+          <circle class="conv-ring-bg" cx="32" cy="32" r="28"/>
+          <circle class="conv-ring-fg" id="conv-ring" cx="32" cy="32" r="28"/>
+        </svg>
+        <div class="conv-ring-text">
+          <div class="pct" id="val-conv">0%</div>
+          <div style="font-size:11px; color:var(--text-tertiary); margin-top:2px;">sur 47 leads</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bento 2×2 -->
+  <div class="bento">
+
+    <!-- Card 1 — Bar chart "Leads par semaine" (top-left) -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Leads par semaine</span>
+        <span class="see-all">Voir tout →</span>
+      </div>
+      <div class="chart-wrap" id="bar-wrap">
+        <div class="chart-tooltip" id="bar-tooltip"></div>
+        <svg id="bar-svg" class="chart-svg" viewBox="0 0 320 160" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+    </div>
+
+    <!-- Card 2 — Donut "Répartition pipeline" (top-right) -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Répartition pipeline</span>
+        <span class="see-all">Détail →</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:24px;">
+        <div style="flex-shrink:0;">
+          <svg id="donut-svg" viewBox="0 0 140 140" width="140" height="140"></svg>
+        </div>
+        <div class="donut-legend" id="donut-legend"></div>
+      </div>
+    </div>
+
+    <!-- Card 3 — Line chart "Évolution pipeline" (bottom-left) -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Évolution du pipeline · 6 mois</span>
+      </div>
+      <div class="chart-wrap" id="line-wrap">
+        <div class="chart-tooltip" id="line-tooltip"></div>
+        <svg id="line-svg" class="chart-svg" viewBox="0 0 320 160" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+    </div>
+
+    <!-- Card 4 — Opportunités (bottom-right) -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Opportunités</span>
+        <span class="see-all">Tout voir →</span>
+      </div>
+      <div class="opp-list" id="opp-list"></div>
+    </div>
+
+    <!-- Card 5 — Agent activity feed (full-width) -->
+    <div class="card card-full">
+      <div class="card-header">
+        <span class="card-title">Activité IA</span>
+        <div class="live-badge"><span class="live-dot"></span>Live</div>
+      </div>
+      <div class="toast-feed" id="toast-feed" style="flex-direction:row; flex-wrap:wrap; gap:10px;"></div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────
+const stages = [
+  { name: 'Nouveau', count: 18, color: '#3462EE' },
+  { name: 'Contact', count: 14, color: '#8B7CF8' },
+  { name: 'Devis',   count: 8,  color: '#8FB81A' },
+  { name: 'Signé',   count: 7,  color: '#4ADE80' },
+];
+
+const weeklyData = [
+  { day: 'Lun', v: 8 },
+  { day: 'Mar', v: 12 },
+  { day: 'Mer', v: 6 },
+  { day: 'Jeu', v: 14 },   // today — highlighted
+  { day: 'Ven', v: 10 },
+  { day: 'Sam', v: 4 },
+  { day: 'Dim', v: 2 },
+];
+const todayIndex = 3; // Jeu
+
+const pipelineMonths = [
+  { label: 'Nov', v: 180 },
+  { label: 'Déc', v: 210 },
+  { label: 'Jan', v: 195 },
+  { label: 'Fév', v: 260 },
+  { label: 'Mar', v: 310 },
+  { label: 'Avr', v: 342 },
+];
+
+const opps = [
+  { initials: 'AB', bg: '#EEF3FF', color: '#3462EE', name: 'Renovation Dupont', company: 'Batipro SAS', value: '42 000 €', pill: 'pill-lime', tag: 'Devis' },
+  { initials: 'CG', bg: '#F3F0FF', color: '#7C3AED', name: 'Chantier Garel', company: 'Maison & Toit', value: '28 500 €', pill: 'pill-purple', tag: 'Contact' },
+  { initials: 'MB', bg: '#F0FFF4', color: '#16A34A', name: 'Extension Bernard', company: 'Bernard & Fils', value: '67 000 €', pill: 'pill-green', tag: 'Signé' },
+  { initials: 'LM', bg: '#EEF3FF', color: '#3462EE', name: 'Surélévation Martin', company: 'Groupe Martel', value: '91 000 €', pill: 'pill-blue', tag: 'Nouveau' },
+  { initials: 'PC', bg: '#F3F0FF', color: '#7C3AED', name: 'Rénovation Côté', company: 'Artisan Côté', value: '19 200 €', pill: 'pill-purple', tag: 'Contact' },
+];
+
+const agents = [
+  { name: 'Kai',   color: '#3462EE', indColor: '#3462EE', action: 'Analyse du devis Dupont — extraction des lots', time: '2m' },
+  { name: 'Soren', color: '#7C3AED', indColor: '#7C3AED', action: 'Email de relance envoyé à Maison & Toit · J+3', time: '5m' },
+  { name: 'Mia',   color: '#16A34A', indColor: '#16A34A', action: 'Nouveau lead qualifié depuis le site · Pipeline', time: '11m' },
+];
+
+// ── SVG helpers ────────────────────────────────────────────────────────
+function svgEl(tag, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+// ── Card 1 — Bar chart ─────────────────────────────────────────────────
+(function buildBarChart() {
+  const svg = document.getElementById('bar-svg');
+  const tooltip = document.getElementById('bar-tooltip');
+  const wrap = document.getElementById('bar-wrap');
+
+  const W = 320, H = 160;
+  const padL = 8, padR = 8, padT = 20, padB = 28;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const maxV = Math.max(...weeklyData.map(d => d.v));
+  const n = weeklyData.length;
+  const barW = chartW / n * 0.55;
+  const barGap = chartW / n;
+
+  // Grid lines at 25%, 50%, 75%
+  [0.25, 0.5, 0.75].forEach(frac => {
+    const y = padT + chartH * (1 - frac);
+    const line = svgEl('line', {
+      x1: padL, y1: y, x2: W - padR, y2: y,
+      stroke: '#E5E7E3', 'stroke-width': '1',
+      'stroke-dasharray': '4 4'
+    });
+    svg.appendChild(line);
+  });
+
+  // Bars
+  weeklyData.forEach((d, i) => {
+    const x = padL + barGap * i + (barGap - barW) / 2;
+    const fullH = (d.v / maxV) * chartH;
+    const y = padT + chartH; // start at bottom, animate up
+    const isToday = i === todayIndex;
+    const fill = isToday ? '#E2FF8D' : '#3462EE';
+
+    const rect = svgEl('rect', {
+      x, y,
+      width: barW,
+      height: 0,
+      rx: 4,
+      fill,
+      'data-full-h': fullH,
+      'data-y': padT + chartH - fullH,
+      style: 'transition: y 0.7s cubic-bezier(.4,0,.2,1), height 0.7s cubic-bezier(.4,0,.2,1); cursor:pointer;'
+    });
+
+    if (isToday) {
+      rect.setAttribute('filter', 'url(#lime-glow)');
+    }
+
+    // Hover effect
+    rect.addEventListener('mouseenter', e => {
+      rect.setAttribute('opacity', '0.85');
+      tooltip.textContent = `${d.v} leads`;
+      tooltip.style.opacity = '1';
+      positionTooltip(e);
+    });
+    rect.addEventListener('mousemove', positionTooltip);
+    rect.addEventListener('mouseleave', () => {
+      rect.setAttribute('opacity', '1');
+      tooltip.style.opacity = '0';
+    });
+
+    function positionTooltip(e) {
+      const wrapRect = wrap.getBoundingClientRect();
+      tooltip.style.left = (e.clientX - wrapRect.left - tooltip.offsetWidth / 2) + 'px';
+      tooltip.style.top = (e.clientY - wrapRect.top - 34) + 'px';
+    }
+
+    svg.appendChild(rect);
+
+    // X-axis label
+    const lbl = svgEl('text', {
+      x: x + barW / 2,
+      y: H - 6,
+      'text-anchor': 'middle',
+      fill: isToday ? '#555B50' : '#9BA595',
+      'font-size': '10',
+      'font-family': 'Inter, sans-serif',
+      'font-weight': isToday ? '600' : '400'
+    });
+    lbl.textContent = d.day;
+    svg.appendChild(lbl);
+  });
+
+  // Glow filter for today's bar
+  const defs = svgEl('defs', {});
+  const filter = svgEl('filter', { id: 'lime-glow', x: '-30%', y: '-30%', width: '160%', height: '160%' });
+  const feGlow = svgEl('feDropShadow', { dx: '0', dy: '0', stdDeviation: '3', 'flood-color': '#E2FF8D', 'flood-opacity': '0.5' });
+  filter.appendChild(feGlow);
+  defs.appendChild(filter);
+  svg.insertBefore(defs, svg.firstChild);
+})();
+
+// ── Card 2 — Donut chart ───────────────────────────────────────────────
+(function buildDonut() {
+  const svg = document.getElementById('donut-svg');
+  const legendEl = document.getElementById('donut-legend');
+  const cx = 70, cy = 70, R = 52, r = 32;
+  const total = stages.reduce((a, s) => a + s.count, 0);
+
+  // Build path data using arcs
+  let startAngle = -Math.PI / 2;
+  const paths = [];
+
+  stages.forEach(s => {
+    const angle = (s.count / total) * 2 * Math.PI;
+    const endAngle = startAngle + angle;
+    const x1 = cx + R * Math.cos(startAngle);
+    const y1 = cy + R * Math.sin(startAngle);
+    const x2 = cx + R * Math.cos(endAngle);
+    const y2 = cy + R * Math.sin(endAngle);
+    const ix1 = cx + r * Math.cos(endAngle);
+    const iy1 = cy + r * Math.sin(endAngle);
+    const ix2 = cx + r * Math.cos(startAngle);
+    const iy2 = cy + r * Math.sin(startAngle);
+    const large = angle > Math.PI ? 1 : 0;
+
+    const d = [
+      `M ${x1} ${y1}`,
+      `A ${R} ${R} 0 ${large} 1 ${x2} ${y2}`,
+      `L ${ix1} ${iy1}`,
+      `A ${r} ${r} 0 ${large} 0 ${ix2} ${iy2}`,
+      'Z'
+    ].join(' ');
+
+    const path = svgEl('path', {
+      d,
+      fill: s.color,
+      stroke: '#fff',
+      'stroke-width': '2',
+      style: 'cursor:pointer; transition: opacity 0.2s;',
+      opacity: '0'
+    });
+    path.addEventListener('mouseenter', () => path.setAttribute('opacity', '0.82'));
+    path.addEventListener('mouseleave', () => path.setAttribute('opacity', '1'));
+    svg.appendChild(path);
+    paths.push({ path, angle });
+    startAngle = endAngle;
+  });
+
+  // Center text
+  const centerNum = svgEl('text', {
+    x: cx, y: cy + 2,
+    'text-anchor': 'middle',
+    'dominant-baseline': 'middle',
+    fill: '#111',
+    'font-size': '22',
+    'font-family': 'Fraunces, serif',
+    'font-weight': '700'
+  });
+  centerNum.textContent = total;
+  svg.appendChild(centerNum);
+
+  const centerLabel = svgEl('text', {
+    x: cx, y: cy + 18,
+    'text-anchor': 'middle',
+    fill: '#9BA595',
+    'font-size': '10',
+    'font-family': 'Inter, sans-serif'
+  });
+  centerLabel.textContent = 'leads';
+  svg.appendChild(centerLabel);
+
+  // Legend
+  stages.forEach(s => {
+    const pct = Math.round(s.count / total * 100);
+    const row = document.createElement('div');
+    row.className = 'donut-legend-row';
+    row.innerHTML = `
+      <span class="donut-legend-dot" style="background:${s.color}"></span>
+      <span class="donut-legend-label">${s.name}</span>
+      <span class="donut-legend-count">${s.count}</span>
+      <span class="donut-legend-pct">${pct}%</span>`;
+    legendEl.appendChild(row);
+  });
+
+  // Animate: fade in paths staggered
+  paths.forEach(({ path }, i) => {
+    setTimeout(() => {
+      path.setAttribute('opacity', '1');
+      path.style.transition = 'opacity 0.4s ease';
+    }, 200 + i * 120);
+  });
+})();
+
+// ── Card 3 — Line chart ────────────────────────────────────────────────
+(function buildLineChart() {
+  const svg = document.getElementById('line-svg');
+  const tooltip = document.getElementById('line-tooltip');
+  const wrap = document.getElementById('line-wrap');
+
+  const W = 320, H = 160;
+  const padL = 40, padR = 12, padT = 16, padB = 28;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+
+  const vals = pipelineMonths.map(d => d.v);
+  const minV = 160, maxV = 360;
+  const range = maxV - minV;
+  const n = pipelineMonths.length;
+
+  function xPos(i) { return padL + (i / (n - 1)) * chartW; }
+  function yPos(v) { return padT + chartH - ((v - minV) / range) * chartH; }
+
+  // Y-axis grid + labels
+  [180, 240, 300, 360].forEach(v => {
+    const y = yPos(v);
+    const line = svgEl('line', {
+      x1: padL, y1: y, x2: W - padR, y2: y,
+      stroke: '#E5E7E3', 'stroke-width': '1', 'stroke-dasharray': '4 4'
+    });
+    svg.appendChild(line);
+
+    const lbl = svgEl('text', {
+      x: padL - 6, y: y + 4,
+      'text-anchor': 'end',
+      fill: '#9BA595',
+      'font-size': '9',
+      'font-family': 'Inter, sans-serif'
+    });
+    lbl.textContent = `€${v}k`;
+    svg.appendChild(lbl);
+  });
+
+  // Build smooth bezier path points
+  const pts = pipelineMonths.map((d, i) => ({ x: xPos(i), y: yPos(d.v) }));
+
+  function cubicPath(pts) {
+    if (pts.length < 2) return '';
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i], p1 = pts[i + 1];
+      const cpx = (p0.x + p1.x) / 2;
+      d += ` C ${cpx} ${p0.y}, ${cpx} ${p1.y}, ${p1.x} ${p1.y}`;
+    }
+    return d;
+  }
+
+  const linePath = cubicPath(pts);
+
+  // Gradient fill definition
+  const defs = svgEl('defs', {});
+  const grad = svgEl('linearGradient', { id: 'line-grad', x1: '0', y1: '0', x2: '0', y2: '1' });
+  const stop1 = svgEl('stop', { offset: '0%', 'stop-color': 'rgba(52,98,238,0.15)' });
+  const stop2 = svgEl('stop', { offset: '100%', 'stop-color': 'rgba(52,98,238,0)' });
+  grad.appendChild(stop1);
+  grad.appendChild(stop2);
+  defs.appendChild(grad);
+  svg.appendChild(defs);
+
+  // Area fill (closed path)
+  const areaPath = linePath +
+    ` L ${pts[pts.length - 1].x} ${padT + chartH}` +
+    ` L ${pts[0].x} ${padT + chartH} Z`;
+  const area = svgEl('path', {
+    d: areaPath,
+    fill: 'url(#line-grad)',
+    stroke: 'none',
+    opacity: '0',
+    style: 'transition: opacity 0.6s ease 0.8s;'
+  });
+  svg.appendChild(area);
+
+  // Line stroke
+  const line = svgEl('path', {
+    d: linePath,
+    fill: 'none',
+    stroke: '#3462EE',
+    'stroke-width': '2.5',
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round'
+  });
+
+  // Measure total length for animation
+  svg.appendChild(line);
+  const totalLength = line.getTotalLength ? line.getTotalLength() : 500;
+  line.setAttribute('stroke-dasharray', totalLength);
+  line.setAttribute('stroke-dashoffset', totalLength);
+  line.style.transition = 'stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1) 0.3s';
+
+  // X-axis labels
+  pipelineMonths.forEach((d, i) => {
+    const lbl = svgEl('text', {
+      x: xPos(i),
+      y: H - 6,
+      'text-anchor': 'middle',
+      fill: '#9BA595',
+      'font-size': '10',
+      'font-family': 'Inter, sans-serif'
+    });
+    lbl.textContent = d.label;
+    svg.appendChild(lbl);
+  });
+
+  // Data dots + hover
+  pts.forEach((p, i) => {
+    const g = svgEl('g', { style: 'cursor:pointer;' });
+
+    const hitArea = svgEl('circle', { cx: p.x, cy: p.y, r: 14, fill: 'transparent' });
+    const dot = svgEl('circle', {
+      cx: p.x, cy: p.y, r: 4,
+      fill: '#fff', stroke: '#3462EE', 'stroke-width': '2',
+      opacity: '0',
+      style: 'transition: opacity 0.3s, r 0.2s;'
+    });
+
+    g.appendChild(hitArea);
+    g.appendChild(dot);
+
+    g.addEventListener('mouseenter', e => {
+      dot.setAttribute('r', '6');
+      tooltip.textContent = `€${pipelineMonths[i].v}k`;
+      tooltip.style.opacity = '1';
+      positionTooltip(e);
+    });
+    g.addEventListener('mousemove', positionTooltip);
+    g.addEventListener('mouseleave', () => {
+      dot.setAttribute('r', '4');
+      tooltip.style.opacity = '0';
+    });
+
+    function positionTooltip(e) {
+      const wrapRect = wrap.getBoundingClientRect();
+      tooltip.style.left = (e.clientX - wrapRect.left - tooltip.offsetWidth / 2) + 'px';
+      tooltip.style.top = (e.clientY - wrapRect.top - 34) + 'px';
+    }
+
+    svg.appendChild(g);
+
+    // Animate dots in after line draws
+    setTimeout(() => {
+      dot.setAttribute('opacity', '1');
+    }, 1700 + i * 60);
+  });
+
+  // Store refs for animation trigger
+  svg._line = line;
+  svg._area = area;
+  svg._totalLength = totalLength;
+})();
+
+// ── Opportunités ───────────────────────────────────────────────────────
+const oppList = document.getElementById('opp-list');
+opps.forEach(o => {
+  const el = document.createElement('div');
+  el.className = 'opp-item';
+  el.innerHTML = `
+    <div class="opp-avatar" style="background:${o.bg};color:${o.color}">${o.initials}</div>
+    <div class="opp-info">
+      <div class="opp-name">${o.name}</div>
+      <div class="opp-company">${o.company}</div>
+    </div>
+    <div class="opp-right">
+      <div class="opp-value">${o.value}</div>
+      <div class="pill ${o.pill}">${o.tag}</div>
+    </div>`;
+  oppList.appendChild(el);
+});
+
+// ── Agent feed ─────────────────────────────────────────────────────────
+const toastFeed = document.getElementById('toast-feed');
+agents.forEach(a => {
+  const el = document.createElement('div');
+  el.className = 'toast-chip';
+  el.style.flex = '1';
+  el.style.minWidth = '220px';
+  el.innerHTML = `
+    <div class="toast-indicator" style="background:${a.indColor}"></div>
+    <div class="toast-body">
+      <div class="toast-agent" style="color:${a.color}">${a.name}</div>
+      <div class="toast-action">${a.action}</div>
+    </div>
+    <div class="toast-time">il y a ${a.time}</div>`;
+  toastFeed.appendChild(el);
+});
+
+// ── Count-up animation ─────────────────────────────────────────────────
+function countUp(el, end, duration, fmt) {
+  const s = performance.now();
+  const run = t => {
+    const p = Math.min((t - s) / duration, 1);
+    const e = 1 - Math.pow(1 - p, 3);
+    el.textContent = fmt(Math.round(end * e));
+    if (p < 1) requestAnimationFrame(run);
+  };
+  requestAnimationFrame(run);
+}
+
+// ── Boot animations ────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    // Hero counters
+    countUp(document.getElementById('val-pipeline'), 342, 1800, v => `€${v}k`);
+    countUp(document.getElementById('val-leads'), 47, 1400, v => v);
+    countUp(document.getElementById('val-won'), 12, 1200, v => v);
+
+    // Conv ring
+    const ring = document.getElementById('conv-ring');
+    const convEl = document.getElementById('val-conv');
+    const circ = 175.9;
+    const s2 = performance.now();
+    const runRing = t => {
+      const p = Math.min((t - s2) / 1800, 1);
+      const e = 1 - Math.pow(1 - p, 3);
+      ring.style.strokeDashoffset = circ - (circ * 26 / 100 * e);
+      convEl.textContent = Math.round(26 * e) + '%';
+      if (p < 1) requestAnimationFrame(runRing);
+    };
+    requestAnimationFrame(runRing);
+
+    // Bar chart — animate bars up
+    const barSvg = document.getElementById('bar-svg');
+    const rects = barSvg.querySelectorAll('rect');
+    rects.forEach((rect, i) => {
+      setTimeout(() => {
+        const fullH = parseFloat(rect.getAttribute('data-full-h'));
+        const y = parseFloat(rect.getAttribute('data-y'));
+        if (!isNaN(fullH)) {
+          rect.setAttribute('y', y);
+          rect.setAttribute('height', fullH);
+        }
+      }, i * 80);
+    });
+
+    // Line chart — draw line + reveal area
+    const lineSvg = document.getElementById('line-svg');
+    if (lineSvg._line) {
+      lineSvg._line.style.strokeDashoffset = '0';
+      setTimeout(() => {
+        lineSvg._area.style.opacity = '1';
+      }, 800);
+    }
+
+  }, 150);
+});
+</script>
+</body>
+</html>

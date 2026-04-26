@@ -130,37 +130,37 @@ export default function OppDetailModal(props: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={props.onClose} />
 
-      <div className="relative bg-white rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="relative bg-soren-card rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-start justify-between px-6 py-4 border-b border-[#E5E7EB] flex-shrink-0">
+        <div className="flex items-start justify-between px-6 py-4 border-b border-soren-border flex-shrink-0">
           <div>
-            <h2 className="text-base font-bold text-[#111111]">
+            <h2 className="text-base font-bold text-soren-text">
               {isCreate ? 'Nouveau prospect' : `Modifier "${props.opp.name}"`}
             </h2>
-            <p className="text-xs text-[#9CA3AF] mt-0.5">
+            <p className="text-xs text-soren-subtle mt-0.5">
               {isCreate ? 'Créer un contact et une opportunité dans le CRM.' : 'opportunité, activités, remarques et rendez-vous.'}
             </p>
           </div>
           <button
             onClick={props.onClose}
-            className="w-8 h-8 rounded-full bg-[#F5F5F0] flex items-center justify-center hover:bg-[#E5E7EB] transition-colors"
+            className="w-8 h-8 rounded-full bg-soren-elevated flex items-center justify-center hover:bg-[#E5E7EB] transition-colors"
           >
-            <X size={14} className="text-[#6B7280]" />
+            <X size={14} className="text-soren-muted" />
           </button>
         </div>
 
         {/* Body */}
         <div className="flex flex-1 overflow-hidden">
           {/* Left nav */}
-          <div className="w-48 flex-shrink-0 border-r border-[#E5E7EB] py-4 px-3 flex flex-col gap-1">
+          <div className="w-48 flex-shrink-0 border-r border-soren-border py-4 px-3 flex flex-col gap-1">
             {NAV.map(n => (
               <button
                 key={n.key}
                 onClick={() => setTab(n.key)}
                 className={`text-left px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
                   tab === n.key
-                    ? 'bg-[#111111] text-white'
-                    : 'text-[#6B7280] hover:bg-[#F5F5F0] hover:text-[#111111]'
+                    ? 'bg-soren-sidebar text-white'
+                    : 'text-soren-muted hover:bg-soren-elevated hover:text-soren-text'
                 }`}
               >
                 {n.label}
@@ -175,7 +175,7 @@ export default function OppDetailModal(props: Props) {
 
                 {/* Contact section */}
                 <div>
-                  <h3 className="text-sm font-bold text-[#111111] mb-4">Informations Contact</h3>
+                  <h3 className="text-sm font-bold text-soren-text mb-4">Informations Contact</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <EditableField
                       label="Nom du contact *"
@@ -208,17 +208,17 @@ export default function OppDetailModal(props: Props) {
 
                 {/* Opportunity section */}
                 <div>
-                  <h3 className="text-sm font-bold text-[#111111] mb-4">{"Informations sur l'Opportunité"}</h3>
+                  <h3 className="text-sm font-bold text-soren-text mb-4">{"Informations sur l'Opportunité"}</h3>
                   <div className="flex flex-col gap-3">
 
                     {/* Opp name — hidden in create (uses contactName) */}
                     {!isCreate && (
                       <div>
-                        <label className="block text-xs text-[#6B7280] mb-1.5 font-medium">{"Nom de l'opportunité"}</label>
+                        <label className="block text-xs text-soren-muted mb-1.5 font-medium">{"Nom de l'opportunité"}</label>
                         <input
                           value={oppName}
                           onChange={e => setOppName(e.target.value)}
-                          className="w-full bg-[#F5F5F0] border-0 rounded-xl px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40"
+                          className="w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40"
                         />
                       </div>
                     )}
@@ -226,17 +226,17 @@ export default function OppDetailModal(props: Props) {
                     <div className="grid grid-cols-2 gap-3">
                       {/* Pipeline */}
                       <div>
-                        <label className="block text-xs text-[#6B7280] mb-1.5 font-medium">Pipeline</label>
+                        <label className="block text-xs text-soren-muted mb-1.5 font-medium">Pipeline</label>
                         {isCreate ? (
                           <select
                             value={pipelineId}
                             onChange={e => handlePipelineChange(e.target.value)}
-                            className="w-full bg-[#F5F5F0] border-0 rounded-xl px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none"
+                            className="w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none"
                           >
                             {props.pipelines.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                           </select>
                         ) : (
-                          <div className="bg-[#F5F5F0] rounded-xl px-3 py-2.5 text-sm text-[#6B7280]">
+                          <div className="bg-soren-elevated rounded-xl px-3 py-2.5 text-sm text-soren-muted">
                             {pipeline?.name ?? '—'}
                           </div>
                         )}
@@ -244,11 +244,11 @@ export default function OppDetailModal(props: Props) {
 
                       {/* Stage */}
                       <div>
-                        <label className="block text-xs text-[#6B7280] mb-1.5 font-medium">Étape</label>
+                        <label className="block text-xs text-soren-muted mb-1.5 font-medium">Étape</label>
                         <select
                           value={stageId}
                           onChange={e => setStageId(e.target.value)}
-                          className="w-full bg-[#F5F5F0] border-0 rounded-xl px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none"
+                          className="w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none"
                         >
                           {stages.map(s => <option key={s.id} value={s.id}>{stripEmoji(s.name)}</option>)}
                         </select>
@@ -256,11 +256,11 @@ export default function OppDetailModal(props: Props) {
 
                       {/* Status */}
                       <div>
-                        <label className="block text-xs text-[#6B7280] mb-1.5 font-medium">Statut</label>
+                        <label className="block text-xs text-soren-muted mb-1.5 font-medium">Statut</label>
                         <select
                           value={status}
                           onChange={e => setStatus(e.target.value as Opportunity['status'])}
-                          className="w-full bg-[#F5F5F0] border-0 rounded-xl px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none"
+                          className="w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none"
                         >
                           {Object.entries(STATUS_LABELS).map(([k, v]) => (
                             <option key={k} value={k}>{v}</option>
@@ -270,23 +270,23 @@ export default function OppDetailModal(props: Props) {
 
                       {/* Value */}
                       <div>
-                        <label className="block text-xs text-[#6B7280] mb-1.5 font-medium">Valeur (€)</label>
+                        <label className="block text-xs text-soren-muted mb-1.5 font-medium">Valeur (€)</label>
                         <input
                           type="number"
                           value={value}
                           onChange={e => setValue(e.target.value)}
-                          className="w-full bg-[#F5F5F0] border-0 rounded-xl px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40"
+                          className="w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40"
                         />
                       </div>
 
                       {/* Source (create mode only) */}
                       {isCreate && (
                         <div>
-                          <label className="block text-xs text-[#6B7280] mb-1.5 font-medium">Source</label>
+                          <label className="block text-xs text-soren-muted mb-1.5 font-medium">Source</label>
                           <select
                             value={source}
                             onChange={e => setSource(e.target.value)}
-                            className="w-full bg-[#F5F5F0] border-0 rounded-xl px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none"
+                            className="w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none"
                           >
                             {SOURCES.map(s => (
                               <option key={s} value={s}>{s || 'Direct'}</option>
@@ -300,7 +300,7 @@ export default function OppDetailModal(props: Props) {
 
                 {/* Meta (edit mode only) */}
                 {!isCreate && (
-                  <div className="text-[11px] text-[#9CA3AF] flex flex-col gap-0.5 pt-2 border-t border-[#F0F0F0]">
+                  <div className="text-[11px] text-soren-subtle flex flex-col gap-0.5 pt-2 border-t border-[#F0F0F0]">
                     <span>
                       Créé le :{' '}
                       {new Date(props.opp.createdAt).toLocaleDateString('fr-FR', {
@@ -321,7 +321,7 @@ export default function OppDetailModal(props: Props) {
             {tab === 'tasks' && (
               <div className="flex flex-col items-center justify-center h-40 gap-2">
                 <CheckCircle2 size={32} className="text-[#E5E7EB]" />
-                <p className="text-sm text-[#9CA3AF]">Aucune tâche pour le moment</p>
+                <p className="text-sm text-soren-subtle">Aucune tâche pour le moment</p>
               </div>
             )}
 
@@ -330,9 +330,9 @@ export default function OppDetailModal(props: Props) {
                 <textarea
                   placeholder="Ajouter une remarque..."
                   rows={6}
-                  className="w-full bg-[#F5F5F0] border-0 rounded-xl px-3 py-2.5 text-sm text-[#111111] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 resize-none"
+                  className="w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 resize-none"
                 />
-                <button className="self-end bg-[#111111] text-white text-xs font-semibold px-4 py-2 rounded-full hover:bg-[#2a2a2a] transition-colors">
+                <button className="self-end bg-soren-sidebar text-white text-xs font-semibold px-4 py-2 rounded-full hover:bg-[#2a2a2a] transition-colors">
                   Enregistrer
                 </button>
               </div>
@@ -341,17 +341,17 @@ export default function OppDetailModal(props: Props) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#E5E7EB] flex-shrink-0">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-soren-border flex-shrink-0">
           <button
             onClick={props.onClose}
-            className="px-5 py-2 rounded-full border border-[#E5E7EB] text-sm text-[#6B7280] hover:border-[#D1D5DB] hover:text-[#111111] transition-colors"
+            className="px-5 py-2 rounded-full border border-soren-border text-sm text-soren-muted hover:border-[#D1D5DB] hover:text-soren-text transition-colors"
           >
             Annuler
           </button>
           <button
             onClick={handleSave}
             disabled={saving || !contactName.trim()}
-            className="px-5 py-2 rounded-full bg-[#111111] text-white text-sm font-semibold hover:bg-[#2a2a2a] transition-colors disabled:opacity-50"
+            className="px-5 py-2 rounded-full bg-soren-sidebar text-white text-sm font-semibold hover:bg-[#2a2a2a] transition-colors disabled:opacity-50"
           >
             {saving ? (isCreate ? 'Création...' : 'Enregistrement...') : (isCreate ? 'Créer le prospect' : 'Mise à jour')}
           </button>
@@ -373,17 +373,17 @@ function EditableField({
 }) {
   return (
     <div>
-      <label className="block text-xs text-[#6B7280] mb-1.5 font-medium">{label}</label>
+      <label className="block text-xs text-soren-muted mb-1.5 font-medium">{label}</label>
       {editable ? (
         <input
           type={type}
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={label.replace(' *', '')}
-          className="w-full px-3 py-2.5 text-sm bg-[#F5F5F0] border-0 rounded-xl text-[#111111] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40"
+          className="w-full px-3 py-2.5 text-sm bg-soren-elevated border-0 rounded-xl text-soren-text placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40"
         />
       ) : (
-        <div className="px-3 py-2.5 text-sm rounded-xl bg-[#F9F9F7] text-[#6B7280]">
+        <div className="px-3 py-2.5 text-sm rounded-xl bg-[#F9F9F7] text-soren-muted">
           {value}
         </div>
       )}

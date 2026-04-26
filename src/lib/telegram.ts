@@ -4,7 +4,7 @@
  */
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
-const BASE = () => `https://api.telegram.org/bot${BOT_TOKEN}`
+const base = (token?: string) => `https://api.telegram.org/bot${token ?? BOT_TOKEN}`
 
 export type TelegramUpdate = {
   update_id: number
@@ -19,13 +19,13 @@ export type TelegramUpdate = {
   }
 }
 
-export async function sendTelegram(chatId: number | string, text: string, parseMode: 'HTML' | 'Markdown' = 'HTML'): Promise<boolean> {
-  if (!BOT_TOKEN) {
+export async function sendTelegram(chatId: number | string, text: string, parseMode: 'HTML' | 'Markdown' = 'HTML', botToken?: string): Promise<boolean> {
+  if (!botToken && !BOT_TOKEN) {
     console.warn('[Telegram] TELEGRAM_BOT_TOKEN non configuré')
     return false
   }
   try {
-    const res = await fetch(`${BASE()}/sendMessage`, {
+    const res = await fetch(`${base(botToken)}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -43,7 +43,7 @@ export async function sendTelegram(chatId: number | string, text: string, parseM
 
 export async function setWebhook(webhookUrl: string): Promise<{ ok: boolean; description?: string }> {
   if (!BOT_TOKEN) return { ok: false, description: 'Token manquant' }
-  const res = await fetch(`${BASE()}/setWebhook`, {
+  const res = await fetch(`${base()}/setWebhook`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url: webhookUrl, allowed_updates: ['message'] }),
@@ -53,7 +53,7 @@ export async function setWebhook(webhookUrl: string): Promise<{ ok: boolean; des
 
 export async function getWebhookInfo(): Promise<Record<string, unknown>> {
   if (!BOT_TOKEN) return { ok: false }
-  const res = await fetch(`${BASE()}/getWebhookInfo`)
+  const res = await fetch(`${base()}/getWebhookInfo`)
   return res.json()
 }
 
@@ -61,8 +61,8 @@ export async function getWebhookInfo(): Promise<Record<string, unknown>> {
  * Transcrit un fichier audio Telegram via Whisper (OpenAI).
  * Retourne le texte transcrit, ou null en cas d'échec.
  */
-export async function transcribeVoice(fileId: string): Promise<string | null> {
-  if (!BOT_TOKEN) return null
+export async function transcribeVoice(fileId: string, botToken?: string): Promise<string | null> {
+  if (!botToken && !BOT_TOKEN) return null
   const openaiKey = process.env.OPENAI_API_KEY
   if (!openaiKey) {
     console.warn('[Telegram] OPENAI_API_KEY manquant — transcription impossible')
@@ -71,12 +71,13 @@ export async function transcribeVoice(fileId: string): Promise<string | null> {
 
   try {
     // 1. Récupérer le chemin du fichier depuis Telegram
-    const fileRes = await fetch(`${BASE()}/getFile?file_id=${fileId}`)
+    const tok = botToken ?? BOT_TOKEN
+    const fileRes = await fetch(`${base(botToken)}/getFile?file_id=${fileId}`)
     const fileData = await fileRes.json() as { ok: boolean; result?: { file_path: string } }
     if (!fileData.ok || !fileData.result?.file_path) return null
 
     // 2. Télécharger le fichier audio
-    const audioUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileData.result.file_path}`
+    const audioUrl = `https://api.telegram.org/file/bot${tok}/${fileData.result.file_path}`
     const audioRes = await fetch(audioUrl)
     const audioBlob = await audioRes.blob()
 
@@ -100,9 +101,9 @@ export async function transcribeVoice(fileId: string): Promise<string | null> {
   }
 }
 
-export async function sendChatAction(chatId: number | string, action: 'typing' = 'typing'): Promise<void> {
-  if (!BOT_TOKEN) return
-  await fetch(`${BASE()}/sendChatAction`, {
+export async function sendChatAction(chatId: number | string, action: 'typing' = 'typing', botToken?: string): Promise<void> {
+  if (!botToken && !BOT_TOKEN) return
+  await fetch(`${base(botToken)}/sendChatAction`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: chatId, action }),

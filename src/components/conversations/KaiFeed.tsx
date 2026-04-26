@@ -46,7 +46,7 @@ function FeedCard({ message }: { message: FeedMessage }) {
   const avatarColor = getAvatarColor(initials)
 
   return (
-    <div className="bg-white rounded-xl p-4 border border-[#E5E7EB]">
+    <div className="bg-soren-card rounded-xl p-4 border border-soren-border">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div
@@ -55,7 +55,7 @@ function FeedCard({ message }: { message: FeedMessage }) {
           >
             {initials}
           </div>
-          <span className="text-sm font-semibold text-[#111111]">
+          <span className="text-sm font-semibold text-soren-text">
             {conv.contact_name ?? 'Contact inconnu'}
           </span>
           <span
@@ -66,7 +66,7 @@ function FeedCard({ message }: { message: FeedMessage }) {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-[#9CA3AF]">{timeAgo(message.created_at)}</span>
+          <span className="text-[10px] text-soren-subtle">{timeAgo(message.created_at)}</span>
           <span
             className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full"
             style={conv.ai_enabled
@@ -82,7 +82,7 @@ function FeedCard({ message }: { message: FeedMessage }) {
           </span>
         </div>
       </div>
-      <p className="text-sm text-[#6B7280] leading-relaxed line-clamp-3">{message.content}</p>
+      <p className="text-sm text-soren-muted leading-relaxed line-clamp-3">{message.content}</p>
     </div>
   )
 }
@@ -140,7 +140,7 @@ export default function KaiFeed({ initialMessages }: Props) {
   return (
     <div className="flex h-[calc(100vh-56px)] overflow-hidden bg-[#F8F8F6]">
       {/* Left: channel filter */}
-      <div className="w-[160px] flex-shrink-0 bg-[#111111] h-full overflow-y-auto px-2 pt-6">
+      <div className="w-[160px] flex-shrink-0 bg-soren-sidebar h-full overflow-y-auto px-2 pt-6">
         <p className="text-[10px] font-bold uppercase tracking-widest text-[#3D4F6B] px-3 mb-3">
           Canal
         </p>
@@ -151,8 +151,8 @@ export default function KaiFeed({ initialMessages }: Props) {
               onClick={() => setFilter(f.id)}
               className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
                 filter === f.id
-                  ? 'bg-[#E2FF8D] text-[#111111] font-medium'
-                  : 'text-[#9CA3AF] hover:text-white hover:bg-white/5'
+                  ? 'bg-[#E2FF8D] text-soren-text font-medium'
+                  : 'text-soren-subtle hover:text-white hover:bg-soren-card/5'
               }`}
             >
               {f.label}
@@ -165,13 +165,13 @@ export default function KaiFeed({ initialMessages }: Props) {
       <div className="flex-1 overflow-y-auto p-5">
         <div className="max-w-2xl mx-auto">
           <div className="mb-5">
-            <h1 className="text-base font-semibold text-[#111111]">Feed Kai Live</h1>
-            <p className="text-xs text-[#6B7280] mt-0.5">Toutes les conversations IA en temps réel</p>
+            <h1 className="text-base font-semibold text-soren-text">Feed Kai Live</h1>
+            <p className="text-xs text-soren-muted mt-0.5">Toutes les conversations IA en temps réel</p>
           </div>
 
           {filtered.length === 0 ? (
             <div className="flex items-center justify-center h-32">
-              <p className="text-sm text-[#9CA3AF]">Aucune conversation IA</p>
+              <p className="text-sm text-soren-subtle">Aucune conversation IA</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">

@@ -77,8 +77,8 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
       className={`
         flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-150
         ${active
-          ? 'bg-[#E2FF8D] text-[#111111] shadow-sm'
-          : 'text-white/50 hover:text-white/90 hover:bg-white/8'
+          ? 'bg-[#E2FF8D] text-soren-text shadow-sm'
+          : 'text-white/50 hover:text-white/90 hover:bg-soren-card/8'
         }
       `}
     >
@@ -91,6 +91,7 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
 export default function Sidebar() {
   const pathname = usePathname()
   const [profilePhoto, setProfilePhoto] = useState('')
+  const [prenom, setPrenom] = useState('')
   const [role, setRole] = useState<'superadmin' | 'client' | null>(null)
 
   useEffect(() => {
@@ -99,10 +100,18 @@ export default function Sidebar() {
         const p = localStorage.getItem('soren_profile_photo')
         setProfilePhoto(p ?? '')
       } catch {}
+      try {
+        const compte = JSON.parse(localStorage.getItem('soren_compte') ?? '{}')
+        setPrenom(compte.prenom ?? '')
+      } catch {}
     }
     load()
     window.addEventListener('profile-photo-updated', load)
-    return () => window.removeEventListener('profile-photo-updated', load)
+    window.addEventListener('company-settings-updated', load)
+    return () => {
+      window.removeEventListener('profile-photo-updated', load)
+      window.removeEventListener('company-settings-updated', load)
+    }
   }, [])
 
   useEffect(() => {
@@ -121,7 +130,7 @@ export default function Sidebar() {
   const isSuperAdmin = role === 'superadmin' || role === null // null = chargement, on affiche tout par défaut
 
   return (
-    <aside className="fixed left-3 top-3 bottom-3 w-56 bg-[#111111] rounded-2xl flex flex-col z-50 overflow-hidden shadow-xl">
+    <aside className="fixed left-3 top-3 bottom-3 w-56 bg-soren-sidebar rounded-2xl flex flex-col z-50 overflow-hidden shadow-xl">
       {/* Logo */}
       <Link href="/dashboard" className="flex items-center gap-2.5 px-4 pt-4 pb-2.5 flex-shrink-0">
         <Image
@@ -135,7 +144,7 @@ export default function Sidebar() {
         <span className="text-white font-bold text-[14px] tracking-tight">Soren</span>
       </Link>
 
-      <div className="mx-3 h-px bg-white/8 flex-shrink-0" />
+      <div className="mx-3 h-px bg-soren-card/8 flex-shrink-0" />
 
       {/* Nav */}
       <nav className="flex flex-col flex-1 px-2 py-1 overflow-hidden">
@@ -170,23 +179,23 @@ export default function Sidebar() {
       />
 
       {/* Avatar + Logout */}
-      <div className="mx-3 h-px bg-white/8 flex-shrink-0" />
+      <div className="mx-3 h-px bg-soren-card/8 flex-shrink-0" />
       <div className="px-3 py-2.5 flex-shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center bg-[#E2FF8D]">
             {profilePhoto
               ? <img src={profilePhoto} alt="profil" className="w-full h-full object-cover" />
-              : <span className="text-[11px] font-bold text-[#111111]">T</span>
+              : <span className="text-[11px] font-bold text-soren-text">{prenom ? prenom[0].toUpperCase() : 'T'}</span>
             }
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-white text-[12px] font-semibold truncate">Thomas</p>
+            <p className="text-white text-[12px] font-semibold truncate">{prenom || 'Utilisateur'}</p>
             <p className="text-white/40 text-[10px]">Admin · Pro</p>
           </div>
           <form action={logout}>
             <button
               type="submit"
-              className="w-6 h-6 flex items-center justify-center rounded-lg text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors"
+              className="w-6 h-6 flex items-center justify-center rounded-lg text-white/30 hover:text-white/70 hover:bg-soren-card/8 transition-colors"
             >
               <LogOut size={12} />
             </button>

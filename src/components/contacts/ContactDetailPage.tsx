@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, Pencil, X, Check, Loader2, Bot, User } from 'lucide-react'
-import { type GHLContact } from '@/lib/ghl'
+import { ChevronLeft, Pencil, X, Check, Loader2, Bot, User, ChevronDown } from 'lucide-react'
+import { type GHLContact, type GHLOpportunity, type GHLPipeline } from '@/lib/ghl'
 import { fetchJSON } from '@/lib/fetchJSON'
 import { getAvatarColor, type ContactAttribution } from './types'
 
@@ -72,13 +72,13 @@ function Field({
 }) {
   if (!editing && !value) return (
     <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
-      <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">{label}</p>
+      <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">{label}</p>
       <p className="text-sm text-[#D1D5DB] italic">—</p>
     </div>
   )
   return (
     <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
-      <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide w-28 pt-2 flex-shrink-0">
+      <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-2 flex-shrink-0">
         {label}
       </p>
       {editing ? (
@@ -86,13 +86,217 @@ function Field({
           type={type}
           value={value}
           onChange={e => onChange(name, e.target.value)}
-          className="flex-1 text-sm text-[#111111] bg-[#F9F9F7] border border-[#E5E7EB] rounded-lg px-3 py-1.5 outline-none focus:border-[#3462EE] transition-colors"
+          className="flex-1 text-sm text-soren-text bg-[#F9F9F7] border border-soren-border rounded-lg px-3 py-1.5 outline-none focus:border-[#3462EE] transition-colors"
         />
       ) : href ? (
         <a href={href} className="text-sm text-[#3462EE] hover:underline break-all pt-1.5">{value}</a>
       ) : (
-        <p className="text-sm text-[#111111] break-all pt-1.5">{value}</p>
+        <p className="text-sm text-soren-text break-all pt-1.5">{value}</p>
       )}
+    </div>
+  )
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  open:      'Ouverte',
+  won:       'Gagnée',
+  lost:      'Perdue',
+  abandoned: 'Abandonnée',
+}
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  open:      { bg: '#E2FF8D', text: '#111' },
+  won:       { bg: '#D1FAE5', text: '#065F46' },
+  lost:      { bg: '#FEE2E2', text: '#991B1B' },
+  abandoned: { bg: '#F3F4F6', text: '#6B7280' },
+}
+
+const labelCls = "block text-xs text-soren-muted mb-1.5 font-medium"
+
+function stripEmoji(str: string) {
+  return Array.from(str)
+    .filter(ch => { const cp = ch.codePointAt(0) ?? 0; return cp < 0x2600 || (cp > 0x27BF && cp < 0x1F000) || cp > 0x1FFFF })
+    .join('')
+    .trim()
+}
+
+type SelectOption = { value: string; label: string }
+
+function CustomSelect({ value, onChange, options, placeholder = '— Choisir —' }: {
+  value:       string
+  onChange:    (v: string) => void
+  options:     SelectOption[]
+  placeholder?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const selected = options.find(o => o.value === value)
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between gap-2 bg-soren-elevated rounded-xl px-3 py-2.5 text-sm text-soren-text hover:bg-[#EDEDEA] transition-colors focus:outline-none focus:ring-2 focus:ring-[#3462EE]/30"
+      >
+        <span className="truncate">{selected?.label ?? placeholder}</span>
+        <ChevronDown size={13} className="text-soren-subtle flex-shrink-0 transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'none' }} />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1.5 bg-soren-card rounded-2xl shadow-xl border border-[#F0F0EE] overflow-hidden py-1">
+          {options.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { onChange(opt.value); setOpen(false) }}
+              className={`w-full text-left px-3 py-2.5 text-sm transition-colors flex items-center gap-2 ${
+                opt.value === value
+                  ? 'bg-soren-elevated text-soren-text font-medium'
+                  : 'text-[#374151] hover:bg-[#F9F9F7]'
+              }`}
+            >
+              {opt.value === value && <span className="w-1.5 h-1.5 rounded-full bg-[#3462EE] flex-shrink-0" />}
+              {opt.value !== value && <span className="w-1.5 h-1.5 flex-shrink-0" />}
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PipelineCard({ opp, pipelines, editing }: { opp: GHLOpportunity; pipelines: GHLPipeline[]; editing: boolean }) {
+  const [pipelineId, setPipelineId] = useState(opp.pipelineId)
+  const [stageId,    setStageId]    = useState(opp.pipelineStageId)
+  const [status,     setStatus]     = useState<GHLOpportunity['status']>(opp.status ?? 'open')
+  const [value,      setValue]      = useState(opp.monetaryValue ?? 0)
+  const [saving,     setSaving]     = useState(false)
+  const isFirst   = useRef(true)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Snapshot des valeurs courantes accessible sans dépendance dans les callbacks
+  const latest = useRef({ pipelineId, stageId, status, value })
+  useEffect(() => { latest.current = { pipelineId, stageId, status, value } }, [pipelineId, stageId, status, value])
+
+  const currentPipeline = pipelines.find(p => p.id === pipelineId)
+  const currentStages   = currentPipeline?.stages ?? []
+  const currentStage    = currentStages.find(s => s.id === stageId)
+  const colors          = STATUS_COLORS[status] ?? STATUS_COLORS.open
+
+  // Sauvegarde immédiate (sans attente debounce)
+  const saveNow = useCallback(async () => {
+    const { pipelineId: pid, stageId: sid, status: st, value: val } = latest.current
+    setSaving(true)
+    try {
+      await fetch(`/api/opp/${opp.id}`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ pipelineId: pid, pipelineStageId: sid, status: st, monetaryValue: val }),
+      })
+      const bc = new BroadcastChannel('soren-opp-updates')
+      bc.postMessage({ type: 'opp-updated', id: opp.id, pipelineId: pid, stageId: sid, status: st, value: val })
+      bc.close()
+    } finally {
+      setSaving(false)
+    }
+  }, [opp.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-save avec debounce pour les selects pipeline/stage/statut
+  useEffect(() => {
+    if (isFirst.current) { isFirst.current = false; return }
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(saveNow, 600)
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
+  }, [pipelineId, stageId, status, saveNow])
+
+  return (
+    <div className="border border-[#F0F0EE] rounded-2xl p-4 space-y-4">
+      {saving && <p className="text-[10px] text-soren-subtle text-right">Sauvegarde…</p>}
+
+      <div className="grid grid-cols-2 gap-4">
+        {/* Pipeline */}
+        <div>
+          <label className={labelCls}>Pipeline</label>
+          {editing ? (
+            <CustomSelect
+              value={pipelineId}
+              onChange={v => { setPipelineId(v); setStageId('') }}
+              options={pipelines.map(p => ({ value: p.id, label: p.name }))}
+            />
+          ) : (
+            <p className="text-[13px] text-soren-text">{currentPipeline?.name ?? '—'}</p>
+          )}
+        </div>
+
+        {/* Étape */}
+        <div>
+          <label className={labelCls}>Étape</label>
+          {editing ? (
+            <CustomSelect
+              value={stageId}
+              onChange={setStageId}
+              options={currentStages.map(s => ({ value: s.id, label: stripEmoji(s.name) }))}
+              placeholder="— Choisir —"
+            />
+          ) : (
+            <p className="text-[13px] text-soren-text">{currentStage ? stripEmoji(currentStage.name) : '—'}</p>
+          )}
+        </div>
+
+        {/* Statut */}
+        <div>
+          <label className={labelCls}>Statut</label>
+          {editing ? (
+            <CustomSelect
+              value={status}
+              onChange={v => setStatus(v as GHLOpportunity['status'])}
+              options={[
+                { value: 'open',      label: 'Ouverte' },
+                { value: 'won',       label: 'Gagnée' },
+                { value: 'lost',      label: 'Perdue' },
+                { value: 'abandoned', label: 'Abandonnée' },
+              ]}
+            />
+          ) : (
+            <span
+              className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
+              style={{ background: colors.bg, color: colors.text }}
+            >
+              {STATUS_LABELS[status] ?? status}
+            </span>
+          )}
+        </div>
+
+        {/* Valeur */}
+        <div>
+          <label className={labelCls}>Valeur de l&apos;opportunité</label>
+          {editing ? (
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-soren-subtle text-sm">€</span>
+              <input
+                type="number"
+                min={0}
+                value={value}
+                onChange={e => setValue(Number(e.target.value))}
+                onBlur={saveNow}
+                className="w-full bg-soren-elevated border-0 rounded-xl pl-7 pr-3 py-2.5 text-sm text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/30"
+              />
+            </div>
+          ) : (
+            <p className="text-[13px] text-soren-text">
+              {value > 0 ? `€\u202f${value.toLocaleString('fr-FR')}` : '—'}
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -100,9 +304,13 @@ function Field({
 export default function ContactDetailPage({
   contact,
   attribution,
+  opportunities = [],
+  pipelines = [],
 }: {
-  contact:     GHLContact
-  attribution: ContactAttribution | null
+  contact:        GHLContact
+  attribution:    ContactAttribution | null
+  opportunities?: GHLOpportunity[]
+  pipelines?:     GHLPipeline[]
 }) {
   const router = useRouter()
   const [editing,  setEditing]  = useState(false)
@@ -151,6 +359,11 @@ export default function ContactDetailPage({
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ ...fields, tags }),
       })
+      // Synchronise le KanbanBoard et toutes les vues qui affichent ce contact
+      const bc = new BroadcastChannel('soren-opp-updates')
+      const contactName = [fields.firstName, fields.lastName].filter(Boolean).join(' ') || contact.contactName
+      bc.postMessage({ type: 'contact-updated', contactId: contact.id, name: contactName, email: fields.email, phone: fields.phone })
+      bc.close()
       setEditing(false)
       router.refresh()
     } catch (err) {
@@ -176,14 +389,14 @@ export default function ContactDetailPage({
   const address = [fields.address1, fields.city, fields.postalCode, fields.country].filter(Boolean).join(', ')
 
   return (
-    <div className="min-h-screen bg-[#EEF0EB] p-6">
+    <div className="h-full overflow-y-auto bg-soren-app p-6">
       <div className="max-w-2xl mx-auto">
 
         {/* Back */}
         <div className="flex items-center justify-between mb-6">
           <Link
             href="/contacts"
-            className="inline-flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-[#111111] transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm text-soren-muted hover:text-soren-text transition-colors"
           >
             <ChevronLeft size={15} />
             Retour aux contacts
@@ -201,7 +414,7 @@ export default function ContactDetailPage({
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCancel}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-[#6B7280] hover:text-[#111111] transition-colors"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-soren-muted hover:text-soren-text transition-colors"
               >
                 <X size={14} />
                 Annuler
@@ -209,7 +422,7 @@ export default function ContactDetailPage({
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-[#111111] hover:bg-[#222222] disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-soren-sidebar hover:bg-[#222222] disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
               >
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                 Sauvegarder
@@ -225,16 +438,16 @@ export default function ContactDetailPage({
         )}
 
         {/* Header card */}
-        <div className="bg-white rounded-2xl p-6 mb-4 flex items-start gap-4">
+        <div className="bg-soren-card rounded-2xl p-6 mb-4 flex items-start gap-4">
           <Avatar contact={contact} />
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-black text-[#111111] leading-tight">{displayName}</h1>
+            <h1 className="text-2xl font-black text-soren-text leading-tight">{displayName}</h1>
             {fields.companyName && (
-              <p className="text-sm text-[#6B7280] mt-0.5">{fields.companyName}</p>
+              <p className="text-sm text-soren-muted mt-0.5">{fields.companyName}</p>
             )}
             <div className="flex flex-wrap items-center gap-2 mt-3">
               {tags.map(t => (
-                <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#F5F5F0] text-[#6B7280] border border-[#E5E7EB]">
+                <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-soren-elevated text-soren-muted border border-soren-border">
                   {t}
                   {editing && (
                     <button onClick={() => setTags(prev => prev.filter(x => x !== t))} className="hover:text-red-400 transition-colors leading-none">
@@ -252,7 +465,7 @@ export default function ContactDetailPage({
                   }}
                   onBlur={() => tagInput.trim() && addTag(tagInput)}
                   placeholder="+ tag"
-                  className="text-[10px] px-2 py-0.5 rounded-full border border-dashed border-[#D1D5DB] bg-transparent text-[#6B7280] outline-none focus:border-[#3462EE] w-16"
+                  className="text-[10px] px-2 py-0.5 rounded-full border border-dashed border-[#D1D5DB] bg-transparent text-soren-muted outline-none focus:border-[#3462EE] w-16"
                 />
               )}
               {attribution && <OriginBadge createdBy={attribution.created_by} />}
@@ -261,7 +474,7 @@ export default function ContactDetailPage({
         </div>
 
         {/* Infos card */}
-        <div className="bg-white rounded-2xl px-6 py-2 mb-4">
+        <div className="bg-soren-card rounded-2xl px-6 py-2 mb-4">
           <Field label="Prénom"     name="firstName"   value={fields.firstName}   editing={editing} onChange={handleChange} />
           <Field label="Nom"        name="lastName"    value={fields.lastName}    editing={editing} onChange={handleChange} />
           <Field label="Email"      name="email"       value={fields.email}       editing={editing} onChange={handleChange} type="email" href={!editing && fields.email ? `mailto:${fields.email}` : undefined} />
@@ -274,25 +487,39 @@ export default function ContactDetailPage({
           <Field label="Site web"   name="website"     value={fields.website}     editing={editing} onChange={handleChange} href={!editing && fields.website ? fields.website : undefined} />
           {!editing && (
             <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
-              <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">Ajouté le</p>
-              <p className="text-sm text-[#111111]">
+              <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">Ajouté le</p>
+              <p className="text-sm text-soren-text">
                 {new Date(contact.dateAdded).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
               </p>
             </div>
           )}
         </div>
 
+        {/* Pipeline / Opportunités */}
+        {opportunities.length > 0 && (
+          <div className="bg-soren-card rounded-2xl px-6 py-4 mb-4">
+            <p className="text-[11px] font-bold text-soren-subtle uppercase tracking-wide mb-4">
+              Pipeline · {opportunities.length} opportunité{opportunities.length > 1 ? 's' : ''}
+            </p>
+            <div className="space-y-3">
+              {opportunities.map(opp => (
+                <PipelineCard key={opp.id} opp={opp} pipelines={pipelines} editing={editing} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Custom fields — lecture seule */}
         {contact.customFields && contact.customFields.length > 0 && (
-          <div className="bg-white rounded-2xl px-6 py-2">
-            <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wide py-3 border-b border-[#F0F0EE]">
+          <div className="bg-soren-card rounded-2xl px-6 py-2">
+            <p className="text-[11px] font-bold text-soren-subtle uppercase tracking-wide py-3 border-b border-[#F0F0EE]">
               Champs personnalisés
             </p>
             {contact.customFields.map(f =>
               f.value ? (
                 <div key={f.id} className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
-                  <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">{f.id}</p>
-                  <p className="text-sm text-[#111111] break-all">{String(f.value)}</p>
+                  <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">{f.id}</p>
+                  <p className="text-sm text-soren-text break-all">{String(f.value)}</p>
                 </div>
               ) : null
             )}

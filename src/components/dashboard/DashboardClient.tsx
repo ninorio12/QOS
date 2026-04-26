@@ -100,32 +100,32 @@ function NewLeadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
   return (
     <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-start justify-center">
       <div
-        className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md mx-4 mt-20"
+        className="bg-soren-card rounded-3xl shadow-2xl p-6 w-full max-w-md mx-4 mt-20"
         style={{ animation: 'fadeSlideUp 200ms ease-out both' }}
       >
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-black text-[#111111]">Nouveau Lead</h2>
+          <h2 className="text-xl font-black text-soren-text">Nouveau Lead</h2>
           <button onClick={onClose}
-            className="w-8 h-8 rounded-full bg-[#F5F5F0] flex items-center justify-center hover:bg-[#E5E7EB] transition-colors">
-            <X size={14} className="text-[#6B7280]" />
+            className="w-8 h-8 rounded-full bg-soren-elevated flex items-center justify-center hover:bg-[#E5E7EB] transition-colors">
+            <X size={14} className="text-soren-muted" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <input required placeholder="Nom du contact" value={name} onChange={e => setName(e.target.value)}
-            className="w-full bg-[#F5F5F0] border-0 rounded-2xl px-4 py-3 text-sm text-[#111111] placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#3462EE]/40" />
+            className="w-full bg-soren-elevated border-0 rounded-2xl px-4 py-3 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#3462EE]/40" />
           <input type="tel" placeholder="Téléphone" value={phone} onChange={e => setPhone(e.target.value)}
-            className="w-full bg-[#F5F5F0] border-0 rounded-2xl px-4 py-3 text-sm text-[#111111] placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#3462EE]/40" />
+            className="w-full bg-soren-elevated border-0 rounded-2xl px-4 py-3 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#3462EE]/40" />
           <select value={pipeline} onChange={e => setPipeline(e.target.value)}
-            className="w-full bg-[#F5F5F0] border-0 rounded-2xl px-4 py-3 text-sm text-[#111111] outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none cursor-pointer">
+            className="w-full bg-soren-elevated border-0 rounded-2xl px-4 py-3 text-sm text-soren-text outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none cursor-pointer">
             <option value="ACQUISITION">ACQUISITION</option>
             <option value="RÉACTIVATION">RÉACTIVATION</option>
             <option value="RÉCEPTION">RÉCEPTION</option>
           </select>
           <input type="number" placeholder="Valeur estimée (€)" value={value} onChange={e => setValue(e.target.value)}
-            className="w-full bg-[#F5F5F0] border-0 rounded-2xl px-4 py-3 text-sm text-[#111111] placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#3462EE]/40" />
+            className="w-full bg-soren-elevated border-0 rounded-2xl px-4 py-3 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#3462EE]/40" />
           <button type="submit" disabled={loading || !name.trim()}
-            className="w-full bg-[#111111] hover:bg-[#2a2a2a] disabled:opacity-50 text-white font-semibold rounded-full py-3 text-sm transition-colors mt-1">
+            className="w-full bg-soren-sidebar hover:bg-[#2a2a2a] disabled:opacity-50 text-white font-semibold rounded-full py-3 text-sm transition-colors mt-1">
             {loading ? 'Création...' : 'Créer le lead'}
           </button>
         </form>
@@ -139,7 +139,7 @@ function Toast({ visible }: { visible: boolean }) {
   if (!visible) return null
   return (
     <div
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#111111] text-white rounded-full px-5 py-2 text-sm font-medium shadow-xl pointer-events-none flex items-center gap-2"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-soren-sidebar text-white rounded-full px-5 py-2 text-sm font-medium shadow-xl pointer-events-none flex items-center gap-2"
       style={{ animation: 'fadeSlideUp 300ms ease-out both' }}
     >
       <Check size={14} className="text-[#E2FF8D]" />
@@ -150,7 +150,14 @@ function Toast({ visible }: { visible: boolean }) {
 
 // ─── Main export ──────────────────────────────────────────────
 export default function DashboardClient({
-  activeLeads, pipelineValue, wonLeads, totalLeads, stageBreakdown, recentOpps, weeklyBreakdown, monthlyPipeline,
+  activeLeads      = 0,
+  pipelineValue    = 0,
+  wonLeads         = 0,
+  totalLeads       = 0,
+  stageBreakdown   = [],
+  recentOpps       = [],
+  weeklyBreakdown  = [],
+  monthlyPipeline  = [],
 }: DashboardProps) {
   const router = useRouter()
   const [showModal,   setShowModal]   = useState(false)
@@ -262,7 +269,7 @@ export default function DashboardClient({
     <>
       {/* ── Title ── */}
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
-        <h1 className="text-4xl font-extrabold text-[#111111] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-montserrat)' }}>
+        <h1 className="text-4xl font-extrabold text-soren-text leading-tight tracking-tight" style={{ fontFamily: 'var(--font-montserrat)' }}>
           Gérez vos Leads &amp; Workflows
         </h1>
         <NewLeadWidget />
@@ -274,28 +281,28 @@ export default function DashboardClient({
         {/* ── Card 1 — Leads actifs + breakdown ── */}
         <Link
           href="/pipeline"
-          className="bg-white rounded-3xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all duration-200"
+          className="bg-soren-card rounded-3xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all duration-200"
           style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}
         >
           <div className="flex items-center justify-between">
-            <span className="font-jakarta text-[13px] font-semibold text-[#111111]">Leads actifs</span>
-            <span className="bg-[#E2FF8D] text-[#111111] text-[10px] font-bold px-2 py-0.5 rounded-full">{activeLeads} total</span>
+            <span className="font-jakarta text-[13px] font-semibold text-soren-text">Leads actifs</span>
+            <span className="bg-[#E2FF8D] text-soren-text text-[10px] font-bold px-2 py-0.5 rounded-full">{activeLeads} total</span>
           </div>
 
           <div className="flex items-baseline gap-1.5">
-            <span className="font-outfit text-[36px] font-bold text-[#111111] leading-none tabular-nums">{leadsAnim}</span>
-            <span className="font-jakarta text-[13px] font-medium text-[#9CA3AF]">leads</span>
+            <span className="font-outfit text-[36px] font-bold text-soren-text leading-none tabular-nums">{leadsAnim}</span>
+            <span className="font-jakarta text-[13px] font-medium text-soren-subtle">leads</span>
           </div>
 
           <div className="flex flex-col gap-1.5 mt-1">
             {stageBreakdown.filter(s => s.count > 0).slice(0, 4).map(stage => (
               <div key={stage.label} className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: stage.color }} />
-                <span className="text-[11px] text-[#6B7280] flex-1 truncate">{stage.label}</span>
+                <span className="text-[11px] text-soren-muted flex-1 truncate">{stage.label}</span>
                 <div className="w-16 h-1 bg-[#F0F0EB] rounded-full overflow-hidden">
                   <div className="h-full rounded-full" style={{ width: `${stage.pct}%`, background: stage.color }} />
                 </div>
-                <span className="text-[11px] font-semibold text-[#111111] w-4 text-right">{stage.count}</span>
+                <span className="text-[11px] font-semibold text-soren-text w-4 text-right">{stage.count}</span>
               </div>
             ))}
           </div>
@@ -309,38 +316,38 @@ export default function DashboardClient({
         >
           {/* Top — label + badge (aligné card 1) */}
           <div className="flex items-center justify-between">
-            <span className="font-jakarta text-[13px] font-semibold text-[#111111]">Valeur Pipeline</span>
-            <span className="bg-white/60 text-[#111111] text-[10px] font-bold px-2 py-0.5 rounded-full">{activeLeads} leads</span>
+            <span className="font-jakarta text-[13px] font-semibold text-soren-text">Valeur Pipeline</span>
+            <span className="bg-soren-card/60 text-soren-text text-[10px] font-bold px-2 py-0.5 rounded-full">{activeLeads} leads</span>
           </div>
 
           {/* Chiffre principal — même position que card 1 */}
           <div className="flex items-baseline gap-1.5">
-            <span className="font-outfit text-[36px] font-bold text-[#111111] leading-none tabular-nums">
+            <span className="font-outfit text-[36px] font-bold text-soren-text leading-none tabular-nums">
               {fmt(pipelineAnim).replace('€', '')}
             </span>
-            <span className="font-jakarta text-[13px] font-medium text-[#111111]/40">€</span>
+            <span className="font-jakarta text-[13px] font-medium text-soren-text/40">€</span>
           </div>
 
           {/* 3 chips */}
           <div className="flex gap-1.5">
-            <div className="flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-2xl bg-white/75">
-              <span className="font-outfit text-[18px] font-bold text-[#111111] leading-none tabular-nums">{activeLeads}</span>
-              <span className="font-jakarta text-[9px] font-semibold text-[#111111]/55">leads</span>
+            <div className="flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-2xl bg-soren-card/75">
+              <span className="font-outfit text-[18px] font-bold text-soren-text leading-none tabular-nums">{activeLeads}</span>
+              <span className="font-jakarta text-[9px] font-semibold text-soren-text/55">leads</span>
             </div>
-            <div className="flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-2xl bg-white/75">
-              <span className="font-outfit text-[18px] font-bold text-[#111111] leading-none tabular-nums">{wonLeads}</span>
-              <span className="font-jakarta text-[9px] font-semibold text-[#111111]/55">gagnés</span>
+            <div className="flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-2xl bg-soren-card/75">
+              <span className="font-outfit text-[18px] font-bold text-soren-text leading-none tabular-nums">{wonLeads}</span>
+              <span className="font-jakarta text-[9px] font-semibold text-soren-text/55">gagnés</span>
             </div>
-            <div className="flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-2xl bg-white/75">
-              <span className="font-outfit text-[18px] font-bold text-[#111111] leading-none tabular-nums">
+            <div className="flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-2xl bg-soren-card/75">
+              <span className="font-outfit text-[18px] font-bold text-soren-text leading-none tabular-nums">
                 {totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0}%
               </span>
-              <span className="font-jakarta text-[9px] font-semibold text-[#111111]/55">conv.</span>
+              <span className="font-jakarta text-[9px] font-semibold text-soren-text/55">conv.</span>
             </div>
           </div>
 
           {/* Voir plus */}
-          <div className="mt-auto flex items-center gap-1 text-[#111111]/50 hover:text-[#111111] transition-colors">
+          <div className="mt-auto flex items-center gap-1 text-soren-text/50 hover:text-soren-text transition-colors">
             <span className="font-jakarta text-[11px] font-semibold">Voir le pipeline</span>
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6h7M6.5 3l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
@@ -415,7 +422,7 @@ export default function DashboardClient({
               <span className="text-[10px] text-white/30">2 actifs sur 3</span>
               <span className="text-[10px] text-white/30">67%</span>
             </div>
-            <div className="h-1 bg-white/8 rounded-full overflow-hidden">
+            <div className="h-1 bg-soren-card/8 rounded-full overflow-hidden">
               <div className="h-full rounded-full bg-[#E2FF8D]" style={{ width: '67%' }} />
             </div>
           </div>
@@ -424,35 +431,35 @@ export default function DashboardClient({
 
         {/* ── Right panel — row-span-2 ── */}
         <div
-          className="row-span-2 bg-white rounded-3xl shadow-sm overflow-hidden flex flex-col"
+          className="row-span-2 bg-soren-card rounded-3xl shadow-sm overflow-hidden flex flex-col"
           style={{ animation: 'fadeSlideUp 400ms ease-out 300ms both' }}
         >
           <div className="flex-1 overflow-y-auto p-5">
-          <p className="font-jakarta text-[13px] font-semibold text-[#111111]">Modules Soren</p>
-          <p className="font-jakarta text-[10px] font-normal text-[#9CA3AF] mt-0.5 mb-3">Récemment visités</p>
+          <p className="font-jakarta text-[13px] font-semibold text-soren-text">Modules Soren</p>
+          <p className="font-jakarta text-[10px] font-normal text-soren-subtle mt-0.5 mb-3">Récemment visités</p>
 
           <div className="grid grid-cols-2 gap-2">
             {recentModules.map(({ href, Icon, label }) => (
               <Link
                 key={label}
                 href={href}
-                className="relative bg-[#F5F5F0] rounded-2xl p-3 flex flex-col gap-2 hover:bg-[#111111] transition-all duration-150 group"
+                className="relative bg-soren-elevated rounded-2xl p-3 flex flex-col gap-2 hover:bg-soren-sidebar transition-all duration-150 group"
               >
                 <ArrowUpRight size={11}
                   className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-[#E2FF8D] transition-opacity" />
-                <Icon size={18} className="text-[#6B7280] group-hover:text-[#E2FF8D] transition-colors" />
-                <span className="text-xs font-semibold text-[#111111] group-hover:text-[#E2FF8D] transition-colors">{label}</span>
+                <Icon size={18} className="text-soren-muted group-hover:text-[#E2FF8D] transition-colors" />
+                <span className="text-xs font-semibold text-soren-text group-hover:text-[#E2FF8D] transition-colors">{label}</span>
               </Link>
             ))}
           </div>
 
           <div className="flex items-center justify-between mt-5 mb-2">
-            <p className="font-jakarta text-[13px] font-semibold text-[#111111]">Opportunités</p>
-            <Link href="/pipeline" className="text-[10px] font-medium text-[#6B7280] hover:text-[#111111] transition-colors">Tout voir →</Link>
+            <p className="font-jakarta text-[13px] font-semibold text-soren-text">Opportunités</p>
+            <Link href="/pipeline" className="text-[10px] font-medium text-soren-muted hover:text-soren-text transition-colors">Tout voir →</Link>
           </div>
           <div className="flex flex-col">
             {recentOpps.length === 0 ? (
-              <p className="text-[11px] text-[#9CA3AF] italic">Aucune opportunité récente</p>
+              <p className="text-[11px] text-soren-subtle italic">Aucune opportunité récente</p>
             ) : recentOpps.map((opp) => {
               const initials = opp.contactName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() || '?'
               // Soft pastel bg derived from card color
@@ -483,11 +490,11 @@ export default function DashboardClient({
                     {initials}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-[#111111] truncate group-hover:text-[#3462EE] transition-colors">{opp.contactName}</p>
-                    <p className="text-[11px] text-[#9CA3AF] truncate">{opp.date}</p>
+                    <p className="text-[13px] font-semibold text-soren-text truncate group-hover:text-[#3462EE] transition-colors">{opp.contactName}</p>
+                    <p className="text-[11px] text-soren-subtle truncate">{opp.date}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-[13px] font-semibold text-[#111111]">{fmt(opp.value)}</p>
+                    <p className="text-[13px] font-semibold text-soren-text">{fmt(opp.value)}</p>
                     <span
                       className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mt-0.5"
                       style={{ background: pill.bg, color: pill.color }}
@@ -503,14 +510,14 @@ export default function DashboardClient({
           {/* Live agent activity */}
           <div className="mt-5">
             <div className="flex items-center gap-1.5 mb-2">
-              <p className="font-jakarta text-[13px] font-semibold text-[#111111]">Agents IA</p>
+              <p className="font-jakarta text-[13px] font-semibold text-soren-text">Agents IA</p>
               <span className="flex items-center gap-1 text-[10px] font-bold text-[#22c55e] bg-[#22c55e]/10 px-2 py-0.5 rounded-full">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse inline-block" />
                 LIVE
               </span>
             </div>
             <div className="flex flex-col gap-1.5">
-              <p className="text-[11px] text-[#9CA3AF] italic">En attente d&apos;activité…</p>
+              <p className="text-[11px] text-soren-subtle italic">En attente d&apos;activité…</p>
             </div>
           </div>
           </div>
@@ -518,24 +525,24 @@ export default function DashboardClient({
 
         {/* ── Leads par semaine — col-span-2 ── */}
         <div
-          className="col-span-2 bg-white rounded-3xl shadow-sm overflow-hidden flex flex-col"
+          className="col-span-2 bg-soren-card rounded-3xl shadow-sm overflow-hidden flex flex-col"
           style={{ animation: 'fadeSlideUp 400ms ease-out 300ms both' }}
         >
           <div className="flex items-center justify-between px-6 pt-5 pb-2 flex-shrink-0">
             <div>
-              <span className="font-jakarta text-[13px] font-semibold text-[#111111]">Leads par semaine</span>
-              <p className="font-jakarta text-[10px] font-normal text-[#9CA3AF] mt-0.5">Nouveaux leads · 7 derniers jours</p>
+              <span className="font-jakarta text-[13px] font-semibold text-soren-text">Leads par semaine</span>
+              <p className="font-jakarta text-[10px] font-normal text-soren-subtle mt-0.5">Nouveaux leads · 7 derniers jours</p>
             </div>
             <div className="flex items-center gap-3 text-[10px]">
-              <span className="flex items-center gap-1.5 text-[#6B7280]">
+              <span className="flex items-center gap-1.5 text-soren-muted">
                 <span className="inline-block w-2.5 h-2 rounded-sm bg-[#E2FF8D]" />
                 Leads
               </span>
-              <span className="flex items-center gap-1.5 text-[#6B7280]">
-                <span className="inline-block w-2.5 h-2 rounded-sm bg-[#111111]" />
+              <span className="flex items-center gap-1.5 text-soren-muted">
+                <span className="inline-block w-2.5 h-2 rounded-sm bg-soren-sidebar" />
                 Signés
               </span>
-              <span className="flex items-center gap-1.5 text-[#6B7280]">
+              <span className="flex items-center gap-1.5 text-soren-muted">
                 <span className="inline-block w-2.5 h-2 rounded-sm bg-[#3462EE]" />
                 RDV
               </span>
@@ -549,12 +556,12 @@ export default function DashboardClient({
 
         {/* ── Évolution pipeline — col-span-1 ── */}
         <div
-          className="col-span-1 bg-white rounded-3xl shadow-sm overflow-hidden flex flex-col"
+          className="col-span-1 bg-soren-card rounded-3xl shadow-sm overflow-hidden flex flex-col"
           style={{ animation: 'fadeSlideUp 400ms ease-out 350ms both' }}
         >
           <div className="px-6 pt-5 pb-2 flex-shrink-0">
-            <span className="font-jakarta text-[13px] font-semibold text-[#111111]">Évolution pipeline</span>
-            <p className="font-jakarta text-[10px] font-normal text-[#9CA3AF] mt-0.5">Valeur cumulée · 6 mois</p>
+            <span className="font-jakarta text-[13px] font-semibold text-soren-text">Évolution pipeline</span>
+            <p className="font-jakarta text-[10px] font-normal text-soren-subtle mt-0.5">Valeur cumulée · 6 mois</p>
           </div>
 
           <div className="flex-1 min-h-0 px-2 pb-4">

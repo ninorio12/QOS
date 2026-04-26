@@ -20,7 +20,7 @@ export default function DevisPage() {
   })
 
   if (error) return (
-    <div className="h-full flex items-center justify-center text-sm text-[#6B7280] page-fade-in">
+    <div className="h-full flex items-center justify-center text-sm text-soren-muted page-fade-in">
       Impossible de charger les devis. Actualise la page.
     </div>
   )

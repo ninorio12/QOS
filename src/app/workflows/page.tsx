@@ -2,7 +2,7 @@ import { getWorkflows } from '@/lib/ghl'
 import { getKaiAgentSettings } from '@/lib/kai-agent-settings'
 import WorkflowsView from '@/components/workflows/WorkflowsView'
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 export default async function WorkflowsPage() {
   let workflows: Awaited<ReturnType<typeof getWorkflows>> = []

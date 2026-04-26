@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Font Options — Dashboard Numbers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@144,700&family=Playfair+Display:wght@700&family=DM+Serif+Display&family=Cormorant+Garamond:wght@600&family=Space+Grotesk:wght@700&family=Space+Mono:wght@700&family=Syne:wght@800&family=Unbounded:wght@700&family=Outfit:wght@700&family=Manrope:wght@800&family=Plus+Jakarta+Sans:wght@800&family=Lexend:wght@700&family=Montserrat:wght@800&family=Raleway:wght@800&family=Big+Shoulders+Display:wght@700&family=Barlow+Condensed:wght@700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #000;
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      padding: 64px 48px 80px;
+    }
+
+    h1 {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      color: #fff;
+      text-align: center;
+      letter-spacing: -0.3px;
+      margin-bottom: 56px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .wrapper-card {
+      background: #111;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 20px;
+      padding: 20px;
+      transition: border-color 0.2s, transform 0.2s;
+      cursor: default;
+    }
+
+    .wrapper-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: scale(1.01);
+    }
+
+    .mini-cards-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    /* White mini-card */
+    .mini-card-white {
+      flex: 1;
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .mini-card-white .label {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: #9CA3AF;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .mini-card-white .number-row {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+      margin-top: 4px;
+    }
+
+    .mini-card-white .number {
+      font-size: 56px;
+      line-height: 1;
+      color: #111111;
+      font-weight: inherit;
+    }
+
+    .mini-card-white .suffix {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      color: #9CA3AF;
+      font-weight: 500;
+    }
+
+    /* Lime mini-card */
+    .mini-card-lime {
+      flex: 1;
+      background: #E2FF8D;
+      border-radius: 16px;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .mini-card-lime .label {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .mini-card-lime .number-row {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .mini-card-lime .number {
+      font-size: 48px;
+      line-height: 1;
+      color: #111111;
+      font-weight: inherit;
+    }
+
+    .mini-card-lime .suffix {
+      font-family: 'Inter', sans-serif;
+      font-size: 18px;
+      color: rgba(0, 0, 0, 0.3);
+      font-weight: 400;
+    }
+
+    /* Font label */
+    .font-label {
+      margin-top: 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.35);
+      letter-spacing: 0.2px;
+    }
+
+    /* ── Font-specific classes ── */
+    .font-fraunces            { font-family: 'Fraunces', serif; font-weight: 700; }
+    .font-playfair            { font-family: 'Playfair Display', serif; font-weight: 700; }
+    .font-dm-serif            { font-family: 'DM Serif Display', serif; font-weight: 400; }
+    .font-cormorant           { font-family: 'Cormorant Garamond', serif; font-weight: 600; }
+    .font-space-grotesk       { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+    .font-space-mono          { font-family: 'Space Mono', monospace; font-weight: 700; }
+    .font-syne                { font-family: 'Syne', sans-serif; font-weight: 800; }
+    .font-unbounded           { font-family: 'Unbounded', sans-serif; font-weight: 700; }
+    .font-outfit              { font-family: 'Outfit', sans-serif; font-weight: 700; }
+    .font-manrope             { font-family: 'Manrope', sans-serif; font-weight: 800; }
+    .font-plus-jakarta        { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; }
+    .font-lexend              { font-family: 'Lexend', sans-serif; font-weight: 700; }
+    .font-montserrat          { font-family: 'Montserrat', sans-serif; font-weight: 800; }
+    .font-raleway             { font-family: 'Raleway', sans-serif; font-weight: 800; }
+    .font-big-shoulders       { font-family: 'Big Shoulders Display', sans-serif; font-weight: 700; }
+    .font-barlow-condensed    { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <h1>Choisissez votre typographie pour les chiffres</h1>
+
+  <div class="grid">
+
+    <!-- 01 — Fraunces -->
+    <div class="wrapper-card">
+      <div class="mini-cards-row">
+        <div class="mini-card-white">
+          <span class="label">Leads actifs</span>
+          <div class="number-row">
+            <span class="number font-fraunces">47</span>
+            <span class="suffix">leads</span>
+          </div>
+        </div>
+        <div class="mini-card-lime">
+          <span class="label">Valeur Pipeline</span>
+          <div class="number-row">
+            <span class="number font-fraunces">342k</span>
+            <span class="suffix font-fraunces">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-label">01 — Fraunces</div>
+    </div>
+
+    <!-- 02 — Playfair Display -->
+    <div class="wrapper-card">
+      <div class="mini-cards-row">
+        <div class="mini-card-white">
+          <span class="label">Leads actifs</span>
+          <div class="number-row">
+            <span class="number font-playfair">47</span>
+            <span class="suffix">leads</span>
+          </div>
+        </div>
+        <div class="mini-card-lime">
+          <span class="label">Valeur Pipeline</span>
+          <div class="number-row">
+            <span class="number font-playfair">342k</span>
+            <span class="suffix font-playfair">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-label">02 — Playfair Display</div>
+    </div>
+
+    <!-- 03 — DM Serif Display -->
+    <div class="wrapper-card">
+      <div class="mini-cards-row">
+        <div class="mini-card-white">
+          <span class="label">Leads actifs</span>
+          <div class="number-row">
+            <span class="number font-dm-serif">47</span>
+            <span class="suffix">leads</span>
+          </div>
+        </div>
+        <div class="mini-card-lime">
+          <span class="label">Valeur Pipeline</span>
+          <div class="number-row">
+            <span class="number font-dm-serif">342k</span>
+            <span class="suffix font-dm-serif">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-label">03 — DM Serif Display</div>
+    </div>
+
+    <!-- 04 — Cormorant Garamond -->
+    <div class="wrapper-card">
+      <div class="mini-cards-row">
+        <div class="mini-card-white">
+          <span class="label">Leads actifs</span>
+          <div class="number-row">
+            <span class="number font-cormorant">47</span>
+            <span class="suffix">leads</span>
+          </div>
+        </div>
+        <div class="mini-card-lime">
+          <span class="label">Valeur Pipeline</span>
+          <div class="number-row">
+            <span class="number font-cormorant">342k</span>
+            <span class="suffix font-cormorant">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-label">04 — Cormorant Garamond</div>
+    </div>
+
+    <!-- 05 — Space Grotesk -->
+    <div class="wrapper-card">
+      <div class="mini-cards-row">
+        <div class="mini-card-white">
+          <span class="label">Leads actifs</span>
+          <div class="number-row">
+            <span class="number font-space-grotesk">47</span>
+            <span class="suffix">leads</span>
+          </div>
+        </div>
+        <div class="mini-card-lime">
+          <span class="label">Valeur Pipeline</span>
+          <div class="number-row">
+            <span class="number font-space-grotesk">342k</span>
+            <span class="suffix font-space-grotesk">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-label">05 — Space Grotesk</div>
+    </div>
+
+    <!-- 06 — Space Mono -->
+    <div class="wrapper-card">
+      <div class="mini-cards-row">
+        <div class="mini-card-white">
+          <span class="label">Leads actifs</span>
+          <div class="number-row">
+            <span class="number font-space-mono">47</span>
+            <span class="suffix">leads</span>
+          </div>
+        </div>
+        <div class="mini-card-lime">
+          <span class="label">Valeur Pipeline</span>
+          <div class="number-row">
+            <span class="number font-space-mono">342k</span>
+            <span class="suffix font-space-mono">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-label">06 — Space Mono</div>
+    </div>
+
+    <!-- 07 — Syne -->
+    <div class="wrapper-card">
+      <div class="mini-cards-row">
+        <div class="mini-card-white">
+          <span class="label">Leads actifs</span>
+          <div class="number-row">
+            <span class="number font-syne">47</span>
+            <span class="suffix">leads</span>
+          </div>
+        </div>
+        <div class="mini-card-lime">
+          <span class="label">Valeur Pipeline</span>
+          <div class="number-row">
+            <span class="number font-syne">342k</span>
+            <span class="suffix font-syne">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-label">07 — Syne</div>
+    </div>
+
+    <!-- 08 — Unbounded -->
+    <div class="wrapper-card">
+      <div class="mini-cards-row">
+        <div class="mini-card-white">
+          <span class="label">Leads actifs</span>
+          <div class="number-row">
+            <span class="number font-unbounded">47</span>
+            <span class="suffix">leads</span>
+          </div>
+        </div>
+        <div class="mini-card-lime">
+          <span class="label">Valeur Pipeline</span>
+          <div class="number-row">
+            <span class="number font-unbounded">342k</span>
+            <span class="suffix font-unbounded">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-label">08 — Unbounded</div>
+    </div>
+
+    <!-- 09 — Outfit -->
+    <div class="wrapper-card">
+      <div class="mini-cards-row">
+        <div class="mini-card-white">
+          <span class="label">Leads actifs</span>
+          <div class="number-row">
+            <span class="number font-outfit">47</span>
+            <span class="suffix">leads</span>
+          </div>
+        </div>
+        <div class="mini-card-lime">
+          <span class="label">Valeur Pipeline</span>
+          <div class="number-row">
+            <span class="number font-outfit">342k</span>
+            <span class="suffix font-outfit">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-label">09 — Outfit</div>
+    </div>
+
+    <!-- 10 — Manrope -->
+    <div class="wrapper-card">
+      <div class="mini-cards-row">
+        <div class="mini-card-white">
+          <span class="label">Leads actifs</span>
+          <div class="number-row">
+            <span class="number font-manrope">47</span>
+            <span class="suffix">leads</span>
+          </div>
+        </div>
+        <div class="mini-card-lime">
+          <span class="label">Valeur Pipeline</span>
+          <div class="number-row">
+            <span class="number font-manrope">342k</span>
+            <span class="suffix font-manrope">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-label">10 — Manrope</div>
+    </div>
+
+    <!-- 11 — Plus Jakarta Sans -->
+    <div class="wrapper-card">
+      <div class="mini-cards-row">
+        <div class="mini-card-white">
+          <span class="label">Leads actifs</span>
+          <div class="number-row">
+            <span class="number font-plus-jakarta">47</span>
+            <span class="suffix">leads</span>
+          </div>
+        </div>
+        <div class="mini-card-lime">
+          <span class="label">Valeur Pipeline</span>
+          <div class="number-row">
+            <span class="number font-plus-jakarta">342k</span>
+            <span class="suffix font-plus-jakarta">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-label">11 — Plus Jakarta Sans</div>
+    </div>
+
+    <!-- 12 — Lexend -->
+    <div class="wrapper-card">
+      <div class="mini-cards-row">
+        <div class="mini-card-white">
+          <span class="label">Leads actifs</span>
+          <div class="number-row">
+            <span class="number font-lexend">47</span>
+            <span class="suffix">leads</span>
+          </div>
+        </div>
+        <div class="mini-card-lime">
+          <span class="label">Valeur Pipeline</span>
+          <div class="number-row">
+            <span class="number font-lexend">342k</span>
+            <span class="suffix font-lexend">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-label">12 — Lexend</div>
+    </div>
+
+    <!-- 13 — Montserrat -->
+    <div class="wrapper-card">
+      <div class="mini-cards-row">
+        <div class="mini-card-white">
+          <span class="label">Leads actifs</span>
+          <div class="number-row">
+            <span class="number font-montserrat">47</span>
+            <span class="suffix">leads</span>
+          </div>
+        </div>
+        <div class="mini-card-lime">
+          <span class="label">Valeur Pipeline</span>
+          <div class="number-row">
+            <span class="number font-montserrat">342k</span>
+            <span class="suffix font-montserrat">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-label">13 — Montserrat</div>
+    </div>
+
+    <!-- 14 — Raleway -->
+    <div class="wrapper-card">
+      <div class="mini-cards-row">
+        <div class="mini-card-white">
+          <span class="label">Leads actifs</span>
+          <div class="number-row">
+            <span class="number font-raleway">47</span>
+            <span class="suffix">leads</span>
+          </div>
+        </div>
+        <div class="mini-card-lime">
+          <span class="label">Valeur Pipeline</span>
+          <div class="number-row">
+            <span class="number font-raleway">342k</span>
+            <span class="suffix font-raleway">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-label">14 — Raleway</div>
+    </div>
+
+    <!-- 15 — Big Shoulders Display -->
+    <div class="wrapper-card">
+      <div class="mini-cards-row">
+        <div class="mini-card-white">
+          <span class="label">Leads actifs</span>
+          <div class="number-row">
+            <span class="number font-big-shoulders">47</span>
+            <span class="suffix">leads</span>
+          </div>
+        </div>
+        <div class="mini-card-lime">
+          <span class="label">Valeur Pipeline</span>
+          <div class="number-row">
+            <span class="number font-big-shoulders">342k</span>
+            <span class="suffix font-big-shoulders">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-label">15 — Big Shoulders Display</div>
+    </div>
+
+    <!-- 16 — Barlow Condensed -->
+    <div class="wrapper-card">
+      <div class="mini-cards-row">
+        <div class="mini-card-white">
+          <span class="label">Leads actifs</span>
+          <div class="number-row">
+            <span class="number font-barlow-condensed">47</span>
+            <span class="suffix">leads</span>
+          </div>
+        </div>
+        <div class="mini-card-lime">
+          <span class="label">Valeur Pipeline</span>
+          <div class="number-row">
+            <span class="number font-barlow-condensed">342k</span>
+            <span class="suffix font-barlow-condensed">€</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-label">16 — Barlow Condensed</div>
+    </div>
+
+  </div>
+
+</body>
+</html>

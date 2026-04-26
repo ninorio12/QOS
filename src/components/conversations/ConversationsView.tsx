@@ -8,8 +8,9 @@ import ConversationPanel from './ConversationPanel'
 import { fetchJSON } from '@/lib/fetchJSON'
 
 interface Props {
-  dbConversations: Conversation[]
-  pipelines:       Pipeline[]
+  dbConversations:  Conversation[]
+  pipelines:        Pipeline[]
+  initialContactId?: string
 }
 
 async function fetchMessages(convId: string): Promise<Message[]> {
@@ -23,7 +24,7 @@ async function fetchMessages(convId: string): Promise<Message[]> {
   }
 }
 
-export default function ConversationsView({ dbConversations, pipelines }: Props) {
+export default function ConversationsView({ dbConversations, pipelines, initialContactId }: Props) {
   const allConversations = useMemo(() => {
     if (dbConversations.length >= 4) return dbConversations
     const realIds = new Set(dbConversations.map(c => c.id))
@@ -34,6 +35,18 @@ export default function ConversationsView({ dbConversations, pipelines }: Props)
   const [convList,  setConvList]  = useState<Conversation[]>(allConversations)
   const [selected,  setSelected]  = useState<Conversation | null>(allConversations[0] ?? null)
   const [aiEnabled, setAiEnabled] = useState(allConversations[0]?.ai_enabled ?? true)
+
+  // Auto-sélection quand on arrive depuis le pipeline avec ?contact=id
+  const didAutoSelect = useRef(false)
+  useEffect(() => {
+    if (didAutoSelect.current || !initialContactId || allConversations.length === 0) return
+    const match = allConversations.find(c => c.contact_id === initialContactId)
+    if (match) {
+      didAutoSelect.current = true
+      setSelected(match)
+      setAiEnabled(match.ai_enabled ?? true)
+    }
+  }, [initialContactId, allConversations])
 
   // Cache de messages par conversation — évite de re-fetcher à chaque switch
   const msgCache = useRef<Map<string, Message[]>>(new Map())
@@ -128,7 +141,7 @@ export default function ConversationsView({ dbConversations, pipelines }: Props)
   }
 
   return (
-    <div className="flex h-[calc(100vh-56px)] overflow-hidden">
+    <div className="flex h-[calc(100vh-56px)] overflow-hidden" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
 
       {/* ── Col 1: Conversation list ── */}
       <ConversationList
@@ -145,6 +158,7 @@ export default function ConversationsView({ dbConversations, pipelines }: Props)
         {selected ? (
           <div className="flex-1 min-h-0">
             <MessageThread
+              key={selected.id}
               conversation={selected}
               initialMessages={messages}
               aiEnabled={aiEnabled}
@@ -153,8 +167,8 @@ export default function ConversationsView({ dbConversations, pipelines }: Props)
             />
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full bg-[#EEF0EB]">
-            <p className="text-sm text-[#9CA3AF]">Sélectionnez une conversation</p>
+          <div className="flex items-center justify-center h-full bg-soren-app">
+            <p className="text-sm text-soren-subtle">Sélectionnez une conversation</p>
           </div>
         )}
       </div>
@@ -162,6 +176,7 @@ export default function ConversationsView({ dbConversations, pipelines }: Props)
       {/* ── Col 3: Panel ── */}
       {selected ? (
         <ConversationPanel
+          key={selected.id}
           conversation={selected}
           messages={messages}
           aiEnabled={aiEnabled}
@@ -169,7 +184,7 @@ export default function ConversationsView({ dbConversations, pipelines }: Props)
           pipelines={pipelines}
         />
       ) : (
-        <div className="w-[300px] flex-shrink-0 bg-white border-l border-[#E5E7EB]" />
+        <div className="w-[300px] flex-shrink-0 bg-soren-card border-l border-soren-border" />
       )}
 
     </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Mail, MessageCircle } from 'lucide-react'
+import { Mail } from 'lucide-react'
 
 type SignatureStatut = 'non_envoye' | 'envoye' | 'vu' | 'signe'
 
@@ -11,7 +11,7 @@ interface SignatureSectionProps {
   contactEmail:     string | null
   signatureVuLe:    string | null
   signatureSigne:   string | null
-  onStatutChange:   (statut: SignatureStatut) => void
+  onStatutChange:   (statut: SignatureStatut, envoyeLe?: string) => void
 }
 
 const STEPS: { key: SignatureStatut | 'created'; label: string }[] = [
@@ -62,7 +62,7 @@ export default function SignatureSection({
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Erreur')
-      onStatutChange('envoye')
+      onStatutChange('envoye', json.envoye_le as string | undefined)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Erreur')
     } finally {
@@ -71,12 +71,12 @@ export default function SignatureSection({
   }
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm">
+    <div className="bg-soren-card rounded-2xl p-5 shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-          <span className="text-[13px] font-bold text-[#111111]">Signature électronique</span>
+          <span className="text-[13px] font-bold text-soren-text">Signature électronique</span>
         </div>
         <span
           className="text-[10px] font-bold px-2.5 py-1 rounded-full"
@@ -107,7 +107,7 @@ export default function SignatureSection({
                     <div className="w-2 h-2 rounded-full bg-[#d1d5db]" />
                   )}
                 </div>
-                <span className="text-[9px] font-semibold text-[#9CA3AF]">{step.label}</span>
+                <span className="text-[9px] font-semibold text-soren-subtle">{step.label}</span>
               </div>
               {!isLast && (
                 <div
@@ -125,13 +125,13 @@ export default function SignatureSection({
 
       <div className="bg-[#f9f9f7] rounded-xl px-3 py-2.5 mb-3">
         {statut === 'non_envoye' ? (
-          <p className="text-[11px] text-[#9CA3AF]">Aucun lien envoyé</p>
+          <p className="text-[11px] text-soren-subtle">Aucun lien envoyé</p>
         ) : (
           <>
-            <p className="text-[10px] text-[#9CA3AF] mb-0.5">
+            <p className="text-[10px] text-soren-subtle mb-0.5">
               {statut === 'signe' ? 'Signé le' : statut === 'vu' ? 'Vu le' : 'Envoyé à'}
             </p>
-            <p className="text-[12px] font-semibold text-[#111111]">
+            <p className="text-[12px] font-semibold text-soren-text">
               {statut === 'signe' && signatureSigne ? fmtDate(signatureSigne)
                 : statut === 'vu' && signatureVuLe ? fmtDate(signatureVuLe)
                 : contactEmail ?? '—'}
@@ -140,35 +140,20 @@ export default function SignatureSection({
         )}
       </div>
 
-      {/* Boutons d'envoi */}
+      {/* Bouton d'envoi */}
       {statut !== 'signe' && (
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleEnvoyer('whatsapp')}
-            disabled={loadingChannel !== null}
-            className="flex-1 flex items-center justify-center gap-1.5 bg-[#111] text-white rounded-lg px-3 py-1.5 text-[11px] font-semibold hover:bg-[#333] transition-colors disabled:opacity-40 font-jakarta"
-          >
-            {loadingChannel === 'whatsapp'
-              ? <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              : <MessageCircle size={11} />
-            }
-            WhatsApp
-          </button>
-
-          {contactEmail && (
-            <button
-              onClick={() => handleEnvoyer('email')}
-              disabled={loadingChannel !== null}
-              className="flex-1 flex items-center justify-center gap-1.5 bg-[#EEF3FF] text-[#3462EE] rounded-lg px-3 py-1.5 text-[11px] font-semibold hover:bg-[#dce8ff] transition-colors disabled:opacity-40 font-jakarta"
-            >
-              {loadingChannel === 'email'
-                ? <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                : <Mail size={11} />
-              }
-              Email
-            </button>
-          )}
-        </div>
+        <button
+          onClick={() => handleEnvoyer('email')}
+          disabled={loadingChannel !== null || !contactEmail}
+          title={!contactEmail ? 'Aucun email renseigné pour ce contact' : undefined}
+          className="w-full flex items-center justify-center gap-1.5 bg-[#111] text-white rounded-lg px-3 py-1.5 text-[11px] font-semibold hover:bg-[#333] transition-colors disabled:opacity-40 font-jakarta"
+        >
+          {loadingChannel === 'email'
+            ? <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            : <Mail size={11} />
+          }
+          {statut === 'non_envoye' ? 'Envoyer par email' : 'Renvoyer par email'}
+        </button>
       )}
     </div>
   )

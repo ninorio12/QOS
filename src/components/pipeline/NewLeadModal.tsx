@@ -20,14 +20,14 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs text-[#6B7280] mb-1.5 font-medium">{label}</label>
+      <label className="block text-xs text-soren-muted mb-1.5 font-medium">{label}</label>
       <input
         type={type}
         required={label.endsWith('*')}
         placeholder={placeholder}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-[#F5F5F0] border-0 rounded-xl px-3 py-2.5 text-sm text-[#111111] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all"
+        className="w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all"
       />
     </div>
   )
@@ -69,18 +69,18 @@ export default function NewLeadModal({ pipeline, onClose, onAdd }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-white rounded-3xl w-full max-w-md shadow-2xl">
+      <div className="relative bg-soren-card rounded-3xl w-full max-w-md shadow-2xl">
         {/* Modal header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-soren-border">
           <div>
-            <h2 className="text-base font-bold text-[#111111]">Ajouter une opportunité</h2>
-            {pipeline && <p className="text-xs text-[#9CA3AF] mt-0.5">{pipeline.name}</p>}
+            <h2 className="text-base font-bold text-soren-text">Ajouter une opportunité</h2>
+            {pipeline && <p className="text-xs text-soren-subtle mt-0.5">{pipeline.name}</p>}
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-[#F5F5F0] flex items-center justify-center hover:bg-[#E5E7EB] transition-colors"
+            className="w-8 h-8 rounded-full bg-soren-elevated flex items-center justify-center hover:bg-[#E5E7EB] transition-colors"
           >
-            <X size={14} className="text-[#6B7280]" />
+            <X size={14} className="text-soren-muted" />
           </button>
         </div>
 
@@ -107,11 +107,11 @@ export default function NewLeadModal({ pipeline, onClose, onAdd }: Props) {
               onChange={v => setForm(f => ({ ...f, value: v }))}
             />
             <div>
-              <label className="block text-xs text-[#6B7280] mb-1.5 font-medium">Source</label>
+              <label className="block text-xs text-soren-muted mb-1.5 font-medium">Source</label>
               <select
                 value={form.source}
                 onChange={e => setForm(f => ({ ...f, source: e.target.value }))}
-                className="w-full bg-[#F5F5F0] border-0 rounded-xl px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none transition-all"
+                className="w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none transition-all"
               >
                 {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -119,11 +119,11 @@ export default function NewLeadModal({ pipeline, onClose, onAdd }: Props) {
           </div>
 
           <div>
-            <label className="block text-xs text-[#6B7280] mb-1.5 font-medium">Stage</label>
+            <label className="block text-xs text-soren-muted mb-1.5 font-medium">Stage</label>
             <select
               value={form.stageId}
               onChange={e => setForm(f => ({ ...f, stageId: e.target.value }))}
-              className="w-full bg-[#F5F5F0] border-0 rounded-xl px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none transition-all"
+              className="w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none transition-all"
             >
               {pipeline?.stages.map(s => (
                 <option key={s.id} value={s.id}>{s.name}</option>
@@ -135,13 +135,13 @@ export default function NewLeadModal({ pipeline, onClose, onAdd }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-full border border-[#E5E7EB] text-sm text-[#6B7280] hover:text-[#111111] hover:border-[#D1D5DB] transition-colors"
+              className="flex-1 py-2.5 rounded-full border border-soren-border text-sm text-soren-muted hover:text-soren-text hover:border-[#D1D5DB] transition-colors"
             >
               Annuler
             </button>
             <button
               type="submit"
-              className="flex-1 py-2.5 rounded-full bg-[#111111] hover:bg-[#2a2a2a] text-white text-sm font-semibold transition-colors"
+              className="flex-1 py-2.5 rounded-full bg-soren-sidebar hover:bg-[#2a2a2a] text-white text-sm font-semibold transition-colors"
             >
               Créer
             </button>

@@ -7,14 +7,14 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  if (!isGoogleConfigured()) {
+  if (!await isGoogleConfigured()) {
     return NextResponse.json({ error: 'Google not configured' }, { status: 501 })
   }
 
   const { id } = params
 
   try {
-    const cal = getCalendarClient()
+    const cal = await getCalendarClient()
     await cal.events.delete({ calendarId: CAL_ID(), eventId: id })
     return NextResponse.json({ success: true })
   } catch (err) {
@@ -27,7 +27,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  if (!isGoogleConfigured()) {
+  if (!await isGoogleConfigured()) {
     return NextResponse.json({ error: 'Google not configured' }, { status: 501 })
   }
 
@@ -38,7 +38,7 @@ export async function PATCH(
   }
 
   try {
-    const cal = getCalendarClient()
+    const cal = await getCalendarClient()
     const res = await cal.events.patch({
       calendarId:  CAL_ID(),
       eventId:     id,

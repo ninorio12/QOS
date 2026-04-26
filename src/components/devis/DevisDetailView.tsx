@@ -1,7 +1,7 @@
 // src/components/devis/DevisDetailView.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronLeft, Save, Download, ExternalLink, Plus, X, FileText, ZoomIn } from 'lucide-react'
 import { ToastType } from '@/hooks/useToast'
 import Select from '@/components/ui/Select'
@@ -34,10 +34,11 @@ type Devis = {
 }
 
 const STATUT_CONFIG: Record<string, { label: string; bg: string; color: string }> = {
-  brouillon: { label: 'Brouillon', bg: '#FEF9C3', color: '#854D0E' },
-  'envoyé':  { label: 'Envoyé',   bg: '#EEF3FF', color: '#3462EE' },
-  'accepté': { label: 'Accepté',  bg: '#f0fdf4', color: '#16a34a' },
-  'refusé':  { label: 'Refusé',   bg: '#fef2f2', color: '#dc2626' },
+  brouillon:                  { label: 'Brouillon',          bg: '#FEF9C3', color: '#854D0E' },
+  'envoyé':                   { label: 'Envoyé',             bg: '#EEF3FF', color: '#3462EE' },
+  'accepté':                  { label: 'Accepté',            bg: '#f0fdf4', color: '#16a34a' },
+  'refusé':                   { label: 'Refusé',             bg: '#fef2f2', color: '#dc2626' },
+  pending_human_validation:   { label: 'En attente validation', bg: '#FFF7ED', color: '#C2410C' },
 }
 
 const UNITES = ['U', 'm²', 'ml', 'm³', 'h', 'j', 'forfait', 'ens.']
@@ -62,7 +63,7 @@ function toLignesPayload(lignes: Ligne[]) {
   return lignes.map(({ _id: _, ...rest }) => rest)
 }
 
-const inputCls = 'w-full bg-[#f9f9f7] border border-[#f0f0eb] rounded-xl px-3 py-2 text-[13px] text-[#111111] placeholder-[#d1d5db] focus:outline-none focus:border-[#3462EE] focus:bg-white transition-colors font-jakarta'
+const inputCls = 'w-full bg-[#f9f9f7] border border-[#f0f0eb] rounded-xl px-3 py-2 text-[13px] text-soren-text placeholder-[#d1d5db] focus:outline-none focus:border-[#3462EE] focus:bg-soren-card transition-colors font-jakarta'
 
 interface DevisDetailViewProps {
   devis:       Devis
@@ -80,6 +81,14 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
   const [ville, setVilleRaw]       = useState(initial.ville ?? '')
   const [dateVal, setDateValRaw]   = useState(initial.date_validite?.slice(0, 10) ?? '')
   const [chantier, setChantierRaw] = useState(initial.adresse_chantier ?? '')
+
+  // Champs client (contrôlés pour persister après save)
+  const _initPrenom = () => { const p = (initial.contact_name ?? '').trim().split(/\s+/); return p[0] ?? '' }
+  const _initNom    = () => { const p = (initial.contact_name ?? '').trim().split(/\s+/); return p.slice(1).join(' ') }
+  const [contactPrenom, setContactPrenom] = useState(_initPrenom)
+  const [contactNom,    setContactNom]    = useState(_initNom)
+  const [contactPhone,  setContactPhone]  = useState(initial.contact_phone ?? '')
+  const [contactEmail,  setContactEmail]  = useState(initial.contact_email ?? '')
 
   // Adresse client → 3 champs séparés
   const _parseAdresse = (raw: string | null) => {
@@ -108,7 +117,8 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
   function setAdresseRue(v: string)  { setAdresseRueRaw(v);  setDirty(true) }
   function setAdresseCP(v: string)   { setAdresseCPRaw(v);   setDirty(true) }
   function setAdresseCity(v: string) { setAdresseCityRaw(v); setDirty(true) }
-  const [sigStatut, setSigStatut] = useState<SignatureStatut>(initial.signature_statut ?? 'non_envoye')
+  const [sigStatut, setSigStatut]   = useState<SignatureStatut>(initial.signature_statut ?? 'non_envoye')
+  const [envoyeLe,  setEnvoyeLe]   = useState<string | null>(initial.envoye_le ?? null)
   const [saving, setSaving]     = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [genPdf, setGenPdf]     = useState(false)
@@ -116,6 +126,17 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
   const [error, setError]       = useState<string | null>(null)
   const [pdfUrl, setPdfUrl]     = useState(initial.pdf_url)
   const [showPreview, setShowPreview] = useState(false)
+
+  // Avertissement si modifications non sauvegardées
+  useEffect(() => {
+    function handler(e: BeforeUnloadEvent) {
+      if (!dirty) return
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [dirty])
 
   const statut = initial.statut
   const cfg = STATUT_CONFIG[statut] ?? STATUT_CONFIG.brouillon
@@ -136,6 +157,9 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           titre, notes,
+          contact_name:     [contactPrenom, contactNom].filter(Boolean).join(' ') || null,
+          contact_phone:    contactPhone  || null,
+          contact_email:    contactEmail  || null,
           ville: ville || null,
           date_validite:    dateVal || null,
           adresse_chantier: chantier || null,
@@ -161,18 +185,90 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
   async function handleDownload() {
     setGenPdf(true); setError(null)
     try {
-      const res = await fetch(`/api/devis/${initial.id}/pdf`, { method: 'POST' })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Erreur PDF')
-      const url = json.pdf_url
-      setPdfUrl(url)
-      const blob = await (await fetch(url)).blob()
-      const blobUrl = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = blobUrl
-      a.download = `devis-${initial.numero ?? initial.id}.pdf`
-      a.click()
-      URL.revokeObjectURL(blobUrl)
+      // 1. Sauvegarde automatique si nécessaire
+      if (dirty) {
+        const validLignes = lignes.filter(l => l.description.trim())
+        const saveRes = await fetch(`/api/devis/${initial.id}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            titre, notes,
+            contact_name:     [contactPrenom, contactNom].filter(Boolean).join(' ') || null,
+            contact_phone:    contactPhone  || null,
+            contact_email:    contactEmail  || null,
+            ville: ville || null,
+            date_validite:    dateVal || null,
+            adresse_chantier: chantier || null,
+            adresse_client:   adresseClient || null,
+            lignes:           toLignesPayload(validLignes),
+            montant_ht:       ht > 0 ? ht : null,
+          }),
+        })
+        if (saveRes.ok) {
+          const saved = await saveRes.json()
+          onUpdated(saved.devis as Devis)
+          setDirty(false)
+        }
+      }
+
+      // 2. Charger les mêmes paramètres société que l'aperçu
+      const companyRes = await fetch('/api/settings/company')
+      const companyJson = companyRes.ok ? await companyRes.json() : {}
+      const c = companyJson.company ?? null
+
+      const svgRaw: string | null = c?.logo_svg ?? null
+      const logoBase64 = svgRaw ? btoa(unescape(encodeURIComponent(svgRaw))) : null
+
+      const company = c ? {
+        name:       c.name        ?? 'Mon Entreprise',
+        tagline:    c.tagline     ?? '',
+        address:    c.address     ?? '',
+        phone:      c.phone       ?? '',
+        email:      c.email       ?? '',
+        logoBase64,
+        capital:    c.capital     ?? '',
+        siret:      c.siret       ?? '',
+        tvaIntra:   c.tva_intra   ?? '',
+        assurance:  c.assurance   ?? '',
+        brandColor: c.brand_color ?? brandColor,  // même fallback que l'aperçu
+      } : {
+        name: 'Mon Entreprise', tagline: '', address: '', phone: '', email: '',
+        logoBase64: null, capital: '', siret: '', tvaIntra: '', assurance: '',
+        brandColor,
+      }
+
+      // 3. Construire le HTML avec les données actuelles (identiques à l'aperçu)
+      const { buildDevisHtml } = await import('@/lib/devisHtmlBuilder')
+      const validLignes = lignes.filter(l => l.description.trim())
+      const html = buildDevisHtml({
+        numero:          initial.numero ?? null,
+        titre,
+        lignes:          validLignes.map(({ _id: _, ...rest }) => rest),
+        notes,
+        ville,
+        dateValidite:    dateVal,
+        adresseChantier: chantier,
+        contactName:     initial.contact_name ?? null,
+        adresseClient,
+        createdAt:       initial.created_at,
+      }, company)
+
+      // 4. Ouvrir une fenêtre d'impression — même moteur de rendu que l'aperçu
+      const printWin = window.open('', '_blank', 'width=900,height=700')
+      if (!printWin) throw new Error('Popups bloqués — autorisez-les pour ce site')
+      printWin.document.write(
+        html.replace('</head>', `<style>
+          @page { size: A4; margin: 0; }
+          body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        </style></head>`)
+      )
+      printWin.document.close()
+      // Attendre le chargement des polices avant d'imprimer
+      printWin.addEventListener('load', () => {
+        printWin.document.fonts.ready.then(() => {
+          printWin.focus()
+          printWin.print()
+        })
+      })
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Erreur PDF')
     } finally {
@@ -200,80 +296,69 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
       {error && <p className="text-[12px] text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
 
       <div>
-        <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">Client</p>
+        <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-wider mb-3">Client</p>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[11px] font-semibold text-[#6B7280] block mb-1">Nom</label>
-            <input className={inputCls} defaultValue={initial.contact_name ?? ''} readOnly />
+            <label className="text-[11px] font-semibold text-soren-muted block mb-1">Prénom</label>
+            <input className={inputCls} value={contactPrenom} onChange={e => setContactPrenom(e.target.value)} placeholder="Thomas" />
           </div>
           <div>
-            <label className="text-[11px] font-semibold text-[#6B7280] block mb-1">Téléphone</label>
-            <input className={inputCls} defaultValue={initial.contact_phone ?? ''} readOnly />
+            <label className="text-[11px] font-semibold text-soren-muted block mb-1">Nom</label>
+            <input className={inputCls} value={contactNom} onChange={e => setContactNom(e.target.value)} placeholder="Dupont" />
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold text-soren-muted block mb-1">Téléphone</label>
+            <input className={inputCls} value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="+33 6 00 00 00 00" />
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold text-soren-muted block mb-1">Email</label>
+            <input className={inputCls} value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="contact@email.com" />
           </div>
           <div className="col-span-2">
-            <label className="text-[11px] font-semibold text-[#6B7280] block mb-1">Email</label>
-            <input className={inputCls} defaultValue={initial.contact_email ?? ''} readOnly />
-          </div>
-          <div className="col-span-2">
-            <label className="text-[11px] font-semibold text-[#6B7280] block mb-1">Rue</label>
-            <input
-              className={inputCls}
-              value={adresseRue}
-              onChange={e => setAdresseRue(e.target.value)}
-              placeholder="21, chemin des Vignes"
-            />
+            <label className="text-[11px] font-semibold text-soren-muted block mb-1">Rue</label>
+            <input className={inputCls} value={adresseRue} onChange={e => setAdresseRue(e.target.value)} placeholder="21, chemin des Vignes" />
           </div>
           <div>
-            <label className="text-[11px] font-semibold text-[#6B7280] block mb-1">Code postal</label>
-            <input
-              className={inputCls}
-              value={adresseCP}
-              onChange={e => setAdresseCP(e.target.value)}
-              placeholder="34130"
-            />
+            <label className="text-[11px] font-semibold text-soren-muted block mb-1">Code postal</label>
+            <input className={inputCls} value={adresseCP} onChange={e => setAdresseCP(e.target.value)} placeholder="34130" />
           </div>
           <div>
-            <label className="text-[11px] font-semibold text-[#6B7280] block mb-1">Ville</label>
-            <input
-              className={inputCls}
-              value={adresseCity}
-              onChange={e => setAdresseCity(e.target.value)}
-              placeholder="Montpellier"
-            />
+            <label className="text-[11px] font-semibold text-soren-muted block mb-1">Ville</label>
+            <input className={inputCls} value={adresseCity} onChange={e => setAdresseCity(e.target.value)} placeholder="Montpellier" />
           </div>
         </div>
       </div>
 
       <div>
-        <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">Devis</p>
+        <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-wider mb-3">Devis</p>
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
-            <label className="text-[11px] font-semibold text-[#6B7280] block mb-1">Titre</label>
+            <label className="text-[11px] font-semibold text-soren-muted block mb-1">Titre</label>
             <input className={inputCls} value={titre} onChange={e => setTitre(e.target.value)} />
           </div>
           <div>
-            <label className="text-[11px] font-semibold text-[#6B7280] block mb-1">Ville</label>
+            <label className="text-[11px] font-semibold text-soren-muted block mb-1">Ville</label>
             <input className={inputCls} value={ville} onChange={e => setVille(e.target.value)} placeholder="Paris" />
           </div>
           <div>
-            <label className="text-[11px] font-semibold text-[#6B7280] block mb-1">Validité</label>
+            <label className="text-[11px] font-semibold text-soren-muted block mb-1">Validité</label>
             <input type="date" className={inputCls} value={dateVal} onChange={e => setDateVal(e.target.value)} />
           </div>
           <div className="col-span-2">
-            <label className="text-[11px] font-semibold text-[#6B7280] block mb-1">Adresse chantier</label>
+            <label className="text-[11px] font-semibold text-soren-muted block mb-1">Adresse chantier</label>
             <input className={inputCls} value={chantier} onChange={e => setChantier(e.target.value)} />
           </div>
         </div>
       </div>
 
       <div>
-        <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">Lignes</p>
+        <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-wider mb-3">Lignes</p>
         <div className="overflow-x-auto" style={{ scrollbarWidth: 'thin' }}>
           <table className="w-full" style={{ minWidth: 480 }}>
             <thead>
               <tr>
                 {['Description', 'Qté', 'Unité', 'PU HT', 'TVA%', ''].map(h => (
-                  <th key={h} className="text-left text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] pb-2 pr-2">{h}</th>
+                  <th key={h} className="text-left text-[10px] font-bold uppercase tracking-wider text-soren-subtle pb-2 pr-2">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -346,7 +431,7 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
       </div>
 
       <div>
-        <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">Délai d'exécution</p>
+        <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-wider mb-3">Délai d'exécution</p>
         <textarea
           value={notes}
           onChange={e => setNotes(e.target.value)}
@@ -357,12 +442,12 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
       </div>
 
       <div className="bg-[#f9f9f7] rounded-2xl p-4 flex flex-col gap-2">
-        <div className="flex justify-between text-[12px] text-[#6B7280]">
+        <div className="flex justify-between text-[12px] text-soren-muted">
           <span>Total HT</span>
           <span className="font-semibold text-[#111]">{fmtEUR(ht)}</span>
         </div>
         {Object.entries(tvaMap).sort(([a], [b]) => Number(b) - Number(a)).map(([rate, amount]) => (
-          <div key={rate} className="flex justify-between text-[12px] text-[#6B7280]">
+          <div key={rate} className="flex justify-between text-[12px] text-soren-muted">
             <span>TVA {rate}%</span><span>{fmtEUR(amount)}</span>
           </div>
         ))}
@@ -375,12 +460,16 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
         devisId={initial.id}
         contactId={initial.contact_id}
         contactName={initial.contact_name}
+        contactEmail={initial.contact_email}
         conversationId={initial.conversation_id}
         source={initial.source}
         createdAt={initial.created_at}
-        envoyeLe={initial.envoye_le}
+        envoyeLe={envoyeLe}
         pdfUrl={pdfUrl}
         montantHt={ht > 0 ? ht : initial.montant_ht}
+        sigStatut={sigStatut}
+        signatureVuLe={initial.signature_vu_le}
+        signatureSigne={initial.signature_signe_le}
       />
 
       <div className="border-t border-[#f0f0eb] pt-3">
@@ -420,12 +509,12 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
 
   // ── Panneau droit compact ─────────────────────────────────────
   const previewPanel = (
-    <div className="w-[380px] flex-shrink-0 border-l border-[#e5e7eb] bg-[#F5F5F0] flex flex-col overflow-hidden">
+    <div className="w-[380px] flex-shrink-0 border-l border-[#e5e7eb] bg-soren-elevated flex flex-col overflow-hidden">
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4" style={{ scrollbarWidth: 'thin', scrollbarColor: '#D1D5DB transparent' }}>
 
         {/* Miniature PDF cliquable */}
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] mb-2">Document</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-soren-subtle mb-2">Document</p>
           <div
             onClick={() => setShowPreview(true)}
             className="w-full rounded-2xl overflow-hidden cursor-pointer group relative"
@@ -439,7 +528,7 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
               montantTtc={ttc > 0 ? ttc : null}
             />
             {/* Overlay aperçu — toujours visible */}
-            <div className="absolute top-2 left-2 bg-white/90 text-[#111] text-[10px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm pointer-events-none">
+            <div className="absolute top-2 left-2 bg-soren-card/90 text-[#111] text-[10px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm pointer-events-none">
               <ZoomIn size={10} /> Aperçu
             </div>
           </div>
@@ -452,7 +541,7 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
           contactEmail={initial.contact_email}
           signatureVuLe={initial.signature_vu_le}
           signatureSigne={initial.signature_signe_le}
-          onStatutChange={setSigStatut}
+          onStatutChange={(statut, date) => { setSigStatut(statut); if (date) setEnvoyeLe(date) }}
         />
 
         {/* Relances */}
@@ -467,7 +556,7 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
   return (
     <div className="flex flex-col h-full">
       {/* Header — ligne unique */}
-      <div className="bg-white border-b border-[#f0f0eb] flex-shrink-0">
+      <div className="bg-soren-card border-b border-[#f0f0eb] flex-shrink-0">
         <div className="flex items-center gap-4 px-5 py-4">
 
           {/* Retour */}
@@ -489,7 +578,7 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
               )}
               {initial.numero && initial.contact_name && <span className="text-[#E5E7EB]">·</span>}
               {initial.contact_name && (
-                <span className="text-[11px] text-[#9CA3AF] font-medium font-jakarta">{initial.contact_name}</span>
+                <span className="text-[11px] text-soren-subtle font-medium font-jakarta">{initial.contact_name}</span>
               )}
               <span
                 className="text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -502,7 +591,7 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
 
           {/* TTC */}
           <div className="text-right flex-shrink-0">
-            <p className="text-[10px] text-[#9CA3AF] font-medium mb-0.5">Total TTC</p>
+            <p className="text-[10px] text-soren-subtle font-medium mb-0.5">Total TTC</p>
             <p className="font-outfit text-[16px] font-extrabold text-[#111]">{fmtEUR(ttc > 0 ? ttc : 0)}</p>
           </div>
 
@@ -536,7 +625,7 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
       </div>
 
       <div className="flex-1 flex overflow-hidden" style={{ gap: 1, background: '#e5e7eb' }}>
-        <div className="flex-1 bg-white flex flex-col min-h-0">
+        <div className="flex-1 bg-soren-card flex flex-col min-h-0">
           {formPanel}
         </div>
         {previewPanel}
@@ -556,7 +645,7 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
           >
             <button
               onClick={() => setShowPreview(false)}
-              className="absolute top-3 right-3 z-10 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center text-[#6B7280] hover:text-[#111] transition-colors shadow-sm"
+              className="absolute top-3 right-3 z-10 w-8 h-8 bg-soren-card/90 hover:bg-soren-card rounded-full flex items-center justify-center text-soren-muted hover:text-[#111] transition-colors shadow-sm"
             >
               <X size={14} />
             </button>

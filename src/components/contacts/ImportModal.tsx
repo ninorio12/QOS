@@ -71,24 +71,24 @@ function StepBar({ step }: { step: Step }) {
     { n: 4, label: 'Vérifier',    sub: 'Confirmez l\'import' },
   ]
   return (
-    <div className="flex items-start gap-0 px-6 py-4 border-b border-[#E5E7EB]">
+    <div className="flex items-start gap-0 px-6 py-4 border-b border-soren-border">
       {steps.map((s, i) => (
         <div key={s.n} className="flex items-center flex-1">
           <div className="flex flex-col items-center gap-1 flex-shrink-0">
             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-              s.n < step  ? 'bg-[#111111] text-white' :
-              s.n === step ? 'bg-[#111111] text-white ring-4 ring-[#E2FF8D]' :
-              'bg-[#F0F0EE] text-[#9CA3AF] border border-[#E5E7EB]'
+              s.n < step  ? 'bg-soren-sidebar text-white' :
+              s.n === step ? 'bg-soren-sidebar text-white ring-4 ring-[#E2FF8D]' :
+              'bg-[#F0F0EE] text-soren-subtle border border-soren-border'
             }`}>
               {s.n < step ? <Check size={12} /> : s.n}
             </div>
             <div className="text-center">
-              <p className={`text-[11px] font-semibold ${s.n <= step ? 'text-[#111111]' : 'text-[#9CA3AF]'}`}>{s.label}</p>
-              <p className="text-[10px] text-[#9CA3AF] leading-tight max-w-[90px]">{s.sub}</p>
+              <p className={`text-[11px] font-semibold ${s.n <= step ? 'text-soren-text' : 'text-soren-subtle'}`}>{s.label}</p>
+              <p className="text-[10px] text-soren-subtle leading-tight max-w-[90px]">{s.sub}</p>
             </div>
           </div>
           {i < steps.length - 1 && (
-            <div className={`flex-1 h-px mt-[-14px] mx-2 ${s.n < step ? 'bg-[#111111]' : 'bg-[#E5E7EB]'}`} />
+            <div className={`flex-1 h-px mt-[-14px] mx-2 ${s.n < step ? 'bg-soren-sidebar' : 'bg-[#E5E7EB]'}`} />
           )}
         </div>
       ))}
@@ -187,16 +187,16 @@ export default function ImportModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-white rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="relative bg-soren-card rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0">
           <div>
-            <h2 className="text-xl font-black text-[#111111]">Importations</h2>
-            <p className="text-xs text-[#9CA3AF] mt-0.5">Importez contacts, prospects et des objets personnalisés</p>
+            <h2 className="text-xl font-black text-soren-text">Importations</h2>
+            <p className="text-xs text-soren-subtle mt-0.5">Importez contacts, prospects et des objets personnalisés</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#F5F5F0] flex items-center justify-center hover:bg-[#E5E7EB] transition-colors">
-            <X size={14} className="text-[#6B7280]" />
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-soren-elevated flex items-center justify-center hover:bg-[#E5E7EB] transition-colors">
+            <X size={14} className="text-soren-muted" />
           </button>
         </div>
 
@@ -209,7 +209,7 @@ export default function ImportModal({
           {step === 1 && (
             <div className="flex flex-col gap-4">
               <div>
-                <h3 className="text-sm font-bold text-[#111111] mb-3">Sélectionner des objets pour commencer l&apos;importation</h3>
+                <h3 className="text-sm font-bold text-soren-text mb-3">Sélectionner des objets pour commencer l&apos;importation</h3>
                 <div className="grid grid-cols-3 gap-3">
                   {[
                     { key: 'contacts',  Icon: Users,     label: 'Contacts',   desc: 'Contient la liste de tous les prospects, leurs informations et leurs spécifications.' },
@@ -223,14 +223,14 @@ export default function ImportModal({
                       className={`relative p-4 rounded-xl border-2 text-left transition-all ${
                         disabled ? 'border-[#F0F0EE] opacity-40 cursor-not-allowed' :
                         importType === key ? 'border-[#111111] bg-[#F9F9F7]' :
-                        'border-[#E5E7EB] hover:border-[#D1D5DB]'
+                        'border-soren-border hover:border-[#D1D5DB]'
                       }`}
                     >
-                      <Icon size={18} className={`mb-2 ${importType === key ? 'text-[#111111]' : 'text-[#9CA3AF]'}`} />
-                      <p className={`text-sm font-semibold mb-1 ${importType === key ? 'text-[#111111]' : 'text-[#374151]'}`}>{label}</p>
-                      <p className="text-[11px] text-[#9CA3AF] leading-relaxed">{desc}</p>
+                      <Icon size={18} className={`mb-2 ${importType === key ? 'text-soren-text' : 'text-soren-subtle'}`} />
+                      <p className={`text-sm font-semibold mb-1 ${importType === key ? 'text-soren-text' : 'text-[#374151]'}`}>{label}</p>
+                      <p className="text-[11px] text-soren-subtle leading-relaxed">{desc}</p>
                       {importType === key && !disabled && (
-                        <div className="absolute top-3 right-3 w-5 h-5 rounded bg-[#111111] flex items-center justify-center">
+                        <div className="absolute top-3 right-3 w-5 h-5 rounded bg-soren-sidebar flex items-center justify-center">
                           <Check size={11} className="text-white" />
                         </div>
                       )}
@@ -240,11 +240,11 @@ export default function ImportModal({
               </div>
 
               {/* Pipeline assignment */}
-              <div className="border border-[#E5E7EB] rounded-xl p-4">
+              <div className="border border-soren-border rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <Layers size={14} className="text-[#6B7280]" />
-                  <h3 className="text-sm font-semibold text-[#111111]">Assigner à un pipeline</h3>
-                  <span className="text-[10px] text-[#9CA3AF] font-medium">optionnel</span>
+                  <Layers size={14} className="text-soren-muted" />
+                  <h3 className="text-sm font-semibold text-soren-text">Assigner à un pipeline</h3>
+                  <span className="text-[10px] text-soren-subtle font-medium">optionnel</span>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {[
@@ -262,14 +262,14 @@ export default function ImportModal({
                         className={`relative p-3 rounded-xl border-2 text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                           isSelected
                             ? 'border-[#111111] bg-[#F9F9F7]'
-                            : 'border-[#E5E7EB] hover:border-[#D1D5DB]'
+                            : 'border-soren-border hover:border-[#D1D5DB]'
                         }`}
                       >
                         <div className="w-2.5 h-2.5 rounded-full mb-2" style={{ background: opt.color }} />
-                        <p className={`text-xs font-semibold mb-0.5 ${isSelected ? 'text-[#111111]' : 'text-[#374151]'}`}>{opt.label}</p>
-                        <p className="text-[10px] text-[#9CA3AF]">{opt.desc}</p>
+                        <p className={`text-xs font-semibold mb-0.5 ${isSelected ? 'text-soren-text' : 'text-[#374151]'}`}>{opt.label}</p>
+                        <p className="text-[10px] text-soren-subtle">{opt.desc}</p>
                         {isSelected && (
-                          <div className="absolute top-2 right-2 w-4 h-4 rounded bg-[#111111] flex items-center justify-center">
+                          <div className="absolute top-2 right-2 w-4 h-4 rounded bg-soren-sidebar flex items-center justify-center">
                             <Check size={9} className="text-white" />
                           </div>
                         )}
@@ -278,16 +278,16 @@ export default function ImportModal({
                   })}
                 </div>
                 {pipelineChoice && (
-                  <p className="text-[10px] text-[#6B7280] mt-2.5">
+                  <p className="text-[10px] text-soren-muted mt-2.5">
                     Chaque contact importé sera automatiquement placé en 1ère étape du pipeline {pipelineChoice === 'acquisition' ? 'Acquisition' : 'Réactivation'}.
                   </p>
                 )}
               </div>
 
-              <div className="border border-[#E5E7EB] rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-[#111111] mb-1">Importations précédentes</h3>
+              <div className="border border-soren-border rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-soren-text mb-1">Importations précédentes</h3>
                 <div className="h-px bg-[#F0F0EE] my-3" />
-                <p className="text-xs text-[#9CA3AF]">Les importations précédentes se trouvent dans Actions en masse</p>
+                <p className="text-xs text-soren-subtle">Les importations précédentes se trouvent dans Actions en masse</p>
               </div>
             </div>
           )}
@@ -296,11 +296,11 @@ export default function ImportModal({
           {step === 2 && (
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-[#111111]">Télécharger votre fichier CSV</h3>
+                <h3 className="text-sm font-bold text-soren-text">Télécharger votre fichier CSV</h3>
                 <a
                   href="data:text/csv;charset=utf-8,Prénom,Nom,E-mail,Téléphone,Entreprise%0AJean,Dupont,jean@exemple.fr,+33600000000,Dupont BTP"
                   download="template_contacts.csv"
-                  className="text-xs text-[#6B7280] underline hover:text-[#111111]"
+                  className="text-xs text-soren-muted underline hover:text-soren-text"
                 >
                   Télécharger le modèle CSV
                 </a>
@@ -312,23 +312,23 @@ export default function ImportModal({
                 onDrop={onDrop}
                 onClick={() => fileRef.current?.click()}
                 className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all ${
-                  dragging ? 'border-[#111111] bg-[#F5F5F0]' :
+                  dragging ? 'border-[#111111] bg-soren-elevated' :
                   file     ? 'border-[#22C55E] bg-[#F0FDF4]' :
-                  'border-[#E5E7EB] hover:border-[#D1D5DB] hover:bg-[#FAFAF8]'
+                  'border-soren-border hover:border-[#D1D5DB] hover:bg-[#FAFAF8]'
                 }`}
               >
                 {file ? (
                   <>
                     <FileText size={32} className="text-[#22C55E]" />
-                    <p className="text-sm font-semibold text-[#111111]">{file.name}</p>
-                    <p className="text-xs text-[#6B7280]">{rows.length} lignes détectées · {headers.length} colonnes</p>
+                    <p className="text-sm font-semibold text-soren-text">{file.name}</p>
+                    <p className="text-xs text-soren-muted">{rows.length} lignes détectées · {headers.length} colonnes</p>
                   </>
                 ) : (
                   <>
-                    <Upload size={32} className="text-[#9CA3AF]" />
+                    <Upload size={32} className="text-soren-subtle" />
                     <div className="text-center">
-                      <p className="text-sm font-semibold text-[#111111]">Glissez votre fichier CSV ici</p>
-                      <p className="text-xs text-[#9CA3AF] mt-0.5">ou cliquez pour parcourir</p>
+                      <p className="text-sm font-semibold text-soren-text">Glissez votre fichier CSV ici</p>
+                      <p className="text-xs text-soren-subtle mt-0.5">ou cliquez pour parcourir</p>
                     </div>
                   </>
                 )}
@@ -336,7 +336,7 @@ export default function ImportModal({
               </div>
 
               {file && rows.length > 0 && (
-                <div className="bg-[#F5F5F0] rounded-xl px-4 py-3 text-xs text-[#6B7280]">
+                <div className="bg-soren-elevated rounded-xl px-4 py-3 text-xs text-soren-muted">
                   Aperçu — {rows.length} contacts à importer. Colonne détectées : {headers.join(', ')}.
                 </div>
               )}
@@ -346,24 +346,24 @@ export default function ImportModal({
           {/* ── Step 3 : Carte ───────────────────────────────── */}
           {step === 3 && (
             <div className="flex flex-col gap-4">
-              <h3 className="text-sm font-bold text-[#111111]">Cartographiez les colonnes sur les champs CRM</h3>
-              <div className="border border-[#E5E7EB] rounded-xl overflow-hidden">
+              <h3 className="text-sm font-bold text-soren-text">Cartographiez les colonnes sur les champs CRM</h3>
+              <div className="border border-soren-border rounded-xl overflow-hidden">
                 <table className="w-full">
-                  <thead className="bg-[#F9F9F7] border-b border-[#E5E7EB]">
+                  <thead className="bg-[#F9F9F7] border-b border-soren-border">
                     <tr>
-                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-[#6B7280] uppercase tracking-wide">Colonne CSV</th>
-                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-[#6B7280] uppercase tracking-wide">Aperçu</th>
-                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-[#6B7280] uppercase tracking-wide">Champ CRM</th>
+                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-soren-muted uppercase tracking-wide">Colonne CSV</th>
+                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-soren-muted uppercase tracking-wide">Aperçu</th>
+                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-soren-muted uppercase tracking-wide">Champ CRM</th>
                     </tr>
                   </thead>
                   <tbody>
                     {headers.map(h => (
                       <tr key={h} className="border-b border-[#F0F0EE] last:border-0">
                         <td className="px-4 py-2.5">
-                          <span className="text-sm font-medium text-[#111111]">{h}</span>
+                          <span className="text-sm font-medium text-soren-text">{h}</span>
                         </td>
                         <td className="px-4 py-2.5">
-                          <span className="text-xs text-[#9CA3AF] truncate max-w-[120px] block">
+                          <span className="text-xs text-soren-subtle truncate max-w-[120px] block">
                             {rows[0]?.[h] ?? '—'}
                           </span>
                         </td>
@@ -371,7 +371,7 @@ export default function ImportModal({
                           <select
                             value={mapping[h] ?? '_ignore'}
                             onChange={e => setMapping(m => ({ ...m, [h]: e.target.value }))}
-                            className="w-full bg-[#F5F5F0] border-0 rounded-lg px-2.5 py-1.5 text-xs text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none"
+                            className="w-full bg-soren-elevated border-0 rounded-lg px-2.5 py-1.5 text-xs text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none"
                           >
                             {GHL_FIELDS.map(f => (
                               <option key={f.key} value={f.key}>{f.label}</option>
@@ -396,7 +396,7 @@ export default function ImportModal({
                   : <AlertCircle size={20} className="text-[#EF4444] flex-shrink-0" />
                 }
                 <div>
-                  <p className="text-sm font-bold text-[#111111]">
+                  <p className="text-sm font-bold text-soren-text">
                     {result.created} contact{result.created > 1 ? 's' : ''} importé{result.created > 1 ? 's' : ''} avec succès
                   </p>
                   {result.errors.length > 0 && (
@@ -407,12 +407,12 @@ export default function ImportModal({
 
               {/* Preview table */}
               {mappedPreview.length > 0 && (
-                <div className="border border-[#E5E7EB] rounded-xl overflow-hidden">
+                <div className="border border-soren-border rounded-xl overflow-hidden">
                   <table className="w-full">
-                    <thead className="bg-[#F9F9F7] border-b border-[#E5E7EB]">
+                    <thead className="bg-[#F9F9F7] border-b border-soren-border">
                       <tr>
                         {['Prénom', 'Nom', 'E-mail', 'Téléphone', 'Entreprise'].map(c => (
-                          <th key={c} className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#6B7280] uppercase tracking-wide">{c}</th>
+                          <th key={c} className="px-3 py-2.5 text-left text-[11px] font-semibold text-soren-muted uppercase tracking-wide">{c}</th>
                         ))}
                       </tr>
                     </thead>
@@ -429,7 +429,7 @@ export default function ImportModal({
                                   style={{ background: color, color: isDark ? '#111111' : '#ffffff' }}>
                                   {initials}
                                 </div>
-                                <span className="text-xs text-[#111111]">{r.firstName}</span>
+                                <span className="text-xs text-soren-text">{r.firstName}</span>
                               </div>
                             </td>
                             <td className="px-3 py-2.5 text-xs text-[#374151]">{r.lastName}</td>
@@ -449,22 +449,22 @@ export default function ImportModal({
           {/* Step 4 — preview before importing */}
           {step === 4 && !result && (
             <div className="flex flex-col gap-4">
-              <div className="bg-[#F5F5F0] rounded-xl px-4 py-3 text-sm text-[#111111]">
+              <div className="bg-soren-elevated rounded-xl px-4 py-3 text-sm text-soren-text">
                 <span className="font-bold">{buildMappedRows().length} contacts</span> prêts à être importés.
               </div>
-              <div className="border border-[#E5E7EB] rounded-xl overflow-hidden">
+              <div className="border border-soren-border rounded-xl overflow-hidden">
                 <table className="w-full">
-                  <thead className="bg-[#F9F9F7] border-b border-[#E5E7EB]">
+                  <thead className="bg-[#F9F9F7] border-b border-soren-border">
                     <tr>
                       {['Prénom', 'Nom', 'E-mail', 'Téléphone', 'Entreprise'].map(c => (
-                        <th key={c} className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#6B7280] uppercase tracking-wide">{c}</th>
+                        <th key={c} className="px-3 py-2.5 text-left text-[11px] font-semibold text-soren-muted uppercase tracking-wide">{c}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {buildMappedRows().slice(0, 8).map((r, i) => (
                       <tr key={i} className="border-b border-[#F0F0EE] last:border-0">
-                        <td className="px-3 py-2.5 text-xs text-[#111111]">{r.firstName || '—'}</td>
+                        <td className="px-3 py-2.5 text-xs text-soren-text">{r.firstName || '—'}</td>
                         <td className="px-3 py-2.5 text-xs text-[#374151]">{r.lastName || '—'}</td>
                         <td className="px-3 py-2.5 text-xs text-[#374151]">{r.email || '—'}</td>
                         <td className="px-3 py-2.5 text-xs text-[#374151]">{r.phone || '—'}</td>
@@ -479,12 +479,12 @@ export default function ImportModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E7EB] flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-soren-border flex-shrink-0">
           <div className="flex items-center gap-2">
             {step > 1 && !result && (
               <button
                 onClick={() => setStep(s => (s - 1) as Step)}
-                className="px-4 py-2 rounded-full border border-[#E5E7EB] text-sm text-[#6B7280] hover:border-[#D1D5DB] hover:text-[#111111] transition-colors"
+                className="px-4 py-2 rounded-full border border-soren-border text-sm text-soren-muted hover:border-[#D1D5DB] hover:text-soren-text transition-colors"
               >
                 Retour
               </button>
@@ -492,7 +492,7 @@ export default function ImportModal({
           </div>
 
           <div className="flex items-center gap-2">
-            <button onClick={onClose} className="px-4 py-2 rounded-full border border-[#E5E7EB] text-sm text-[#6B7280] hover:border-[#D1D5DB] hover:text-[#111111] transition-colors">
+            <button onClick={onClose} className="px-4 py-2 rounded-full border border-soren-border text-sm text-soren-muted hover:border-[#D1D5DB] hover:text-soren-text transition-colors">
               {result ? 'Fermer' : 'Annuler'}
             </button>
 
@@ -503,7 +503,7 @@ export default function ImportModal({
                   setStep(s => (s + 1) as Step)
                 }}
                 disabled={step === 2 && !file}
-                className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#111111] hover:bg-[#2a2a2a] disabled:opacity-40 text-white text-sm font-semibold transition-colors"
+                className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-soren-sidebar hover:bg-[#2a2a2a] disabled:opacity-40 text-white text-sm font-semibold transition-colors"
               >
                 Suivant <ChevronRight size={14} />
               </button>
@@ -513,7 +513,7 @@ export default function ImportModal({
               <button
                 onClick={handleImport}
                 disabled={importing || buildMappedRows().length === 0}
-                className="px-5 py-2 rounded-full bg-[#111111] hover:bg-[#2a2a2a] disabled:opacity-40 text-white text-sm font-semibold transition-colors"
+                className="px-5 py-2 rounded-full bg-soren-sidebar hover:bg-[#2a2a2a] disabled:opacity-40 text-white text-sm font-semibold transition-colors"
               >
                 {importing ? 'Import en cours...' : `Importer ${buildMappedRows().length} contacts`}
               </button>
@@ -522,7 +522,7 @@ export default function ImportModal({
             {result && (
               <button
                 onClick={() => onImported(result.created)}
-                className="px-5 py-2 rounded-full bg-[#111111] hover:bg-[#2a2a2a] text-white text-sm font-semibold transition-colors"
+                className="px-5 py-2 rounded-full bg-soren-sidebar hover:bg-[#2a2a2a] text-white text-sm font-semibold transition-colors"
               >
                 Terminer
               </button>

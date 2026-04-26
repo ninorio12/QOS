@@ -2,15 +2,15 @@ export default function ConversationsLoading() {
   return (
     <div className="h-full flex overflow-hidden animate-pulse">
       {/* Left nav */}
-      <div className="w-40 flex-shrink-0 border-r border-[#E5E7EB] bg-white p-3 flex flex-col gap-1">
+      <div className="w-40 flex-shrink-0 border-r border-soren-border bg-soren-card p-3 flex flex-col gap-1">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="h-8 w-full bg-[#E5E7EB] rounded-xl" />
         ))}
       </div>
 
       {/* Conversation list */}
-      <div className="w-72 flex-shrink-0 border-r border-[#E5E7EB] bg-white flex flex-col">
-        <div className="p-3 border-b border-[#E5E7EB]">
+      <div className="w-72 flex-shrink-0 border-r border-soren-border bg-soren-card flex flex-col">
+        <div className="p-3 border-b border-soren-border">
           <div className="h-8 w-full bg-[#E5E7EB] rounded-xl" />
         </div>
         <div className="flex-1 overflow-hidden">
@@ -30,8 +30,8 @@ export default function ConversationsLoading() {
       </div>
 
       {/* Message thread */}
-      <div className="flex-1 flex flex-col bg-white">
-        <div className="flex items-center gap-3 p-4 border-b border-[#E5E7EB]">
+      <div className="flex-1 flex flex-col bg-soren-card">
+        <div className="flex items-center gap-3 p-4 border-b border-soren-border">
           <div className="w-10 h-10 rounded-full bg-[#D9DDD6]" />
           <div>
             <div className="h-3 w-32 bg-[#D9DDD6] rounded mb-1.5" />
@@ -48,7 +48,7 @@ export default function ConversationsLoading() {
             </div>
           ))}
         </div>
-        <div className="p-4 border-t border-[#E5E7EB]">
+        <div className="p-4 border-t border-soren-border">
           <div className="h-10 w-full bg-[#E5E7EB] rounded-xl" />
         </div>
       </div>

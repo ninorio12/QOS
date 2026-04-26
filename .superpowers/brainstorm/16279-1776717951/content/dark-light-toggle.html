@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dark / Light Toggle</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0f0f0f; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 32px 20px 48px; }
+
+  h2 { color: #fff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; text-align: center; }
+  .subtitle { color: #666; font-size: 14px; text-align: center; margin-bottom: 36px; }
+
+  .demo-container { display: flex; flex-direction: column; align-items: center; gap: 28px; width: 100%; max-width: 400px; }
+
+  /* Toggle control */
+  .toggle-wrapper { display: flex; align-items: center; gap: 16px; background: #1a1a1a; border-radius: 16px; padding: 12px 20px; }
+  .toggle-label { font-size: 14px; font-weight: 600; }
+  .toggle-label.light { color: #EEF0EB; }
+  .toggle-label.dark { color: #444; }
+  #modeToggle { display: none; }
+  .toggle-track {
+    position: relative; width: 56px; height: 30px; background: #E2FF8D; border-radius: 15px;
+    cursor: pointer; transition: background 0.3s ease;
+  }
+  .toggle-thumb {
+    position: absolute; top: 3px; left: 3px; width: 24px; height: 24px;
+    background: #1A5C38; border-radius: 50%; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    display: flex; align-items: center; justify-content: center; font-size: 12px;
+  }
+  .dark-mode .toggle-track { background: #333; }
+  .dark-mode .toggle-thumb { transform: translateX(26px); background: #E2FF8D; }
+  .dark-mode .toggle-label.light { color: #444; }
+  .dark-mode .toggle-label.dark { color: #EEF0EB; }
+
+  /* Phone mockup */
+  .phone-wrapper {
+    width: 220px; height: 460px; border-radius: 36px; overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+    position: relative;
+  }
+  .phone {
+    width: 100%; height: 100%;
+    transition: background 0.4s ease;
+    display: flex; flex-direction: column;
+    font-size: 13px;
+  }
+
+  /* LIGHT MODE */
+  .phone.light { background: #EEF0EB; }
+  .phone.light .status { background: #EEF0EB; color: #111; padding: 12px 18px 6px; display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; }
+  .phone.light .topbar { padding: 6px 18px 10px; display: flex; justify-content: space-between; align-items: center; }
+  .phone.light .topbar .greeting { font-size: 11px; color: #9CA3AF; }
+  .phone.light .topbar .title { font-size: 18px; font-weight: 900; color: #111; letter-spacing: -0.8px; }
+  .phone.light .toggle-btn { width: 32px; height: 32px; background: #E2FF8D; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; border: none; }
+  .phone.light .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 14px; margin-bottom: 10px; }
+  .phone.light .kpi { background: white; border-radius: 18px; padding: 14px 14px 12px; }
+  .phone.light .kpi-label { font-size: 9px; color: #9CA3AF; margin-bottom: 6px; }
+  .phone.light .kpi-value { font-size: 18px; font-weight: 900; color: #111; letter-spacing: -0.8px; }
+  .phone.light .kpi-value.blue { color: #3462EE; }
+  .phone.light .agents { margin: 0 14px 10px; background: white; border-radius: 18px; padding: 12px 14px; }
+  .phone.light .agents-title { font-size: 9px; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .phone.light .agent-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .phone.light .agent-avatar { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: white; flex-shrink: 0; }
+  .phone.light .agent-name { font-size: 11px; font-weight: 700; color: #111; }
+  .phone.light .agent-role { font-size: 9px; color: #9CA3AF; }
+  .phone.light .dot { width: 7px; height: 7px; border-radius: 50%; margin-left: auto; }
+  .phone.light .dot.on { background: #34D399; }
+  .phone.light .dot.off { background: #D1D5DB; }
+  .phone.light .bottom-nav { margin-top: auto; background: white; border-top: 1px solid rgba(0,0,0,0.06); padding: 8px 10px 12px; display: flex; justify-content: space-around; }
+  .phone.light .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .phone.light .nav-icon { width: 22px; height: 22px; border-radius: 6px; }
+  .phone.light .nav-icon.active { background: #3462EE; }
+  .phone.light .nav-icon.inactive { background: #E5E7EB; }
+  .phone.light .nav-label { font-size: 7px; font-weight: 600; }
+  .phone.light .nav-label.active { color: #3462EE; }
+  .phone.light .nav-label.inactive { color: #9CA3AF; }
+
+  /* DARK MODE */
+  .phone.dark { background: #111111; }
+  .phone.dark .status { background: #111; color: #fff; padding: 12px 18px 6px; display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; }
+  .phone.dark .topbar { padding: 6px 18px 10px; display: flex; justify-content: space-between; align-items: center; }
+  .phone.dark .topbar .greeting { font-size: 11px; color: #444; }
+  .phone.dark .topbar .title { font-size: 18px; font-weight: 900; color: #fff; letter-spacing: -0.8px; }
+  .phone.dark .toggle-btn { width: 32px; height: 32px; background: #1E1E1E; border: 1px solid #2a2a2a; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; }
+  .phone.dark .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 14px; margin-bottom: 10px; }
+  .phone.dark .kpi { background: #1E1E1E; border: 1px solid #2a2a2a; border-radius: 18px; padding: 14px 14px 12px; }
+  .phone.dark .kpi-label { font-size: 9px; color: #555; margin-bottom: 6px; }
+  .phone.dark .kpi-value { font-size: 18px; font-weight: 900; color: #E2FF8D; letter-spacing: -0.8px; }
+  .phone.dark .kpi-value.blue { color: #fff; }
+  .phone.dark .agents { margin: 0 14px 10px; background: #1E1E1E; border: 1px solid #2a2a2a; border-radius: 18px; padding: 12px 14px; }
+  .phone.dark .agents-title { font-size: 9px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .phone.dark .agent-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .phone.dark .agent-avatar { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: white; flex-shrink: 0; }
+  .phone.dark .agent-name { font-size: 11px; font-weight: 700; color: #fff; }
+  .phone.dark .agent-role { font-size: 9px; color: #555; }
+  .phone.dark .dot { width: 7px; height: 7px; border-radius: 50%; margin-left: auto; }
+  .phone.dark .dot.on { background: #34D399; }
+  .phone.dark .dot.off { background: #333; }
+  .phone.dark .bottom-nav { margin-top: auto; background: #1A1A1A; border-top: 1px solid #2a2a2a; padding: 8px 10px 12px; display: flex; justify-content: space-around; }
+  .phone.dark .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .phone.dark .nav-icon { width: 22px; height: 22px; border-radius: 6px; }
+  .phone.dark .nav-icon.active { background: #E2FF8D; }
+  .phone.dark .nav-icon.inactive { background: #2a2a2a; }
+  .phone.dark .nav-label { font-size: 7px; font-weight: 600; }
+  .phone.dark .nav-label.active { color: #E2FF8D; }
+  .phone.dark .nav-label.inactive { color: #444; }
+
+  /* Placement question */
+  .question-box { background: #1a1a1a; border-radius: 16px; padding: 20px; width: 100%; max-width: 500px; }
+  .question-box h3 { color: #fff; font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+  .placement-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .placement-opt {
+    background: #111; border: 2px solid #2a2a2a; border-radius: 12px; padding: 14px;
+    cursor: pointer; transition: all 0.2s ease; text-align: center;
+  }
+  .placement-opt:hover { border-color: #E2FF8D; }
+  .placement-opt.selected { border-color: #E2FF8D; background: #E2FF8D10; }
+  .placement-opt .icon { font-size: 22px; margin-bottom: 6px; }
+  .placement-opt .opt-title { font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 3px; }
+  .placement-opt .opt-desc { font-size: 10px; color: #666; }
+
+  .info-bar { background: #1a1a1a; border-radius: 12px; padding: 14px 18px; width: 100%; max-width: 500px; display: flex; align-items: center; gap: 12px; }
+  .info-bar .dot-lime { width: 8px; height: 8px; background: #E2FF8D; border-radius: 50%; flex-shrink: 0; }
+  .info-bar p { font-size: 12px; color: #888; line-height: 1.5; }
+  .info-bar strong { color: #E2FF8D; }
+</style>
+<script>
+  let isDark = false;
+  function toggleMode() {
+    isDark = !isDark;
+    const phone = document.getElementById('phone');
+    const wrapper = document.getElementById('phoneWrapper');
+    const body = document.body;
+    phone.className = 'phone ' + (isDark ? 'dark' : 'light');
+    body.className = isDark ? 'dark-mode' : '';
+    // Update toggle label visibility
+    document.getElementById('sun').style.opacity = isDark ? '0.3' : '1';
+    document.getElementById('moon').style.opacity = isDark ? '1' : '0.3';
+    if (isDark) {
+      wrapper.style.boxShadow = '0 20px 60px rgba(0,0,0,0.8)';
+    } else {
+      wrapper.style.boxShadow = '0 20px 60px rgba(0,0,0,0.2)';
+    }
+  }
+
+  function selectPlacement(el, choice) {
+    document.querySelectorAll('.placement-opt').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    // Log selection
+    if (window.logChoice) window.logChoice(choice, el.querySelector('.opt-title').textContent);
+  }
+</script>
+</head>
+<body>
+  <h2>Dark / Light — One tap, instant switch</h2>
+  <p class="subtitle">Clique sur le toggle pour voir le changement en live</p>
+
+  <div class="demo-container">
+
+    <!-- Toggle control -->
+    <div class="toggle-wrapper">
+      <span class="toggle-label light" id="sun">☀️ Light</span>
+      <div class="toggle-track" onclick="toggleMode()">
+        <div class="toggle-thumb">🌙</div>
+      </div>
+      <span class="toggle-label dark" id="moon" style="opacity:0.3;">Dark 🌑</span>
+    </div>
+
+    <!-- Phone mockup -->
+    <div class="phone-wrapper" id="phoneWrapper">
+      <div class="phone light" id="phone">
+        <div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="topbar">
+          <div><div class="greeting">Bonjour,</div><div class="title">Soren</div></div>
+          <button class="toggle-btn" onclick="toggleMode()">☀️</button>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-label">Pipeline</div><div class="kpi-value">93.8k€</div></div>
+          <div class="kpi"><div class="kpi-label">Messages</div><div class="kpi-value blue">3</div></div>
+        </div>
+        <div class="agents">
+          <div class="agents-title">Équipe IA</div>
+          <div class="agent-row">
+            <div class="agent-avatar" style="background:#4A91A8;">S</div>
+            <div><div class="agent-name">Soren</div><div class="agent-role">Orchestrateur</div></div>
+            <div class="dot on"></div>
+          </div>
+          <div class="agent-row">
+            <div class="agent-avatar" style="background:#1A5C38;">K</div>
+            <div><div class="agent-name">Kai</div><div class="agent-role">Réponses clients</div></div>
+            <div class="dot on"></div>
+          </div>
+          <div class="agent-row">
+            <div class="agent-avatar" style="background:#E8836A;">M</div>
+            <div><div class="agent-name">Mia</div><div class="agent-role">Devis & données</div></div>
+            <div class="dot off"></div>
+          </div>
+        </div>
+        <div class="bottom-nav">
+          <div class="nav-item"><div class="nav-icon active"></div><div class="nav-label active">Accueil</div></div>
+          <div class="nav-item"><div class="nav-icon inactive"></div><div class="nav-label inactive">Messages</div></div>
+          <div class="nav-item"><div class="nav-icon inactive"></div><div class="nav-label inactive">Contacts</div></div>
+          <div class="nav-item"><div class="nav-icon inactive"></div><div class="nav-label inactive">Agents</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Placement question -->
+    <div class="question-box">
+      <h3>Où placer le toggle dans l'app ?</h3>
+      <div class="placement-options">
+        <div class="placement-opt" onclick="selectPlacement(this, 'topbar')">
+          <div class="icon">☀️</div>
+          <div class="opt-title">TopBar</div>
+          <div class="opt-desc">Icône soleil/lune en haut à droite — accessible partout</div>
+        </div>
+        <div class="placement-opt" onclick="selectPlacement(this, 'settings')">
+          <div class="icon">⚙️</div>
+          <div class="opt-title">Paramètres</div>
+          <div class="opt-desc">Dans la page "Plus" — moins visible mais propre</div>
+        </div>
+        <div class="placement-opt" onclick="selectPlacement(this, 'gesture')">
+          <div class="icon">👆</div>
+          <div class="opt-title">Geste long-press</div>
+          <div class="opt-desc">Long press sur le logo Soren — secret & fluide</div>
+        </div>
+        <div class="placement-opt" onclick="selectPlacement(this, 'auto')">
+          <div class="icon">📱</div>
+          <div class="opt-title">Suit le système</div>
+          <div class="opt-desc">Auto selon iOS/Android + override manuel dans Settings</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-bar">
+      <div class="dot-lime"></div>
+      <p>Le toggle sera <strong>instantané, sans rechargement</strong> — CSS variables + localStorage. Les couleurs transitionnent en <strong>300ms smooth</strong> sur toute l'app.</p>
+    </div>
+
+  </div>
+
+  <script>
+    // Hook into superpowers selection system
+    window.addEventListener('load', function() {
+      document.querySelectorAll('.placement-opt').forEach(function(opt) {
+        opt.addEventListener('click', function() {
+          var choice = this.getAttribute('data-choice') || this.querySelector('.opt-title').textContent;
+          if (window.parent && window.parent.logChoice) {
+            window.parent.logChoice(choice, this.querySelector('.opt-title').textContent);
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

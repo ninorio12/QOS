@@ -29,9 +29,9 @@ export async function DELETE(
     .maybeSingle()
 
   // 2. Delete from Google Calendar if linked
-  if (link?.google_event_id && isGoogleConfigured()) {
+  if (link?.google_event_id && await isGoogleConfigured()) {
     try {
-      const cal = getCalendarClient()
+      const cal = await getCalendarClient()
       const calId = process.env.GOOGLE_CALENDAR_ID || 'primary'
       await cal.events.delete({ calendarId: calId, eventId: link.google_event_id })
     } catch (err) {

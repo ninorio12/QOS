@@ -15,7 +15,7 @@ export default function PipelineLoading() {
         {Array.from({ length: 4 }).map((_, colIdx) => (
           <div
             key={colIdx}
-            className="flex-1 min-w-[220px] flex flex-col bg-white/50 rounded-2xl p-3 border border-[#E5E7EB]"
+            className="flex-1 min-w-[220px] flex flex-col bg-soren-card/50 rounded-2xl p-3 border border-soren-border"
           >
             {/* Column header */}
             <div className="flex items-center justify-between mb-3">
@@ -28,7 +28,7 @@ export default function PipelineLoading() {
               {Array.from({ length: 3 - (colIdx % 2) }).map((_, cardIdx) => (
                 <div
                   key={cardIdx}
-                  className="bg-white rounded-xl p-3 border border-[#E5E7EB] shadow-sm"
+                  className="bg-soren-card rounded-xl p-3 border border-soren-border shadow-sm"
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-7 h-7 rounded-full bg-[#E5E7EB]" />

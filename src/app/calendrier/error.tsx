@@ -18,7 +18,7 @@ export default function CalendrierError({
       <p className="text-sm font-semibold text-[#EF4444]">Erreur : {error.message}</p>
       <button
         onClick={reset}
-        className="px-4 py-2 bg-[#111111] text-white text-sm font-semibold rounded-full"
+        className="px-4 py-2 bg-soren-sidebar text-white text-sm font-semibold rounded-full"
       >
         Réessayer
       </button>

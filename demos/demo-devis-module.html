@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Devis Module — Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #EEF0EB; color: #111; display: flex; height: 100vh; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 220px; background: #111; flex-shrink: 0;
+    display: flex; flex-direction: column; padding: 20px 12px;
+  }
+  .sidebar-logo { color: #E2FF8D; font-weight: 800; font-size: 18px; padding: 0 8px; margin-bottom: 28px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+    border-radius: 12px; color: #6b7280; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .nav-item.active { background: rgba(255,255,255,0.08); color: white; }
+  .nav-item svg { opacity: 0.6; }
+  .nav-item.active svg { opacity: 1; }
+
+  /* ── Main ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── View toggle ── */
+  .view { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  .view.active { display: flex; }
+
+  /* ─────────────────────────────────────────
+     VIEW 1 — LIST
+  ───────────────────────────────────────── */
+  .list-header {
+    padding: 20px 24px 16px;
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  .list-title { font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 800; }
+  .btn-new {
+    display: flex; align-items: center; gap-6px; gap: 6px;
+    background: #111; color: white; border: none; border-radius: 999px;
+    padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  .devis-grid-wrapper {
+    flex: 1; overflow-x: auto; overflow-y: hidden;
+    padding: 0 24px 24px;
+  }
+  .devis-grid-wrapper::-webkit-scrollbar { height: 6px; }
+  .devis-grid-wrapper::-webkit-scrollbar-track { background: transparent; }
+  .devis-grid-wrapper::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+  .devis-grid {
+    display: flex; flex-direction: row;
+    gap: 16px; height: 100%; min-width: max-content;
+  }
+
+  .devis-card {
+    background: white; border-radius: 20px; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor: pointer;
+    transition: all 0.2s; border: 1.5px solid transparent;
+    flex-shrink: 0; width: 220px; height: fit-content;
+  }
+  .devis-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.10); border-color: #E2FF8D; }
+
+  /* PDF Thumbnail */
+  .card-thumb {
+    height: 140px; background: #f8f8f6;
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .card-thumb .pdf-mini {
+    width: 82px; height: 116px; background: white;
+    border-radius: 4px; box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    overflow: hidden; transform: scale(0.95);
+    display: flex; flex-direction: column;
+  }
+  .pdf-mini .pdf-header {
+    background: #111; height: 22px; padding: 0 6px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .pdf-mini .pdf-header span { color: #E2FF8D; font-size: 5px; font-weight: 800; }
+  .pdf-mini .pdf-body { padding: 5px; flex: 1; }
+  .pdf-mini .pdf-line { height: 3px; background: #e5e7eb; border-radius: 2px; margin-bottom: 3px; }
+  .pdf-mini .pdf-line.dark { background: #d1d5db; }
+  .pdf-mini .pdf-table { margin-top: 5px; }
+  .pdf-mini .pdf-row { display: flex; gap: 2px; margin-bottom: 2px; }
+  .pdf-mini .pdf-cell { height: 4px; background: #f3f4f6; border-radius: 1px; flex: 1; }
+  .pdf-mini .pdf-cell.head { background: #111; }
+  .pdf-mini .pdf-footer {
+    background: #f0f0eb; height: 14px; padding: 0 5px;
+    display: flex; align-items: center; justify-content: flex-end;
+  }
+  .pdf-mini .pdf-footer span { font-size: 4px; font-weight: 800; color: #111; }
+
+  .card-thumb .no-pdf {
+    width: 82px; height: 116px; background: #f3f4f6;
+    border-radius: 4px; border: 1.5px dashed #d1d5db;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  }
+  .card-thumb .no-pdf svg { opacity: 0.3; }
+  .card-thumb .no-pdf span { font-size: 8px; color: #9ca3af; font-weight: 600; }
+
+  .card-info { padding: 12px 14px 14px; }
+  .card-num { font-size: 10px; color: #9ca3af; font-weight: 600; margin-bottom: 3px; }
+  .card-titre { font-size: 13px; font-weight: 700; color: #111; margin-bottom: 2px; truncate: true; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-contact { font-size: 11px; color: #6b7280; margin-bottom: 8px; }
+  .card-bottom { display: flex; align-items: center; justify-content: space-between; }
+  .card-amount { font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 700; }
+  .badge {
+    font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+  }
+  .badge.brouillon { background: #f3f4f6; color: #6b7280; }
+  .badge.envoye { background: #EEF3FF; color: #3462EE; }
+  .badge.accepte { background: #f0fdf4; color: #16a34a; }
+  .badge.refuse { background: #fef2f2; color: #dc2626; }
+
+  /* ─────────────────────────────────────────
+     VIEW 2 — DETAIL (Split Screen)
+  ───────────────────────────────────────── */
+  .detail-header {
+    padding: 14px 20px; background: white; border-bottom: 1px solid #f0f0eb;
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  .detail-header-left { display: flex; align-items: center; gap: 12px; }
+  .btn-back {
+    width: 32px; height: 32px; background: #f5f5f0; border: none; border-radius: 10px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .detail-num { font-size: 12px; color: #9ca3af; font-weight: 600; }
+  .detail-titre { font-size: 16px; font-weight: 700; }
+  .detail-actions { display: flex; align-items: center; gap: 8px; }
+  .btn-action {
+    display: flex; align-items: center; gap: 5px; padding: 7px 14px;
+    border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+    border: none; font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .btn-action.outline { background: #f5f5f0; color: #111; }
+  .btn-action.primary { background: #111; color: white; }
+  .btn-action.lime { background: #E2FF8D; color: #111; }
+
+  /* Split layout */
+  .split-wrapper {
+    display: flex; flex: 1; overflow: hidden; gap: 1px; background: #e5e7eb;
+  }
+
+  /* LEFT — Form */
+  .form-panel {
+    width: 45%; background: white; overflow-y: auto; padding: 24px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .form-section { display: flex; flex-direction: column; gap: 10px; }
+  .form-section-title { font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
+  .form-row { display: flex; gap: 10px; }
+  .form-field { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .form-label { font-size: 11px; font-weight: 600; color: #6b7280; }
+  .form-input {
+    background: #f9f9f7; border: 1.5px solid #f0f0eb; border-radius: 10px;
+    padding: 8px 12px; font-size: 13px; color: #111; outline: none;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .form-input:focus { border-color: #3462EE; background: white; }
+
+  /* Lignes table */
+  .lignes-table { width: 100%; border-collapse: collapse; }
+  .lignes-table th {
+    font-size: 10px; font-weight: 700; color: #9ca3af; text-align: left;
+    padding: 6px 8px; border-bottom: 1.5px solid #f0f0eb;
+  }
+  .lignes-table td { padding: 6px 8px; border-bottom: 1px solid #f9f9f7; }
+  .lignes-table td input {
+    background: transparent; border: none; outline: none; width: 100%;
+    font-size: 12px; color: #111; font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .lignes-table td input:focus { background: #EEF3FF; border-radius: 6px; padding: 2px 4px; }
+  .totaux { background: #f9f9f7; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .totaux-row { display: flex; justify-content: space-between; font-size: 12px; color: #6b7280; }
+  .totaux-row.ttc { font-weight: 800; font-size: 14px; color: #111; border-top: 1.5px solid #e5e7eb; padding-top: 8px; margin-top: 2px; }
+
+  /* RIGHT — Preview */
+  .preview-panel {
+    flex: 1; background: #e8e9e4; overflow-y: auto;
+    display: flex; flex-direction: column; align-items: center; padding: 24px 20px;
+  }
+  .preview-toolbar {
+    width: 100%; max-width: 540px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+  }
+  .preview-label { font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
+  .preview-actions { display: flex; gap: 6px; }
+  .btn-xs {
+    font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 8px;
+    border: none; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .btn-xs.dark { background: #111; color: white; }
+  .btn-xs.ghost { background: white; color: #6b7280; }
+
+  /* A4 page */
+  .a4-page {
+    width: 100%; max-width: 540px; background: white;
+    border-radius: 8px; box-shadow: 0 4px 32px rgba(0,0,0,0.12);
+    overflow: hidden;
+  }
+  .a4-header {
+    background: #111; padding: 20px 24px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .a4-logo { display: flex; flex-direction: column; gap: 2px; }
+  .a4-logo-name { color: #E2FF8D; font-weight: 800; font-size: 16px; }
+  .a4-logo-tag { color: rgba(255,255,255,0.4); font-size: 9px; }
+  .a4-devis-info { text-align: right; }
+  .a4-devis-num { color: white; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; }
+  .a4-devis-meta { color: rgba(255,255,255,0.4); font-size: 9px; margin-top: 4px; }
+  .a4-body { padding: 20px 24px; }
+  .a4-client-block {
+    background: #f9f9f7; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;
+    display: flex; justify-content: space-between;
+  }
+  .a4-client-name { font-size: 13px; font-weight: 700; }
+  .a4-client-info { font-size: 10px; color: #6b7280; margin-top: 2px; }
+  .a4-object { font-size: 11px; font-weight: 700; color: #9ca3af; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .a4-object span { color: #111; }
+  .a4-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  .a4-table th {
+    font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: white; background: #111; padding: 7px 8px; text-align: left;
+  }
+  .a4-table th:last-child { text-align: right; }
+  .a4-table td { font-size: 10px; padding: 7px 8px; border-bottom: 1px solid #f0f0eb; }
+  .a4-table td:last-child { text-align: right; font-weight: 600; }
+  .a4-table tr:nth-child(even) td { background: #fafaf8; }
+  .a4-totaux {
+    display: flex; justify-content: flex-end;
+  }
+  .a4-totaux-block { width: 180px; }
+  .a4-tot-row { display: flex; justify-content: space-between; font-size: 10px; color: #6b7280; padding: 3px 0; }
+  .a4-tot-row.ttc {
+    font-size: 13px; font-weight: 800; color: #111;
+    border-top: 2px solid #111; padding-top: 6px; margin-top: 4px;
+  }
+  .a4-footer {
+    background: #111; padding: 10px 24px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .a4-footer span { font-size: 8px; color: rgba(255,255,255,0.3); }
+  .a4-footer .a4-siret { color: rgba(255,255,255,0.5); font-weight: 600; }
+
+  /* ── Toggle tabs ── */
+  .view-tabs {
+    display: flex; gap: 2px; background: #f0f0eb; border-radius: 10px; padding: 3px;
+  }
+  .tab {
+    padding: 5px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    cursor: pointer; color: #9ca3af; transition: all 0.15s;
+  }
+  .tab.active { background: white; color: #111; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+  /* Lignes horizontal scroll */
+  .lignes-scroll { overflow-x: auto; }
+  .lignes-scroll::-webkit-scrollbar { height: 4px; }
+  .lignes-scroll::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 2px; }
+  .lignes-table { min-width: 480px; }
+
+  /* Info section */
+  .info-section {
+    border: 1.5px solid #f0f0eb; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .info-row { display: flex; align-items: center; justify-content: space-between; }
+  .info-label { font-size: 11px; color: #9ca3af; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .info-value { font-size: 12px; font-weight: 600; color: #111; }
+  .info-value.link { color: #3462EE; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+  .info-divider { height: 1px; background: #f0f0eb; }
+  .timeline { display: flex; flex-direction: column; gap: 8px; }
+  .timeline-item { display: flex; align-items: center; gap: 10px; }
+  .timeline-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .timeline-text { font-size: 11px; color: #6b7280; }
+  .timeline-text strong { color: #111; font-weight: 600; }
+  .timeline-date { font-size: 10px; color: #9ca3af; margin-left: auto; }
+
+  /* Animate in */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .devis-card { animation: fadeUp 0.3s ease both; }
+  .devis-card:nth-child(2) { animation-delay: 0.05s; }
+  .devis-card:nth-child(3) { animation-delay: 0.1s; }
+  .devis-card:nth-child(4) { animation-delay: 0.15s; }
+  .devis-card:nth-child(5) { animation-delay: 0.2s; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-logo">Soren</div>
+  <div class="nav-item">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Dashboard
+  </div>
+  <div class="nav-item">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Contacts
+  </div>
+  <div class="nav-item active" style="color:white">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    Devis
+  </div>
+  <div class="nav-item">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.72 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.63 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+    Pipeline
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- ───── VIEW 1 : LIST ───── -->
+  <div class="view active" id="view-list">
+    <div class="list-header">
+      <div>
+        <h1 class="list-title">Devis</h1>
+        <p style="font-size:12px;color:#9ca3af;margin-top:2px">5 devis · 3 en attente</p>
+      </div>
+      <button class="btn-new">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nouveau devis
+      </button>
+    </div>
+
+    <div class="devis-grid-wrapper"><div class="devis-grid">
+
+      <!-- Card avec PDF généré -->
+      <div class="devis-card" onclick="openDetail()">
+        <div class="card-thumb">
+          <div class="pdf-mini">
+            <div class="pdf-header">
+              <span>SOREN</span>
+              <span>DEVIS</span>
+            </div>
+            <div class="pdf-body">
+              <div class="pdf-line dark" style="width:60%"></div>
+              <div class="pdf-line" style="width:40%;margin-bottom:6px"></div>
+              <div class="pdf-table">
+                <div class="pdf-row"><div class="pdf-cell head"></div><div class="pdf-cell head" style="flex:0.4"></div><div class="pdf-cell head" style="flex:0.5"></div></div>
+                <div class="pdf-row"><div class="pdf-cell"></div><div class="pdf-cell" style="flex:0.4"></div><div class="pdf-cell" style="flex:0.5"></div></div>
+                <div class="pdf-row"><div class="pdf-cell"></div><div class="pdf-cell" style="flex:0.4"></div><div class="pdf-cell" style="flex:0.5"></div></div>
+                <div class="pdf-row"><div class="pdf-cell"></div><div class="pdf-cell" style="flex:0.4"></div><div class="pdf-cell" style="flex:0.5"></div></div>
+              </div>
+            </div>
+            <div class="pdf-footer"><span>22 400 € TTC</span></div>
+          </div>
+        </div>
+        <div class="card-info">
+          <div class="card-num">2026-001</div>
+          <div class="card-titre">Rénovation appartement 80m²</div>
+          <div class="card-contact">Martin Dupont</div>
+          <div class="card-bottom">
+            <span class="card-amount">18 667 €</span>
+            <span class="badge envoye">Envoyé</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card avec PDF -->
+      <div class="devis-card" onclick="openDetail()">
+        <div class="card-thumb">
+          <div class="pdf-mini">
+            <div class="pdf-header">
+              <span>SOREN</span>
+              <span>DEVIS</span>
+            </div>
+            <div class="pdf-body">
+              <div class="pdf-line dark" style="width:70%"></div>
+              <div class="pdf-line" style="width:45%;margin-bottom:6px"></div>
+              <div class="pdf-table">
+                <div class="pdf-row"><div class="pdf-cell head"></div><div class="pdf-cell head" style="flex:0.4"></div><div class="pdf-cell head" style="flex:0.5"></div></div>
+                <div class="pdf-row"><div class="pdf-cell"></div><div class="pdf-cell" style="flex:0.4"></div><div class="pdf-cell" style="flex:0.5"></div></div>
+                <div class="pdf-row"><div class="pdf-cell"></div><div class="pdf-cell" style="flex:0.4"></div><div class="pdf-cell" style="flex:0.5"></div></div>
+              </div>
+            </div>
+            <div class="pdf-footer"><span>54 000 € TTC</span></div>
+          </div>
+        </div>
+        <div class="card-info">
+          <div class="card-num">2026-002</div>
+          <div class="card-titre">Extension maison 40m²</div>
+          <div class="card-contact">Sophie Bernard</div>
+          <div class="card-bottom">
+            <span class="card-amount">45 000 €</span>
+            <span class="badge accepte">Accepté</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card sans PDF -->
+      <div class="devis-card" onclick="openDetail()">
+        <div class="card-thumb">
+          <div class="no-pdf">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span>PDF non généré</span>
+          </div>
+        </div>
+        <div class="card-info">
+          <div class="card-num">2026-003</div>
+          <div class="card-titre">Ravalement façade immeuble</div>
+          <div class="card-contact">Dupont Construction</div>
+          <div class="card-bottom">
+            <span class="card-amount">22 000 €</span>
+            <span class="badge brouillon">Brouillon</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card avec PDF -->
+      <div class="devis-card" onclick="openDetail()">
+        <div class="card-thumb">
+          <div class="pdf-mini">
+            <div class="pdf-header">
+              <span>SOREN</span>
+              <span>DEVIS</span>
+            </div>
+            <div class="pdf-body">
+              <div class="pdf-line dark" style="width:55%"></div>
+              <div class="pdf-line" style="width:38%;margin-bottom:6px"></div>
+              <div class="pdf-table">
+                <div class="pdf-row"><div class="pdf-cell head"></div><div class="pdf-cell head" style="flex:0.4"></div><div class="pdf-cell head" style="flex:0.5"></div></div>
+                <div class="pdf-row"><div class="pdf-cell"></div><div class="pdf-cell" style="flex:0.4"></div><div class="pdf-cell" style="flex:0.5"></div></div>
+              </div>
+            </div>
+            <div class="pdf-footer"><span>5 760 € TTC</span></div>
+          </div>
+        </div>
+        <div class="card-info">
+          <div class="card-num">2026-004</div>
+          <div class="card-titre">Plomberie salle de bain</div>
+          <div class="card-contact">Jean-Marc Renard</div>
+          <div class="card-bottom">
+            <span class="card-amount">4 800 €</span>
+            <span class="badge refuse">Refusé</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card brouillon -->
+      <div class="devis-card" onclick="openDetail()">
+        <div class="card-thumb">
+          <div class="no-pdf">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span>PDF non généré</span>
+          </div>
+        </div>
+        <div class="card-info">
+          <div class="card-num">2026-005</div>
+          <div class="card-titre">Chantier gros œuvre</div>
+          <div class="card-contact">Garcia & Fils</div>
+          <div class="card-bottom">
+            <span class="card-amount">180 000 €</span>
+            <span class="badge brouillon">Brouillon</span>
+          </div>
+        </div>
+      </div>
+
+    </div></div>
+  </div>
+
+  <!-- ───── VIEW 2 : DETAIL (Split) ───── -->
+  <div class="view" id="view-detail">
+    <div class="detail-header">
+      <div class="detail-header-left">
+        <button class="btn-back" onclick="backToList()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div>
+          <div class="detail-num">2026-001 · Martin Dupont</div>
+          <div class="detail-titre">Rénovation appartement 80m²</div>
+        </div>
+        <span class="badge envoye" style="margin-left:4px">Envoyé</span>
+      </div>
+      <div class="detail-actions">
+        <div class="view-tabs">
+          <div class="tab active" id="tab-split" onclick="setTab('split')">Split</div>
+          <div class="tab" id="tab-edit" onclick="setTab('edit')">Édition</div>
+          <div class="tab" id="tab-preview" onclick="setTab('preview')">Aperçu</div>
+        </div>
+        <button class="btn-action outline">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Envoyer
+        </button>
+        <button class="btn-action lime">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Générer PDF
+        </button>
+      </div>
+    </div>
+
+    <div class="split-wrapper" id="split-wrapper">
+
+      <!-- LEFT: Form -->
+      <div class="form-panel" id="form-panel">
+        <div class="form-section">
+          <div class="form-section-title">Client</div>
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">Nom</label>
+              <input class="form-input" value="Martin Dupont">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Téléphone</label>
+              <input class="form-input" value="06 12 34 56 78">
+            </div>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Email</label>
+            <input class="form-input" value="martin.dupont@email.fr">
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Devis</div>
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">Titre</label>
+              <input class="form-input" value="Rénovation appartement 80m²">
+            </div>
+            <div class="form-field" style="max-width:120px">
+              <label class="form-label">Validité</label>
+              <input class="form-input" type="date" value="2026-05-08">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">Ville</label>
+              <input class="form-input" value="Paris 15e">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Adresse chantier</label>
+              <input class="form-input" value="12 rue de la Paix">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Lignes</div>
+          <div class="lignes-scroll"><table class="lignes-table">
+            <thead>
+              <tr>
+                <th style="width:40%">Description</th>
+                <th style="width:12%">Qté</th>
+                <th style="width:12%">Unité</th>
+                <th style="width:18%">P.U. HT</th>
+                <th style="width:10%">TVA</th>
+                <th style="width:8%"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><input value="Démolition cloisons"></td>
+                <td><input value="1" style="text-align:right"></td>
+                <td><input value="forfait"></td>
+                <td><input value="3 200 €" style="text-align:right"></td>
+                <td><input value="20%" style="text-align:right"></td>
+                <td style="text-align:center;cursor:pointer;color:#d1d5db">✕</td>
+              </tr>
+              <tr>
+                <td><input value="Carrelage sol 80m²"></td>
+                <td><input value="80" style="text-align:right"></td>
+                <td><input value="m²"></td>
+                <td><input value="65 €" style="text-align:right"></td>
+                <td><input value="10%" style="text-align:right"></td>
+                <td style="text-align:center;cursor:pointer;color:#d1d5db">✕</td>
+              </tr>
+              <tr>
+                <td><input value="Peinture murs + plafond"></td>
+                <td><input value="200" style="text-align:right"></td>
+                <td><input value="m²"></td>
+                <td><input value="22 €" style="text-align:right"></td>
+                <td><input value="10%" style="text-align:right"></td>
+                <td style="text-align:center;cursor:pointer;color:#d1d5db">✕</td>
+              </tr>
+              <tr>
+                <td><input value="Plomberie sanitaires"></td>
+                <td><input value="1" style="text-align:right"></td>
+                <td><input value="forfait"></td>
+                <td><input value="4 200 €" style="text-align:right"></td>
+                <td><input value="20%" style="text-align:right"></td>
+                <td style="text-align:center;cursor:pointer;color:#d1d5db">✕</td>
+              </tr>
+            </tbody>
+          </table>
+          </table></div>
+          <button style="background:none;border:1.5px dashed #d1d5db;border-radius:8px;padding:7px;font-size:12px;font-weight:600;color:#9ca3af;cursor:pointer;width:100%;margin-top:4px">+ Ajouter une ligne</button>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Notes</div>
+          <textarea class="form-input" style="resize:vertical;min-height:60px;line-height:1.5">Acompte de 30% à la commande. Travaux réalisés en 6 semaines.</textarea>
+        </div>
+
+        <div class="totaux">
+          <div class="totaux-row"><span>Total HT</span><span style="font-weight:700;color:#111">18 667 €</span></div>
+          <div class="totaux-row"><span>TVA 20%</span><span>1 920 €</span></div>
+          <div class="totaux-row"><span>TVA 10%</span><span>924 €</span></div>
+          <div class="totaux-row ttc"><span>Total TTC</span><span>21 511 €</span></div>
+        </div>
+
+        <!-- ── Info & historique ── -->
+        <div class="info-section">
+          <div class="form-section-title">Informations</div>
+
+          <!-- Contact lié -->
+          <div class="info-row">
+            <span class="info-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Contact
+            </span>
+            <span class="info-value link">Martin Dupont →</span>
+          </div>
+
+          <!-- Conversation GHL -->
+          <div class="info-row">
+            <span class="info-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Conversation
+            </span>
+            <span class="info-value link">Voir dans GHL →</span>
+          </div>
+
+          <!-- Source -->
+          <div class="info-row">
+            <span class="info-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Source
+            </span>
+            <span class="info-value" style="background:#f3e8ff;color:#7c3aed;padding:2px 8px;border-radius:999px;font-size:10px">IA · N8N</span>
+          </div>
+
+          <div class="info-divider"></div>
+
+          <!-- Historique / Timeline -->
+          <div class="form-section-title">Historique</div>
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-dot" style="background:#E2FF8D;box-shadow:0 0 0 2px #111"></div>
+              <span class="timeline-text"><strong>Créé</strong> par IA depuis conversation WhatsApp</span>
+              <span class="timeline-date">08 avr. 2026</span>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot" style="background:#3462EE"></div>
+              <span class="timeline-text"><strong>PDF généré</strong> · 2.3 Mo</span>
+              <span class="timeline-date">08 avr. 2026</span>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot" style="background:#4A91A8"></div>
+              <span class="timeline-text"><strong>Envoyé</strong> par WhatsApp</span>
+              <span class="timeline-date">08 avr. 2026</span>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot" style="background:#d1d5db"></div>
+              <span class="timeline-text" style="color:#d1d5db">En attente de réponse…</span>
+              <span class="timeline-date"></span>
+            </div>
+          </div>
+
+          <div class="info-divider"></div>
+
+          <!-- Conditions -->
+          <div class="info-row">
+            <span class="info-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              Acompte
+            </span>
+            <span class="info-value">30% · 5 733 €</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              PDF
+            </span>
+            <span class="info-value link">Télécharger →</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Preview -->
+      <div class="preview-panel" id="preview-panel">
+        <div class="preview-toolbar">
+          <span class="preview-label">Aperçu PDF</span>
+          <div class="preview-actions">
+            <button class="btn-xs ghost">↗ Ouvrir</button>
+            <button class="btn-xs dark">⬇ Télécharger</button>
+          </div>
+        </div>
+
+        <div class="a4-page">
+          <div class="a4-header">
+            <div class="a4-logo">
+              <span class="a4-logo-name">SOREN</span>
+              <span class="a4-logo-tag">Infrastructure d'Acquisition BTP</span>
+              <span class="a4-logo-tag" style="margin-top:8px">12 rue Réaumur, Paris</span>
+              <span class="a4-logo-tag">contact@soren.ai · 01 23 45 67 89</span>
+            </div>
+            <div class="a4-devis-info">
+              <div class="a4-devis-num">DEVIS N° 2026-001</div>
+              <div class="a4-devis-meta">Paris, le 8 avril 2026</div>
+              <div class="a4-devis-meta" style="margin-top:12px;color:rgba(255,255,255,0.7)">À l'attention de :</div>
+              <div style="color:white;font-size:11px;font-weight:700;margin-top:2px">Martin Dupont</div>
+              <div class="a4-devis-meta">martin.dupont@email.fr</div>
+            </div>
+          </div>
+
+          <div class="a4-body">
+            <div class="a4-client-block">
+              <div>
+                <div style="font-size:9px;color:#9ca3af;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Objet</div>
+                <div class="a4-client-name">Rénovation appartement 80m²</div>
+                <div class="a4-client-info">Adresse chantier : 12 rue de la Paix, Paris 15e</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:9px;color:#9ca3af;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Validité</div>
+                <div style="font-size:12px;font-weight:700">08 mai 2026</div>
+              </div>
+            </div>
+
+            <table class="a4-table">
+              <thead>
+                <tr>
+                  <th style="width:45%">Description</th>
+                  <th>Qté</th>
+                  <th>Unité</th>
+                  <th>P.U. HT</th>
+                  <th>TVA</th>
+                  <th>Total HT</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Démolition cloisons</td>
+                  <td>1</td>
+                  <td>forfait</td>
+                  <td>3 200 €</td>
+                  <td>20%</td>
+                  <td>3 200 €</td>
+                </tr>
+                <tr>
+                  <td>Carrelage sol 80m²</td>
+                  <td>80</td>
+                  <td>m²</td>
+                  <td>65 €</td>
+                  <td>10%</td>
+                  <td>5 200 €</td>
+                </tr>
+                <tr>
+                  <td>Peinture murs + plafond</td>
+                  <td>200</td>
+                  <td>m²</td>
+                  <td>22 €</td>
+                  <td>10%</td>
+                  <td>4 400 €</td>
+                </tr>
+                <tr>
+                  <td>Plomberie sanitaires</td>
+                  <td>1</td>
+                  <td>forfait</td>
+                  <td>4 200 €</td>
+                  <td>20%</td>
+                  <td>4 200 €</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="a4-totaux">
+              <div class="a4-totaux-block">
+                <div class="a4-tot-row"><span>Total HT</span><span>17 000 €</span></div>
+                <div class="a4-tot-row"><span>TVA 20%</span><span>1 480 €</span></div>
+                <div class="a4-tot-row"><span>TVA 10%</span><span>960 €</span></div>
+                <div class="a4-tot-row ttc"><span>Total TTC</span><span>19 440 €</span></div>
+              </div>
+            </div>
+
+            <div style="margin-top:16px;padding:10px 12px;background:#f9f9f7;border-radius:8px;font-size:9px;color:#6b7280;line-height:1.6">
+              <strong>Notes :</strong> Acompte de 30% à la commande. Travaux réalisés en 6 semaines.
+            </div>
+
+            <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div style="border:1px solid #e5e7eb;border-radius:8px;padding:10px;min-height:50px">
+                <div style="font-size:9px;color:#9ca3af;font-weight:700;margin-bottom:6px">Bon pour accord :</div>
+              </div>
+              <div style="font-size:9px;color:#9ca3af;line-height:1.6">
+                Ce devis est valable 30 jours. Tout commencement de travaux vaut acceptation des présentes conditions.
+              </div>
+            </div>
+          </div>
+
+          <div class="a4-footer">
+            <span class="a4-siret">SIRET : 123 456 789 00012</span>
+            <span>TVA intracommunautaire : FR12345678900</span>
+            <span>Capital : 10 000 €</span>
+          </div>
+        </div>
+
+        <!-- ── 3 sections sous le PDF ── -->
+        <div style="width:100%;max-width:540px;display:flex;flex-direction:column;gap:12px;margin-top:16px;">
+
+          <!-- 1. Signature électronique -->
+          <div style="background:white;border-radius:16px;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                <span style="font-size:13px;font-weight:700;">Signature électronique</span>
+              </div>
+              <span style="font-size:10px;font-weight:700;background:#FEF9C3;color:#854D0E;padding:3px 10px;border-radius:999px;">En attente</span>
+            </div>
+            <!-- Progress steps -->
+            <div style="display:flex;align-items:center;gap:0;margin-bottom:14px;">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:28px;height:28px;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <span style="font-size:9px;color:#9ca3af;font-weight:600;">Créé</span>
+              </div>
+              <div style="flex:1;height:2px;background:#111;margin-bottom:14px;"></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:28px;height:28px;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <span style="font-size:9px;color:#9ca3af;font-weight:600;">Envoyé</span>
+              </div>
+              <div style="flex:1;height:2px;background:#e5e7eb;margin-bottom:14px;"></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;border:2px dashed #d1d5db;display:flex;align-items:center;justify-content:center;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </div>
+                <span style="font-size:9px;color:#9ca3af;font-weight:600;">Vu</span>
+              </div>
+              <div style="flex:1;height:2px;background:#e5e7eb;margin-bottom:14px;"></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:28px;height:28px;border-radius:50%;background:#f3f4f6;border:2px dashed #d1d5db;display:flex;align-items:center;justify-content:center;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                </div>
+                <span style="font-size:9px;color:#9ca3af;font-weight:600;">Signé</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;background:#f9f9f7;border-radius:10px;padding:10px 12px;">
+              <div>
+                <div style="font-size:11px;color:#9ca3af;margin-bottom:2px;">Lien envoyé à</div>
+                <div style="font-size:12px;font-weight:600;">martin.dupont@email.fr</div>
+              </div>
+              <button style="background:#111;color:white;border:none;border-radius:8px;padding:7px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">Renvoyer le lien</button>
+            </div>
+          </div>
+
+          <!-- 2. Relance automatique -->
+          <div style="background:white;border-radius:16px;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.72 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.63 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                <span style="font-size:13px;font-weight:700;">Relance automatique</span>
+              </div>
+              <!-- Toggle -->
+              <div onclick="this.classList.toggle('on')" style="width:36px;height:20px;border-radius:999px;background:#E2FF8D;cursor:pointer;position:relative;transition:background 0.2s;" id="toggle-relance">
+                <div style="width:16px;height:16px;border-radius:50%;background:#111;position:absolute;top:2px;right:2px;transition:right 0.2s;"></div>
+              </div>
+            </div>
+            <!-- Relance list -->
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f9f9f7;border-radius:10px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:8px;height:8px;border-radius:50%;background:#4A91A8;"></div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;">J+3 · WhatsApp</div>
+                    <div style="font-size:10px;color:#9ca3af;">11 avril 2026 · Message prérédigé IA</div>
+                  </div>
+                </div>
+                <span style="font-size:10px;font-weight:700;background:#EEF3FF;color:#3462EE;padding:3px 8px;border-radius:999px;">Programmée</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f9f9f7;border-radius:10px;opacity:0.5;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:8px;height:8px;border-radius:50%;background:#d1d5db;"></div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;">J+7 · Email</div>
+                    <div style="font-size:10px;color:#9ca3af;">15 avril 2026 · Si non répondu</div>
+                  </div>
+                </div>
+                <span style="font-size:10px;color:#9ca3af;">En attente</span>
+              </div>
+            </div>
+            <button style="background:none;border:1.5px dashed #d1d5db;border-radius:8px;padding:7px;font-size:11px;font-weight:600;color:#9ca3af;cursor:pointer;width:100%;margin-top:8px;font-family:inherit;">+ Ajouter une relance</button>
+          </div>
+
+          <!-- 3. Statistiques de conversion -->
+          <div style="background:white;border-radius:16px;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.06);margin-bottom:4px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              <span style="font-size:13px;font-weight:700;">Statistiques de conversion</span>
+            </div>
+            <!-- 3 stats -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
+              <div style="background:#f9f9f7;border-radius:10px;padding:10px;text-align:center;">
+                <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:#111;">64%</div>
+                <div style="font-size:9px;color:#9ca3af;font-weight:600;margin-top:2px;">Taux accept.</div>
+              </div>
+              <div style="background:#f9f9f7;border-radius:10px;padding:10px;text-align:center;">
+                <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:#111;">5j</div>
+                <div style="font-size:9px;color:#9ca3af;font-weight:600;margin-top:2px;">Délai moyen</div>
+              </div>
+              <div style="background:#E2FF8D;border-radius:10px;padding:10px;text-align:center;">
+                <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:#111;">↑12%</div>
+                <div style="font-size:9px;color:#556b00;font-weight:600;margin-top:2px;">vs mois préc.</div>
+              </div>
+            </div>
+            <!-- Bar chart mini -->
+            <div style="font-size:10px;color:#9ca3af;font-weight:600;margin-bottom:8px;">Devis similaires (15k–25k €)</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:10px;color:#6b7280;width:52px;">Acceptés</span>
+                <div style="flex:1;height:8px;background:#f3f4f6;border-radius:4px;overflow:hidden;">
+                  <div style="width:64%;height:100%;background:#111;border-radius:4px;"></div>
+                </div>
+                <span style="font-size:10px;font-weight:700;width:24px;">9</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:10px;color:#6b7280;width:52px;">Refusés</span>
+                <div style="flex:1;height:8px;background:#f3f4f6;border-radius:4px;overflow:hidden;">
+                  <div style="width:28%;height:100%;background:#d1d5db;border-radius:4px;"></div>
+                </div>
+                <span style="font-size:10px;font-weight:700;width:24px;">4</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:10px;color:#6b7280;width:52px;">En cours</span>
+                <div style="flex:1;height:8px;background:#f3f4f6;border-radius:4px;overflow:hidden;">
+                  <div style="width:14%;height:100%;background:#E2FF8D;border-radius:4px;"></div>
+                </div>
+                <span style="font-size:10px;font-weight:700;width:24px;">2</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function openDetail() {
+    document.getElementById('view-list').classList.remove('active');
+    document.getElementById('view-detail').classList.add('active');
+  }
+  function backToList() {
+    document.getElementById('view-detail').classList.remove('active');
+    document.getElementById('view-list').classList.add('active');
+  }
+
+  function setTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    const fp = document.getElementById('form-panel');
+    const pp = document.getElementById('preview-panel');
+    if (tab === 'split') { fp.style.display = ''; pp.style.display = ''; fp.style.width = '45%'; }
+    if (tab === 'edit')  { fp.style.display = ''; pp.style.display = 'none'; fp.style.width = '100%'; }
+    if (tab === 'preview') { fp.style.display = 'none'; pp.style.display = ''; }
+  }
+</script>
+</body>
+</html>

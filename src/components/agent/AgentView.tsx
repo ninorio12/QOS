@@ -70,8 +70,8 @@ export default function AgentView() {
             <Bot size={20} className="text-[#3462EE]" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-[#111111]">Agent IA</h1>
-            <p className="text-xs text-[#6B7280]">Qualification automatique des leads — Claude Opus 4.6</p>
+            <h1 className="text-lg font-bold text-soren-text">Agent IA</h1>
+            <p className="text-xs text-soren-muted">Qualification automatique des leads — Claude Opus 4.6</p>
           </div>
         </div>
 
@@ -82,8 +82,8 @@ export default function AgentView() {
             className={`
               flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold transition-all
               ${config.agentActif
-                ? 'bg-[#111111] border-[#111111] text-white'
-                : 'bg-white border-[#E5E7EB] text-[#6B7280]'
+                ? 'bg-soren-sidebar border-[#111111] text-white'
+                : 'bg-soren-card border-soren-border text-soren-muted'
               }
             `}
           >
@@ -120,7 +120,7 @@ export default function AgentView() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-white border border-[#E5E7EB] p-1 rounded-xl w-fit">
+      <div className="flex gap-1 mb-6 bg-soren-card border border-soren-border p-1 rounded-xl w-fit">
         {(['config', 'stats', 'logs'] as const).map(tab => (
           <button
             key={tab}
@@ -128,8 +128,8 @@ export default function AgentView() {
             className={`
               px-4 py-1.5 rounded-lg text-sm font-medium transition-all capitalize
               ${activeTab === tab
-                ? 'bg-[#EEF0EB] text-[#111111]'
-                : 'text-[#6B7280] hover:text-[#111111]'
+                ? 'bg-soren-app text-soren-text'
+                : 'text-soren-muted hover:text-soren-text'
               }
             `}
           >
@@ -144,10 +144,10 @@ export default function AgentView() {
 
           {/* Left: Prompt system */}
           <div className="flex flex-col gap-5">
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5">
+            <div className="bg-soren-card border border-soren-border rounded-2xl p-5">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-[#111111]">Prompt système</h2>
-                <span className="text-[10px] text-[#9CA3AF] bg-[#EEF0EB] px-2 py-0.5 rounded-full">
+                <h2 className="text-sm font-semibold text-soren-text">Prompt système</h2>
+                <span className="text-[10px] text-soren-subtle bg-soren-app px-2 py-0.5 rounded-full">
                   {config.systemPrompt.length} caractères
                 </span>
               </div>
@@ -155,7 +155,7 @@ export default function AgentView() {
                 value={config.systemPrompt}
                 onChange={e => setConfig(c => ({ ...c, systemPrompt: e.target.value }))}
                 rows={12}
-                className="w-full bg-[#EEF0EB] border border-[#E5E7EB] rounded-xl px-4 py-3 text-sm text-[#374151] placeholder-[#3D4F6B] outline-none resize-none focus:border-[#3462EE] transition-colors leading-relaxed font-mono"
+                className="w-full bg-soren-app border border-soren-border rounded-xl px-4 py-3 text-sm text-[#374151] placeholder-[#3D4F6B] outline-none resize-none focus:border-[#3462EE] transition-colors leading-relaxed font-mono"
               />
               <div className="flex items-start gap-2 mt-3 p-3 bg-[#EFE347]/5 border border-[#EFE347]/20 rounded-lg">
                 <AlertCircle size={13} className="text-[#EFE347] mt-0.5 flex-shrink-0" />
@@ -170,12 +170,12 @@ export default function AgentView() {
           <div className="flex flex-col gap-4">
 
             {/* Budget minimum */}
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5">
-              <h2 className="text-sm font-semibold text-[#111111] mb-4">Critères de qualification</h2>
+            <div className="bg-soren-card border border-soren-border rounded-2xl p-5">
+              <h2 className="text-sm font-semibold text-soren-text mb-4">Critères de qualification</h2>
 
               <div className="flex flex-col gap-4">
                 <div>
-                  <label className="block text-xs text-[#6B7280] mb-2">Budget minimum (€)</label>
+                  <label className="block text-xs text-soren-muted mb-2">Budget minimum (€)</label>
                   <div className="flex items-center gap-3">
                     <input
                       type="range"
@@ -186,14 +186,14 @@ export default function AgentView() {
                       onChange={e => setConfig(c => ({ ...c, budgetMin: parseInt(e.target.value) }))}
                       className="flex-1 accent-[#3462EE]"
                     />
-                    <span className="text-sm font-bold text-[#111111] w-20 text-right">
+                    <span className="text-sm font-bold text-soren-text w-20 text-right">
                       {config.budgetMin.toLocaleString('fr-FR')} €
                     </span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs text-[#6B7280] mb-2">Délai maximum (mois)</label>
+                  <label className="block text-xs text-soren-muted mb-2">Délai maximum (mois)</label>
                   <div className="flex items-center gap-3">
                     <input
                       type="range"
@@ -204,7 +204,7 @@ export default function AgentView() {
                       onChange={e => setConfig(c => ({ ...c, delaiMaxMois: parseInt(e.target.value) }))}
                       className="flex-1 accent-[#3462EE]"
                     />
-                    <span className="text-sm font-bold text-[#111111] w-20 text-right">
+                    <span className="text-sm font-bold text-soren-text w-20 text-right">
                       {config.delaiMaxMois} mois
                     </span>
                   </div>
@@ -213,8 +213,8 @@ export default function AgentView() {
             </div>
 
             {/* Types de travaux */}
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5">
-              <h2 className="text-sm font-semibold text-[#111111] mb-3">Types de travaux acceptés</h2>
+            <div className="bg-soren-card border border-soren-border rounded-2xl p-5">
+              <h2 className="text-sm font-semibold text-soren-text mb-3">Types de travaux acceptés</h2>
               <div className="flex flex-wrap gap-2">
                 {TYPES_TRAVAUX.map(type => {
                   const active = config.typesTravauxActifs.includes(type)
@@ -226,7 +226,7 @@ export default function AgentView() {
                         text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all
                         ${active
                           ? 'bg-[#3462EE]/20 border-[#3462EE]/40 text-[#3462EE]'
-                          : 'bg-transparent border-[#E5E7EB] text-[#6B7280] hover:border-[#3D4F6B] hover:text-[#111111]'
+                          : 'bg-transparent border-soren-border text-soren-muted hover:border-[#3D4F6B] hover:text-soren-text'
                         }
                       `}
                     >
@@ -235,25 +235,25 @@ export default function AgentView() {
                   )
                 })}
               </div>
-              <p className="text-[10px] text-[#9CA3AF] mt-3">
+              <p className="text-[10px] text-soren-subtle mt-3">
                 {config.typesTravauxActifs.length} type(s) sélectionné(s)
               </p>
             </div>
 
             {/* Model info */}
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5">
-              <h2 className="text-sm font-semibold text-[#111111] mb-3">Modèle IA</h2>
-              <div className="flex items-center justify-between py-2 border-b border-[#E5E7EB]">
-                <span className="text-xs text-[#6B7280]">Modèle</span>
-                <span className="text-xs font-semibold text-[#111111]">Claude Opus 4.6</span>
+            <div className="bg-soren-card border border-soren-border rounded-2xl p-5">
+              <h2 className="text-sm font-semibold text-soren-text mb-3">Modèle IA</h2>
+              <div className="flex items-center justify-between py-2 border-b border-soren-border">
+                <span className="text-xs text-soren-muted">Modèle</span>
+                <span className="text-xs font-semibold text-soren-text">Claude Opus 4.6</span>
               </div>
-              <div className="flex items-center justify-between py-2 border-b border-[#E5E7EB]">
-                <span className="text-xs text-[#6B7280]">Fournisseur</span>
-                <span className="text-xs font-semibold text-[#111111]">Anthropic</span>
+              <div className="flex items-center justify-between py-2 border-b border-soren-border">
+                <span className="text-xs text-soren-muted">Fournisseur</span>
+                <span className="text-xs font-semibold text-soren-text">Anthropic</span>
               </div>
               <div className="flex items-center justify-between py-2">
-                <span className="text-xs text-[#6B7280]">Contexte</span>
-                <span className="text-xs font-semibold text-[#111111]">200K tokens</span>
+                <span className="text-xs text-soren-muted">Contexte</span>
+                <span className="text-xs font-semibold text-soren-text">200K tokens</span>
               </div>
             </div>
           </div>
@@ -267,42 +267,42 @@ export default function AgentView() {
           {/* KPIs */}
           <div className="grid grid-cols-4 gap-4">
             {STATS.map(stat => (
-              <div key={stat.label} className="bg-white border border-[#E5E7EB] rounded-2xl p-5">
+              <div key={stat.label} className="bg-soren-card border border-soren-border rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs text-[#6B7280]">{stat.label}</p>
+                  <p className="text-xs text-soren-muted">{stat.label}</p>
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: stat.color + '20' }}>
                     <stat.icon size={14} style={{ color: stat.color }} />
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-[#111111]">{stat.value}</p>
-                <p className="text-xs text-[#9CA3AF] mt-1">{stat.sub}</p>
+                <p className="text-2xl font-bold text-soren-text">{stat.value}</p>
+                <p className="text-xs text-soren-subtle mt-1">{stat.sub}</p>
               </div>
             ))}
           </div>
 
           {/* Recent qualifications */}
-          <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5">
-            <h2 className="text-sm font-semibold text-[#111111] mb-4">Qualifications récentes</h2>
+          <div className="bg-soren-card border border-soren-border rounded-2xl p-5">
+            <h2 className="text-sm font-semibold text-soren-text mb-4">Qualifications récentes</h2>
             <div className="flex flex-col gap-2">
               {RECENT_QUALIFICATIONS.map((q, i) => (
-                <div key={i} className="flex items-center gap-4 py-3 border-b border-[#E5E7EB] last:border-0">
+                <div key={i} className="flex items-center gap-4 py-3 border-b border-soren-border last:border-0">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#3462EE] to-[#4A91A8] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                     {q.name.split(' ').map(w => w[0]).join('')}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-[#111111]">{q.name}</p>
-                    <p className="text-xs text-[#6B7280]">{q.company}</p>
+                    <p className="text-sm font-semibold text-soren-text">{q.name}</p>
+                    <p className="text-xs text-soren-muted">{q.company}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold text-[#111111]">€{q.budget.toLocaleString('fr-FR')}</p>
+                    <p className="text-sm font-bold text-soren-text">€{q.budget.toLocaleString('fr-FR')}</p>
                   </div>
                   {/* Score bar */}
                   <div className="w-24 flex-shrink-0">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] text-[#9CA3AF]">Score</span>
+                      <span className="text-[10px] text-soren-subtle">Score</span>
                       <span className="text-[10px] font-bold" style={{ color: q.score > 60 ? '#16a34a' : '#EF4444' }}>{q.score}%</span>
                     </div>
-                    <div className="h-1.5 bg-[#EEF0EB] rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-soren-app rounded-full overflow-hidden">
                       <div className="h-full rounded-full" style={{
                         width: `${q.score}%`,
                         background: q.score > 60 ? '#22c55e' : '#EF4444',
@@ -318,7 +318,7 @@ export default function AgentView() {
                   `}>
                     {q.status}
                   </span>
-                  <ChevronRight size={14} className="text-[#9CA3AF] flex-shrink-0" />
+                  <ChevronRight size={14} className="text-soren-subtle flex-shrink-0" />
                 </div>
               ))}
             </div>
@@ -328,8 +328,8 @@ export default function AgentView() {
 
       {/* ── LOGS TAB ── */}
       {activeTab === 'logs' && (
-        <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5">
-          <h2 className="text-sm font-semibold text-[#111111] mb-4">Activité récente</h2>
+        <div className="bg-soren-card border border-soren-border rounded-2xl p-5">
+          <h2 className="text-sm font-semibold text-soren-text mb-4">Activité récente</h2>
           <div className="flex flex-col gap-2 font-mono text-xs">
             {[
               { time: '14:32:01', level: 'info',    msg: 'Nouveau lead entrant — Thomas Mercier (Bouygues Immo)' },
@@ -344,8 +344,8 @@ export default function AgentView() {
             ].map((log, i) => {
               const color = log.level === 'success' ? '#16a34a' : log.level === 'warn' ? '#ca8a04' : log.level === 'error' ? '#EF4444' : '#8896AB'
               return (
-                <div key={i} className="flex items-start gap-3 py-2 border-b border-[#E5E7EB]/50 last:border-0">
-                  <span className="text-[#9CA3AF] flex-shrink-0">{log.time}</span>
+                <div key={i} className="flex items-start gap-3 py-2 border-b border-soren-border/50 last:border-0">
+                  <span className="text-soren-subtle flex-shrink-0">{log.time}</span>
                   <span className="font-bold flex-shrink-0 w-14" style={{ color }}>{log.level.toUpperCase()}</span>
                   <span className="text-[#374151]">{log.msg}</span>
                 </div>

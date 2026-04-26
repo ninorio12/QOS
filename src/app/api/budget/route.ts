@@ -105,25 +105,28 @@ export async function GET(req: NextRequest) {
 
   const supabase = await createClient()
 
-  // Claude — messages IA
-  const { count: claudeMessages } = await supabase
-    .from('messages').select('*', { count: 'exact', head: true })
-    .eq('role', 'assistant')
-    .gte('created_at', `${startDate}T00:00:00Z`)
-    .lte('created_at', `${endDate}T23:59:59Z`)
-
-  // Claude — devis générés
-  const { count: devisCount } = await supabase
-    .from('devis').select('*', { count: 'exact', head: true })
-    .gte('created_at', `${startDate}T00:00:00Z`)
-    .lte('created_at', `${endDate}T23:59:59Z`)
-
-  // APITemplate — PDF envoyés
-  const { count: devisEnvoyes } = await supabase
-    .from('devis').select('*', { count: 'exact', head: true })
-    .eq('statut', 'envoyé')
-    .gte('envoye_le', `${startDate}T00:00:00Z`)
-    .lte('envoye_le', `${endDate}T23:59:59Z`)
+  // Run all 5 I/O operations in parallel
+  const [
+    { count: claudeMessages },
+    { count: devisCount },
+    { count: devisEnvoyes },
+    twilio,
+    hetzner,
+  ] = await Promise.all([
+    supabase.from('messages').select('*', { count: 'exact', head: true })
+      .eq('role', 'assistant')
+      .gte('created_at', `${startDate}T00:00:00Z`)
+      .lte('created_at', `${endDate}T23:59:59Z`),
+    supabase.from('devis').select('*', { count: 'exact', head: true })
+      .gte('created_at', `${startDate}T00:00:00Z`)
+      .lte('created_at', `${endDate}T23:59:59Z`),
+    supabase.from('devis').select('*', { count: 'exact', head: true })
+      .eq('statut', 'envoyé')
+      .gte('envoye_le', `${startDate}T00:00:00Z`)
+      .lte('envoye_le', `${endDate}T23:59:59Z`),
+    getTwilioUsage(startDate, endDate),
+    getHetznerCost(startDate, endDate),
+  ])
 
   const claudeCount = claudeMessages ?? 0
   const devisGen    = devisCount ?? 0
@@ -131,11 +134,6 @@ export async function GET(req: NextRequest) {
 
   const claudeCost      = claudeCount * CLAUDE_COST_PER_MSG + devisGen * CLAUDE_COST_PER_DEVIS
   const apitemplateCost = pdfCount * 0.005
-
-  const [twilio, hetzner] = await Promise.all([
-    getTwilioUsage(startDate, endDate),
-    getHetznerCost(startDate, endDate),
-  ])
 
   const services = {
     claude: {

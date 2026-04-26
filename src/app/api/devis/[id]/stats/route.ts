@@ -27,7 +27,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const all = similaires ?? []
   const acceptes = all.filter(d => d.statut === 'accepté').length
   const refuses  = all.filter(d => d.statut === 'refusé').length
-  const enCours  = all.filter(d => !['accepté', 'refusé'].includes(d.statut)).length
+  const enCours  = all.filter(d => !['accepté', 'refusé', 'pending_human_validation'].includes(d.statut)).length
   const total    = acceptes + refuses
 
   const envoyes = all.filter(d => d.envoye_le && d.created_at)

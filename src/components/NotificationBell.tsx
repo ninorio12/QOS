@@ -88,7 +88,7 @@ export default function NotificationBell() {
         }}
         className="w-8 h-8 rounded-full bg-[#E4E6E1] flex items-center justify-center hover:bg-[#D8DAD5] transition-colors relative"
       >
-        <Bell size={14} className="text-[#6B7280]" />
+        <Bell size={14} className="text-soren-muted" />
         {unread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-[#3462EE] flex items-center justify-center text-[9px] font-bold text-white px-0.5">
             {unread > 9 ? '9+' : unread}
@@ -97,11 +97,11 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 w-[360px] bg-white border border-[#E5E7EB] rounded-2xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute right-0 top-10 w-[360px] bg-soren-card border border-soren-border rounded-2xl shadow-2xl z-50 overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#E5E7EB]">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-soren-border">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-bold text-[#111111]">Notifications</p>
+              <p className="text-sm font-bold text-soren-text">Notifications</p>
               {unread > 0 && (
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#3462EE] text-white">
                   {unread}
@@ -133,7 +133,7 @@ export default function NotificationBell() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <span className="text-[10px] font-bold" style={{ color: n.color }}>{n.agent}</span>
-                    <span className="text-[10px] text-[#9CA3AF]">{n.time}</span>
+                    <span className="text-[10px] text-soren-subtle">{n.time}</span>
                     {!n.read && (
                       <span className="w-1.5 h-1.5 rounded-full bg-[#3462EE] flex-shrink-0 ml-auto" />
                     )}
@@ -145,7 +145,7 @@ export default function NotificationBell() {
           </div>
 
           {/* Footer */}
-          <div className="px-4 py-2.5 border-t border-[#E5E7EB]">
+          <div className="px-4 py-2.5 border-t border-soren-border">
             <a href="/logs" className="text-xs text-[#3462EE] hover:text-[#2a50d4] font-medium transition-colors">
               Voir toutes les activités →
             </a>

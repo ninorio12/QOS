@@ -72,14 +72,14 @@ export function ChatTab({ agentId, accentColor }: ChatTabProps) {
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
               m.role === 'user'
-                ? 'bg-white/10 text-white rounded-tr-md'
+                ? 'bg-soren-card/10 text-white rounded-tr-md'
                 : 'bg-black/40 border border-white/10 text-gray-200 rounded-tl-md'
             }`}>
               <p className="whitespace-pre-wrap">{m.content}</p>
               {m.toolsUsed && m.toolsUsed.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
                   {m.toolsUsed.map(t => (
-                    <span key={t} className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/40">
+                    <span key={t} className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-soren-card/5 border border-white/10 text-white/40">
                       <Wrench size={8} />
                       {t}
                     </span>
@@ -94,7 +94,7 @@ export function ChatTab({ agentId, accentColor }: ChatTabProps) {
             <div className="bg-black/40 border border-white/10 rounded-2xl rounded-tl-md px-4 py-3">
               <div className="flex gap-1">
                 {[0, 1, 2].map(i => (
-                  <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/30 animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
+                  <div key={i} className="w-1.5 h-1.5 rounded-full bg-soren-card/30 animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
                 ))}
               </div>
             </div>

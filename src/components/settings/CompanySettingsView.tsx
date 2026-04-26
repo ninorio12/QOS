@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Save } from 'lucide-react'
+import ThemeToggle from '@/components/settings/ThemeToggle'
 
 type CompanySettings = {
   id: string
@@ -19,8 +20,8 @@ type CompanySettings = {
   website_url: string
 }
 
-const inputCls = 'w-full bg-[#F5F6F3] border border-transparent rounded-lg px-2.5 py-1.5 text-[#111111] text-xs placeholder:text-[#C4C4C4] focus:outline-none focus:border-[#111111]/15 transition-colors'
-const labelCls = 'block text-[8px] font-medium text-[#9CA3AF] mb-1 uppercase tracking-widest'
+const inputCls = 'w-full bg-soren-elevated border border-transparent rounded-lg px-2.5 py-1.5 text-soren-text text-xs placeholder:text-[#C4C4C4] focus:outline-none focus:border-[#111111]/15 transition-colors'
+const labelCls = 'block text-[8px] font-medium text-soren-subtle mb-1 uppercase tracking-widest'
 
 // ─── Color math ──────────────────────────────────────────────────────────────
 
@@ -137,10 +138,10 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (v: string)
       <button
         ref={triggerRef}
         onClick={openPicker}
-        className="flex items-center gap-2.5 bg-[#F5F6F3] rounded-xl px-3 py-2 hover:bg-[#EEEEEE] transition-colors"
+        className="flex items-center gap-2.5 bg-soren-elevated rounded-xl px-3 py-2 hover:bg-[#EEEEEE] transition-colors"
       >
         <div className="w-5 h-5 rounded-md border border-black/10 flex-shrink-0" style={{ backgroundColor: value }} />
-        <span className="text-sm font-mono text-[#111111]">{value}</span>
+        <span className="text-sm font-mono text-soren-text">{value}</span>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5">
           <polyline points="6 9 12 15 18 9"/>
         </svg>
@@ -148,7 +149,7 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (v: string)
 
       {/* Dropdown panel — fixed pour ne pas perturber le layout */}
       {open && (
-        <div ref={panelRef} className="fixed z-[9999] bg-white rounded-2xl border border-black/6 p-4 w-60" style={{ top: panelPos.top, left: panelPos.left, boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
+        <div ref={panelRef} className="fixed z-[9999] bg-soren-card rounded-2xl border border-black/6 p-4 w-60" style={{ top: panelPos.top, left: panelPos.left, boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
 
           {/* Gradient square */}
           <div
@@ -190,7 +191,7 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (v: string)
               onBlur={e => commitHex(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && commitHex(hexInput)}
               maxLength={7}
-              className="flex-1 bg-[#F5F6F3] rounded-lg px-2.5 py-1.5 text-sm font-mono text-[#111111] focus:outline-none"
+              className="flex-1 bg-soren-elevated rounded-lg px-2.5 py-1.5 text-sm font-mono text-soren-text focus:outline-none"
             />
           </div>
 
@@ -252,7 +253,7 @@ function SvgDropZone({ value, onChange }: { value: string; onChange: (v: string)
         onClick={() => fileRef.current?.click()}
         className={[
           'border-2 border-dashed rounded-xl cursor-pointer transition-all flex items-center justify-center',
-          dragging ? 'border-[#111111] bg-[#F5F6F3]' : 'border-[#E5E7EB] hover:border-[#9CA3AF] hover:bg-[#FAFAFA]',
+          dragging ? 'border-[#111111] bg-soren-elevated' : 'border-soren-border hover:border-[#9CA3AF] hover:bg-[#FAFAFA]',
           'h-20',
         ].join(' ')}
       >
@@ -262,12 +263,12 @@ function SvgDropZone({ value, onChange }: { value: string; onChange: (v: string)
         {value && dataUrl ? (
           <div className="flex items-center gap-4 px-4 w-full">
             {/* Preview fond blanc */}
-            <div className="w-10 h-10 bg-white rounded-lg border border-black/8 flex items-center justify-center p-1.5 shadow-sm flex-shrink-0">
+            <div className="w-10 h-10 bg-soren-card rounded-lg border border-black/8 flex items-center justify-center p-1.5 shadow-sm flex-shrink-0">
               <img src={dataUrl} alt="logo" style={{ width: 28, height: 28, objectFit: 'contain', display: 'block' }} />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-medium text-[#111111] truncate">Logo importé</p>
-              <p className="text-[11px] text-[#9CA3AF]">Cliquer pour remplacer</p>
+              <p className="text-xs font-medium text-soren-text truncate">Logo importé</p>
+              <p className="text-[11px] text-soren-subtle">Cliquer pour remplacer</p>
             </div>
             <button
               type="button"
@@ -284,14 +285,14 @@ function SvgDropZone({ value, onChange }: { value: string; onChange: (v: string)
               <polyline points="17 8 12 3 7 8"/>
               <line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
-            <p className="text-xs text-[#9CA3AF]">Glisser un .svg ou cliquer</p>
+            <p className="text-xs text-soren-subtle">Glisser un .svg ou cliquer</p>
           </div>
         )}
       </div>
 
       {/* Coller le code SVG */}
       <details className="group">
-        <summary className="text-[11px] text-[#C4C4C4] cursor-pointer hover:text-[#9CA3AF] transition-colors list-none flex items-center gap-1">
+        <summary className="text-[11px] text-[#C4C4C4] cursor-pointer hover:text-soren-subtle transition-colors list-none flex items-center gap-1">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
             className="group-open:rotate-90 transition-transform">
             <polyline points="9 18 15 12 9 6"/>
@@ -300,7 +301,7 @@ function SvgDropZone({ value, onChange }: { value: string; onChange: (v: string)
         </summary>
         <textarea value={value} onChange={e => onChange(e.target.value)} rows={3}
           placeholder={'<svg viewBox="0 0 100 100">...</svg>'}
-          className="mt-1.5 w-full bg-[#F5F6F3] rounded-lg px-3 py-2 text-[#111111] text-xs font-mono focus:outline-none resize-none"
+          className="mt-1.5 w-full bg-soren-elevated rounded-lg px-3 py-2 text-soren-text text-xs font-mono focus:outline-none resize-none"
         />
       </details>
     </div>
@@ -361,10 +362,20 @@ export default function CompanySettingsView() {
   function handleProfilePhoto(file: File) {
     const reader = new FileReader()
     reader.onload = e => {
-      const result = e.target?.result as string
-      setProfilePhotoRaw(result)
-      try { localStorage.setItem('soren_profile_photo', result) } catch {}
-      window.dispatchEvent(new Event('profile-photo-updated'))
+      const img = new window.Image()
+      img.onload = () => {
+        const MAX = 200
+        const scale = Math.min(MAX / img.width, MAX / img.height, 1)
+        const canvas = document.createElement('canvas')
+        canvas.width  = Math.round(img.width  * scale)
+        canvas.height = Math.round(img.height * scale)
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+        const compressed = canvas.toDataURL('image/jpeg', 0.8)
+        setProfilePhotoRaw(compressed)
+        try { localStorage.setItem('soren_profile_photo', compressed) } catch {}
+        window.dispatchEvent(new Event('profile-photo-updated'))
+      }
+      img.src = e.target?.result as string
     }
     reader.readAsDataURL(file)
   }
@@ -415,15 +426,15 @@ export default function CompanySettingsView() {
       {/* Header */}
       <div className="flex items-center justify-between flex-shrink-0 px-0.5">
         <div>
-          <h1 className="text-lg font-black text-[#111111] leading-none">Paramètres</h1>
-          <p className="text-[10px] text-[#9CA3AF] mt-0.5">Ces informations apparaissent sur vos devis PDF</p>
+          <h1 className="text-lg font-black text-soren-text leading-none">Paramètres</h1>
+          <p className="text-[10px] text-soren-subtle mt-0.5">Ces informations apparaissent sur vos devis PDF</p>
         </div>
         <button
           onClick={save}
           disabled={saving || !dirty}
           className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl font-semibold text-xs transition-all ${
             dirty
-              ? 'bg-[#E2FF8D] text-[#111111] hover:bg-[#d4f570]'
+              ? 'bg-[#E2FF8D] text-soren-text hover:bg-[#d4f570]'
               : 'bg-transparent text-[#C8CCC6] cursor-default'
           }`}
         >
@@ -432,12 +443,21 @@ export default function CompanySettingsView() {
         </button>
       </div>
 
+      {/* Apparence */}
+      <div className="flex items-center justify-between flex-shrink-0 bg-soren-card rounded-2xl border border-soren-border px-4 py-3">
+        <div>
+          <p className="text-[12px] font-semibold text-soren-text">Apparence</p>
+          <p className="text-[10px] text-soren-subtle mt-0.5">Thème de l'interface</p>
+        </div>
+        <ThemeToggle />
+      </div>
+
       {/* Ligne 1 : Identité+Logo | Profil */}
       <div className="grid grid-cols-2 gap-2.5 flex-1 min-h-0">
 
         {/* Identité + Logo */}
-        <div className="bg-white rounded-2xl border border-[#EAECE7] p-4 flex flex-col gap-3 overflow-hidden">
-          <p className="text-[8px] font-semibold text-[#9CA3AF] uppercase tracking-widest flex-shrink-0">Identité & Logo</p>
+        <div className="bg-soren-card rounded-2xl border border-[#EAECE7] p-4 flex flex-col gap-3 overflow-hidden">
+          <p className="text-[8px] font-semibold text-soren-subtle uppercase tracking-widest flex-shrink-0">Identité & Logo</p>
           <div className="grid grid-cols-2 gap-2 flex-shrink-0">
             <div>
               <label className={labelCls}>Nom de l&apos;entreprise</label>
@@ -459,8 +479,8 @@ export default function CompanySettingsView() {
         </div>
 
         {/* Profil utilisateur */}
-        <div className="bg-white rounded-2xl border border-[#EAECE7] p-4 flex flex-col gap-3 overflow-hidden">
-          <p className="text-[8px] font-semibold text-[#9CA3AF] uppercase tracking-widest flex-shrink-0">Profil utilisateur</p>
+        <div className="bg-soren-card rounded-2xl border border-[#EAECE7] p-4 flex flex-col gap-3 overflow-hidden">
+          <p className="text-[8px] font-semibold text-soren-subtle uppercase tracking-widest flex-shrink-0">Profil utilisateur</p>
 
           {/* Avatar + boutons sur une ligne */}
           <div className="flex items-center gap-2.5 flex-shrink-0">
@@ -468,7 +488,7 @@ export default function CompanySettingsView() {
               className="w-9 h-9 rounded-full overflow-hidden cursor-pointer ring-2 ring-offset-2 ring-transparent hover:ring-[#3462EE]/40 transition-all flex-shrink-0 relative group">
               {profilePhoto
                 ? <img src={profilePhoto} alt="profil" className="w-full h-full object-cover" />
-                : <div className="w-full h-full bg-[#E2FF8D] flex items-center justify-center text-[14px] font-bold text-[#111111]">
+                : <div className="w-full h-full bg-[#E2FF8D] flex items-center justify-center text-[14px] font-bold text-soren-text">
                     {userPrenom ? userPrenom[0].toUpperCase() : 'T'}
                   </div>
               }
@@ -513,8 +533,8 @@ export default function CompanySettingsView() {
       {/* Ligne 2 : Coordonnées + Infos légales */}
       <div className="grid grid-cols-2 gap-2.5 flex-1 min-h-0">
 
-        <div className="bg-white rounded-2xl border border-[#EAECE7] p-4 flex flex-col gap-3 overflow-hidden">
-          <p className="text-[8px] font-semibold text-[#9CA3AF] uppercase tracking-widest flex-shrink-0">Coordonnées</p>
+        <div className="bg-soren-card rounded-2xl border border-[#EAECE7] p-4 flex flex-col gap-3 overflow-hidden">
+          <p className="text-[8px] font-semibold text-soren-subtle uppercase tracking-widest flex-shrink-0">Coordonnées</p>
           <div className="flex-shrink-0 min-w-0">
             <label className={labelCls}>Rue</label>
             <input value={addrRue} onChange={e => setAddrRue(e.target.value)} className={inputCls} placeholder="215, avenue Clément Ader" />
@@ -545,8 +565,8 @@ export default function CompanySettingsView() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-[#EAECE7] p-4 flex flex-col gap-3 overflow-hidden">
-          <p className="text-[8px] font-semibold text-[#9CA3AF] uppercase tracking-widest flex-shrink-0">Informations légales</p>
+        <div className="bg-soren-card rounded-2xl border border-[#EAECE7] p-4 flex flex-col gap-3 overflow-hidden">
+          <p className="text-[8px] font-semibold text-soren-subtle uppercase tracking-widest flex-shrink-0">Informations légales</p>
           <div className="grid grid-cols-2 gap-2 flex-shrink-0">
             <div>
               <label className={labelCls}>SIRET</label>

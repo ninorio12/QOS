@@ -144,23 +144,50 @@ export const getConversations = unstable_cache(
   { revalidate: 60, tags: ['ghl-conversations'] }
 )
 
+export type SendEmailOptions = {
+  subject:   string
+  from?:     string
+  fromName?: string
+  to?:       string
+  cc?:       string[]
+  bcc?:      string[]
+}
+
 export async function sendGHLMessage(
   conversationId: string,
   message: string,
   type: 'WhatsApp' | 'SMS' | 'Email',
   subject?: string,
   contactId?: string,
+  emailOptions?: SendEmailOptions,
 ) {
+  if (!message?.trim()) {
+    throw new Error('sendGHLMessage: message vide — envoi annulé')
+  }
+  if (!conversationId?.trim()) {
+    throw new Error('sendGHLMessage: conversationId manquant')
+  }
+
   const apiKey  = process.env.GHL_API_KEY!
   const baseUrl = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'
 
-  const payload: Record<string, string> = {
+  const payload: Record<string, unknown> = {
     type,
     conversationId,
-    message,
+    message: message.trim(),
   }
-  if (subject)   payload.subject   = subject
   if (contactId) payload.contactId = contactId
+
+  if (type === 'Email' && emailOptions) {
+    payload.subject  = emailOptions.subject
+    if (emailOptions.from)     payload.from     = emailOptions.from
+    if (emailOptions.fromName) payload.fromName = emailOptions.fromName
+    if (emailOptions.to)       payload.to       = emailOptions.to
+    if (emailOptions.cc?.length)  payload.cc  = emailOptions.cc
+    if (emailOptions.bcc?.length) payload.bcc = emailOptions.bcc
+  } else if (subject) {
+    payload.subject = subject
+  }
 
   const res = await fetch(`${baseUrl}/conversations/messages`, {
     method: 'POST',
@@ -186,18 +213,21 @@ export const getCalendars = unstable_cache(
 )
 
 export type GHLMessage = {
-  id:          string
-  body:        string
-  direction:   'inbound' | 'outbound'
-  dateAdded:   string
-  source?:     string
+  id:           string
+  body:         string
+  direction:    'inbound' | 'outbound'
+  dateAdded:    string
+  source?:      string
   contentType?: string
+  messageType?: string  // ex: TYPE_SMS, TYPE_ACTIVITY_OPPORTUNITY, TYPE_NOTE
 }
 
 export async function getConversationMessages(conversationId: string, limit = 40): Promise<GHLMessage[]> {
   try {
     const data = await ghlFetch(`/conversations/${conversationId}/messages?limit=${limit}`)
-    return (data.messages ?? []) as GHLMessage[]
+    // GHL returns { messages: { messages: [...], nextPage, lastMessageId } }
+    const raw = data.messages?.messages ?? data.messages ?? []
+    return (Array.isArray(raw) ? raw : []) as GHLMessage[]
   } catch {
     return []
   }
@@ -305,6 +335,8 @@ export type GHLConversation = {
   type: string
   unreadCount: number
   lastMessageDate: number | null  // Unix ms timestamp
+  lastMessageBody?: string | null
+  lastMessageType?: string | null
   dateAdded: number               // Unix ms timestamp
   dateUpdated: number             // Unix ms timestamp
   assignedTo?: string | null
@@ -340,6 +372,41 @@ export const getWorkflows = unstable_cache(
   ['ghl-workflows'],
   { revalidate: 300, tags: ['ghl-workflows'] }
 )
+
+// ── Conversation : trouver ou créer ──────────────────────────────────────────
+
+export async function findOrCreateGHLConversation(contactId: string, creds?: GHLCreds): Promise<string> {
+  const c = creds ?? defaultCreds()
+
+  // Cherche une conversation existante
+  try {
+    const search = await ghlFetchWith(
+      `/conversations/search?contactId=${contactId}&locationId=${c.locationId}`,
+      c
+    )
+    const list = (search.conversations ?? []) as { id: string }[]
+    if (list.length > 0) return list[0].id
+  } catch {
+    // Ignore — on crée une nouvelle
+  }
+
+  // Crée une nouvelle conversation
+  const created = await ghlMutateWith('/conversations/', 'POST', {
+    contactId,
+    locationId: c.locationId,
+  }, c) as { conversation?: { id: string }; id?: string }
+
+  const id = created.conversation?.id ?? created.id
+  if (!id) throw new Error('GHL: impossible de créer la conversation')
+  return id
+}
+
+// ── Mise à jour des notes d'un contact ───────────────────────────────────────
+
+export async function updateGHLContactNotes(contactId: string, notes: string, creds?: GHLCreds): Promise<void> {
+  const c = creds ?? defaultCreds()
+  await ghlMutateWith(`/contacts/${contactId}`, 'PUT', { additionalEmails: [], tags: [], customFields: [], notes }, c)
+}
 
 // ── Création contact + opportunité (flow acquisition) ────────────────────────
 
@@ -389,6 +456,23 @@ export async function createGHLContact(data: {
   const id = json.contact?.id
   if (!id) throw new Error('GHL createContact: id manquant dans la réponse')
   return id
+}
+
+// ── Ferme toutes les opportunités ouvertes d'un contact (évite les doublons pipeline) ─
+export async function closeOpenOpportunities(contactId: string): Promise<void> {
+  try {
+    const data = await ghlFetch(
+      `/opportunities/search?location_id=${ghlLocationId()}&contact_id=${contactId}&status=open&limit=20`
+    ) as { opportunities?: { id: string }[] }
+    const opps = data.opportunities ?? []
+    await Promise.all(
+      opps.map(opp =>
+        ghlMutate(`/opportunities/${opp.id}`, 'PATCH', { status: 'abandoned' }).catch(() => {})
+      )
+    )
+  } catch {
+    // best-effort — ne bloque pas la création
+  }
 }
 
 export async function createGHLOpportunity(data: {

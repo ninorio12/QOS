@@ -53,9 +53,9 @@ export async function GET() {
     }
 
     // Google Calendar
-    if (isGoogleConfigured()) {
+    if (await isGoogleConfigured()) {
       try {
-        const cal    = getCalendarClient()
+        const cal    = await getCalendarClient()
         const res    = await withTimeout(cal.events.list({
           calendarId:   process.env.GOOGLE_CALENDAR_ID || 'primary',
           timeMin:      new Date(now - RANGE).toISOString(),
@@ -82,7 +82,7 @@ export async function GET() {
       } catch { /* Google optional */ }
     }
 
-    return NextResponse.json({ appointments, calendars, googleConfigured: isGoogleConfigured() })
+    return NextResponse.json({ appointments, calendars, googleConfigured: await isGoogleConfigured() })
   } catch (err) {
     console.error('[Calendrier API]', err)
     return NextResponse.json({ appointments: [], calendars: [], googleConfigured: false })

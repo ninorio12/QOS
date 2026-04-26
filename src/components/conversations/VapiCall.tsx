@@ -122,31 +122,31 @@ export default function VapiCall({ conversation }: Props) {
   return (
     <div className="flex flex-col h-full overflow-y-auto px-5 py-5 gap-4">
       {/* Contact card */}
-      <div className="bg-white rounded-xl p-4 border border-[#E5E7EB]">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Contact</p>
-        <p className="text-sm font-semibold text-[#111111]">{conversation.contact_name ?? 'Contact inconnu'}</p>
+      <div className="bg-soren-card rounded-xl p-4 border border-soren-border">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-soren-subtle mb-2">Contact</p>
+        <p className="text-sm font-semibold text-soren-text">{conversation.contact_name ?? 'Contact inconnu'}</p>
         {conversation.contact_company && (
-          <p className="text-xs text-[#6B7280]">{conversation.contact_company}</p>
+          <p className="text-xs text-soren-muted">{conversation.contact_company}</p>
         )}
         {conversation.contact_phone && (
-          <p className="text-xs text-[#9CA3AF] mt-1 font-mono">{conversation.contact_phone}</p>
+          <p className="text-xs text-soren-subtle mt-1 font-mono">{conversation.contact_phone}</p>
         )}
       </div>
 
       {/* Instructions */}
-      <div className="bg-white rounded-xl p-4 border border-[#E5E7EB]">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Instructions pour Kai</p>
+      <div className="bg-soren-card rounded-xl p-4 border border-soren-border">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-soren-subtle mb-2">Instructions pour Kai</p>
         <textarea
           value={instructions}
           onChange={e => setInstr(e.target.value)}
           disabled={isBusy}
           rows={4}
-          className="w-full text-xs text-[#374151] bg-[#F8F8F6] border border-[#E5E7EB] rounded-lg p-2.5 resize-none outline-none focus:border-[#3462EE] disabled:opacity-50 transition-colors"
+          className="w-full text-xs text-[#374151] bg-[#F8F8F6] border border-soren-border rounded-lg p-2.5 resize-none outline-none focus:border-[#3462EE] disabled:opacity-50 transition-colors"
         />
       </div>
 
       {/* Call controls */}
-      <div className="bg-white rounded-xl p-4 border border-[#E5E7EB]">
+      <div className="bg-soren-card rounded-xl p-4 border border-soren-border">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span
@@ -155,7 +155,7 @@ export default function VapiCall({ conversation }: Props) {
             />
             <span className="text-xs font-medium" style={{ color: meta.color }}>{meta.label}</span>
             {status === 'active' && (
-              <span className="text-xs text-[#9CA3AF] font-mono">{fmt(duration)}</span>
+              <span className="text-xs text-soren-subtle font-mono">{fmt(duration)}</span>
             )}
           </div>
           <div className="flex gap-2">
@@ -165,7 +165,7 @@ export default function VapiCall({ conversation }: Props) {
                 className={`text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-colors ${
                   isMuted
                     ? 'bg-[#EF4444]/10 border-[#EF4444]/30 text-[#EF4444]'
-                    : 'border-[#E5E7EB] text-[#6B7280] hover:border-[#111111] hover:text-[#111111]'
+                    : 'border-soren-border text-soren-muted hover:border-[#111111] hover:text-soren-text'
                 }`}
               >
                 {isMuted ? 'Micro coupé' : 'Couper micro'}
@@ -182,7 +182,7 @@ export default function VapiCall({ conversation }: Props) {
               <button
                 onClick={startCall}
                 disabled={!process.env.NEXT_PUBLIC_VAPI_API_KEY}
-                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[#111111] text-white hover:bg-[#222] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-soren-sidebar text-white hover:bg-[#222] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 Appeler
               </button>
@@ -190,18 +190,18 @@ export default function VapiCall({ conversation }: Props) {
           </div>
         </div>
 
-        <p className="text-[10px] text-[#9CA3AF]">
+        <p className="text-[10px] text-soren-subtle">
           Appel web via Vapi — votre navigateur doit autoriser le microphone.
         </p>
       </div>
 
       {/* Log */}
       {log.length > 0 && (
-        <div className="bg-white rounded-xl p-4 border border-[#E5E7EB]">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] mb-2">Journal</p>
+        <div className="bg-soren-card rounded-xl p-4 border border-soren-border">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-soren-subtle mb-2">Journal</p>
           <div className="space-y-1 max-h-32 overflow-y-auto">
             {log.map((entry, i) => (
-              <p key={i} className="text-[11px] text-[#6B7280] font-mono">{entry}</p>
+              <p key={i} className="text-[11px] text-soren-muted font-mono">{entry}</p>
             ))}
           </div>
         </div>

@@ -20,17 +20,24 @@ export async function POST(req: NextRequest) {
   }
   if (!rows?.length) return NextResponse.json({ created: 0, errors: [] })
 
+  // Guard anti-burst — max 20 contacts par appel (GHL rate-limit)
+  const BURST_LIMIT = 20
+  if (rows.length > BURST_LIMIT) {
+    const trace_id = Math.random().toString(36).slice(2, 8)
+    console.warn(`[import] burst guard déclenché — ${rows.length} rows > ${BURST_LIMIT} (trace_id: ${trace_id})`)
+    return NextResponse.json(
+      { error: 'burst_limit_exceeded', trace_id, message: `Maximum ${BURST_LIMIT} contacts par import. Reçu: ${rows.length}. Découpez en lots.`, limit: BURST_LIMIT, received: rows.length },
+      { status: 429 }
+    )
+  }
+
   const headers = {
     Authorization:  `Bearer ${apiKey}`,
     Version:        '2021-07-28',
     'Content-Type': 'application/json',
   }
 
-  let created = 0
-  const errors: { row: number; message: string }[] = []
-
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i]
+  const results = await Promise.all(rows.map(async (r, i) => {
     try {
       // 1. Create contact
       const contactRes = await fetch(`${baseUrl}/contacts/`, {
@@ -48,12 +55,8 @@ export async function POST(req: NextRequest) {
       })
 
       if (!contactRes.ok) {
-        const err = await contactRes.text()
-        errors.push({ row: i + 1, message: err })
-        continue
+        return { ok: false, row: i + 1, message: await contactRes.text() }
       }
-
-      created++
 
       // 2. Create opportunity if pipeline selected
       if (pipelineId && firstStageId) {
@@ -78,10 +81,17 @@ export async function POST(req: NextRequest) {
           // Opportunity errors are non-fatal — contact was already created
         }
       }
+
+      return { ok: true }
     } catch (err) {
-      errors.push({ row: i + 1, message: String(err) })
+      return { ok: false, row: i + 1, message: String(err) }
     }
-  }
+  }))
+
+  const created = results.filter(r => r.ok).length
+  const errors  = results
+    .filter((r): r is { ok: false; row: number; message: string } => !r.ok)
+    .map(({ row, message }) => ({ row, message }))
 
   return NextResponse.json({ created, errors })
 }

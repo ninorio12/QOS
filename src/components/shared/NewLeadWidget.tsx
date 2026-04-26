@@ -20,7 +20,7 @@ export default function NewLeadWidget({ onAddOpp, pipelineInfo }: Props) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 bg-[#111111] hover:bg-[#2a2a2a] text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-sm transition-colors flex-shrink-0"
+        className="flex items-center gap-2 bg-soren-sidebar hover:bg-[#2a2a2a] text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-sm transition-colors flex-shrink-0"
       >
         <Plus size={14} />
         Nouveau Lead

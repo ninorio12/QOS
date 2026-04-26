@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import useSWR from 'swr'
 import CalendarView from '@/components/calendrier/CalendarView'
 import CalendrierLoading from './loading'
@@ -15,11 +17,22 @@ type CalData = {
 const fetcher = (url: string) => fetch(url).then(r => r.json())
 
 export default function CalendrierPage() {
-  const { data, isLoading } = useSWR<CalData>('/api/calendrier', fetcher, {
+  const searchParams = useSearchParams()
+  const router       = useRouter()
+  const justConnected = searchParams.get('google') === 'connected'
+
+  const { data, isLoading, mutate } = useSWR<CalData>('/api/calendrier', fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 30_000,
-    keepPreviousData: true,
+    dedupingInterval:  justConnected ? 0 : 30_000,
+    keepPreviousData:  true,
   })
+
+  useEffect(() => {
+    if (justConnected) {
+      mutate()
+      router.replace('/calendrier')
+    }
+  }, [justConnected, mutate, router])
 
   if (isLoading && !data) return <CalendrierLoading />
 

@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { Phone, Mail, ExternalLink, Sparkles, Loader2 } from 'lucide-react'
 import { type Conversation, type Message, type Pipeline, CHANNEL_META } from './types'
 import { getAvatarColor } from '@/components/contacts/types'
-import KaiAnalysis from './KaiAnalysis'
 
 type Priorite = 'faible' | 'moyenne' | 'haute'
 type Statut   = 'ouvert' | 'ferme'
@@ -152,7 +151,7 @@ export default function ConversationPanel({ conversation, messages, pipelines }:
   }
 
   return (
-    <div className="w-[300px] flex-shrink-0 bg-white border-l border-[#F0F0EE] flex flex-col overflow-hidden">
+    <div className="w-[300px] flex-shrink-0 bg-soren-card border-l border-[#F0F0EE] flex flex-col overflow-hidden">
 
       {/* Contact header */}
       <div className="px-4 pt-4 pb-3 border-b border-[#F0F0EE] flex-shrink-0">
@@ -162,9 +161,9 @@ export default function ConversationPanel({ conversation, messages, pipelines }:
             {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-bold text-[#111111] truncate">{name}</p>
+            <p className="text-[12px] font-bold text-soren-text truncate">{name}</p>
             {conversation.contact_company && (
-              <p className="text-[10px] text-[#9CA3AF] truncate">{conversation.contact_company}</p>
+              <p className="text-[10px] text-soren-subtle truncate">{conversation.contact_company}</p>
             )}
           </div>
         </div>
@@ -175,10 +174,10 @@ export default function ConversationPanel({ conversation, messages, pipelines }:
 
         {/* Statut */}
         <div>
-          <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-1">Statut</p>
+          <p className="text-[9px] font-semibold text-soren-subtle uppercase tracking-wide mb-1">Statut</p>
           <button
             onClick={() => void handleStatutToggle()}
-            className="flex items-center gap-2 w-full px-3 py-1.5 rounded-xl border border-[#E5E7EB] hover:border-[#D1D5DB] transition-colors text-left"
+            className="flex items-center gap-2 w-full px-3 py-1.5 rounded-xl border border-soren-border hover:border-[#D1D5DB] transition-colors text-left"
           >
             <div className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                  style={{ background: statut === 'ouvert' ? '#22c55e' : '#9CA3AF' }} />
@@ -190,7 +189,7 @@ export default function ConversationPanel({ conversation, messages, pipelines }:
 
         {/* Priorité */}
         <div>
-          <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-1 flex items-center gap-1">
+          <p className="text-[9px] font-semibold text-soren-subtle uppercase tracking-wide mb-1 flex items-center gap-1">
             Priorité
             {genPrio && <Loader2 size={8} className="animate-spin text-[#8B5CF6]" />}
           </p>
@@ -218,11 +217,12 @@ export default function ConversationPanel({ conversation, messages, pipelines }:
 
         {/* Sujet */}
         <div>
-          <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-1 flex items-center gap-1">
+          <p className="text-[9px] font-semibold text-soren-subtle uppercase tracking-wide mb-1 flex items-center gap-1">
+            <Sparkles size={8} className="text-[#8B5CF6]" />
             Sujet
             {genSujet && <Loader2 size={8} className="animate-spin text-[#8B5CF6]" />}
           </p>
-          <div className="px-2.5 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9F9F7]">
+          <div className="px-2.5 py-2 rounded-xl border border-soren-border bg-[#F9F9F7]">
             {sujet ? (
               <p className="text-[11px] text-[#374151] leading-snug">
                 {sujet}
@@ -239,10 +239,10 @@ export default function ConversationPanel({ conversation, messages, pipelines }:
         {/* Tags */}
         {conversation.tags && conversation.tags.length > 0 && (
           <div>
-            <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-1">Tags</p>
+            <p className="text-[9px] font-semibold text-soren-subtle uppercase tracking-wide mb-1">Tags</p>
             <div className="flex flex-wrap gap-1">
               {conversation.tags.map(tag => (
-                <span key={tag} className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-[#EEF0EB] text-[#6B7280]">
+                <span key={tag} className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-soren-app text-soren-muted">
                   {tag}
                 </span>
               ))}
@@ -253,24 +253,24 @@ export default function ConversationPanel({ conversation, messages, pipelines }:
 
       {/* Attributs */}
       <div className="px-4 py-3 border-b border-[#F0F0EE] flex-shrink-0">
-        <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-2">Attributs</p>
+        <p className="text-[9px] font-semibold text-soren-subtle uppercase tracking-wide mb-2">Attributs</p>
         <div className="space-y-2">
 
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-[#9CA3AF]">Origine</span>
+            <span className="text-[11px] text-soren-subtle">Origine</span>
             <OriginBadge createdBy={createdBy} />
           </div>
 
           {pipelineName && (
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-[#9CA3AF]">Pipeline</span>
+              <span className="text-[11px] text-soren-subtle">Pipeline</span>
               <span className="text-[11px] font-semibold text-[#374151]">{pipelineName}</span>
             </div>
           )}
 
           {conversation.contact_phone && (
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] text-[#9CA3AF] flex-shrink-0">Téléphone</span>
+              <span className="text-[11px] text-soren-subtle flex-shrink-0">Téléphone</span>
               <a href={`tel:${conversation.contact_phone}`}
                  className="flex items-center gap-1 text-[11px] font-semibold text-[#374151] hover:text-[#3462EE] transition-colors truncate">
                 <Phone size={9} className="text-[#C4C9D4] flex-shrink-0" />
@@ -281,7 +281,7 @@ export default function ConversationPanel({ conversation, messages, pipelines }:
 
           {conversation.contact_email && (
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] text-[#9CA3AF] flex-shrink-0">Email</span>
+              <span className="text-[11px] text-soren-subtle flex-shrink-0">Email</span>
               <a href={`mailto:${conversation.contact_email}`}
                  className="flex items-center gap-1 text-[11px] font-semibold text-[#374151] hover:text-[#3462EE] transition-colors truncate">
                 <Mail size={9} className="text-[#C4C9D4] flex-shrink-0" />
@@ -300,10 +300,6 @@ export default function ConversationPanel({ conversation, messages, pipelines }:
         </div>
       </div>
 
-      {/* Kai analysis — prend tout l'espace restant */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        <KaiAnalysis conversation={conversation} messages={messages} />
-      </div>
 
     </div>
   )

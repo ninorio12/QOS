@@ -175,13 +175,13 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated }: P
     }
   }
 
-  const inputCls = 'w-full px-4 py-3 rounded-2xl bg-[#F5F5F0] border-0 text-sm text-[#111111] placeholder:text-[#BCBCB8] focus:outline-none focus:ring-2 focus:ring-[#111111]/15 transition-all'
+  const inputCls = 'w-full px-4 py-3 rounded-2xl bg-soren-elevated border-0 text-sm text-soren-text placeholder:text-[#BCBCB8] focus:outline-none focus:ring-2 focus:ring-[#111111]/15 transition-all'
   const canSave  = title.trim().length > 0 && calendarId.length > 0 && !saving
 
   if (success) {
     return (
       <div className="fixed inset-0 z-50 flex items-end justify-center pb-10 pointer-events-none">
-        <div className="flex items-center gap-2 bg-[#111111] text-white text-sm font-semibold px-5 py-3 rounded-full shadow-xl">
+        <div className="flex items-center gap-2 bg-soren-sidebar text-white text-sm font-semibold px-5 py-3 rounded-full shadow-xl">
           <Check size={14} className="text-[#C8F135]" />
           {warning ? 'RDV créé dans Google Calendar' : 'RDV créé avec succès'}
         </div>
@@ -191,14 +191,14 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated }: P
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[480px] flex flex-col">
+      <div className="bg-soren-card rounded-2xl shadow-2xl w-full max-w-[480px] flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-5">
-          <h2 className="text-[15px] font-bold text-[#111111]">Nouveau rendez-vous</h2>
+          <h2 className="text-[15px] font-bold text-soren-text">Nouveau rendez-vous</h2>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[#9CA3AF] hover:text-[#111111] hover:bg-[#F5F5F0] transition-colors"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-soren-subtle hover:text-soren-text hover:bg-soren-elevated transition-colors"
           >
             <X size={15} />
           </button>
@@ -223,11 +223,11 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated }: P
                       ? cleanName(calendars.find(c => c.id === calendarId)!.name, calendars.findIndex(c => c.id === calendarId))
                       : 'Sélectionner…'}
                   </span>
-                  <ChevronDown size={13} className={`text-[#9CA3AF] flex-shrink-0 transition-transform ${showCalDrop ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={13} className={`text-soren-subtle flex-shrink-0 transition-transform ${showCalDrop ? 'rotate-180' : ''}`} />
                 </button>
 
                 {showCalDrop && (
-                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-2xl shadow-lg z-50 overflow-hidden">
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-soren-card border border-soren-border rounded-2xl shadow-lg z-50 overflow-hidden">
                     {calendars.map((c, i) => (
                       <button
                         key={c.id}
@@ -235,8 +235,8 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated }: P
                         onMouseDown={() => { setCalendarId(c.id); setShowCalDrop(false) }}
                         className={`w-full text-left px-4 py-2.5 text-[13px] transition-colors border-b border-[#F5F5F0] last:border-0 ${
                           c.id === calendarId
-                            ? 'font-semibold text-[#111111] bg-[#F5F5F0]'
-                            : 'font-normal text-[#6B7280] hover:bg-[#F9F9F7] hover:text-[#111111]'
+                            ? 'font-semibold text-soren-text bg-soren-elevated'
+                            : 'font-normal text-soren-muted hover:bg-[#F9F9F7] hover:text-soren-text'
                         }`}
                       >
                         {cleanName(c.name, i)}
@@ -246,7 +246,7 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated }: P
                 )}
               </div>
             ) : (
-              <div className={inputCls + ' text-[#9CA3AF]'}>Calendrier principal</div>
+              <div className={inputCls + ' text-soren-subtle'}>Calendrier principal</div>
             )}
           </Field>
 
@@ -266,18 +266,18 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated }: P
               </div>
 
               {showDrop && filteredContacts.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-2xl shadow-lg z-50 overflow-hidden max-h-48 overflow-y-auto">
+                <div className="absolute left-0 right-0 top-full mt-1 bg-soren-card border border-soren-border rounded-2xl shadow-lg z-50 overflow-hidden max-h-48 overflow-y-auto">
                   {filteredContacts.map(c => (
                     <button
                       key={c.id}
                       onMouseDown={() => selectContact(c)}
-                      className="w-full text-left px-4 py-2.5 hover:bg-[#F5F5F0] transition-colors border-b border-[#F5F5F0] last:border-0"
+                      className="w-full text-left px-4 py-2.5 hover:bg-soren-elevated transition-colors border-b border-[#F5F5F0] last:border-0"
                     >
-                      <p className="text-[13px] font-semibold text-[#111111] leading-snug">
+                      <p className="text-[13px] font-semibold text-soren-text leading-snug">
                         {c.contactName || [c.firstName, c.lastName].filter(Boolean).join(' ') || '—'}
                       </p>
                       {(c.phone || c.email) && (
-                        <p className="text-[11px] text-[#9CA3AF]">{c.phone || c.email}</p>
+                        <p className="text-[11px] text-soren-subtle">{c.phone || c.email}</p>
                       )}
                     </button>
                   ))}
@@ -335,11 +335,11 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated }: P
           >
             <div className={`w-8 h-4.5 rounded-full relative transition-colors ${withMeet ? 'bg-[#1A73E8]' : 'bg-[#D1D5DB]'}`} style={{ height: 18, width: 32 }}>
               <div
-                className="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-transform"
+                className="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-soren-card shadow transition-transform"
                 style={{ transform: withMeet ? 'translateX(15px)' : 'translateX(2px)' }}
               />
             </div>
-            <span className="text-[12px] font-medium text-[#6B7280] group-hover:text-[#111111] transition-colors select-none">
+            <span className="text-[12px] font-medium text-soren-muted group-hover:text-soren-text transition-colors select-none">
               Créer un lien Google Meet
             </span>
           </button>
@@ -364,14 +364,14 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated }: P
         <div className="flex items-center justify-end gap-3 px-6 py-4">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-[#6B7280] hover:text-[#111111] transition-colors"
+            className="px-4 py-2 text-sm text-soren-muted hover:text-soren-text transition-colors"
           >
             Annuler
           </button>
           <button
             onClick={handleSave}
             disabled={!canSave}
-            className="flex items-center gap-2 bg-[#111111] text-white text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-[#333333] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 bg-soren-sidebar text-white text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-[#333333] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {saving && <Loader2 size={13} className="animate-spin" />}
             Créer le RDV
@@ -386,7 +386,7 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated }: P
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-widest">{label}</label>
+      <label className="text-[11px] font-bold text-soren-subtle uppercase tracking-widest">{label}</label>
       {children}
     </div>
   )
