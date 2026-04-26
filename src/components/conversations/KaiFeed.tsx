@@ -151,7 +151,7 @@ export default function KaiFeed({ initialMessages }: Props) {
               onClick={() => setFilter(f.id)}
               className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
                 filter === f.id
-                  ? 'bg-[#E2FF8D] text-soren-text font-medium'
+                  ? 'bg-[#E2FF8D] text-[#111111] font-medium'
                   : 'text-soren-subtle hover:text-white hover:bg-soren-card/5'
               }`}
             >

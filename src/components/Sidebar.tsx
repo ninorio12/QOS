@@ -77,7 +77,7 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
       className={`
         flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-150
         ${active
-          ? 'bg-[#E2FF8D] text-soren-text shadow-sm'
+          ? 'bg-[#E2FF8D] text-[#111111] shadow-sm'
           : 'text-white/50 hover:text-white/90 hover:bg-soren-card/8'
         }
       `}

@@ -32,11 +32,11 @@ export default function MobileNav() {
                 <Icon
                   size={20}
                   strokeWidth={active ? 2.5 : 1.8}
-                  className={active ? 'text-soren-text' : 'text-soren-subtle'}
+                  className={active ? 'text-[#111111]' : 'text-soren-subtle'}
                 />
               </div>
               <span className={`text-[10px] font-semibold truncate transition-colors ${
-                active ? 'text-soren-text' : 'text-soren-subtle'
+                active ? 'text-[#111111]' : 'text-soren-subtle'
               }`}>
                 {label}
               </span>

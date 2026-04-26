@@ -434,7 +434,7 @@ export default function CompanySettingsView() {
           disabled={saving || !dirty}
           className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl font-semibold text-xs transition-all ${
             dirty
-              ? 'bg-[#E2FF8D] text-soren-text hover:bg-[#d4f570]'
+              ? 'bg-[#E2FF8D] text-[#111111] hover:bg-[#d4f570]'
               : 'bg-transparent text-[#C8CCC6] cursor-default'
           }`}
         >
@@ -472,7 +472,7 @@ export default function CompanySettingsView() {
             <label className={labelCls}>Couleur brand</label>
             <ColorPicker value={form.brand_color} onChange={v => set('brand_color', v)} />
           </div>
-          <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-shrink-0">
             <label className={labelCls}>Logo entreprise</label>
             <SvgDropZone value={form.logo_svg} onChange={v => set('logo_svg', v)} />
           </div>

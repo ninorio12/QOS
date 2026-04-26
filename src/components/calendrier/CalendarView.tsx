@@ -120,7 +120,7 @@ function MiniCal({
               className={`
                 w-7 h-7 mx-auto flex items-center justify-center rounded-full text-[11px] font-medium transition-colors
                 ${isToday  ? 'bg-[#3462EE] text-white font-bold' : ''}
-                ${isSel && !isToday ? 'bg-[#E2FF8D] text-soren-text font-bold' : ''}
+                ${isSel && !isToday ? 'bg-[#E2FF8D] text-[#111111] font-bold' : ''}
                 ${!isToday && !isSel && isThisMonth  ? 'text-soren-text hover:bg-soren-elevated' : ''}
                 ${!isThisMonth ? 'text-[#D1D5DB]' : ''}
               `}
