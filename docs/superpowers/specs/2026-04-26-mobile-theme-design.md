@@ -136,14 +136,16 @@ Single breakpoint: `md` (768px). Below `md` = mobile. Above `md` = desktop (unch
 
 New component. Visible only on mobile (`flex md:hidden`).
 
-**5 tabs:**
-| Tab | Icon | Route |
+**5 tabs — mêmes icônes Lucide que `Sidebar.tsx` (cohérence totale) :**
+| Tab | Lucide icon | Route |
 |---|---|---|
-| Home | LayoutDashboard | `/dashboard` |
-| Pipeline | GitMerge | `/pipeline` |
-| Contacts | Users | `/contacts` |
-| Messages | MessageSquare | `/conversations` |
-| Agents IA | BotMessageSquare | `/equipe` |
+| Home | `LayoutDashboard` | `/dashboard` |
+| Pipeline | `GitMerge` | `/pipeline` |
+| Contacts | `Users` | `/contacts` |
+| Messages | `MessageSquare` | `/conversations` |
+| Agents IA | `BotMessageSquare` | `/equipe` |
+
+Import: `import { LayoutDashboard, GitMerge, Users, MessageSquare, BotMessageSquare } from 'lucide-react'`
 
 **Styling:**
 - `flex md:hidden fixed bottom-0 left-0 right-0 z-50`
