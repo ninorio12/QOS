@@ -111,7 +111,7 @@ export default function MobileHeader() {
               <form action={logout}>
                 <button
                   type="submit"
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-[12px] text-red-500 hover:bg-red-50 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-[12px] text-red-500 hover:bg-red-500/10 transition-colors"
                 >
                   <LogOut size={13} /> Se déconnecter
                 </button>

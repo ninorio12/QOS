@@ -3,10 +3,10 @@ export default function PipelineLoading() {
     <div className="h-full flex flex-col overflow-hidden animate-pulse">
       {/* Header */}
       <div className="px-6 pt-6 pb-4 flex items-center justify-between flex-shrink-0">
-        <div className="h-8 w-32 bg-[#D9DDD6] rounded-xl" />
+        <div className="h-8 w-32 bg-soren-border rounded-xl" />
         <div className="flex gap-2">
-          <div className="h-8 w-24 bg-[#D9DDD6] rounded-xl" />
-          <div className="h-8 w-8 bg-[#D9DDD6] rounded-xl" />
+          <div className="h-8 w-24 bg-soren-border rounded-xl" />
+          <div className="h-8 w-8 bg-soren-border rounded-xl" />
         </div>
       </div>
 
@@ -19,8 +19,8 @@ export default function PipelineLoading() {
           >
             {/* Column header */}
             <div className="flex items-center justify-between mb-3">
-              <div className="h-3 w-24 bg-[#D9DDD6] rounded" />
-              <div className="h-5 w-5 bg-[#E5E7EB] rounded-full" />
+              <div className="h-3 w-24 bg-soren-border rounded" />
+              <div className="h-5 w-5 bg-soren-border rounded-full" />
             </div>
 
             {/* Cards */}
@@ -31,13 +31,13 @@ export default function PipelineLoading() {
                   className="bg-soren-card rounded-xl p-3 border border-soren-border shadow-sm"
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-7 h-7 rounded-full bg-[#E5E7EB]" />
+                    <div className="w-7 h-7 rounded-full bg-soren-border" />
                     <div className="flex-1">
-                      <div className="h-2.5 w-20 bg-[#D9DDD6] rounded mb-1" />
-                      <div className="h-2 w-14 bg-[#E5E7EB] rounded" />
+                      <div className="h-2.5 w-20 bg-soren-border rounded mb-1" />
+                      <div className="h-2 w-14 bg-soren-border rounded" />
                     </div>
                   </div>
-                  <div className="h-2 w-16 bg-[#E5E7EB] rounded" />
+                  <div className="h-2 w-16 bg-soren-border rounded" />
                 </div>
               ))}
             </div>

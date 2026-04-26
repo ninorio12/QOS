@@ -150,7 +150,7 @@ export default function Header() {
             onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true) }}
             onFocus={() => setSearchOpen(true)}
             placeholder="Rechercher..."
-            className="w-64 bg-[#E4E6E1] border-0 rounded-full pl-8 pr-4 py-1.5 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#9CA3AF]/40 transition-all"
+            className="w-64 bg-soren-elevated border-0 rounded-full pl-8 pr-4 py-1.5 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#9CA3AF]/40 transition-all"
           />
 
           {/* Dropdown résultats */}
@@ -248,7 +248,7 @@ export default function Header() {
                 <form action={logout}>
                   <button
                     type="submit"
-                    className="w-full flex items-center gap-2.5 px-4 py-2 text-[12px] text-red-500 hover:bg-red-50 transition-colors"
+                    className="w-full flex items-center gap-2.5 px-4 py-2 text-[12px] text-red-500 hover:bg-red-500/10 transition-colors"
                   >
                     <LogOut size={13} /> Se déconnecter
                   </button>

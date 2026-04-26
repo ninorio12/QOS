@@ -10,10 +10,10 @@ export default function KnowledgeLoading() {
       {/* Header */}
       <div className="px-6 pt-6 pb-4 flex items-center justify-between flex-shrink-0">
         <div>
-          <div className="h-7 w-40 bg-[#D9DDD6] rounded-xl mb-1" />
-          <div className="h-3 w-56 bg-[#E5E7EB] rounded" />
+          <div className="h-7 w-40 bg-soren-border rounded-xl mb-1" />
+          <div className="h-3 w-56 bg-soren-border rounded" />
         </div>
-        <div className="h-9 w-36 bg-[#D9DDD6] rounded-full" />
+        <div className="h-9 w-36 bg-soren-border rounded-full" />
       </div>
 
       {/* Agent cards */}
@@ -37,9 +37,9 @@ export default function KnowledgeLoading() {
 
             {/* Soul text skeleton */}
             <div className="bg-[#F9F9F7] rounded-xl p-3 mb-3">
-              <div className="h-2 w-full bg-[#E5E7EB] rounded mb-1.5" />
-              <div className="h-2 w-5/6 bg-[#E5E7EB] rounded mb-1.5" />
-              <div className="h-2 w-4/5 bg-[#E5E7EB] rounded" />
+              <div className="h-2 w-full bg-soren-border rounded mb-1.5" />
+              <div className="h-2 w-5/6 bg-soren-border rounded mb-1.5" />
+              <div className="h-2 w-4/5 bg-soren-border rounded" />
             </div>
 
             {/* Skills */}

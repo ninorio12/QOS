@@ -20,7 +20,7 @@ type CompanySettings = {
   website_url: string
 }
 
-const inputCls = 'w-full bg-soren-elevated border border-transparent rounded-lg px-2.5 py-1.5 text-soren-text text-xs placeholder:text-[#C4C4C4] focus:outline-none focus:border-[#111111]/15 transition-colors'
+const inputCls = 'w-full bg-soren-elevated border border-transparent rounded-lg px-2.5 py-1.5 text-soren-text text-xs placeholder:text-soren-subtle focus:outline-none focus:border-soren-text/15 transition-colors'
 const labelCls = 'block text-[8px] font-medium text-soren-subtle mb-1 uppercase tracking-widest'
 
 // ─── Color math ──────────────────────────────────────────────────────────────
@@ -138,7 +138,7 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (v: string)
       <button
         ref={triggerRef}
         onClick={openPicker}
-        className="flex items-center gap-2.5 bg-soren-elevated rounded-xl px-3 py-2 hover:bg-[#EEEEEE] transition-colors"
+        className="flex items-center gap-2.5 bg-soren-elevated rounded-xl px-3 py-2 hover:bg-soren-elevated transition-colors"
       >
         <div className="w-5 h-5 rounded-md border border-black/10 flex-shrink-0" style={{ backgroundColor: value }} />
         <span className="text-sm font-mono text-soren-text">{value}</span>
@@ -253,7 +253,7 @@ function SvgDropZone({ value, onChange }: { value: string; onChange: (v: string)
         onClick={() => fileRef.current?.click()}
         className={[
           'border-2 border-dashed rounded-xl cursor-pointer transition-all flex items-center justify-center',
-          dragging ? 'border-[#111111] bg-soren-elevated' : 'border-soren-border hover:border-[#9CA3AF] hover:bg-[#FAFAFA]',
+          dragging ? 'border-[#111111] bg-soren-elevated' : 'border-soren-border hover:border-soren-subtle hover:bg-soren-elevated',
           'h-20',
         ].join(' ')}
       >
@@ -273,14 +273,14 @@ function SvgDropZone({ value, onChange }: { value: string; onChange: (v: string)
             <button
               type="button"
               onClick={e => { e.stopPropagation(); onChange('') }}
-              className="ml-auto text-[#C4C4C4] hover:text-red-400 transition-colors flex-shrink-0 text-xs"
+              className="ml-auto text-soren-subtle hover:text-red-400 transition-colors flex-shrink-0 text-xs"
             >
               ✕
             </button>
           </div>
         ) : (
           <div className="text-center px-4">
-            <svg className="mx-auto mb-1.5 text-[#C4C4C4]" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <svg className="mx-auto mb-1.5 text-soren-subtle" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="17 8 12 3 7 8"/>
               <line x1="12" y1="3" x2="12" y2="15"/>
@@ -292,7 +292,7 @@ function SvgDropZone({ value, onChange }: { value: string; onChange: (v: string)
 
       {/* Coller le code SVG */}
       <details className="group">
-        <summary className="text-[11px] text-[#C4C4C4] cursor-pointer hover:text-soren-subtle transition-colors list-none flex items-center gap-1">
+        <summary className="text-[11px] text-soren-subtle cursor-pointer hover:text-soren-subtle transition-colors list-none flex items-center gap-1">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
             className="group-open:rotate-90 transition-transform">
             <polyline points="9 18 15 12 9 6"/>
@@ -456,7 +456,7 @@ export default function CompanySettingsView() {
       <div className="grid grid-cols-2 gap-2.5 flex-1 min-h-0">
 
         {/* Identité + Logo */}
-        <div className="bg-soren-card rounded-2xl border border-[#EAECE7] p-4 flex flex-col gap-3 overflow-hidden">
+        <div className="bg-soren-card rounded-2xl border border-soren-border p-4 flex flex-col gap-3 overflow-hidden">
           <p className="text-[8px] font-semibold text-soren-subtle uppercase tracking-widest flex-shrink-0">Identité & Logo</p>
           <div className="grid grid-cols-2 gap-2 flex-shrink-0">
             <div>
@@ -479,7 +479,7 @@ export default function CompanySettingsView() {
         </div>
 
         {/* Profil utilisateur */}
-        <div className="bg-soren-card rounded-2xl border border-[#EAECE7] p-4 flex flex-col gap-3 overflow-hidden">
+        <div className="bg-soren-card rounded-2xl border border-soren-border p-4 flex flex-col gap-3 overflow-hidden">
           <p className="text-[8px] font-semibold text-soren-subtle uppercase tracking-widest flex-shrink-0">Profil utilisateur</p>
 
           {/* Avatar + boutons sur une ligne */}
@@ -533,7 +533,7 @@ export default function CompanySettingsView() {
       {/* Ligne 2 : Coordonnées + Infos légales */}
       <div className="grid grid-cols-2 gap-2.5 flex-1 min-h-0">
 
-        <div className="bg-soren-card rounded-2xl border border-[#EAECE7] p-4 flex flex-col gap-3 overflow-hidden">
+        <div className="bg-soren-card rounded-2xl border border-soren-border p-4 flex flex-col gap-3 overflow-hidden">
           <p className="text-[8px] font-semibold text-soren-subtle uppercase tracking-widest flex-shrink-0">Coordonnées</p>
           <div className="flex-shrink-0 min-w-0">
             <label className={labelCls}>Rue</label>
@@ -565,7 +565,7 @@ export default function CompanySettingsView() {
           </div>
         </div>
 
-        <div className="bg-soren-card rounded-2xl border border-[#EAECE7] p-4 flex flex-col gap-3 overflow-hidden">
+        <div className="bg-soren-card rounded-2xl border border-soren-border p-4 flex flex-col gap-3 overflow-hidden">
           <p className="text-[8px] font-semibold text-soren-subtle uppercase tracking-widest flex-shrink-0">Informations légales</p>
           <div className="grid grid-cols-2 gap-2 flex-shrink-0">
             <div>

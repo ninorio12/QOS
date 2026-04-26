@@ -11,7 +11,6 @@ const config: Config = {
       colors: {
         soren: {
           app:      'var(--bg-app)',
-          bg:       'var(--bg-app)',
           sidebar:  'var(--bg-sidebar)',
           card:     'var(--bg-card)',
           elevated: 'var(--bg-elevated)',

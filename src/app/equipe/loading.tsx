@@ -10,10 +10,10 @@ export default function EquipeLoading() {
       {/* Header */}
       <div className="px-6 pt-6 pb-4 flex items-center justify-between flex-shrink-0">
         <div>
-          <div className="h-7 w-24 bg-[#D9DDD6] rounded-xl mb-1" />
-          <div className="h-3 w-52 bg-[#E5E7EB] rounded" />
+          <div className="h-7 w-24 bg-soren-border rounded-xl mb-1" />
+          <div className="h-3 w-52 bg-soren-border rounded" />
         </div>
-        <div className="h-9 w-32 bg-[#D9DDD6] rounded-full" />
+        <div className="h-9 w-32 bg-soren-border rounded-full" />
       </div>
 
       {/* Agent cards — grid 3 colonnes */}
@@ -32,7 +32,7 @@ export default function EquipeLoading() {
                   <div className="h-2 rounded" style={{ width: agent.roleW, background: '#E5E7EB' }} />
                 </div>
                 {/* Status dot */}
-                <div className="ml-auto w-2.5 h-2.5 rounded-full bg-[#D9DDD6]" />
+                <div className="ml-auto w-2.5 h-2.5 rounded-full bg-soren-border" />
               </div>
 
               {/* Tabs */}
@@ -47,11 +47,11 @@ export default function EquipeLoading() {
 
               {/* Content block */}
               <div className="flex-1 bg-[#F9F9F7] rounded-xl p-3 space-y-2">
-                <div className="h-2 w-full bg-[#E5E7EB] rounded" />
-                <div className="h-2 w-5/6 bg-[#E5E7EB] rounded" />
-                <div className="h-2 w-4/6 bg-[#E5E7EB] rounded" />
-                <div className="h-2 w-5/6 bg-[#E5E7EB] rounded" />
-                <div className="h-2 w-3/4 bg-[#E5E7EB] rounded" />
+                <div className="h-2 w-full bg-soren-border rounded" />
+                <div className="h-2 w-5/6 bg-soren-border rounded" />
+                <div className="h-2 w-4/6 bg-soren-border rounded" />
+                <div className="h-2 w-5/6 bg-soren-border rounded" />
+                <div className="h-2 w-3/4 bg-soren-border rounded" />
               </div>
 
               {/* Action button */}
