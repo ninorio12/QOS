@@ -1,15 +1,19 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { sendGHLMessage } from '@/lib/ghl'
 import { generatePdfFromHtml } from '@/lib/apitemplate'
 import { buildDevisHtml } from '@/lib/devisHtmlBuilder'
 import type { CompanyForTemplate } from '@/components/devis/DevisTemplateStatic'
 
+const AGENT_SECRET = process.env.HERMES_SHARED_SECRET ?? 'hermes-qos-2026'
+
 type Ligne = { description: string; quantite: number; unite: string; prixUnitaire: number; tvaRate: number }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const { channel, conversationId, contactId } = await req.json()
-  const supabase = await createClient()
+  const isAgent = req.headers.get('authorization') === `Bearer ${AGENT_SECRET}`
+  const supabase = isAgent ? createAdminClient() : await createClient()
 
   const [{ data: devis }, { data: settings }] = await Promise.all([
     supabase.from('devis').select('*').eq('id', params.id).single(),
