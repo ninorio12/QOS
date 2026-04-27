@@ -6,7 +6,7 @@ import { generatePdfFromHtml } from '@/lib/apitemplate'
 import { buildDevisHtml } from '@/lib/devisHtmlBuilder'
 import type { CompanyForTemplate } from '@/components/devis/DevisTemplateStatic'
 
-const AGENT_SECRET = process.env.HERMES_SHARED_SECRET ?? 'hermes-qos-2026'
+const AGENT_SECRET = process.env.HERMES_SHARED_SECRET ?? 'hermes-qos-ec4888da90d34e9b'
 
 type Ligne = { description: string; quantite: number; unite: string; prixUnitaire: number; tvaRate: number }
 
