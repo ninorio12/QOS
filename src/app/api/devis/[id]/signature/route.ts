@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendGHLMessage } from '@/lib/ghl'
 import { sendDevisEmail } from '@/lib/resend'
-import { generatePdfBuffer } from '@/lib/pdf'
+import { generatePdfFromHtml } from '@/lib/apitemplate'
 import { buildDevisHtml } from '@/lib/devisHtmlBuilder'
 import type { CompanyForTemplate } from '@/components/devis/DevisTemplateStatic'
 
@@ -83,7 +83,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         createdAt:       (devis.created_at        as string)        ?? '',
       }, company)
 
-      pdfBuffer = await generatePdfBuffer(html)
+      const pdfUrl = await generatePdfFromHtml(html)
+      const pdfResp = await fetch(pdfUrl)
+      if (pdfResp.ok) pdfBuffer = Buffer.from(await pdfResp.arrayBuffer())
     } catch {
       // PDF non généré — on continue sans pièce jointe
     }
