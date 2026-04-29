@@ -40,12 +40,16 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Soren',
+  title: 'Qorpo /IA',
   description: "Infrastructure d'Acquisition Organisationnelle",
   manifest: '/manifest.json',
+  icons: {
+    icon: '/logo-icon.png',
+    apple: '/apple-touch-icon.png',
+  },
   appleWebApp: {
     capable: true,
-    title: 'Soren',
+    title: 'Qorpo /IA',
     statusBarStyle: 'black-translucent',
   },
   other: {
