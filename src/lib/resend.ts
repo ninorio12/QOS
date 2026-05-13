@@ -1,6 +1,10 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResend() {
+  const key = process.env.RESEND_API_KEY
+  if (!key) throw new Error('RESEND_API_KEY manquante')
+  return new Resend(key)
+}
 
 export interface SendDevisEmailParams {
   to:            string
@@ -120,7 +124,7 @@ export async function sendDevisEmail(params: SendDevisEmailParams): Promise<void
     ? `Votre devis n°${params.devisNumero} — ${params.devisTitre}`
     : `Votre devis — ${params.devisTitre}`
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from,
     to: params.to,
     subject,

@@ -488,7 +488,7 @@ export default function CompanySettingsView() {
               className="w-9 h-9 rounded-full overflow-hidden cursor-pointer ring-2 ring-offset-2 ring-transparent hover:ring-[#3462EE]/40 transition-all flex-shrink-0 relative group">
               {profilePhoto
                 ? <img src={profilePhoto} alt="profil" className="w-full h-full object-cover" />
-                : <div className="w-full h-full bg-[#E2FF8D] flex items-center justify-center text-[14px] font-bold text-soren-text">
+                : <div className="w-full h-full bg-[#E2FF8D] flex items-center justify-center text-[14px] font-bold text-[#111111]">
                     {userPrenom ? userPrenom[0].toUpperCase() : 'T'}
                   </div>
               }

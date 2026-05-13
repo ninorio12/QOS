@@ -46,7 +46,7 @@ export default function DashboardPage() {
   const monthlyPipeline = data?.monthlyPipeline ?? []
 
   return (
-    <div className="h-full flex flex-col p-5 overflow-hidden page-fade-in">
+    <div className="md:h-full flex flex-col px-3 py-3 md:p-5 md:overflow-hidden page-fade-in">
       <DashboardClient
         activeLeads={metrics.activeDeals    ?? 0}
         pipelineValue={metrics.pipelineValue ?? 0}

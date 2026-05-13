@@ -103,8 +103,19 @@ export default async function PipelinePage() {
     fetchError = err instanceof Error ? err.message : String(err)
   }
 
+  // GHL non connecté → pipeline vide mais fonctionnel (pas d'erreur)
   if (pipelines.length === 0) {
-    return <PipelineEmpty error={fetchError ?? undefined} />
+    pipelines = [{
+      id: 'default',
+      name: 'Pipeline principal',
+      stages: [
+        { id: 'nouveau',      name: 'Nouveau lead',    color: '#6366F1', position: 0 },
+        { id: 'qualification', name: 'Qualification',  color: '#F59E0B', position: 1 },
+        { id: 'proposition',  name: 'Proposition',     color: '#3B82F6', position: 2 },
+        { id: 'negociation',  name: 'Négociation',     color: '#8B5CF6', position: 3 },
+        { id: 'gagne',        name: 'Gagné',           color: '#10B981', position: 4 },
+      ],
+    }]
   }
 
   return (

@@ -83,7 +83,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     '\n_Devis valable 30 jours_',
   ].filter(Boolean).join('\n')
 
-  await sendGHLMessage(conversationId, message, ghlChannel, devis.titre, contactId)
+  let ghlError: string | null = null
+  try {
+    await sendGHLMessage(conversationId, message, ghlChannel, devis.titre, contactId)
+  } catch (err) {
+    ghlError = err instanceof Error ? err.message : 'GHL erreur inconnue'
+    console.error('[devis/send] GHL échoué:', ghlError)
+  }
 
   await supabase.from('devis').update({
     statut:     'envoyé',
@@ -93,5 +99,5 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     pdf_url:    pdfUrl,
   }).eq('id', params.id)
 
-  return Response.json({ ok: true, pdf_url: pdfUrl })
+  return Response.json({ ok: true, pdf_url: pdfUrl, ...(ghlError ? { ghl_warning: ghlError } : {}) })
 }

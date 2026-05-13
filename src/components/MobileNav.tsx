@@ -16,30 +16,26 @@ export default function MobileNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="mob-nav-blur flex md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-soren-border pb-safe">
-      <div className="flex items-center justify-around w-full pt-2 pb-1">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-safe pointer-events-none">
+      <div className="pointer-events-auto mb-4 px-3 py-2.5 rounded-[32px] flex items-center gap-1 nav-island">
         {TABS.map(({ href, icon: Icon, label }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           return (
             <Link
               key={href}
               href={href}
-              className="flex flex-col items-center gap-1 px-3 py-1 min-w-0"
+              aria-label={label}
+              className={`w-12 h-12 rounded-[22px] flex items-center justify-center transition-all duration-200 ${
+                active
+                  ? 'bg-[#E2FF8D] shadow-sm scale-105'
+                  : 'hover:bg-white/10 active:scale-95'
+              }`}
             >
-              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
-                active ? 'bg-soren-accent' : 'bg-transparent'
-              }`}>
-                <Icon
-                  size={20}
-                  strokeWidth={active ? 2.5 : 1.8}
-                  className={active ? 'text-[#111111]' : 'text-soren-subtle'}
-                />
-              </div>
-              <span className={`text-[10px] font-semibold truncate transition-colors ${
-                active ? 'text-[#111111]' : 'text-soren-subtle'
-              }`}>
-                {label}
-              </span>
+              <Icon
+                size={21}
+                strokeWidth={active ? 2.4 : 1.7}
+                className={active ? 'text-[#111111]' : 'text-soren-subtle'}
+              />
             </Link>
           )
         })}

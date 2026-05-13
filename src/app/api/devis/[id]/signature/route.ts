@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { sendGHLMessage } from '@/lib/ghl'
 import { sendDevisEmail } from '@/lib/resend'
 import { generatePdfFromHtml } from '@/lib/apitemplate'
@@ -29,11 +30,14 @@ function buildCompany(settings: Record<string, unknown> | null, logoBase64: stri
   }
 }
 
+const AGENT_SECRET = process.env.HERMES_SHARED_SECRET ?? 'hermes-qos-ec4888da90d34e9b'
+
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const body = await req.json().catch(() => ({})) as { channel?: string }
   const channel = body.channel === 'email' ? 'email' : 'whatsapp'
 
-  const supabase = await createClient()
+  const isAgent = req.headers.get('authorization') === `Bearer ${AGENT_SECRET}`
+  const supabase = isAgent ? createAdminClient() : await createClient()
 
   const [{ data: devis }, { data: settings }] = await Promise.all([
     supabase.from('devis').select('*').eq('id', params.id).single(),

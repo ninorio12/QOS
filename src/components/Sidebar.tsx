@@ -185,7 +185,7 @@ export default function Sidebar() {
           <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center bg-[#E2FF8D]">
             {profilePhoto
               ? <img src={profilePhoto} alt="profil" className="w-full h-full object-cover" />
-              : <span className="text-[11px] font-bold text-soren-text">{prenom ? prenom[0].toUpperCase() : 'T'}</span>
+              : <span className="text-[11px] font-bold text-[#111111]">{prenom ? prenom[0].toUpperCase() : 'T'}</span>
             }
           </div>
           <div className="min-w-0 flex-1">

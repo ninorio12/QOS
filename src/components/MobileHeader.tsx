@@ -95,7 +95,7 @@ export default function MobileHeader() {
         </button>
 
         {showProfile && (
-          <div className="absolute right-0 top-10 bg-soren-card border border-soren-border rounded-2xl shadow-xl z-50 w-52 overflow-hidden">
+          <div className="absolute right-0 top-10 bg-soren-card border border-soren-border rounded-2xl shadow-xl z-50 w-52 max-w-[calc(100vw-2rem)] overflow-hidden">
             <div className="px-4 py-3 border-b border-soren-border">
               <p className="text-[13px] font-semibold text-soren-text capitalize">{prenom || user?.name || '—'}</p>
               <p className="text-[10px] text-soren-subtle">{user?.email ?? '—'}</p>

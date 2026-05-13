@@ -9,6 +9,7 @@ import {
   GitMerge, Users, MessageSquare, CalendarDays,
   ArrowUpRight, Plus, X, Check,
   CheckSquare, FileText, ScrollText, Database, Wallet, Cpu,
+  Circle,
 } from 'lucide-react'
 const WeeklyBarChart   = dynamic(() => import('./WeeklyBarChart'),   { ssr: false })
 const MonthlyAreaChart = dynamic(() => import('./MonthlyAreaChart'), { ssr: false })
@@ -148,6 +149,21 @@ function Toast({ visible }: { visible: boolean }) {
   )
 }
 
+// ─── Types ────────────────────────────────────────────────────
+interface AgentTask {
+  id: string
+  title: string
+  agent: string
+  col: string
+}
+interface AgentLog {
+  id: string
+  message: string
+  level: string
+  agent: string
+  created_at: string
+}
+
 // ─── Main export ──────────────────────────────────────────────
 export default function DashboardClient({
   activeLeads      = 0,
@@ -162,6 +178,13 @@ export default function DashboardClient({
   const router = useRouter()
   const [showModal,   setShowModal]   = useState(false)
   const [showToast,   setShowToast]   = useState(false)
+  const [tasks,       setTasks]       = useState<AgentTask[]>([])
+  const [logs,        setLogs]        = useState<AgentLog[]>([])
+
+  useEffect(() => {
+    fetch('/api/tasks').then(r => r.json()).then((d: { tasks?: AgentTask[] }) => setTasks(d.tasks?.slice(0, 4) ?? [])).catch(() => {})
+    fetch('/api/agent-logs?limit=4').then(r => r.json()).then((d: { logs?: AgentLog[] }) => setLogs(d.logs?.slice(0, 4) ?? [])).catch(() => {})
+  }, [])
 
   const leadsAnim    = useCountUp(activeLeads)
   const pipelineAnim = useCountUp(pipelineValue)
@@ -268,20 +291,20 @@ export default function DashboardClient({
   return (
     <>
       {/* ── Title ── */}
-      <div className="flex items-center justify-between mb-4 flex-shrink-0">
-        <h1 className="text-4xl font-extrabold text-soren-text leading-tight tracking-tight" style={{ fontFamily: 'var(--font-montserrat)' }}>
-          Gérez vos Leads &amp; Workflows
+      <div className="flex items-center justify-between mb-3 flex-shrink-0 gap-2">
+        <h1 className="text-xl md:text-4xl font-extrabold text-soren-text leading-tight tracking-tight min-w-0" style={{ fontFamily: 'var(--font-montserrat)' }}>
+          Leads &amp; Workflows
         </h1>
-        <NewLeadWidget />
+        <div className="flex-shrink-0"><NewLeadWidget /></div>
       </div>
 
       {/* ── Grid layout ── */}
-      <div className="grid grid-cols-[1fr_1fr_1fr_300px] grid-rows-[auto_1fr] gap-4 flex-1 min-h-0">
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_300px] md:grid-rows-[auto_1fr] gap-3 md:gap-4 md:flex-1 md:min-h-0">
 
         {/* ── Card 1 — Leads actifs + breakdown ── */}
         <Link
           href="/pipeline"
-          className="bg-soren-card rounded-3xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all duration-200"
+          className="bg-soren-card rounded-2xl md:rounded-3xl p-4 md:p-5 flex flex-col gap-3 shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all duration-200"
           style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}
         >
           <div className="flex items-center justify-between">
@@ -295,11 +318,19 @@ export default function DashboardClient({
           </div>
 
           <div className="flex flex-col gap-1.5 mt-1">
-            {stageBreakdown.filter(s => s.count > 0).slice(0, 4).map(stage => (
+            {(stageBreakdown.filter(s => s.count > 0).slice(0, 4).length > 0
+              ? stageBreakdown.filter(s => s.count > 0).slice(0, 4)
+              : [
+                  { label: 'Nouveau contact', color: '#3462EE', pct: 0, count: 0 },
+                  { label: 'Qualifié',        color: '#E2FF8D', pct: 0, count: 0 },
+                  { label: 'RDV planifié',    color: '#4A91A8', pct: 0, count: 0 },
+                  { label: 'Signé',           color: '#22c55e', pct: 0, count: 0 },
+                ]
+            ).map(stage => (
               <div key={stage.label} className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: stage.color }} />
                 <span className="text-[11px] text-soren-muted flex-1 truncate">{stage.label}</span>
-                <div className="w-16 h-1 bg-[#F0F0EB] rounded-full overflow-hidden">
+                <div className="w-16 h-1 bg-soren-border rounded-full overflow-hidden">
                   <div className="h-full rounded-full" style={{ width: `${stage.pct}%`, background: stage.color }} />
                 </div>
                 <span className="text-[11px] font-semibold text-soren-text w-4 text-right">{stage.count}</span>
@@ -310,44 +341,44 @@ export default function DashboardClient({
 
         {/* ── Card 2 — Valeur Pipeline ── */}
         <div
-          className="bg-[#E2FF8D] rounded-3xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all duration-200 cursor-pointer"
+          className="bg-[#E2FF8D] rounded-2xl md:rounded-3xl p-4 md:p-5 flex flex-col gap-3 shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all duration-200 cursor-pointer"
           style={{ animation: 'fadeSlideUp 400ms ease-out 100ms both' }}
           onClick={() => router.push('/pipeline')}
         >
           {/* Top — label + badge (aligné card 1) */}
           <div className="flex items-center justify-between">
-            <span className="font-jakarta text-[13px] font-semibold text-soren-text">Valeur Pipeline</span>
-            <span className="bg-soren-card/60 text-soren-text text-[10px] font-bold px-2 py-0.5 rounded-full">{activeLeads} leads</span>
+            <span className="font-jakarta text-[13px] font-semibold text-[#111111]">Valeur Pipeline</span>
+            <span className="bg-[#111111]/10 text-[#111111] text-[10px] font-bold px-2 py-0.5 rounded-full">{activeLeads} leads</span>
           </div>
 
           {/* Chiffre principal — même position que card 1 */}
           <div className="flex items-baseline gap-1.5">
-            <span className="font-outfit text-[36px] font-bold text-soren-text leading-none tabular-nums">
+            <span className="font-outfit text-[36px] font-bold text-[#111111] leading-none tabular-nums">
               {fmt(pipelineAnim).replace('€', '')}
             </span>
-            <span className="font-jakarta text-[13px] font-medium text-soren-text/40">€</span>
+            <span className="font-jakarta text-[13px] font-medium text-[#111111]/40">€</span>
           </div>
 
           {/* 3 chips */}
           <div className="flex gap-1.5">
-            <div className="flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-2xl bg-soren-card/75">
-              <span className="font-outfit text-[18px] font-bold text-soren-text leading-none tabular-nums">{activeLeads}</span>
-              <span className="font-jakarta text-[9px] font-semibold text-soren-text/55">leads</span>
+            <div className="flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-2xl bg-[#111111]/10">
+              <span className="font-outfit text-[18px] font-bold text-[#111111] leading-none tabular-nums">{activeLeads}</span>
+              <span className="font-jakarta text-[9px] font-semibold text-[#111111]/55">leads</span>
             </div>
-            <div className="flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-2xl bg-soren-card/75">
-              <span className="font-outfit text-[18px] font-bold text-soren-text leading-none tabular-nums">{wonLeads}</span>
-              <span className="font-jakarta text-[9px] font-semibold text-soren-text/55">gagnés</span>
+            <div className="flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-2xl bg-[#111111]/10">
+              <span className="font-outfit text-[18px] font-bold text-[#111111] leading-none tabular-nums">{wonLeads}</span>
+              <span className="font-jakarta text-[9px] font-semibold text-[#111111]/55">gagnés</span>
             </div>
-            <div className="flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-2xl bg-soren-card/75">
-              <span className="font-outfit text-[18px] font-bold text-soren-text leading-none tabular-nums">
+            <div className="flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-2xl bg-[#111111]/10">
+              <span className="font-outfit text-[18px] font-bold text-[#111111] leading-none tabular-nums">
                 {totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0}%
               </span>
-              <span className="font-jakarta text-[9px] font-semibold text-soren-text/55">conv.</span>
+              <span className="font-jakarta text-[9px] font-semibold text-[#111111]/55">conv.</span>
             </div>
           </div>
 
           {/* Voir plus */}
-          <div className="mt-auto flex items-center gap-1 text-soren-text/50 hover:text-soren-text transition-colors">
+          <div className="mt-auto flex items-center gap-1 text-[#111111]/50 hover:text-[#111111] transition-colors">
             <span className="font-jakarta text-[11px] font-semibold">Voir le pipeline</span>
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6h7M6.5 3l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
@@ -356,7 +387,7 @@ export default function DashboardClient({
         {/* ── Card 3 — Agentique · Frosted Dark ── */}
         <Link
           href="/equipe"
-          className="rounded-3xl flex flex-col shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all duration-200 overflow-hidden relative"
+          className="rounded-2xl md:rounded-3xl flex flex-col shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all duration-200 overflow-hidden relative min-h-[200px]"
           style={{
             background: '#080808',
             animation: 'fadeSlideUp 400ms ease-out 200ms both',
@@ -375,7 +406,7 @@ export default function DashboardClient({
             borderRadius: 'inherit',
           }} />
           {/* Content */}
-          <div className="relative p-6 flex flex-col flex-1 justify-between gap-5">
+          <div className="relative p-4 md:p-6 flex flex-col flex-1 justify-between gap-4 md:gap-5">
 
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -431,7 +462,7 @@ export default function DashboardClient({
 
         {/* ── Right panel — row-span-2 ── */}
         <div
-          className="row-span-2 bg-soren-card rounded-3xl shadow-sm overflow-hidden flex flex-col"
+          className="md:row-span-2 bg-soren-card rounded-2xl md:rounded-3xl shadow-sm overflow-hidden flex flex-col max-h-[70vh] md:max-h-none"
           style={{ animation: 'fadeSlideUp 400ms ease-out 300ms both' }}
         >
           <div className="flex-1 overflow-y-auto p-5">
@@ -507,25 +538,62 @@ export default function DashboardClient({
             })}
           </div>
 
-          {/* Live agent activity */}
+          {/* Tâches */}
           <div className="mt-5">
-            <div className="flex items-center gap-1.5 mb-2">
-              <p className="font-jakarta text-[13px] font-semibold text-soren-text">Agents IA</p>
-              <span className="flex items-center gap-1 text-[10px] font-bold text-[#22c55e] bg-[#22c55e]/10 px-2 py-0.5 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse inline-block" />
-                LIVE
-              </span>
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="font-jakarta text-[13px] font-semibold text-soren-text">Tâches</p>
+              <Link href="/taches" className="text-[10px] font-medium text-soren-muted hover:text-soren-text transition-colors">Tout voir →</Link>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <p className="text-[11px] text-soren-subtle italic">En attente d&apos;activité…</p>
+            {tasks.length === 0 ? (
+              <p className="text-[11px] text-soren-subtle italic">Aucune tâche récente</p>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                {tasks.map(task => (
+                  <div key={task.id} className="flex items-center gap-2.5 py-1.5">
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                      task.col === 'done' ? 'bg-[#22c55e]' :
+                      task.col === 'in_progress' ? 'bg-[#3462EE]' :
+                      'bg-soren-border'
+                    }`} />
+                    <p className="text-[12px] text-soren-text truncate flex-1">{task.title}</p>
+                    <span className="text-[10px] text-soren-subtle flex-shrink-0 truncate max-w-[60px]">{task.agent}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Logs */}
+          <div className="mt-4 pb-2">
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="font-jakarta text-[13px] font-semibold text-soren-text">Logs</p>
+              <Link href="/logs" className="text-[10px] font-medium text-soren-muted hover:text-soren-text transition-colors">Tout voir →</Link>
             </div>
+            {logs.length === 0 ? (
+              <p className="text-[11px] text-soren-subtle italic">Aucun log récent</p>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                {logs.map(log => (
+                  <div key={log.id} className="flex items-start gap-2">
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 mt-0.5 ${
+                      log.level === 'error'   ? 'bg-red-500/12 text-red-500' :
+                      log.level === 'warning' ? 'bg-yellow-500/12 text-yellow-600' :
+                      'bg-soren-elevated text-soren-subtle'
+                    }`}>
+                      {(log.level ?? 'info').toUpperCase()}
+                    </span>
+                    <p className="text-[11px] text-soren-text leading-snug line-clamp-2">{log.message}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           </div>
         </div>
 
         {/* ── Leads par semaine — col-span-2 ── */}
         <div
-          className="col-span-2 bg-soren-card rounded-3xl shadow-sm overflow-hidden flex flex-col"
+          className="md:col-span-2 bg-soren-card rounded-2xl md:rounded-3xl shadow-sm overflow-hidden flex flex-col"
           style={{ animation: 'fadeSlideUp 400ms ease-out 300ms both' }}
         >
           <div className="flex items-center justify-between px-6 pt-5 pb-2 flex-shrink-0">
@@ -549,14 +617,14 @@ export default function DashboardClient({
             </div>
           </div>
 
-          <div className="flex-1 min-h-0 px-2 pb-4">
+          <div className="h-[180px] md:h-auto md:flex-1 md:min-h-0 px-2 pb-4">
             <WeeklyBarChart data={weeklyData} />
           </div>
         </div>
 
         {/* ── Évolution pipeline — col-span-1 ── */}
         <div
-          className="col-span-1 bg-soren-card rounded-3xl shadow-sm overflow-hidden flex flex-col"
+          className="col-span-1 bg-soren-card rounded-2xl md:rounded-3xl shadow-sm overflow-hidden flex flex-col"
           style={{ animation: 'fadeSlideUp 400ms ease-out 350ms both' }}
         >
           <div className="px-6 pt-5 pb-2 flex-shrink-0">
@@ -564,7 +632,7 @@ export default function DashboardClient({
             <p className="font-jakarta text-[10px] font-normal text-soren-subtle mt-0.5">Valeur cumulée · 6 mois</p>
           </div>
 
-          <div className="flex-1 min-h-0 px-2 pb-4">
+          <div className="h-[180px] md:h-auto md:flex-1 md:min-h-0 px-2 pb-4">
             <MonthlyAreaChart data={monthlyPipeline} />
           </div>
         </div>
