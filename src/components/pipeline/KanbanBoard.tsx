@@ -63,7 +63,7 @@ function OppCard({ opp, isDragging = false }: { opp: Opportunity; isDragging?: b
     <div className={`
       bg-soren-card border rounded-lg px-3 py-2 flex flex-col gap-1 select-none
       ${isDragging
-        ? 'border-[#C8F135] shadow-[0_0_0_1px_#C8F135,0_4px_16px_rgba(200,241,53,0.15)] rotate-1 opacity-95 cursor-grabbing'
+        ? 'border-[#FF4D00] shadow-[0_0_0_1px_#FF4D00,0_4px_16px_rgba(200,241,53,0.15)] rotate-1 opacity-95 cursor-grabbing'
         : 'border-soren-border hover:border-[#C8CBD0] hover:shadow-sm transition-all cursor-grab'
       }
     `}>
@@ -138,7 +138,7 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged }: { stage:
       <div
         ref={setNodeRef}
         className={`flex-1 flex flex-col rounded-xl p-2 transition-colors overflow-hidden ${
-          isOver ? 'bg-[#C8F135]/10 ring-1 ring-[#C8F135]/40' : 'bg-black/[0.04]'
+          isOver ? 'bg-[#FF4D00]/10 ring-1 ring-[#FF4D00]/40' : 'bg-black/[0.04]'
         }`}
       >
         <SortableContext items={opps.map(o => o.id)} strategy={verticalListSortingStrategy}>

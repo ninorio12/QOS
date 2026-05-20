@@ -294,7 +294,7 @@ function IntegrationsTab() {
         </div>
         <div className="px-4">
           <IntegrationRow
-            name="OpenClaw Gateway" description="Runtime agent · ws://localhost:18789 · Sessions Soren / Kai / Mia"
+            name="OpenClaw Gateway" description="Runtime agent · ws://localhost:18789 · Sessions VividFlow / Kai / Mia"
             status="pending" badge="SPRINT 1"
           />
           <IntegrationRow
@@ -417,7 +417,7 @@ export default function ParametresView() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-black text-soren-text leading-none">Paramètres</h1>
-        <p className="text-xs text-soren-muted mt-0.5">Configuration de votre espace Soren</p>
+        <p className="text-xs text-soren-muted mt-0.5">Configuration de votre espace VividFlow</p>
       </div>
 
       {/* Tabs */}

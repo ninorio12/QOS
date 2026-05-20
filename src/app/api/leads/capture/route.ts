@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createGHLContact, createGHLOpportunity, closeOpenOpportunities } from '@/lib/ghl'
 import { sendWhatsApp } from '@/lib/twilio'
 import { env } from '@/lib/env'
@@ -7,7 +7,7 @@ import { log } from '@/lib/logger'
 import crypto from 'crypto'
 
 function supabaseAdmin() {
-  return createClient(env.supabaseUrl(), env.supabaseServiceRole())
+  return createAdminClient()
 }
 
 // ── Contrat de handoff minimal ────────────────────────────────────────────────

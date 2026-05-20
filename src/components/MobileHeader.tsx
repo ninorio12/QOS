@@ -30,7 +30,7 @@ const PAGE_LABELS: Record<string, string> = {
 export default function MobileHeader() {
   const pathname = usePathname()
   const base  = '/' + (pathname.split('/')[1] ?? '')
-  const label = PAGE_LABELS[base] ?? 'Soren'
+  const label = PAGE_LABELS[base] ?? 'VividFlow'
 
   const [showProfile, setShowProfile] = useState(false)
   const [profilePhoto, setProfilePhoto] = useState('')
@@ -84,7 +84,7 @@ export default function MobileHeader() {
       <div className="relative flex-shrink-0" ref={popupRef}>
         <button
           onClick={() => setShowProfile(v => !v)}
-          className="w-8 h-8 rounded-full bg-[#E2FF8D] flex items-center justify-center text-[11px] font-bold text-[#111111] overflow-hidden"
+          className="w-8 h-8 rounded-full bg-[#FF4D00] flex items-center justify-center text-[11px] font-bold text-[#111111] overflow-hidden"
         >
           {profilePhoto
             ? <img src={profilePhoto} alt="avatar" className="object-cover w-full h-full" />

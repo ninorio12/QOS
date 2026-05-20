@@ -1,14 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 import FormulaireForm, { DEFAULT_FIELDS, type FormField } from './FormulaireForm'
 
 export const dynamic = 'force-dynamic'
 
 async function getCompanySettings() {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const supabase = createAdminClient()
     const { data } = await supabase
       .from('company_settings')
       .select('*')
@@ -28,7 +25,7 @@ export default async function FormulairePublicPage() {
     <FormulaireForm
       companyName={company?.name       ?? 'Votre entreprise'}
       companyTagline={company?.tagline ?? ''}
-      brandColor={company?.brand_color ?? '#E2FF8D'}
+      brandColor={company?.brand_color ?? '#FF4D00'}
       logoSvg={company?.logo_svg       ?? null}
       formFields={formFields}
     />

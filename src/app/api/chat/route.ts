@@ -6,7 +6,9 @@ import { sendWhatsApp } from '@/lib/twilio'
 import { getConversationMessages } from '@/lib/ghl'
 import { env } from '@/lib/env'
 
-const anthropic = new Anthropic({ apiKey: env.anthropicKey() })
+function getAnthropicClient() {
+  return new Anthropic({ apiKey: env.anthropicKey() })
+}
 
 export const runtime = 'nodejs'
 
@@ -98,7 +100,7 @@ export async function POST(req: NextRequest) {
       : (systemPrompt ?? SYSTEM_PROMPT_DEFAULT)
 
     // 3. Stream response from Claude
-    const stream = anthropic.messages.stream({
+    const stream = getAnthropicClient().messages.stream({
       model: 'claude-opus-4-6',
       max_tokens: 1024,
       system: systemContext,

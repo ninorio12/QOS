@@ -21,7 +21,7 @@ export function DailyBarChart({ data }: { data: DailyPoint[] }) {
       <BarChart data={data} barCategoryGap="30%">
         <XAxis dataKey="label" tick={{ fill: '#666', fontSize: 9 }} axisLine={false} tickLine={false} />
         <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-        <Bar dataKey="count" fill="#E2FF8D" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="count" fill="#FF4D00" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

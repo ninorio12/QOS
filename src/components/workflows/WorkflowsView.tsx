@@ -431,7 +431,7 @@ function ReceptionTab() {
           </div>
           <span className="text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0"
                 style={hasLink
-                  ? { background: '#E2FF8D', color: '#111' }
+                  ? { background: '#FF4D00', color: '#111' }
                   : { background: '#F3F4F6', color: '#9CA3AF' }}>
             {hasLink ? 'Prêt' : 'À configurer'}
           </span>
@@ -699,7 +699,7 @@ function GHLFormsTab() {
                   key={p}
                   onClick={() => setPreview(p)}
                   className={`text-[11px] px-3 py-1 transition-colors font-medium ${
-                    preview === p ? 'bg-soren-sidebar text-[#E2FF8D]' : 'text-soren-subtle hover:text-soren-text'
+                    preview === p ? 'bg-soren-sidebar text-[#FF4D00]' : 'text-soren-subtle hover:text-soren-text'
                   }`}
                 >
                   {p === 'formulaire' ? 'Formulaire' : 'Merci'}
@@ -804,7 +804,7 @@ function GHLFormsTab() {
               onClick={save}
               disabled={saving}
               className="w-full mt-3 py-2 rounded-xl text-[12px] font-semibold transition-opacity disabled:opacity-50"
-              style={{ backgroundColor: '#111111', color: '#E2FF8D' }}
+              style={{ backgroundColor: '#111111', color: '#FF4D00' }}
             >
               {saved ? '✓ Sauvegardé' : saving ? 'Sauvegarde…' : 'Appliquer'}
             </button>

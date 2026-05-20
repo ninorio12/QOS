@@ -9,7 +9,7 @@ const STAGE_COLORS: Record<string, string> = {
   'Nouveau Lead':    '#3D4F6B',
   '1er Contact IA':  '#4A91A8',
   'En Conversation': '#3462EE',
-  'Qualifié':        '#C8F135',
+  'Qualifié':        '#FF4D00',
   'RDV Booké':       '#EFE347',
   'Non Qualifié':    '#8896AB',
   'Sans Réponse':    '#EC4899',

@@ -15,7 +15,7 @@ const SOREN_COMPANY = {
   tvaIntra:   'FR 25 500 123 321',
   assurance:  'AssureurPro — 15, rue des assurances 34000 Montpellier — N° 450123',
   prenom:     'Thomas',
-  nom:        'Soren',
+  nom:        'VividFlow',
   logo:       '',
   secteur:    'BTP / Construction',
   fuseau:     'Europe/Paris (UTC+1)',

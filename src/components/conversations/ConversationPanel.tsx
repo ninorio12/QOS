@@ -18,7 +18,7 @@ const PRIORITE_PILLS: { value: Priorite; label: string; color: string; dot: stri
 const ORIGIN_COLORS: Record<string, string> = {
   Mia:    '#8B5CF6',
   Kai:    '#3462EE',
-  Soren:  '#14B8A6',
+  VividFlow:  '#14B8A6',
   Thomas: '#0EA5E9',
   Toi:    '#0EA5E9',
   Luc:    '#F97316',
@@ -50,7 +50,7 @@ export default function ConversationPanel({ conversation, messages, pipelines }:
   const name     = conversation.contact_name ?? 'Contact inconnu'
   const initials = (name.split(' ').map(w => w[0]).join('').slice(0, 2) || '??').toUpperCase()
   const color    = getAvatarColor(initials)
-  const isDark   = color === '#C8F135' || color === '#EFE347'
+  const isDark   = color === '#FF4D00' || color === '#EFE347'
   const channelMeta = CHANNEL_META[conversation.channel]
 
   const pipelineName = useMemo(() => {

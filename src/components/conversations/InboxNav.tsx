@@ -49,7 +49,7 @@ function NavButton({
       className={`
         w-full text-left text-sm px-3 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 focus:ring-offset-1 focus:ring-offset-[#111111]
         ${active
-          ? 'bg-[#E2FF8D] text-[#111111] font-medium'
+          ? 'bg-[#FF4D00] text-[#111111] font-medium'
           : 'text-soren-subtle hover:text-white hover:bg-soren-card/5'
         }
       `}
@@ -67,7 +67,7 @@ export default function InboxNav({ activeFilter, onFilterChange, totalUnread, pi
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-white">Conversations</span>
           {totalUnread > 0 && (
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#E2FF8D] text-[#111111]">
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#FF4D00] text-[#111111]">
               {totalUnread}
             </span>
           )}

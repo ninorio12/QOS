@@ -257,7 +257,7 @@ function WhatsAppTab() {
 // ─── Tab 3 : Chatbot ──────────────────────────────────────────
 const CHATBOT_CONVS = [
   { contact: 'Nouveau visiteur',  date: '31 mars, 15:20', result: 'Lead qualifié',   color: '#22c55e' },
-  { contact: 'Jean-Paul Martin',  date: '31 mars, 11:05', result: 'Devis demandé',   color: '#E2FF8D' },
+  { contact: 'Jean-Paul Martin',  date: '31 mars, 11:05', result: 'Devis demandé',   color: '#FF4D00' },
   { contact: 'Visiteur anonyme',  date: '30 mars, 18:40', result: 'Non converti',    color: '#3D4F6B' },
 ]
 

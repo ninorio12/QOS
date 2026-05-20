@@ -20,7 +20,7 @@ type LogEntry = {
 
 // ─── Meta ─────────────────────────────────────────────────────
 const AGENT_META: Record<AgentId, { label: string; color: string; bg: string }> = {
-  soren:  { label: 'Soren',  color: '#4A91A8', bg: '#4A91A815' },
+  soren:  { label: 'VividFlow',  color: '#4A91A8', bg: '#4A91A815' },
   kai:    { label: 'Kai',    color: '#1A5C38', bg: '#1A5C3815' },
   mia:    { label: 'Mia',    color: '#E8836A', bg: '#E8836A15' },
 }
@@ -50,7 +50,7 @@ const SEED_LOGS: LogEntry[] = [
   { id: 'l12', time: now(), agent: 'soren', level: 'info',    message: 'Connexion CRM vérifiée — 12 opportunités actives',        detail: 'Token valide · quota API : 847/1000 requêtes restantes' },
   { id: 'l13', time: now(), agent: 'kai',   level: 'success', message: 'RDV planifié — Inès Duprez 7 avril 14h',                  detail: 'Calendrier mis à jour · confirmation envoyée par email' },
   { id: 'l14', time: now(), agent: 'mia',   level: 'warning', message: 'Devis en attente de validation depuis 24h',               detail: 'Devis #dv-0114 — Plomberie chauffage · contact : Marie Colin' },
-  { id: 'l15', time: now(), agent: 'soren', level: 'info',    message: 'Démarrage orchestrateur — agents actifs : 3/3',           detail: 'Soren v1.0 · Kai v1.0 · Mia v1.0 · modèle : claude-haiku-4-5' },
+  { id: 'l15', time: now(), agent: 'soren', level: 'info',    message: 'Démarrage orchestrateur — agents actifs : 3/3',           detail: 'VividFlow v1.0 · Kai v1.0 · Mia v1.0 · modèle : claude-haiku-4-5' },
 ]
 
 // ─── Live log generators ──────────────────────────────────────
@@ -93,7 +93,7 @@ type LevelFilter = LogLevel | 'all'
 
 const AGENT_OPTIONS: { id: AgentFilter; label: string }[] = [
   { id: 'all',    label: 'Tous' },
-  { id: 'soren',  label: 'Soren' },
+  { id: 'soren',  label: 'VividFlow' },
   { id: 'kai',    label: 'Kai' },
   { id: 'mia',    label: 'Mia' },
 ]

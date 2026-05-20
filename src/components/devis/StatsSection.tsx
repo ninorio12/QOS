@@ -74,7 +74,7 @@ export default function StatsSection({ devisId }: StatsSectionProps) {
         </div>
         <div
           className="rounded-xl p-2.5 text-center"
-          style={{ background: evolution_pct != null && evolution_pct >= 0 ? '#E2FF8D' : '#fef2f2' }}
+          style={{ background: evolution_pct != null && evolution_pct >= 0 ? '#FF4D00' : '#fef2f2' }}
         >
           <p className="font-outfit text-[22px] font-bold text-soren-text leading-none">
             {evolution_pct != null
@@ -99,7 +99,7 @@ export default function StatsSection({ devisId }: StatsSectionProps) {
         {[
           { label: 'Acceptés', count: similaires.acceptes, color: '#111111' },
           { label: 'Refusés',  count: similaires.refuses,  color: '#d1d5db' },
-          { label: 'En cours', count: similaires.en_cours, color: '#E2FF8D' },
+          { label: 'En cours', count: similaires.en_cours, color: '#FF4D00' },
         ].map(({ label, count, color }) => (
           <div key={label} className="flex items-center gap-2">
             <span className="text-[10px] text-soren-muted font-jakarta" style={{ width: 52 }}>{label}</span>

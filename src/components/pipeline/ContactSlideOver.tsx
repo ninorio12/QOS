@@ -200,7 +200,7 @@ export default function ContactModal({ opp, stage, onClose }: Props) {
             <Link
               href={`/conversations?contact=${opp?.contactId ?? ''}`}
               className="flex items-center justify-center gap-2 h-10 px-4 rounded-xl text-black text-[12px] font-semibold transition-colors hover:opacity-90"
-              style={{ background: '#E2FF8D' }}
+              style={{ background: '#FF4D00' }}
             >
               <MessageSquare size={13} />
               Messages

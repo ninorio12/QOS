@@ -6,7 +6,9 @@ import { SYSTEM_PROMPT_DEFAULT } from '@/lib/agent-config'
 
 import { env } from '@/lib/env'
 
-const anthropic = new Anthropic({ apiKey: env.anthropicKey() })
+function getAnthropicClient() {
+  return new Anthropic({ apiKey: env.anthropicKey() })
+}
 
 // Parse URL-encoded form data (format Twilio)
 function parseFormData(body: string): Record<string, string> {
@@ -154,7 +156,7 @@ export async function POST(req: NextRequest) {
     // 5. Appel Claude
     const system = `${SYSTEM_PROMPT_DEFAULT}\n\nTu communiques via WhatsApp avec ${contactName}. Réponds de manière concise (max 3 phrases). Pas de formatage markdown.`
 
-    const aiResponse = await anthropic.messages.create({
+    const aiResponse = await getAnthropicClient().messages.create({
       model: 'claude-opus-4-6',
       max_tokens: 512,
       system,

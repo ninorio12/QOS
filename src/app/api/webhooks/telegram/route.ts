@@ -25,7 +25,7 @@ const ADMIN_CHAT_ID = process.env.TELEGRAM_CHAT_ID
   ? parseInt(process.env.TELEGRAM_CHAT_ID, 10)
   : null
 
-function getSorenCreds() {
+function getVividFlowCreds() {
   return {
     apiKey:     env.ghlApiKey(),
     locationId: env.ghlLocationId(),
@@ -33,7 +33,7 @@ function getSorenCreds() {
 }
 
 // ── Message d'accueil admin ───────────────────────────────────────────────────
-const ADMIN_WELCOME = `👋 <b>Soren actif — Mode Admin</b>\n\nBonjour, accès complet activé.\nPipeline, leads, agents, debug — tout est disponible.`
+const ADMIN_WELCOME = `👋 <b>VividFlow actif — Mode Admin</b>\n\nBonjour, accès complet activé.\nPipeline, leads, agents, debug — tout est disponible.`
 
 // ── Webhook ───────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
@@ -99,14 +99,14 @@ export async function POST(req: NextRequest) {
   // /status et /tasks : admin uniquement
   if (mode === 'admin') {
     if (text === '/status') {
-      const creds  = getSorenCreds()
+      const creds  = getVividFlowCreds()
       const result = await runAgent('soren', 'Donne-moi un résumé rapide : combien de leads actifs, valeur du pipeline, et les 3 dernières opportunités.', creds, null)
       await sendTelegram(chatId, result.response, 'HTML', botTok)
       return new Response('OK', { status: 200 })
     }
 
     if (text === '/tasks') {
-      const creds  = getSorenCreds()
+      const creds  = getVividFlowCreds()
       const result = await runAgent('soren', 'Liste-moi les tâches en cours des agents. Quelles sont les priorités ?', creds, null)
       await sendTelegram(chatId, result.response, 'HTML', botTok)
       return new Response('OK', { status: 200 })
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
   await sendChatAction(chatId, 'typing', botTok)
 
   try {
-    const creds     = getSorenCreds()
+    const creds     = getVividFlowCreds()
     let agentText   = text
     if (mode === 'soren-client') {
       const ctx   = await buildClientContext(fromName)

@@ -1,9 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
+// Mock Supabase admin - même que le client
+import { createClient } from './client'
 
-// Service role client — bypasses RLS, for server-side API routes only
 export function createAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
+  return createClient()
 }

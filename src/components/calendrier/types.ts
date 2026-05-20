@@ -16,7 +16,7 @@ export type Appointment = {
 }
 
 export const STATUS_META: Record<AppointmentStatus, { label: string; color: string; bg: string }> = {
-  confirmed: { label: 'Confirmé',  color: '#C8F135', bg: '#C8F135' + '18' },
+  confirmed: { label: 'Confirmé',  color: '#FF4D00', bg: '#FF4D00' + '18' },
   pending:   { label: 'En attente', color: '#EFE347', bg: '#EFE347' + '18' },
   cancelled: { label: 'Annulé',    color: '#EF4444', bg: '#EF444418' },
 }
@@ -65,7 +65,7 @@ export function getMockAppointments(): Appointment[] {
       status: 'confirmed',
       calendarName: 'ACQUISITION',
       notes: 'Qualifié — opportunité €80k',
-      color: '#C8F135',
+      color: '#FF4D00',
     },
     {
       id: 'mock-4',

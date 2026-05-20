@@ -8,6 +8,7 @@ import {
   LayoutDashboard, GitMerge, Users, MessageSquare, CalendarDays,
   TrendingUp, BotMessageSquare, CheckSquare,
   ScrollText, Database, Wallet, Settings, LogOut, GitBranch, FileText,
+  ServerCog, Radio,
 } from 'lucide-react'
 import Image from 'next/image'
 import { logout } from '@/app/login/actions'
@@ -22,7 +23,24 @@ const PREFETCH_MAP: Record<string, string> = {
   '/devis':         '/api/devis/list',
 }
 
-const prefetchFetcher = (url: string) => fetch(url).then(r => r.json())
+const prefetchFetcher = async (url: string) => {
+  try {
+    const response = await fetch(url)
+    if (!response.ok) {
+      console.warn(`API ${url} failed:`, response.status)
+      return null
+    }
+    const text = await response.text()
+    if (!text) {
+      console.warn(`API ${url} returned empty response`)
+      return null
+    }
+    return JSON.parse(text)
+  } catch (error) {
+    console.warn(`API ${url} error:`, error)
+    return null
+  }
+}
 
 const ACQUISITION: NavItem[] = [
   { href: '/dashboard',     icon: LayoutDashboard, label: 'Tableau de bord' },
@@ -35,10 +53,12 @@ const ACQUISITION: NavItem[] = [
 ]
 
 const AGENTIQUE: NavItem[] = [
-  { href: '/equipe',    icon: BotMessageSquare, label: 'Équipe IA' },
-  { href: '/taches',    icon: CheckSquare,      label: 'Tâches' },
-  { href: '/logs',      icon: ScrollText,       label: 'Activités' },
-  { href: '/knowledge', icon: Database,         label: 'Base de connaissance' },
+  { href: '/cockpit',       icon: ServerCog,        label: 'Cockpit Hermes' },
+  { href: '/equipe',        icon: BotMessageSquare, label: 'Équipe IA' },
+  { href: '/taches',        icon: CheckSquare,      label: 'Tâches' },
+  { href: '/logs',          icon: ScrollText,       label: 'Activités' },
+  { href: '/knowledge',     icon: Database,         label: 'Base de connaissance' },
+  { href: '/communication', icon: Radio,            label: 'Communication' },
 ]
 
 const CONFIGURATION: NavItem[] = [
@@ -77,7 +97,7 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
       className={`
         flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-150
         ${active
-          ? 'bg-[#E2FF8D] text-[#111111] shadow-sm'
+          ? 'bg-[#FF4D00] text-[#111111] shadow-sm'
           : 'text-white/50 hover:text-white/90 hover:bg-soren-card/8'
         }
       `}
@@ -115,6 +135,16 @@ export default function Sidebar() {
   }, [])
 
   useEffect(() => {
+    const hasSupabaseEnv = Boolean(
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    )
+
+    if (!hasSupabaseEnv) {
+      setRole('superadmin')
+      return
+    }
+
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
@@ -135,13 +165,13 @@ export default function Sidebar() {
       <Link href="/dashboard" className="flex items-center gap-2.5 px-4 pt-4 pb-2.5 flex-shrink-0">
         <Image
           src="/soren-logo.png"
-          alt="Soren"
+          alt="VividFlow"
           width={24}
           height={24}
           priority
           className="object-contain rounded-lg flex-shrink-0"
         />
-        <span className="text-white font-bold text-[14px] tracking-tight">Soren</span>
+        <span className="text-white font-bold text-[14px] tracking-tight">VividFlow</span>
       </Link>
 
       <div className="mx-3 h-px bg-soren-card/8 flex-shrink-0" />
@@ -182,7 +212,7 @@ export default function Sidebar() {
       <div className="mx-3 h-px bg-soren-card/8 flex-shrink-0" />
       <div className="px-3 py-2.5 flex-shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center bg-[#E2FF8D]">
+          <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center bg-[#FF4D00]">
             {profilePhoto
               ? <img src={profilePhoto} alt="profil" className="w-full h-full object-cover" />
               : <span className="text-[11px] font-bold text-[#111111]">{prenom ? prenom[0].toUpperCase() : 'T'}</span>

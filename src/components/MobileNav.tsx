@@ -27,7 +27,7 @@ export default function MobileNav() {
               aria-label={label}
               className={`w-12 h-12 rounded-[22px] flex items-center justify-center transition-all duration-200 ${
                 active
-                  ? 'bg-[#E2FF8D] shadow-sm scale-105'
+                  ? 'bg-[#FF4D00] shadow-sm scale-105'
                   : 'hover:bg-white/10 active:scale-95'
               }`}
             >

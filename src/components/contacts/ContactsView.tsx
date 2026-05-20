@@ -56,7 +56,7 @@ function TagPill({ label }: { label: string }) {
 const ORIGIN_COLORS: Record<string, string> = {
   Mia:    '#8B5CF6',
   Kai:    '#3462EE',
-  Soren:  '#14B8A6',
+  VividFlow:  '#14B8A6',
   Thomas: '#0EA5E9',
   Toi:    '#0EA5E9',
   Luc:    '#F97316',
@@ -315,7 +315,7 @@ export default function ContactsView({
       <div className="px-6 pt-6 pb-3 flex-shrink-0 flex items-center justify-between gap-4" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-black text-soren-text leading-none">Contacts</h1>
-          <span className="self-end mb-1 bg-[#E2FF8D] text-[#111111] text-xs font-bold px-2.5 py-1 rounded-full">
+          <span className="self-end mb-1 bg-[#FF4D00] text-[#111111] text-xs font-bold px-2.5 py-1 rounded-full">
             {contacts.length} contacts
           </span>
         </div>
@@ -372,7 +372,7 @@ export default function ContactsView({
             {showFilterMenu && (
               <div className="absolute left-0 top-full mt-1 bg-soren-card border border-soren-border rounded-2xl shadow-lg z-20 py-1 min-w-[160px]">
                 <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-wide px-3 pt-2 pb-1">Origine</p>
-                {['Thomas', 'Kai', 'Soren', 'Mia'].map(o => (
+                {['Thomas', 'Kai', 'VividFlow', 'Mia'].map(o => (
                   <button key={o} onClick={() => { setFilterOrigin(o); setShowFilterMenu(false) }}
                     className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-soren-text hover:bg-soren-elevated">
                     {filterOrigin === o && <Check size={10} />}

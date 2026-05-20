@@ -17,14 +17,14 @@ type KBDoc = {
 const AGENTS = [
   {
     id: 'soren',
-    name: 'Soren',
+    name: 'VividFlow',
     role: 'COO · Orchestrateur',
     model: 'claude-haiku-4-5',
     color: '#4A91A8',
     Icon: Cpu,
-    soul: `# Soren — Orchestrateur BTP
+    soul: `# VividFlow — Orchestrateur BTP
 
-Tu es **Soren**, le COO Digital. Tu orchestres tous les agents, gères les priorités, et communiques avec le CEO via Telegram.
+Tu es **VividFlow**, le COO Digital. Tu orchestres tous les agents, gères les priorités, et communiques avec le CEO via Telegram.
 
 ## Valeurs fondamentales
 - Réactivité : répondre en moins de 5 minutes aux leads entrants
@@ -39,7 +39,7 @@ Tu es **Soren**, le COO Digital. Tu orchestres tous les agents, gères les prior
 ## Limites
 - Ne pas promettre de délais sans validation humaine
 - Ne pas signer de devis au-dessus de 50 000 € sans validation Thomas`,
-    memory: `# Mémoire Soren
+    memory: `# Mémoire VividFlow
 
 Dernière analyse : 31 mars 2026
 Leads actifs : 3 (Inès Duprez, Xavier Alvarez, Didier Dubois)
@@ -70,7 +70,7 @@ Tu es **Kai**, le premier contact prospect. Mission : répondre < 60 secondes, q
 2. Analyse intention client
 3. Questions qualification (max 4, naturelles)
 4. Score → mise à jour stage CRM
-5. Si score > 70 : proposer RDV + alerter Soren
+5. Si score > 70 : proposer RDV + alerter VividFlow
 
 ## Canaux
 - WhatsApp (prioritaire)
@@ -100,7 +100,7 @@ Tu es **Kai**, le premier contact prospect. Mission : répondre < 60 secondes, q
 Tu es **Mia**, gestionnaire KB et devis. Tu travailles en coulisses : pré-devis précis < 5 minutes, KB à jour, archives structurées.
 
 ## Rôle principal
-Tu lis le document entreprise, extrais les informations clés (tarifs, services, zones d'intervention) et les distribues à Soren et Kai.
+Tu lis le document entreprise, extrais les informations clés (tarifs, services, zones d'intervention) et les distribues à VividFlow et Kai.
 
 ## Responsabilités
 - Pré-devis depuis templates KB BTP (< 5 min)
@@ -161,7 +161,7 @@ const SKILL_META: Record<string, { label: string; icon: React.ElementType; color
   update_kb:          { label: 'MAJ base de conn.',  icon: Database,     color: '#E8836A' },
   scrape_website:     { label: 'Scraper site web',   icon: Globe,        color: '#14B8A6' },
   archive_document:   { label: 'Archiver doc',       icon: Save,         color: '#9CA3AF' },
-  notify_soren:       { label: 'Notifier Soren',     icon: Zap,          color: '#4A91A8' },
+  notify_soren:       { label: 'Notifier VividFlow',     icon: Zap,          color: '#4A91A8' },
 }
 
 function SkillBadge({ skill }: { skill: string }) {
@@ -336,7 +336,7 @@ export default function KnowledgeView() {
           onClick={selectCommun}
           className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${selection.type === 'commun' ? 'bg-soren-elevated' : 'hover:bg-[#F9FAF8]'}`}
         >
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#E2FF8D]/60">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#FF4D00]/60">
             <FileText size={15} className="text-[#5C7A00]" />
           </div>
           <div className="min-w-0">
@@ -398,7 +398,7 @@ export default function KnowledgeView() {
                     <button
                       onClick={save}
                       className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
-                      style={{ background: saved ? '#22c55e' : '#E2FF8D', color: '#111111' }}
+                      style={{ background: saved ? '#22c55e' : '#FF4D00', color: '#111111' }}
                     >
                       <Save size={12} />
                       {saved ? 'Sauvegardé ✓' : 'Sauvegarder'}
@@ -444,7 +444,7 @@ export default function KnowledgeView() {
                     ...prev,
                     [agent.id]: { ...prev[agent.id], [tab]: e.target.value },
                   }))}
-                  className="w-full h-full bg-soren-card text-xs text-[#374151] font-mono leading-6 p-5 outline-none resize-none border-2 border-[#E2FF8D] rounded-2xl"
+                  className="w-full h-full bg-soren-card text-xs text-[#374151] font-mono leading-6 p-5 outline-none resize-none border-2 border-[#FF4D00] rounded-2xl"
                   spellCheck={false}
                   autoFocus
                 />
@@ -464,7 +464,7 @@ export default function KnowledgeView() {
           <>
             <div className="flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-[#E2FF8D]/60 flex items-center justify-center">
+                <div className="w-11 h-11 rounded-2xl bg-[#FF4D00]/60 flex items-center justify-center">
                   <FileText size={20} className="text-[#5C7A00]" />
                 </div>
                 <div>
@@ -495,7 +495,7 @@ export default function KnowledgeView() {
                   <button
                     onClick={save}
                     className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
-                    style={{ background: saved ? '#22c55e' : '#E2FF8D', color: '#111111' }}
+                    style={{ background: saved ? '#22c55e' : '#FF4D00', color: '#111111' }}
                   >
                     <Save size={12} />
                     {saved ? 'Sauvegardé ✓' : 'Sauvegarder'}
@@ -530,7 +530,7 @@ export default function KnowledgeView() {
                 <textarea
                   value={companyDoc}
                   onChange={e => setCompanyDoc(e.target.value)}
-                  className="w-full h-full bg-soren-card text-xs text-[#374151] font-mono leading-6 p-5 outline-none resize-none border-2 border-[#E2FF8D] rounded-2xl"
+                  className="w-full h-full bg-soren-card text-xs text-[#374151] font-mono leading-6 p-5 outline-none resize-none border-2 border-[#FF4D00] rounded-2xl"
                   spellCheck={false}
                   autoFocus
                 />
@@ -565,7 +565,7 @@ export default function KnowledgeView() {
                   onClick={saveKbDoc}
                   disabled={kbSaving}
                   className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-50"
-                  style={{ background: '#E2FF8D', color: '#111111' }}
+                  style={{ background: '#FF4D00', color: '#111111' }}
                 >
                   <Save size={12} />
                   {kbSaving ? 'Sauvegarde…' : 'Sauvegarder'}
@@ -607,7 +607,7 @@ export default function KnowledgeView() {
                   <textarea
                     value={kbContent}
                     onChange={e => setKbContent(e.target.value)}
-                    className="w-full h-full bg-soren-card text-xs text-[#374151] font-mono leading-6 p-5 outline-none resize-none border-2 border-[#E2FF8D] rounded-2xl"
+                    className="w-full h-full bg-soren-card text-xs text-[#374151] font-mono leading-6 p-5 outline-none resize-none border-2 border-[#FF4D00] rounded-2xl"
                     spellCheck={false}
                     autoFocus
                   />

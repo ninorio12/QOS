@@ -170,7 +170,7 @@ export default function InfoSection({
                   onClick={() => setAcompteRate(p)}
                   className={`text-[10px] font-semibold px-1.5 py-0.5 rounded transition-all ${
                     acompteRate === p
-                      ? 'bg-[#E2FF8D] text-[#111]'
+                      ? 'bg-[#FF4D00] text-[#111]'
                       : 'text-[#C8CCC6] hover:text-soren-subtle'
                   }`}
                 >

@@ -7,13 +7,13 @@ const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL
 // ─── Mock event templates (fallback for local dev) ─────────────
 const EVENT_TEMPLATES = [
   { type: 'webhook',  from: 'Meta Ads', to: 'Gateway', msg: 'Nouveau lead — Jean Dupont, façade 20-50k€' },
-  { type: 'delegate', from: 'Soren',    to: 'Kai',     msg: 'Délégation lead #2891 — priorité haute' },
+  { type: 'delegate', from: 'VividFlow',    to: 'Kai',     msg: 'Délégation lead #2891 — priorité haute' },
   { type: 'sms',      from: 'Kai',      to: 'Twilio',  msg: 'SMS envoyé +33652334975 — délai 47 sec' },
   { type: 'qualify',  from: 'Kai',      to: 'GHL',     msg: 'Lead qualifié — score 84/100, stage PROPOSITION' },
-  { type: 'report',   from: 'Soren',    to: 'Telegram',msg: 'Digest 07h00 — 3 leads qualifiés, 1 RDV booké' },
+  { type: 'report',   from: 'VividFlow',    to: 'Telegram',msg: 'Digest 07h00 — 3 leads qualifiés, 1 RDV booké' },
   { type: 'devis',    from: 'Mia',      to: 'GHL',     msg: 'Devis #2851 façade 22 000€ — template BTP appliqué' },
   { type: 'webhook',  from: 'GHL',      to: 'Gateway', msg: 'Pipeline update — Xavier Alvarez → GAGNÉ' },
-  { type: 'qualify',  from: 'Kai',      to: 'Soren',   msg: 'Relance J+2 planifiée — Inès Duprez, pas de réponse' },
+  { type: 'qualify',  from: 'Kai',      to: 'VividFlow',   msg: 'Relance J+2 planifiée — Inès Duprez, pas de réponse' },
 ]
 
 export async function GET(req: NextRequest) {

@@ -30,7 +30,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     assurance:  settings.assurance    ?? '',
     brandColor: settings.brand_color  ?? '#111111',
   } : {
-    name: 'Soren', tagline: '', address: '', phone: '', email: '',
+    name: 'VividFlow', tagline: '', address: '', phone: '', email: '',
     logoBase64: null, capital: '', siret: '', tvaIntra: '', assurance: '',
     brandColor: '#d28e46',
   }

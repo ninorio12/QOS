@@ -24,33 +24,33 @@ type LiveEvent = {
 // ─── Event templates ──────────────────────────────────────────
 const EVENTS: Omit<LiveEvent, 'id' | 'time'>[] = [
   { type: 'webhook',  from: 'Meta Ads',  to: 'Gateway',  msg: 'Nouveau lead — Jean Dupont, façade 20-50k€',          color: '#1877F2' },
-  { type: 'delegate', from: 'Soren',     to: 'Kai',      msg: 'Délégation lead #2891 — priorité haute',              color: '#3462EE' },
+  { type: 'delegate', from: 'VividFlow',     to: 'Kai',      msg: 'Délégation lead #2891 — priorité haute',              color: '#3462EE' },
   { type: 'sms',      from: 'Kai',       to: 'Twilio',   msg: 'SMS envoyé +33652334975 — délai 47 sec',              color: '#4A91A8' },
   { type: 'qualify',  from: 'Kai',       to: 'CRM',      msg: 'Lead qualifié — score 84/100, stage PROPOSITION',     color: '#4A91A8' },
-  { type: 'report',   from: 'Soren',     to: 'Telegram', msg: 'Digest 07h00 — 3 leads qualifiés, 1 RDV booké',       color: '#3462EE' },
-  { type: 'devis',    from: 'Mia',       to: 'CRM',      msg: 'Devis #2851 façade 22 000€ — template BTP appliqué',  color: '#C8F135' },
-  { type: 'delegate', from: 'Soren',     to: 'Mia',      msg: 'Générer devis — Marie Lambert, rénovation 45k€',      color: '#3462EE' },
+  { type: 'report',   from: 'VividFlow',     to: 'Telegram', msg: 'Digest 07h00 — 3 leads qualifiés, 1 RDV booké',       color: '#3462EE' },
+  { type: 'devis',    from: 'Mia',       to: 'CRM',      msg: 'Devis #2851 façade 22 000€ — template BTP appliqué',  color: '#FF4D00' },
+  { type: 'delegate', from: 'VividFlow',     to: 'Mia',      msg: 'Générer devis — Marie Lambert, rénovation 45k€',      color: '#3462EE' },
   { type: 'webhook',  from: 'CRM',       to: 'Gateway',  msg: 'Pipeline update — Xavier Lambert → GAGNÉ',           color: '#22c55e' },
-  { type: 'qualify',  from: 'Kai',       to: 'Soren',    msg: 'Relance J+2 planifiée — Inès Duprez, pas de réponse', color: '#4A91A8' },
-  { type: 'report',   from: 'Mia',       to: 'Soren',    msg: 'KB synchronisée — 3 nouvelles fiches BTP ajoutées',   color: '#C8F135' },
+  { type: 'qualify',  from: 'Kai',       to: 'VividFlow',    msg: 'Relance J+2 planifiée — Inès Duprez, pas de réponse', color: '#4A91A8' },
+  { type: 'report',   from: 'Mia',       to: 'VividFlow',    msg: 'KB synchronisée — 3 nouvelles fiches BTP ajoutées',   color: '#FF4D00' },
   { type: 'sms',      from: 'Kai',       to: 'Twilio',   msg: 'Relance automatique J+7 — Marc Bonnet',               color: '#4A91A8' },
   { type: 'webhook',  from: 'Twilio',    to: 'Gateway',  msg: 'SMS entrant — réponse lead Dupont reçue',             color: '#F22F46' },
 ]
 
 const LEAD_SEQUENCE: Omit<LiveEvent, 'id'>[] = [
   { type: 'webhook',  from: 'Meta Ads', to: 'Gateway',  msg: 'Lead entrant — Sophie Martin, toiture 35k€',              color: '#1877F2', time: '' },
-  { type: 'delegate', from: 'Soren',    to: 'Kai',      msg: 'Délégation — Sophie Martin, priorité haute',               color: '#3462EE', time: '' },
+  { type: 'delegate', from: 'VividFlow',    to: 'Kai',      msg: 'Délégation — Sophie Martin, priorité haute',               color: '#3462EE', time: '' },
   { type: 'sms',      from: 'Kai',      to: 'Twilio',   msg: 'SMS envoyé à Sophie Martin en 38 secondes',               color: '#4A91A8', time: '' },
   { type: 'qualify',  from: 'Kai',      to: 'CRM',      msg: 'Lead qualifié — score 91/100, budget confirmé 35k€',       color: '#4A91A8', time: '' },
-  { type: 'delegate', from: 'Kai',      to: 'Soren',    msg: 'Lead chaud — RDV proposé jeudi 10 avril 14h',              color: '#4A91A8', time: '' },
-  { type: 'report',   from: 'Soren',    to: 'Telegram', msg: 'Alerte Thomas — Sophie Martin qualifiée, RDV en attente',  color: '#3462EE', time: '' },
+  { type: 'delegate', from: 'Kai',      to: 'VividFlow',    msg: 'Lead chaud — RDV proposé jeudi 10 avril 14h',              color: '#4A91A8', time: '' },
+  { type: 'report',   from: 'VividFlow',    to: 'Telegram', msg: 'Alerte Thomas — Sophie Martin qualifiée, RDV en attente',  color: '#3462EE', time: '' },
 ]
 
 const METRICS = [
   { label: 'Leads 24h',       value: '12',  sub: '+3 vs hier',      color: '#3462EE' },
   { label: 'Temps réponse',   value: '52s', sub: 'Objectif < 60s',  color: '#22c55e' },
   { label: 'SMS envoyés',     value: '9',   sub: '100% délivrés',   color: '#4A91A8' },
-  { label: 'RDV bookés',      value: '3',   sub: 'Ce mois : 47',    color: '#C8F135' },
+  { label: 'RDV bookés',      value: '3',   sub: 'Ce mois : 47',    color: '#FF4D00' },
 ]
 
 const TYPE_LABEL: Record<string, string> = {
@@ -100,7 +100,7 @@ function GatewayNode({ nodeRef }: { nodeRef: React.RefObject<HTMLDivElement> }) 
           style={{ background: '#22c55e', boxShadow: '0 0 10px #22c55e' }}
         />
       </div>
-      <p className="text-[10px] font-bold text-white/60 tracking-wider uppercase">Soren Gateway</p>
+      <p className="text-[10px] font-bold text-white/60 tracking-wider uppercase">VividFlow Gateway</p>
       <p className="text-[9px] text-white/20">ws://localhost:18789</p>
     </div>
   )
@@ -147,7 +147,7 @@ export default function ArchitectureView() {
       { id: 'gw-soren',   from: gw,     to: soren, color: '#3462EE', dur: 2.0, delay: 0.4 },
       { id: 'soren-gw',   from: soren,  to: gw,    color: '#3462EE', dur: 2.2, delay: 1.2 },
       { id: 'gw-kai',     from: gw,     to: kai,   color: '#4A91A8', dur: 2.5, delay: 0.8 },
-      { id: 'gw-mia',     from: gw,     to: mia,   color: '#C8F135', dur: 3.0, delay: 1.6 },
+      { id: 'gw-mia',     from: gw,     to: mia,   color: '#FF4D00', dur: 3.0, delay: 1.6 },
       { id: 'soren-tele', from: soren,  to: tele,  color: '#2AABEE', dur: 3.5, delay: 2.0 },
       { id: 'kai-twilio', from: kai,    to: twilio,color: '#F22F46', dur: 2.0, delay: 0.6 },
       { id: 'kai-ghl',    from: kai,    to: ghl,   color: '#22c55e', dur: 3.2, delay: 1.4 },
@@ -322,7 +322,7 @@ export default function ArchitectureView() {
               <NodeCard label="KAI" sub="CSM Agent · Claude Sonnet 4.6" color="#4A91A8"
                 icon={MessageSquare} large nodeRef={kaiRef} />
 
-              <NodeCard label="MIA" sub="KB + Devis · Claude Haiku 4.5" color="#C8F135"
+              <NodeCard label="MIA" sub="KB + Devis · Claude Haiku 4.5" color="#FF4D00"
                 icon={Database} large nodeRef={miaRef} />
 
               <div className="flex flex-col items-center gap-6">

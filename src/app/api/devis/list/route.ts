@@ -40,7 +40,7 @@ export async function GET() {
     // Données mock pour settings (pour éviter les erreurs)
     const settings = [{
       key: 'company_name',
-      value: 'Soren'
+      value: 'VividFlow'
     }]
 
     return NextResponse.json({

@@ -25,16 +25,16 @@ export type EquipeAgent = {
 export const EQUIPE_AGENTS: EquipeAgent[] = [
   {
     id: 'soren',
-    name: 'Soren',
+    name: 'VividFlow',
     role: 'COO / Orchestrateur Système',
     roleShort: 'COO · ORCHESTRATEUR',
     icon: 'cpu',
-    accentColor: '#C8F135',
+    accentColor: '#FF4D00',
     status: 'offline',
     model: 'claude-haiku-4-5-20251001',
     lastHeartbeat: 'Jamais',
     description:
-      'Soren est le COO Digital de votre équipe IA. Il orchestre tous les agents, gère les priorités, et communique avec vous via Telegram.',
+      'VividFlow est le COO Digital de votre équipe IA. Il orchestre tous les agents, gère les priorités, et communique avec vous via Telegram.',
     tools: ['read_leads', 'send_telegram', 'delegate_kai', 'delegate_mia', 'analyze_pipeline'],
     skills: [
       { label: 'Orchestration', icon: 'Cpu' },
@@ -54,7 +54,7 @@ export const EQUIPE_AGENTS: EquipeAgent[] = [
     model: 'claude-haiku-4-5-20251001',
     lastHeartbeat: 'Jamais',
     description:
-      "Kai est le CSM Digital de l'équipe. Il gère les leads entrants, qualifie les prospects, envoie les relances et assure le suivi client. Il reporte à Soren.",
+      "Kai est le CSM Digital de l'équipe. Il gère les leads entrants, qualifie les prospects, envoie les relances et assure le suivi client. Il reporte à VividFlow.",
     tools: ['send_whatsapp', 'update_opportunity', 'send_telegram', 'contact_lookup', 'book_appointment'],
     skills: [
       { label: 'Customer Success', icon: 'Users' },
@@ -75,7 +75,7 @@ export const EQUIPE_AGENTS: EquipeAgent[] = [
     model: 'claude-haiku-4-5-20251001',
     lastHeartbeat: 'Jamais',
     description:
-      "Alex est le futur CMO Digital de l'équipe. Il pilotera la stratégie marketing, gérera les campagnes d'acquisition et optimisera le contenu client. Il reporte à Soren.",
+      "Alex est le futur CMO Digital de l'équipe. Il pilotera la stratégie marketing, gérera les campagnes d'acquisition et optimisera le contenu client. Il reporte à VividFlow.",
     tools: ['generate_quote', 'create_campaign', 'search_knowledge', 'update_content', 'send_email'],
     skills: [
       { label: 'Analyse', icon: 'BarChart2' },
@@ -95,7 +95,7 @@ export const EQUIPE_AGENTS: EquipeAgent[] = [
     model: 'gemini-2.5-flash',
     lastHeartbeat: 'Jamais',
     description:
-      "Mia est la CTO Digital de l'équipe. Elle supervise l'infrastructure technique, monitore les APIs, déploie les mises à jour et assure la sécurité des systèmes. Elle reporte à Soren.",
+      "Mia est la CTO Digital de l'équipe. Elle supervise l'infrastructure technique, monitore les APIs, déploie les mises à jour et assure la sécurité des systèmes. Elle reporte à VividFlow.",
     tools: ['review_code', 'deploy_system', 'monitor_infra', 'optimize_api', 'security_audit'],
     skills: [
       { label: 'Tech & Innovation', icon: 'Cpu' },
@@ -116,7 +116,7 @@ export const EQUIPE_AGENTS: EquipeAgent[] = [
     model: 'claude-haiku-4-5-20251001',
     lastHeartbeat: 'Jamais',
     description:
-      "Leo est le CFO Digital de l'équipe. Il analyse les revenus, prédit le MRR, génère les rapports financiers et optimise le ROI des campagnes. Il reporte à Soren.",
+      "Leo est le CFO Digital de l'équipe. Il analyse les revenus, prédit le MRR, génère les rapports financiers et optimise le ROI des campagnes. Il reporte à VividFlow.",
     tools: ['analyze_revenue', 'forecast_mrr', 'generate_report', 'track_costs', 'roi_analysis'],
     skills: [
       { label: 'Rapports', icon: 'FileText' },

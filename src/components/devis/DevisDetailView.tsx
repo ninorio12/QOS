@@ -74,7 +74,7 @@ interface DevisDetailViewProps {
   toast:       (message: string, type: ToastType) => void
 }
 
-export default function DevisDetailView({ devis: initial, onClose, onUpdated, onDeleted, brandColor = '#E2FF8D', toast }: DevisDetailViewProps) {
+export default function DevisDetailView({ devis: initial, onClose, onUpdated, onDeleted, brandColor = '#FF4D00', toast }: DevisDetailViewProps) {
   const [titre, setTitreRaw]       = useState(initial.titre)
   const [lignes, setLignesRaw]     = useState<Ligne[]>(fromLignesDb(initial.lignes))
   const [notes, setNotesRaw]       = useState(initial.notes ?? '')
@@ -615,7 +615,7 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
             <button
                 onClick={handleDownload}
                 disabled={genPdf}
-                className="flex items-center gap-1.5 bg-[#E2FF8D] text-[#111] rounded-xl px-4 py-2 text-[12px] font-bold hover:bg-[#d4f570] transition-colors disabled:opacity-40 font-jakarta"
+                className="flex items-center gap-1.5 bg-[#FF4D00] text-[#111] rounded-xl px-4 py-2 text-[12px] font-bold hover:bg-[#E64500] transition-colors disabled:opacity-40 font-jakarta"
               >
                 <Download size={13} /> {genPdf ? '…' : 'Télécharger'}
               </button>

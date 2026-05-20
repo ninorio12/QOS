@@ -432,7 +432,7 @@ export async function createGHLContact(data: {
       phone:      data.phone,
       email:      data.email ?? undefined,
       locationId: env.ghlLocationId(),
-      source:     'Formulaire Soren',
+      source:     'Formulaire VividFlow',
     }),
     cache: 'no-store',
   })

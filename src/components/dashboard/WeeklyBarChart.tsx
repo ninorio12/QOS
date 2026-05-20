@@ -31,7 +31,7 @@ export default function WeeklyBarChart({ data }: { data: WeeklyDay[] }) {
               <div style={{ background: '#111', borderRadius: 12, padding: '10px 14px', fontSize: 11, color: '#fff', minWidth: 110 }}>
                 <p style={{ fontWeight: 700, fontSize: 12, marginBottom: 6 }}>{label != null ? (FULL[label] ?? label) : ''}</p>
                 {payload.map(p => (
-                  <p key={p.dataKey as string} style={{ color: p.dataKey === 'leads' ? '#E2FF8D' : p.dataKey === 'booked' ? '#fff' : '#9CA3AF', marginBottom: 2 }}>
+                  <p key={p.dataKey as string} style={{ color: p.dataKey === 'leads' ? '#FF4D00' : p.dataKey === 'booked' ? '#fff' : '#9CA3AF', marginBottom: 2 }}>
                     {p.name} : {p.value}
                   </p>
                 ))}
@@ -41,7 +41,7 @@ export default function WeeklyBarChart({ data }: { data: WeeklyDay[] }) {
         />
         <Bar dataKey="rdv"    name="RDV"    fill="#3462EE" radius={[4, 4, 0, 0]} />
         <Bar dataKey="booked" name="Signés" fill="#111111" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="leads"  name="Leads"  fill="#E2FF8D" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="leads"  name="Leads"  fill="#FF4D00" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

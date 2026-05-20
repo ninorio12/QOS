@@ -155,7 +155,7 @@ function VocalTestSection() {
             <span className="text-sm font-semibold" style={{ color: meta.color }}>{meta.label}</span>
           </div>
           {isActive && (
-            <span className="text-xs font-mono text-[#E2FF8D]">{formatDuration(duration)}</span>
+            <span className="text-xs font-mono text-[#FF4D00]">{formatDuration(duration)}</span>
           )}
         </div>
 
@@ -355,7 +355,7 @@ function MessagingTestSection() {
 
                   <div className={`rounded-2xl px-4 py-2.5 text-sm leading-5 ${
                     isUser
-                      ? 'bg-[#E2FF8D]/15 border border-[#E2FF8D]/20 text-[#E8F8A0] rounded-tr-sm'
+                      ? 'bg-[#FF4D00]/15 border border-[#FF4D00]/20 text-[#E8F8A0] rounded-tr-sm'
                       : 'bg-soren-card border border-soren-border text-[#374151] rounded-tl-sm'
                   }`}>
                     {msg.content || (msg.streaming ? (
@@ -388,7 +388,7 @@ function MessagingTestSection() {
           <button
             onClick={sendMessage}
             disabled={!input.trim() || isStreaming}
-            className="w-9 h-9 rounded-xl flex items-center justify-center bg-[#E2FF8D] hover:bg-[#b5da2f] disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+            className="w-9 h-9 rounded-xl flex items-center justify-center bg-[#FF4D00] hover:bg-[#CC4000] disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex-shrink-0"
           >
             <Send size={14} className="text-[#121721]" />
           </button>

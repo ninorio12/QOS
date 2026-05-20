@@ -135,7 +135,7 @@ export default function BudgetView() {
       {/* Total */}
       <div className="flex-shrink-0 bg-soren-sidebar rounded-2xl px-5 py-4 flex items-center justify-between" style={{ animation: 'fadeSlideUp 400ms ease-out 80ms both' }}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#E2FF8D] flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-[#FF4D00] flex items-center justify-center flex-shrink-0">
             <Wallet size={16} className="text-soren-text" />
           </div>
           <div>

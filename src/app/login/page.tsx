@@ -40,11 +40,11 @@ export default function LoginPage() {
           {/* Blobs décoratifs */}
           <div
             className="absolute top-[-20%] right-[-20%] w-72 h-72 rounded-full opacity-20 pointer-events-none"
-            style={{ background: 'radial-gradient(circle, #E2FF8D 0%, transparent 65%)' }}
+            style={{ background: 'radial-gradient(circle, #FF4D00 0%, transparent 65%)' }}
           />
           <div
             className="absolute bottom-[-10%] left-[-10%] w-48 h-48 rounded-full opacity-10 pointer-events-none"
-            style={{ background: 'radial-gradient(circle, #E2FF8D 0%, transparent 65%)' }}
+            style={{ background: 'radial-gradient(circle, #FF4D00 0%, transparent 65%)' }}
           />
           {/* Grille */}
           <div
@@ -56,14 +56,14 @@ export default function LoginPage() {
           />
 
           <div className="relative flex flex-col items-center text-center px-6">
-            <div className="w-16 h-16 rounded-2xl bg-[#E2FF8D] flex items-center justify-center mb-5 shadow-xl">
-              <Image src="/soren-logo.png" alt="Soren" width={36} height={36} className="object-contain" />
+            <div className="w-16 h-16 rounded-2xl bg-[#FF4D00] flex items-center justify-center mb-5 shadow-xl">
+              <Image src="/soren-logo.png" alt="VividFlow" width={36} height={36} className="object-contain" />
             </div>
             <h1 className="text-white font-bold text-[22px] leading-tight mb-2">
               Bon retour 👋
             </h1>
             <p className="text-white/40 text-[13px]">
-              Connectez-vous à votre espace Soren
+              Connectez-vous à votre espace VividFlow
             </p>
           </div>
         </div>
@@ -78,7 +78,7 @@ export default function LoginPage() {
               required
               autoComplete="email"
               placeholder="Adresse email"
-              className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3.5 text-[#111111] text-[14px] placeholder-[#111111]/30 focus:outline-none focus:border-[#E2FF8D] transition-colors"
+              className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3.5 text-[#111111] text-[14px] placeholder-[#111111]/30 focus:outline-none focus:border-[#FF4D00] transition-colors"
             />
 
             <div className="relative">
@@ -89,7 +89,7 @@ export default function LoginPage() {
                 required
                 autoComplete="current-password"
                 placeholder="Mot de passe"
-                className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3.5 pr-12 text-[#111111] text-[14px] placeholder-[#111111]/30 focus:outline-none focus:border-[#E2FF8D] transition-colors"
+                className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3.5 pr-12 text-[#111111] text-[14px] placeholder-[#111111]/30 focus:outline-none focus:border-[#FF4D00] transition-colors"
               />
               <button
                 type="button"
@@ -109,14 +109,14 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#111111] hover:bg-[#222222] disabled:opacity-40 text-[#E2FF8D] font-semibold text-[14px] py-3.5 rounded-2xl transition-colors mt-1"
+              className="w-full bg-[#111111] hover:bg-[#222222] disabled:opacity-40 text-[#FF4D00] font-semibold text-[14px] py-3.5 rounded-2xl transition-colors mt-1"
             >
               {loading ? 'Connexion…' : 'Se connecter →'}
             </button>
           </form>
 
           <p className="text-center text-[#111111]/20 text-[11px] mt-6">
-            Soren — Propulsé par Qorpo
+            VividFlow — Propulsé par Qorpo
           </p>
         </div>
       </div>
@@ -128,8 +128,8 @@ export default function LoginPage() {
           {/* Gauche : formulaire */}
           <div className="w-[420px] flex-shrink-0 flex flex-col justify-between px-10 py-9 bg-white">
             <div className="flex items-center gap-3">
-              <Image src="/soren-logo.png" alt="Soren" width={64} height={64} className="object-contain rounded-xl" style={{ width: 64, height: 64 }} />
-              <span className="text-[#111111] font-bold text-[17px] tracking-tight">Soren</span>
+              <Image src="/soren-logo.png" alt="VividFlow" width={64} height={64} className="object-contain rounded-xl" style={{ width: 64, height: 64 }} />
+              <span className="text-[#111111] font-bold text-[17px] tracking-tight">VividFlow</span>
             </div>
 
             <div>
@@ -137,7 +137,7 @@ export default function LoginPage() {
                 Bon retour 👋
               </h1>
               <p className="text-[#9CA3AF] text-[13px] mb-7">
-                Connectez-vous à votre espace Soren
+                Connectez-vous à votre espace VividFlow
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-3">
@@ -148,7 +148,7 @@ export default function LoginPage() {
                   required
                   autoComplete="email"
                   placeholder="Adresse email"
-                  className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3 text-[#111111] text-[13px] placeholder-[#111111]/25 focus:outline-none focus:border-[#E2FF8D] transition-colors"
+                  className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3 text-[#111111] text-[13px] placeholder-[#111111]/25 focus:outline-none focus:border-[#FF4D00] transition-colors"
                 />
 
                 <div className="relative">
@@ -159,7 +159,7 @@ export default function LoginPage() {
                     required
                     autoComplete="current-password"
                     placeholder="Mot de passe"
-                    className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3 pr-11 text-[#111111] text-[13px] placeholder-[#111111]/25 focus:outline-none focus:border-[#E2FF8D] transition-colors"
+                    className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3 pr-11 text-[#111111] text-[13px] placeholder-[#111111]/25 focus:outline-none focus:border-[#FF4D00] transition-colors"
                   />
                   <button
                     type="button"
@@ -179,7 +179,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#111111] hover:bg-[#222222] disabled:opacity-40 text-[#E2FF8D] font-semibold text-[13px] py-3 rounded-2xl transition-colors"
+                  className="w-full bg-[#111111] hover:bg-[#222222] disabled:opacity-40 text-[#FF4D00] font-semibold text-[13px] py-3 rounded-2xl transition-colors"
                 >
                   {loading ? 'Connexion…' : 'Se connecter →'}
                 </button>
@@ -187,7 +187,7 @@ export default function LoginPage() {
             </div>
 
             <p className="text-[#111111]/20 text-[11px]">
-              Soren — Propulsé par Qorpo
+              VividFlow — Propulsé par Qorpo
             </p>
           </div>
 
@@ -195,11 +195,11 @@ export default function LoginPage() {
           <div className="flex-1 relative bg-[#111111] overflow-hidden">
             <div
               className="absolute top-[-30%] right-[-20%] w-[500px] h-[500px] rounded-full opacity-25"
-              style={{ background: 'radial-gradient(circle, #E2FF8D 0%, transparent 65%)' }}
+              style={{ background: 'radial-gradient(circle, #FF4D00 0%, transparent 65%)' }}
             />
             <div
               className="absolute bottom-[-20%] left-[-10%] w-[350px] h-[350px] rounded-full opacity-15"
-              style={{ background: 'radial-gradient(circle, #E2FF8D 0%, transparent 65%)' }}
+              style={{ background: 'radial-gradient(circle, #FF4D00 0%, transparent 65%)' }}
             />
             <div
               className="absolute inset-0 pointer-events-none"
@@ -209,8 +209,8 @@ export default function LoginPage() {
               }}
             />
             <div className="absolute inset-0 flex flex-col items-center justify-center px-10 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-[#E2FF8D] flex items-center justify-center mb-6 shadow-lg">
-                <Image src="/soren-logo.png" alt="Soren" width={30} height={30} className="object-contain" />
+              <div className="w-14 h-14 rounded-2xl bg-[#FF4D00] flex items-center justify-center mb-6 shadow-lg">
+                <Image src="/soren-logo.png" alt="VividFlow" width={30} height={30} className="object-contain" />
               </div>
               <h2 className="text-white font-bold text-[20px] leading-tight mb-3">
                 Votre infrastructure<br />agentique opérationnelle
@@ -221,7 +221,7 @@ export default function LoginPage() {
               <div className="flex gap-6 mt-10">
                 {[['∞', 'Leads qualifiés'], ['24/7', 'Agents actifs'], ['0', 'Tâches perdues']].map(([val, label]) => (
                   <div key={label} className="text-center">
-                    <p className="text-[#E2FF8D] font-bold text-[24px]">{val}</p>
+                    <p className="text-[#FF4D00] font-bold text-[24px]">{val}</p>
                     <p className="text-white/30 text-[10px] mt-0.5">{label}</p>
                   </div>
                 ))}

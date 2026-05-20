@@ -163,9 +163,9 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
     const stages = selectedPipelineObj?.stages ?? pipelines[0]?.stages ?? []
     const STAGE_COLORS: Record<string, string> = {
       'Nouveau Lead': '#3D4F6B', '1er Contact IA': '#4A91A8', 'En Conversation': '#3462EE',
-      'Qualifié': '#E2FF8D', 'RDV Booké': '#EFE347', 'Non Qualifié': '#8896AB',
+      'Qualifié': '#FF4D00', 'RDV Booké': '#EFE347', 'Non Qualifié': '#8896AB',
       'Sans Réponse': '#EC4899', 'Perdu': '#EF4444', 'À Réactiver': '#3D4F6B',
-      'Séquence en cours': '#4A91A8', 'A Répondu': '#3462EE', 'Re-Qualifié': '#E2FF8D',
+      'Séquence en cours': '#4A91A8', 'A Répondu': '#3462EE', 'Re-Qualifié': '#FF4D00',
     }
     const stageCount: Record<string, { count: number; value: number }> = {}
     stages.forEach(s => { stageCount[s.id] = { count: 0, value: 0 } })
@@ -196,7 +196,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
     const total = pipelineOpps.length || 1
     return [
       { name: 'Ouverts',    value: counts.open,      color: '#3462EE', pct: Math.round(counts.open / total * 100) },
-      { name: 'Gagnés',     value: counts.won,       color: '#E2FF8D', pct: Math.round(counts.won / total * 100) },
+      { name: 'Gagnés',     value: counts.won,       color: '#FF4D00', pct: Math.round(counts.won / total * 100) },
       { name: 'Perdus',     value: counts.lost,      color: '#EF4444', pct: Math.round(counts.lost / total * 100) },
       { name: 'Abandonnés', value: counts.abandoned,  color: '#9CA3AF', pct: Math.round(counts.abandoned / total * 100) },
     ]
@@ -291,7 +291,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
     return [
       {
         label: "Chiffre d'affaires", current: fmt(pipelineValue), target: fmt(CA_TARGET),
-        pct: Math.min(Math.round((pipelineValue / CA_TARGET) * 100), 100), color: '#E2FF8D',
+        pct: Math.min(Math.round((pipelineValue / CA_TARGET) * 100), 100), color: '#FF4D00',
       },
       {
         label: 'Leads qualifiés', current: String(qualifCount), target: String(QUALIF_TARGET),
@@ -344,8 +344,8 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
         <div className="grid grid-cols-3 gap-2.5" style={{ animation: 'fadeSlideUp 400ms ease-out 80ms both' }}>
           {objectives.map((obj, idx) => {
             const S = [
-              { bg: '#E2FF8D', text: '#111', muted: '#556b00', barBg: 'rgba(0,0,0,0.1)',          fillC: '#111111' },
-              { bg: DARK,      text: '#fff', muted: '#666',    barBg: 'rgba(255,255,255,0.08)', fillC: '#E2FF8D' },
+              { bg: '#FF4D00', text: '#111', muted: '#556b00', barBg: 'rgba(0,0,0,0.1)',          fillC: '#111111' },
+              { bg: DARK,      text: '#fff', muted: '#666',    barBg: 'rgba(255,255,255,0.08)', fillC: '#FF4D00' },
               { bg: '#ffffff', text: '#111', muted: '#888',    barBg: '#EBEBEB',                fillC: '#111111' },
             ][idx]!
             return (
@@ -366,11 +366,11 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
         <p className="text-[9px] font-bold uppercase tracking-[.8px] text-[#aaa]" style={{ animation: 'fadeSlideUp 400ms ease-out 150ms both' }}>Métriques</p>
         <div className="grid grid-cols-6 gap-2.5" style={{ animation: 'fadeSlideUp 400ms ease-out 170ms both' }}>
           {[
-            { label: 'Total leads',     value: String(kpis.total),        trend: 'durant la période',  bg: DARK,      text: '#fff', muted: '#666', trendC: '#E2FF8D' },
+            { label: 'Total leads',     value: String(kpis.total),        trend: 'durant la période',  bg: DARK,      text: '#fff', muted: '#666', trendC: '#FF4D00' },
             { label: 'Pipeline',        value: fmt(kpis.pipelineValue),   trend: 'deals ouverts',    bg: '#ffffff', text: '#111', muted: '#888', trendC: '#111111' },
-            { label: 'Conversion',      value: `${kpis.conversionRate}%`, trend: 'durant la période', bg: DARK, text: '#fff', muted: '#666', trendC: '#E2FF8D' },
+            { label: 'Conversion',      value: `${kpis.conversionRate}%`, trend: 'durant la période', bg: DARK, text: '#fff', muted: '#666', trendC: '#FF4D00' },
             { label: 'Durée moy.',      value: `${kpis.avgDays}j`,        trend: 'leads gagnés',     bg: '#ffffff', text: '#111', muted: '#888', trendC: '#888'    },
-            { label: 'Leads actifs',    value: String(kpis.activeCount),  trend: 'durant la période', bg: DARK,      text: '#fff', muted: '#666', trendC: '#E2FF8D' },
+            { label: 'Leads actifs',    value: String(kpis.activeCount),  trend: 'durant la période', bg: DARK,      text: '#fff', muted: '#666', trendC: '#FF4D00' },
             { label: 'Valeur moy.',     value: fmt(kpis.avgValue),        trend: 'par lead',         bg: '#ffffff', text: '#111', muted: '#888', trendC: '#111111' },
           ].map(kpi => (
             <div key={kpi.label} className={`${CARD} p-3.5 flex flex-col gap-2`} style={{ background: kpi.bg, ...SHADOW }}>
@@ -441,7 +441,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
                   <div key={src.name} className="flex items-center gap-2">
                     <span className="text-[10px] text-[#666] flex-shrink-0 truncate" style={{ width: 80 }}>{src.name}</span>
                     <div className="flex-1 h-[4px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                      <div className="h-full rounded-full bg-[#E2FF8D]" style={{ width: `${src.pct}%` }} />
+                      <div className="h-full rounded-full bg-[#FF4D00]" style={{ width: `${src.pct}%` }} />
                     </div>
                     <span className="text-[11px] font-bold text-white flex-shrink-0 w-5 text-right">{src.count}</span>
                   </div>
@@ -462,7 +462,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
               labelC: '#888', valC: '#fff', barTrack: 'rgba(255,255,255,0.08)',
               centerSub: 'leads',
               data: [
-                { name: 'Actif',      color: '#E2FF8D', value: statusPieData.find(d => d.name === 'Ouverts')?.value    ?? 0, pct: statusPieData.find(d => d.name === 'Ouverts')?.pct    ?? 0 },
+                { name: 'Actif',      color: '#FF4D00', value: statusPieData.find(d => d.name === 'Ouverts')?.value    ?? 0, pct: statusPieData.find(d => d.name === 'Ouverts')?.pct    ?? 0 },
                 { name: 'Gagné',      color: '#ffffff', value: statusPieData.find(d => d.name === 'Gagnés')?.value     ?? 0, pct: statusPieData.find(d => d.name === 'Gagnés')?.pct     ?? 0 },
                 { name: 'Perdu',      color: '#555555', value: statusPieData.find(d => d.name === 'Perdus')?.value     ?? 0, pct: statusPieData.find(d => d.name === 'Perdus')?.pct     ?? 0 },
                 { name: 'Abandonné',  color: '#333333', value: statusPieData.find(d => d.name === 'Abandonnés')?.value ?? 0, pct: statusPieData.find(d => d.name === 'Abandonnés')?.pct ?? 0 },
@@ -473,11 +473,11 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
               bg: '#ffffff', titleC: '#111', centerColor: '#111', trackColor: '#E4E4E0',
               labelC: '#888', valC: '#111', barTrack: '#EBEBEB',
               centerSub: 'pipelines',
-              data: pipelinePieData.map((d, i) => ({ ...d, color: i === 0 ? '#111111' : '#E2FF8D' })),
+              data: pipelinePieData.map((d, i) => ({ ...d, color: i === 0 ? '#111111' : '#FF4D00' })),
             },
             {
               title: 'Par source',
-              bg: '#E2FF8D', titleC: '#111', centerColor: '#111', trackColor: 'rgba(0,0,0,0.1)',
+              bg: '#FF4D00', titleC: '#111', centerColor: '#111', trackColor: 'rgba(0,0,0,0.1)',
               labelC: '#3a5200', valC: '#111', barTrack: 'rgba(0,0,0,0.08)',
               centerSub: 'sources',
               data: sourceData.slice(0, 4).map((d, i) => ({
@@ -544,7 +544,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
                 <span className="text-[10px] text-[#999] w-20 text-right">{stage.value > 0 ? fmt(stage.value) : '—'}</span>
                 <div className="w-12 flex justify-end">
                   <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    stage.pctTotal === 100 ? 'bg-[#E2FF8D] text-[#3a5200]' :
+                    stage.pctTotal === 100 ? 'bg-[#FF4D00] text-[#3a5200]' :
                     stage.pctTotal > 30   ? 'bg-[#DCFCE7] text-[#166534]' :
                                             'bg-[#EAEAE6] text-[#666]'
                   }`}>

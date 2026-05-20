@@ -1,12 +1,9 @@
 // Bridge inter-agents QOS ↔ Hermes
 // Protocole : task | start | progress | result | error | ack
 
-import { createClient } from '@supabase/supabase-js'
+import { createAdminClient } from './supabase/admin'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const supabase = createAdminClient()
 
 export type MsgType = 'task' | 'start' | 'progress' | 'result' | 'error' | 'ack'
 

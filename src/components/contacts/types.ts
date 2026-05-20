@@ -18,7 +18,7 @@ export function getInitials(contact: Contact) {
 }
 
 export function getAvatarColor(initials: string): string {
-  const palette = ['#3462EE', '#4A91A8', '#C8F135', '#EFE347', '#8B5CF6', '#EC4899', '#F97316']
+  const palette = ['#3462EE', '#4A91A8', '#FF4D00', '#EFE347', '#8B5CF6', '#EC4899', '#F97316']
   return palette[(initials.charCodeAt(0) ?? 0) % palette.length]
 }
 
@@ -40,7 +40,7 @@ export type ContactTag = { label: string; color: string; bg: string }
 export function getContactTags(contact: Contact): ContactTag[] {
   const tags: ContactTag[] = []
   const daysOld = Math.floor((Date.now() - new Date(contact.created_at).getTime()) / 86400000)
-  if (daysOld <= 7) tags.push({ label: 'nouveau', color: '#C8F135', bg: '#C8F13518' })
+  if (daysOld <= 7) tags.push({ label: 'nouveau', color: '#FF4D00', bg: '#FF4D0018' })
   contact.tags.forEach(t => tags.push({ label: t, color: '#8896AB', bg: '#8896AB18' }))
   if (tags.length === 0) tags.push({ label: 'contact', color: '#8896AB', bg: '#8896AB18' })
   return tags

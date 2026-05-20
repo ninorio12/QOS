@@ -132,7 +132,7 @@ export function PromptLabTab({ agentId, currentSoul }: PromptLabTabProps) {
         disabled={!tested || publishing}
         className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all
           disabled:opacity-40 disabled:cursor-not-allowed
-          enabled:bg-[#C8F135] enabled:text-black enabled:hover:bg-[#b8e120]"
+          enabled:bg-[#FF4D00] enabled:text-black enabled:hover:bg-[#b8e120]"
       >
         <Upload size={14} />
         {publishing ? 'Publication…' : 'Publier ce SOUL.md'}

@@ -16,12 +16,14 @@ const NAV_PAGES = [
   { label: 'Conversations',  href: '/conversations' },
   { label: 'Calendrier',     href: '/calendrier' },
   { label: 'Analyse',        href: '/analyse' },
+  { label: 'Cockpit Hermes', href: '/cockpit' },
   { label: 'Agents',         href: '/agents' },
   { label: 'Équipe IA',      href: '/equipe' },
   { label: 'Tâches',         href: '/taches' },
   { label: 'Conversations',  href: '/conversations' },
   { label: 'Logs',           href: '/logs' },
   { label: 'Knowledge Base', href: '/knowledge' },
+  { label: 'Communication',  href: '/communication' },
   { label: 'Conversion',     href: '/conversion' },
   { label: 'Growth & ROI',   href: '/growth' },
   { label: 'Paramètres',     href: '/parametres' },
@@ -34,10 +36,12 @@ const PAGE_LABELS: Record<string, string> = {
   '/conversations': 'Conversations',
   '/calendrier':    'Calendrier',
   '/analyse':       'Analyse',
+  '/cockpit':       'Cockpit Hermes',
   '/equipe':        'Équipe IA',
   '/taches':        'Tâches',
   '/logs':          'Logs',
   '/knowledge':     'Knowledge Base',
+  '/communication': 'Communication',
   '/budget':        'Budget',
   '/conversion':    'Conversion',
   '/growth':        'Growth & ROI',
@@ -53,7 +57,7 @@ export default function Header() {
   const pathname = usePathname()
   const router   = useRouter()
   const base = '/' + (pathname.split('/')[1] ?? '')
-  const label = PAGE_LABELS[base] ?? 'Soren'
+  const label = PAGE_LABELS[base] ?? 'VividFlow'
 
   const [showProfile,  setShowProfile]  = useState(false)
   const [searchQuery,  setSearchQuery]  = useState('')
@@ -89,6 +93,13 @@ export default function Header() {
   }, [q])
 
   useEffect(() => {
+    const hasSupabaseEnv = Boolean(
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    )
+
+    if (!hasSupabaseEnv) return
+
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) return
@@ -183,7 +194,7 @@ export default function Header() {
                         onClick={() => { router.push('/contacts'); setSearchQuery(''); setSearchOpen(false); setContactResults([]) }}
                         className="w-full text-left px-4 py-2.5 hover:bg-soren-elevated flex items-center gap-2.5 transition-colors"
                       >
-                        <div className="w-6 h-6 rounded-full bg-[#E2FF8D] flex items-center justify-center text-[9px] font-bold text-[#111111] flex-shrink-0">
+                        <div className="w-6 h-6 rounded-full bg-[#FF4D00] flex items-center justify-center text-[9px] font-bold text-[#111111] flex-shrink-0">
                           {initials}
                         </div>
                         <div>
@@ -209,7 +220,7 @@ export default function Header() {
           <button
             onClick={() => setShowProfile(v => !v)}
             data-tooltip="Profil"
-            className="w-8 h-8 rounded-full bg-[#E2FF8D] flex items-center justify-center text-[11px] font-bold text-[#111111] overflow-hidden hover:ring-2 hover:ring-[#E2FF8D]/60 transition-all"
+            className="w-8 h-8 rounded-full bg-[#FF4D00] flex items-center justify-center text-[11px] font-bold text-[#111111] overflow-hidden hover:ring-2 hover:ring-[#FF4D00]/60 transition-all"
           >
             {profilePhoto
               ? <img src={profilePhoto} alt="avatar" className="object-cover w-full h-full" />
@@ -223,7 +234,7 @@ export default function Header() {
             <div className="absolute right-0 top-10 bg-soren-card border border-soren-border rounded-2xl shadow-xl z-50 w-56 overflow-hidden">
               <div className="px-4 py-3 border-b border-soren-border">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#E2FF8D] flex items-center justify-center text-[13px] font-bold text-[#111111] overflow-hidden flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-[#FF4D00] flex items-center justify-center text-[13px] font-bold text-[#111111] overflow-hidden flex-shrink-0">
                     {profilePhoto
                       ? <img src={profilePhoto} alt="avatar" className="object-cover w-full h-full" />
                       : user?.avatar

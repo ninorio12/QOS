@@ -16,7 +16,7 @@ function Avatar({ contact }: { contact: GHLContact }) {
   const name     = contact.contactName || `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim()
   const initials = (name.split(' ').map((w: string) => w[0]).join('').slice(0, 2) || '?').toUpperCase()
   const color    = getAvatarColor(initials)
-  const isDark   = color === '#C8F135' || color === '#EFE347'
+  const isDark   = color === '#FF4D00' || color === '#EFE347'
   return (
     <div
       className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black flex-shrink-0"
@@ -104,7 +104,7 @@ const STATUS_LABELS: Record<string, string> = {
   abandoned: 'Abandonnée',
 }
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  open:      { bg: '#E2FF8D', text: '#111' },
+  open:      { bg: '#FF4D00', text: '#111' },
   won:       { bg: '#D1FAE5', text: '#065F46' },
   lost:      { bg: '#FEE2E2', text: '#991B1B' },
   abandoned: { bg: '#F3F4F6', text: '#6B7280' },

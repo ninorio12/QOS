@@ -168,7 +168,7 @@ export default function DevisListView({ devisList, brandColor, onNew, onSelect, 
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Rechercher un devis..."
-            className="w-full bg-soren-card rounded-full pl-8 pr-4 py-2 text-[13px] text-[#111] placeholder:text-soren-subtle border border-transparent focus:outline-none focus:border-[#E2FF8D] font-jakarta shadow-sm"
+            className="w-full bg-soren-card rounded-full pl-8 pr-4 py-2 text-[13px] text-[#111] placeholder:text-soren-subtle border border-transparent focus:outline-none focus:border-[#FF4D00] font-jakarta shadow-sm"
           />
         </div>
 
@@ -268,7 +268,7 @@ export default function DevisListView({ devisList, brandColor, onNew, onSelect, 
               <div
                 key={d.id}
                 onClick={() => onSelect(d)}
-                className="relative bg-soren-card rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:scale-[1.02] cursor-pointer transition-all duration-200 border border-transparent hover:border-[#E2FF8D] flex-shrink-0"
+                className="relative bg-soren-card rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:scale-[1.02] cursor-pointer transition-all duration-200 border border-transparent hover:border-[#FF4D00] flex-shrink-0"
                 style={{ width: 260 }}
               >
                 {/* Bouton suppression */}

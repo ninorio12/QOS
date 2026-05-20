@@ -5,7 +5,7 @@ import { Bell } from 'lucide-react'
 
 type Notif = {
   id: string
-  agent: 'Soren' | 'Kai' | 'Mia' | 'Système'
+  agent: 'VividFlow' | 'Kai' | 'Mia' | 'Système'
   message: string
   time: string
   read: boolean
@@ -14,20 +14,20 @@ type Notif = {
 
 const STATIC_NOTIFS: Notif[] = [
   { id: 'n1', agent: 'Kai',    message: 'Lead Martin Dupont qualifié → stage mis à jour',   time: '10:44', read: false, color: '#4A91A8' },
-  { id: 'n2', agent: 'Soren',  message: 'Analyse pipeline terminée — 12 opportunités, €74,6k',       time: '10:39', read: false, color: '#3462EE' },
+  { id: 'n2', agent: 'VividFlow',  message: 'Analyse pipeline terminée — 12 opportunités, €74,6k',       time: '10:39', read: false, color: '#3462EE' },
   { id: 'n3', agent: 'Mia',    message: 'Devis Thomas Bernard — BN Bâtiment €8 900 généré',          time: '10:44', read: false, color: '#65a30d' },
   { id: 'n4', agent: 'Kai',    message: 'Intervention requise — Xavier Lambert sans réponse 48h',     time: '10:41', read: false, color: '#4A91A8' },
-  { id: 'n5', agent: 'Système',message: 'Heartbeat Soren exécuté — 12 leads analysés',               time: '10:45', read: true,  color: '#9CA3AF' },
+  { id: 'n5', agent: 'Système',message: 'Heartbeat VividFlow exécuté — 12 leads analysés',               time: '10:45', read: true,  color: '#9CA3AF' },
 ]
 
 const LIVE_NOTIF_TEMPLATES: Omit<Notif, 'id' | 'time' | 'read'>[] = [
-  { agent: 'Soren',   message: 'Digest quotidien Telegram envoyé — 3 leads qualifiés ce matin',      color: '#3462EE' },
+  { agent: 'VividFlow',   message: 'Digest quotidien Telegram envoyé — 3 leads qualifiés ce matin',      color: '#3462EE' },
   { agent: 'Kai',     message: 'SMS de bienvenue envoyé à Sophie Renard en 38 secondes',             color: '#4A91A8' },
   { agent: 'Mia',     message: 'Base de connaissance synchronisée — 3 nouvelles fiches BTP',         color: '#65a30d' },
-  { agent: 'Soren',   message: 'Pipeline analysé — Xavier Lambert identifié prioritaire',            color: '#3462EE' },
+  { agent: 'VividFlow',   message: 'Pipeline analysé — Xavier Lambert identifié prioritaire',            color: '#3462EE' },
   { agent: 'Kai',     message: 'Lead qualifié — score 84/100, stage PROPOSITION mis à jour',         color: '#4A91A8' },
   { agent: 'Mia',     message: 'Devis BN Bâtiment généré — €8 900 TTC, envoi planifié 09h00',       color: '#65a30d' },
-  { agent: 'Soren',   message: 'Directive envoyée à Kai : relancer Romain Garcia (J+7)',             color: '#3462EE' },
+  { agent: 'VividFlow',   message: 'Directive envoyée à Kai : relancer Romain Garcia (J+7)',             color: '#3462EE' },
   { agent: 'Système', message: 'OpenClaw Gateway · heartbeat 3 sessions actives',                    color: '#9CA3AF' },
   { agent: 'Kai',     message: 'RDV confirmé — Inès Duprez, 7 avril 14h · Calendrier mis à jour', color: '#4A91A8' },
   { agent: 'Mia',     message: 'Alerte devis — Marie Colin sans réponse > 7 jours',                  color: '#65a30d' },

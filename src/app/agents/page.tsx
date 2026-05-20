@@ -23,7 +23,7 @@ type Msg = {
 
 const AGENT_META: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
   qos:    { label: 'QOS',    color: '#3462EE', bg: '#1a2a5e', icon: <Zap size={14} /> },
-  hermes: { label: 'Hermes', color: '#C8F135', bg: '#2a3a10', icon: <Bot size={14} /> },
+  hermes: { label: 'Hermes', color: '#FF4D00', bg: '#2a3a10', icon: <Bot size={14} /> },
   all:    { label: 'Tous',   color: '#8896AB', bg: '#1A2235', icon: <User size={14} /> },
 }
 
@@ -31,7 +31,7 @@ const TYPE_META: Record<MsgType, { icon: string; color: string }> = {
   task:     { icon: '📋', color: '#3462EE' },
   start:    { icon: '🚀', color: '#4A91A8' },
   progress: { icon: '⏳', color: '#EFE347' },
-  result:   { icon: '✅', color: '#C8F135' },
+  result:   { icon: '✅', color: '#FF4D00' },
   error:    { icon: '❌', color: '#EF4444' },
   ack:      { icon: '👍', color: '#8896AB' },
 }
@@ -83,7 +83,7 @@ function MessageBubble({ msg }: { msg: Msg }) {
               Détails
             </button>
             {open && (
-              <pre className="px-3 pb-3 text-[11px] text-[#C8F135] overflow-x-auto whitespace-pre-wrap">
+              <pre className="px-3 pb-3 text-[11px] text-[#FF4D00] overflow-x-auto whitespace-pre-wrap">
                 {JSON.stringify(msg.payload, null, 2)}
               </pre>
             )}
@@ -153,7 +153,7 @@ export default function AgentsPage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-5 py-3 border-b border-[#1A2235]">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-[#C8F135] animate-pulse" />
+          <div className="w-2 h-2 rounded-full bg-[#FF4D00] animate-pulse" />
           <span className="text-sm font-semibold text-white">Bridge Agents</span>
         </div>
         <div className="flex items-center gap-2 ml-2">

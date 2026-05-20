@@ -50,7 +50,7 @@ function SourceIcon({ label, color }: { label: string; color: string }) {
 
 // ─── Related Leads (mock for now) ────────────────────────────
 const MOCK_LEADS = [
-  { id: '1', title: 'Résidence Les Chênes', value: 87000,  status: 'RDV Booké',       color: '#E2FF8D', date: '20 mars' },
+  { id: '1', title: 'Résidence Les Chênes', value: 87000,  status: 'RDV Booké',       color: '#FF4D00', date: '20 mars' },
   { id: '2', title: 'Lot technique Vinci',  value: 312000, status: 'En Conversation',  color: '#4A91A8', date: '14 mars' },
 ]
 
@@ -65,13 +65,13 @@ export default function ContactPanel({
   const initials = getInitials(contact)
   const avatarColor = getAvatarColor(initials)
   const tags = getContactTags(contact)
-  const isDark = avatarColor === '#E2FF8D' || avatarColor === '#EFE347'
+  const isDark = avatarColor === '#FF4D00' || avatarColor === '#EFE347'
   const createdDate = new Date(contact.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 
   const actions = [
     { icon: Edit3,    label: 'Éditer',   color: '#3462EE' },
     { icon: Mail,     label: 'Email',    color: '#4A91A8' },
-    { icon: Phone,    label: 'Appel',    color: '#E2FF8D' },
+    { icon: Phone,    label: 'Appel',    color: '#FF4D00' },
     { icon: Plus,     label: 'Ajouter',  color: '#3D4F6B' },
     { icon: Calendar, label: 'Agenda',   color: '#EFE347' },
     { icon: Video,    label: 'Réunion',  color: '#8896AB' },
@@ -215,7 +215,7 @@ export default function ContactPanel({
             <p className="text-[10px] text-soren-muted">Deals actifs</p>
           </div>
           <div className="bg-soren-app border border-soren-border rounded-xl p-3 text-center">
-            <p className="text-sm font-bold" style={{ color: '#E2FF8D' }}>
+            <p className="text-sm font-bold" style={{ color: '#FF4D00' }}>
               €{MOCK_LEADS.reduce((s, l) => s + l.value, 0).toLocaleString('fr-FR')}
             </p>
             <p className="text-[10px] text-soren-muted">Pipeline</p>

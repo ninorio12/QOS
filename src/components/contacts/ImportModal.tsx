@@ -77,7 +77,7 @@ function StepBar({ step }: { step: Step }) {
           <div className="flex flex-col items-center gap-1 flex-shrink-0">
             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
               s.n < step  ? 'bg-soren-sidebar text-white' :
-              s.n === step ? 'bg-soren-sidebar text-white ring-4 ring-[#E2FF8D]' :
+              s.n === step ? 'bg-soren-sidebar text-white ring-4 ring-[#FF4D00]' :
               'bg-[#F0F0EE] text-soren-subtle border border-soren-border'
             }`}>
               {s.n < step ? <Check size={12} /> : s.n}
@@ -420,7 +420,7 @@ export default function ImportModal({
                       {mappedPreview.map((r, i) => {
                         const initials = `${r.firstName?.[0] ?? ''}${r.lastName?.[0] ?? ''}`.toUpperCase() || '?'
                         const color    = getAvatarColor(initials)
-                        const isDark   = color === '#C8F135' || color === '#EFE347'
+                        const isDark   = color === '#FF4D00' || color === '#EFE347'
                         return (
                           <tr key={i} className="border-b border-[#F0F0EE] last:border-0">
                             <td className="px-3 py-2.5">

@@ -271,7 +271,7 @@ function Toast({ visible }: { visible: boolean }) {
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-soren-sidebar text-white rounded-full px-5 py-2 text-sm font-medium shadow-xl pointer-events-none flex items-center gap-2"
       style={{ animation: 'fadeSlideUp 300ms ease-out both' }}
     >
-      <Check size={14} className="text-[#E2FF8D]" />
+      <Check size={14} className="text-[#FF4D00]" />
       Lead créé
     </div>
   )
@@ -341,7 +341,7 @@ export default function DashboardClient({
   const visibleStages = stageBreakdown.filter(s => s.count > 0).slice(0, 4)
 
   const FALLBACK_ACTIVITY = [
-    { dot: '#E2FF8D', name: 'Martin Dupont', action: 'Nouveau lead qualifié',  date: "Aujourd'hui 09:14" },
+    { dot: '#FF4D00', name: 'Martin Dupont', action: 'Nouveau lead qualifié',  date: "Aujourd'hui 09:14" },
     { dot: '#111111', name: 'Kai (IA)',       action: 'Appel vocal envoyé',     date: "Aujourd'hui 08:45" },
     { dot: '#6B7280', name: 'Sophie Renard', action: 'Devis consulté',          date: 'Hier 17:32' },
     { dot: '#D1D5DB', name: 'Carlos Mendes', action: 'Relance automatique',    date: 'Hier 14:20' },
@@ -372,15 +372,15 @@ export default function DashboardClient({
         current: fmt(pipelineValue),
         target: fmt(CA_TARGET),
         pct: Math.min(Math.round((pipelineValue / CA_TARGET) * 100), 100),
-        barColor: '#E2FF8D', textColor: '#111111',
-        bg: '#E2FF8D', labelC: '#556b00',
+        barColor: '#FF4D00', textColor: '#111111',
+        bg: '#FF4D00', labelC: '#556b00',
       },
       {
         label: 'Leads qualifiés',
         current: String(qualCount),
         target: String(QUAL_TARGET),
         pct: Math.min(Math.round((qualCount / QUAL_TARGET) * 100), 100),
-        barColor: '#E2FF8D', textColor: '#ffffff',
+        barColor: '#FF4D00', textColor: '#ffffff',
         bg: '#1C1C1E', labelC: '#666',
       },
       {
@@ -468,7 +468,7 @@ export default function DashboardClient({
         >
           <div className="flex items-center justify-between">
             <span className="font-jakarta text-[13px] font-semibold text-soren-text">Leads actifs</span>
-            <span className="bg-[#E2FF8D] text-[#111111] text-[10px] font-bold px-2 py-0.5 rounded-full">{activeLeads} total</span>
+            <span className="bg-[#FF4D00] text-[#111111] text-[10px] font-bold px-2 py-0.5 rounded-full">{activeLeads} total</span>
           </div>
 
           <div className="flex items-baseline gap-1.5">
@@ -481,7 +481,7 @@ export default function DashboardClient({
               ? stageBreakdown.filter(s => s.count > 0).slice(0, 4)
               : [
                   { label: 'Nouveau contact', color: '#3462EE', pct: 0, count: 0 },
-                  { label: 'Qualifié',        color: '#E2FF8D', pct: 0, count: 0 },
+                  { label: 'Qualifié',        color: '#FF4D00', pct: 0, count: 0 },
                   { label: 'RDV planifié',    color: '#4A91A8', pct: 0, count: 0 },
                   { label: 'Signé',           color: '#22c55e', pct: 0, count: 0 },
                 ]
@@ -500,7 +500,7 @@ export default function DashboardClient({
 
         {/* ── Card 2 — Valeur Pipeline ── */}
         <div
-          className="bg-[#E2FF8D] rounded-2xl md:rounded-3xl p-4 md:p-5 flex flex-col gap-3 shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all duration-200 cursor-pointer"
+          className="bg-[#FF4D00] rounded-2xl md:rounded-3xl p-4 md:p-5 flex flex-col gap-3 shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all duration-200 cursor-pointer"
           style={{ animation: 'fadeSlideUp 400ms ease-out 100ms both' }}
           onClick={() => router.push('/pipeline')}
         >
@@ -569,7 +569,7 @@ export default function DashboardClient({
 
           {/* Header */}
           <div className="flex items-center justify-between">
-            <span className="font-jakarta text-[13px] font-semibold text-[#E2FF8D]">Agentique</span>
+            <span className="font-jakarta text-[13px] font-semibold text-[#FF4D00]">Agentique</span>
             <span className="flex items-center gap-1 text-[9px] font-bold text-[#22c55e] bg-[#22c55e]/15 px-2 py-0.5 rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse inline-block" />
               2 actifs
@@ -579,9 +579,9 @@ export default function DashboardClient({
           {/* 3 agents */}
           <div className="flex justify-around items-center flex-1">
             {([
-              { name: 'Soren', role: 'Orchestrateur', color: '#3462EE', Icon: Cpu,          online: true  },
+              { name: 'VividFlow', role: 'Orchestrateur', color: '#3462EE', Icon: Cpu,          online: true  },
               { name: 'Kai',   role: 'Commercial',     color: '#4A91A8', Icon: MessageSquare, online: true  },
-              { name: 'Mia',   role: 'Connaissance',   color: '#C8F135', Icon: Database,      online: false },
+              { name: 'Mia',   role: 'Connaissance',   color: '#FF4D00', Icon: Database,      online: false },
             ] as const).map(agent => (
               <div key={agent.name} className="flex flex-col items-center gap-3">
                 <div
@@ -613,7 +613,7 @@ export default function DashboardClient({
               <span className="text-[10px] text-white/30">67%</span>
             </div>
             <div className="h-1 bg-soren-card/8 rounded-full overflow-hidden">
-              <div className="h-full rounded-full bg-[#E2FF8D]" style={{ width: '67%' }} />
+              <div className="h-full rounded-full bg-[#FF4D00]" style={{ width: '67%' }} />
             </div>
           </div>
           </div>{/* /content */}
@@ -625,7 +625,7 @@ export default function DashboardClient({
           style={{ animation: 'fadeSlideUp 400ms ease-out 300ms both' }}
         >
           <div className="flex-1 overflow-y-auto p-5">
-          <p className="font-jakarta text-[13px] font-semibold text-soren-text">Modules Soren</p>
+          <p className="font-jakarta text-[13px] font-semibold text-soren-text">Modules VividFlow</p>
           <p className="font-jakarta text-[10px] font-normal text-soren-subtle mt-0.5 mb-3">Récemment visités</p>
 
           <div className="grid grid-cols-2 gap-2">
@@ -636,9 +636,9 @@ export default function DashboardClient({
                 className="relative bg-soren-elevated rounded-2xl p-3 flex flex-col gap-2 hover:bg-soren-sidebar transition-all duration-150 group"
               >
                 <ArrowUpRight size={11}
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-[#E2FF8D] transition-opacity" />
-                <Icon size={18} className="text-soren-muted group-hover:text-[#E2FF8D] transition-colors" />
-                <span className="text-xs font-semibold text-soren-text group-hover:text-[#E2FF8D] transition-colors">{label}</span>
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-[#FF4D00] transition-opacity" />
+                <Icon size={18} className="text-soren-muted group-hover:text-[#FF4D00] transition-colors" />
+                <span className="text-xs font-semibold text-soren-text group-hover:text-[#FF4D00] transition-colors">{label}</span>
               </Link>
             ))}
           </div>
@@ -762,7 +762,7 @@ export default function DashboardClient({
             </div>
             <div className="flex items-center gap-3 text-[10px]">
               <span className="flex items-center gap-1.5 text-soren-muted">
-                <span className="inline-block w-2.5 h-2 rounded-sm bg-[#E2FF8D]" />
+                <span className="inline-block w-2.5 h-2 rounded-sm bg-[#FF4D00]" />
                 Leads
               </span>
               <span className="flex items-center gap-1.5 text-soren-muted">

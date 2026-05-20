@@ -221,7 +221,7 @@ function TranscriptDetail({ t }: { t: Transcript }) {
           <div className="space-y-2">
             {t.actions.map((a, i) => (
               <div key={i} className="flex items-start gap-2.5 bg-soren-card border border-soren-border rounded-xl px-4 py-3">
-                <CheckSquare size={13} className="text-[#E2FF8D] flex-shrink-0 mt-0.5" />
+                <CheckSquare size={13} className="text-[#FF4D00] flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-[#374151]">{a}</p>
               </div>
             ))}

@@ -3,13 +3,13 @@ import { X } from 'lucide-react'
 import type { Toast } from '@/hooks/useToast'
 
 const STYLES: Record<string, string> = {
-  success: 'bg-soren-sidebar border-[#C8F135]/40 text-white',
+  success: 'bg-soren-sidebar border-[#FF4D00]/40 text-white',
   error:   'bg-soren-sidebar border-red-500/40 text-white',
   info:    'bg-soren-sidebar border-white/10 text-white',
 }
 
 const DOT: Record<string, string> = {
-  success: 'bg-[#C8F135]',
+  success: 'bg-[#FF4D00]',
   error:   'bg-red-400',
   info:    'bg-blue-400',
 }

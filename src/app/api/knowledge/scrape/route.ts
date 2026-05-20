@@ -29,7 +29,7 @@ export async function POST() {
   let scraped: string
   try {
     const res = await fetch(settings.website_url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SorenBot/1.0)' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; VividFlowBot/1.0)' },
       signal: AbortSignal.timeout(10000),
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)

@@ -126,8 +126,8 @@ function shortModel(m: string) {
   return m.replace('claude-', '').replace(/-20\d{6}$/, '').replace('gemini-', '')
 }
 
-// ─── Soren hero card — inspiré screenshot ────────────────────
-function SorenHeroCard({
+// ─── VividFlow hero card — inspiré screenshot ────────────────────
+function VividFlowHeroCard({
   agent, runState, isSelected, onClick, onStart, onStop, prenom,
 }: {
   agent:      EquipeAgent
@@ -164,7 +164,7 @@ function SorenHeroCard({
           <div className="absolute inset-y-0 right-0 w-10 pointer-events-none"
             style={{ background: 'linear-gradient(to left, #F2F3F0 20%, transparent)', zIndex: 2 }} />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/soren-avatar.png" alt="Soren"
+          <img src="/soren-avatar.png" alt="VividFlow"
             className="absolute left-[58%] -translate-x-1/2 w-auto object-contain"
             style={{ bottom: '0px', height: '115px', zIndex: 3, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.18))' }} />
         </div>
@@ -176,7 +176,7 @@ function SorenHeroCard({
           <div>
             <div className="flex items-start justify-between mb-1">
               <div>
-                <p className="text-[13px] font-black text-[#0D0D0D] leading-tight">Soren</p>
+                <p className="text-[13px] font-black text-[#0D0D0D] leading-tight">VividFlow</p>
                 <p className="text-[7px] font-bold uppercase tracking-widest text-soren-subtle mt-0.5">Assistant COO</p>
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
@@ -510,10 +510,10 @@ export default function EquipeView() {
         style={{ animation: 'fadeSlideUp 400ms ease-out 90ms both' }}
       >
 
-        {/* Row 1: Soren */}
+        {/* Row 1: VividFlow */}
         <div className="w-full flex justify-center">
         <div className="w-full max-w-[1052px]">
-        <SorenHeroCard
+        <VividFlowHeroCard
           agent={soren}
           runState={runStates.soren}
           isSelected={selectedAgent === 'soren'}

@@ -19,7 +19,7 @@ type Task = {
 
 // ─── Static meta ──────────────────────────────────────────────
 const AGENT_META: Record<AgentId, { label: string; color: string; bg: string }> = {
-  soren: { label: 'Soren', color: '#4A91A8', bg: '#4A91A815' },
+  soren: { label: 'VividFlow', color: '#4A91A8', bg: '#4A91A815' },
   kai:   { label: 'Kai',   color: '#1A5C38', bg: '#1A5C3815' },
   mia:   { label: 'Mia',   color: '#E8836A', bg: '#E8836A15' },
 }
@@ -36,7 +36,7 @@ const COL_ORDER: ColId[] = ['todo', 'inprogress', 'error', 'done', 'archived']
 
 const AGENTS_FILTER: { id: AgentId | 'all'; label: string }[] = [
   { id: 'all',   label: 'Tous' },
-  { id: 'soren', label: 'Soren' },
+  { id: 'soren', label: 'VividFlow' },
   { id: 'kai',   label: 'Kai' },
   { id: 'mia',   label: 'Mia' },
 ]

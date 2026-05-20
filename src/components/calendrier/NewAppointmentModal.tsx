@@ -182,7 +182,7 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated }: P
     return (
       <div className="fixed inset-0 z-50 flex items-end justify-center pb-10 pointer-events-none">
         <div className="flex items-center gap-2 bg-soren-sidebar text-white text-sm font-semibold px-5 py-3 rounded-full shadow-xl">
-          <Check size={14} className="text-[#C8F135]" />
+          <Check size={14} className="text-[#FF4D00]" />
           {warning ? 'RDV créé dans Google Calendar' : 'RDV créé avec succès'}
         </div>
       </div>

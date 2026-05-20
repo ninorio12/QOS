@@ -5,7 +5,7 @@ import { getCalendarClient, isGoogleConfigured, type GoogleEvent } from '@/lib/g
 
 export const dynamic = 'force-dynamic'
 
-const APPOINTMENT_COLORS = ['#3462EE', '#4A91A8', '#E2FF8D', '#EFE347', '#8B5CF6', '#EC4899']
+const APPOINTMENT_COLORS = ['#3462EE', '#4A91A8', '#FF4D00', '#EFE347', '#8B5CF6', '#EC4899']
 const GOOGLE_COLOR       = '#34A853'
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {

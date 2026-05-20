@@ -1,13 +1,10 @@
 import { Suspense } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 import MerciContent from './MerciContent'
 
 async function getCompanySettings() {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const supabase = createAdminClient()
     const { data } = await supabase
       .from('company_settings')
       .select('*')
@@ -26,7 +23,7 @@ export default async function MerciPage() {
       <Suspense fallback={null}>
         <MerciContent
           companyName={company?.name       ?? 'Votre entreprise'}
-          brandColor={company?.brand_color ?? '#E2FF8D'}
+          brandColor={company?.brand_color ?? '#FF4D00'}
           logoSvg={company?.logo_svg       ?? null}
         />
       </Suspense>

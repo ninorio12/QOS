@@ -1,0 +1,928 @@
+--- src/app/dashboard/page.tsx ---
+'use client'
+
+import useSWR from 'swr'
+import DashboardClient from '@/components/dashboard/DashboardClient'
+import DashboardLoading from './loading'
+import type { WeeklyDay, MonthlyPoint, FunnelStage, RecentOpp, DashboardMetrics } from '@/lib/dashboard'
+
+type DashData = {
+  metrics:         DashboardMetrics
+  funnel:          FunnelStage[]
+  recentOpps:      RecentOpp[]
+  weeklyBreakdown: WeeklyDay[]
+  monthlyPipeline: MonthlyPoint[]
+}
+
+const EMPTY_METRICS: DashboardMetrics = {
+  totalContacts: 0, pipelineValue: 0, activeDeals: 0, wonDeals: 0, totalDeals: 0,
+}
+
+const fetcher = async (url: string): Promise<DashData> => {
+  const res  = await fetch(url)
+  const json = await res.json() as Partial<DashData>
+  return {
+    metrics:         json.metrics         ?? EMPTY_METRICS,
+    funnel:          json.funnel          ?? [],
+    recentOpps:      json.recentOpps      ?? [],
+    weeklyBreakdown: json.weeklyBreakdown ?? [],
+    monthlyPipeline: json.monthlyPipeline ?? [],
+  }
+}
+
+export default function DashboardPage() {
+  const { data, isLoading } = useSWR<DashData>('/api/dashboard', fetcher, {
+    revalidateOnFocus:   false,
+    dedupingInterval:    30_000,
+    revalidateIfStale:   true,
+    keepPreviousData:    true,
+  })
+
+  if (isLoading && !data) return <DashboardLoading />
+
+  const metrics         = data?.metrics         ?? EMPTY_METRICS
+  const funnel          = data?.funnel          ?? []
+  const recentOpps      = data?.recentOpps      ?? []
+  const weeklyBreakdown = data?.weeklyBreakdown ?? []
+  const monthlyPipeline = data?.monthlyPipeline ?? []
+
+  return (
+    <div className="md:h-full flex flex-col px-3 py-3 md:p-5 md:overflow-hidden page-fade-in">
+      <DashboardClient
+        activeLeads={metrics.activeDeals    ?? 0}
+        pipelineValue={metrics.pipelineValue ?? 0}
+        wonLeads={metrics.wonDeals           ?? 0}
+        totalLeads={metrics.totalDeals       ?? 0}
+        stageBreakdown={funnel}
+        recentOpps={recentOpps}
+        weeklyBreakdown={weeklyBreakdown}
+        monthlyPipeline={monthlyPipeline}
+      />
+    </div>
+  )
+}
+--- src/components/dashboard/DashboardClient.tsx ---
+'use client'
+
+import { useState, useEffect, useRef, useMemo } from 'react'
+import Link from 'next/link'
+import { useRouter, usePathname } from 'next/navigation'
+import dynamic from 'next/dynamic'
+import {
+  Settings, TrendingUp, BotMessageSquare,
+  GitMerge, Users, MessageSquare, CalendarDays,
+  ArrowUpRight, Plus, X, Check,
+  CheckSquare, FileText, ScrollText, Database, Wallet, Cpu,
+  Circle,
+} from 'lucide-react'
+const WeeklyBarChart   = dynamic(() => import('./WeeklyBarChart'),   { ssr: false })
+const MonthlyAreaChart = dynamic(() => import('./MonthlyAreaChart'), { ssr: false })
+import type { WeeklyDay, MonthlyPoint } from '@/lib/dashboard'
+import { getAvatarColor } from '@/components/contacts/types'
+
+const NewLeadWidget = dynamic(() => import('@/components/shared/NewLeadWidget'), { ssr: false })
+
+
+// ─── Types ────────────────────────────────────────────────────
+interface StageBreakdown {
+  label: string
+  count: number
+  value: number
+  color: string
+  pct: number
+}
+
+interface RecentOpp {
+  id: string
+  contactName: string
+  value: number
+  stage: string
+  tag: string
+  date: string
+  color: string
+  textColor: string
+}
+
+interface DashboardProps {
+  activeLeads:      number
+  pipelineValue:    number
+  wonLeads:         number
+  totalLeads:       number
+  stageBreakdown:   StageBreakdown[]
+  recentOpps:       RecentOpp[]
+  weeklyBreakdown:  WeeklyDay[]
+  monthlyPipeline:  MonthlyPoint[]
+}
+
+// ─── Helpers ──────────────────────────────────────────────────
+function fmt(value: number): string {
+  if (value >= 1_000_000) return `€${(value / 1_000_000).toFixed(1)}M`
+  return `€${Math.round(value).toLocaleString('fr-FR')}`
+}
+
+function useCountUp(target: number, duration = 800): number {
+  const [val, setVal] = useState(0)
+  useEffect(() => {
+    if (target === 0) { setVal(0); return }
+    let start: number | null = null
+    const step = (ts: number) => {
+      if (!start) start = ts
+      const p = Math.min((ts - start) / duration, 1)
+      const ease = 1 - Math.pow(1 - p, 3)
+      setVal(Math.round(target * ease))
+      if (p < 1) requestAnimationFrame(step)
+      else setVal(target)
+    }
+    requestAnimationFrame(step)
+  }, [target, duration])
+  return val
+}
+
+
+// ─── New Lead Modal ───────────────────────────────────────────
+function NewLeadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [name,     setName]     = useState('')
+  const [phone,    setPhone]    = useState('')
+  const [pipeline, setPipeline] = useState('ACQUISITION')
+  const [value,    setValue]    = useState('')
+  const [loading,  setLoading]  = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const res = await fetch('/api/leads', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ name, phone, pipeline, value }),
+      })
+      if (res.ok) { onClose(); onSuccess() }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-start justify-center">
+      <div
+        className="bg-soren-card rounded-3xl shadow-2xl p-6 w-full max-w-md mx-4 mt-20"
+        style={{ animation: 'fadeSlideUp 200ms ease-out both' }}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-xl font-black text-soren-text">Nouveau Lead</h2>
+          <button onClick={onClose}
+            className="w-8 h-8 rounded-full bg-soren-elevated flex items-center justify-center hover:bg-[#E5E7EB] transition-colors">
+            <X size={14} className="text-soren-muted" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <input required placeholder="Nom du contact" value={name} onChange={e => setName(e.target.value)}
+            className="w-full bg-soren-elevated border-0 rounded-2xl px-4 py-3 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#3462EE]/40" />
+          <input type="tel" placeholder="Téléphone" value={phone} onChange={e => setPhone(e.target.value)}
+            className="w-full bg-soren-elevated border-0 rounded-2xl px-4 py-3 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#3462EE]/40" />
+          <select value={pipeline} onChange={e => setPipeline(e.target.value)}
+            className="w-full bg-soren-elevated border-0 rounded-2xl px-4 py-3 text-sm text-soren-text outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none cursor-pointer">
+            <option value="ACQUISITION">ACQUISITION</option>
+            <option value="RÉACTIVATION">RÉACTIVATION</option>
+            <option value="RÉCEPTION">RÉCEPTION</option>
+          </select>
+          <input type="number" placeholder="Valeur estimée (€)" value={value} onChange={e => setValue(e.target.value)}
+            className="w-full bg-soren-elevated border-0 rounded-2xl px-4 py-3 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#3462EE]/40" />
+          <button type="submit" disabled={loading || !name.trim()}
+            className="w-full bg-soren-sidebar hover:bg-[#2a2a2a] disabled:opacity-50 text-white font-semibold rounded-full py-3 text-sm transition-colors mt-1">
+            {loading ? 'Création...' : 'Créer le lead'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ─── Toast ────────────────────────────────────────────────────
+function Toast({ visible }: { visible: boolean }) {
+  if (!visible) return null
+  return (
+    <div
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-soren-sidebar text-white rounded-full px-5 py-2 text-sm font-medium shadow-xl pointer-events-none flex items-center gap-2"
+      style={{ animation: 'fadeSlideUp 300ms ease-out both' }}
+    >
+      <Check size={14} className="text-[#E2FF8D]" />
+      Lead créé
+    </div>
+  )
+}
+
+// ─── Types ────────────────────────────────────────────────────
+interface AgentTask {
+  id: string
+  title: string
+  agent: string
+  col: string
+}
+interface AgentLog {
+  id: string
+  message: string
+  level: string
+  agent: string
+  created_at: string
+}
+
+// ─── Main export ──────────────────────────────────────────────
+export default function DashboardClient({
+  activeLeads      = 0,
+  pipelineValue    = 0,
+  wonLeads         = 0,
+  totalLeads       = 0,
+  stageBreakdown   = [],
+  recentOpps       = [],
+  weeklyBreakdown  = [],
+  monthlyPipeline  = [],
+}: DashboardProps) {
+  const router = useRouter()
+  const [showModal,   setShowModal]   = useState(false)
+  const [showToast,   setShowToast]   = useState(false)
+  const [tasks,       setTasks]       = useState<AgentTask[]>([])
+  const [logs,        setLogs]        = useState<AgentLog[]>([])
+
+  useEffect(() => {
+    fetch('/api/tasks').then(r => r.json()).then((d: { tasks?: AgentTask[] }) => setTasks(d.tasks?.slice(0, 4) ?? [])).catch(() => {})
+    fetch('/api/agent-logs?limit=4').then(r => r.json()).then((d: { logs?: AgentLog[] }) => setLogs(d.logs?.slice(0, 4) ?? [])).catch(() => {})
+  }, [])
+
+  const leadsAnim    = useCountUp(activeLeads)
+  const pipelineAnim = useCountUp(pipelineValue)
+  const LEADS_TARGET = 50
+  const leadsPct     = Math.min(Math.round((activeLeads / LEADS_TARGET) * 100), 100)
+  const filledBars   = Math.min(Math.round((activeLeads / LEADS_TARGET) * 8), 8)
+
+  function handleSuccess() {
+    setShowToast(true)
+    router.refresh()
+    setTimeout(() => setShowToast(false), 3000)
+  }
+
+  const visibleStages = stageBreakdown.filter(s => s.count > 0).slice(0, 4)
+
+  const FALLBACK_ACTIVITY = [
+    { dot: '#E2FF8D', name: 'Martin Dupont', action: 'Nouveau lead qualifié',  date: "Aujourd'hui 09:14" },
+    { dot: '#111111', name: 'Kai (IA)',       action: 'Appel vocal envoyé',     date: "Aujourd'hui 08:45" },
+    { dot: '#6B7280', name: 'Sophie Renard', action: 'Devis consulté',          date: 'Hier 17:32' },
+    { dot: '#D1D5DB', name: 'Carlos Mendes', action: 'Relance automatique',    date: 'Hier 14:20' },
+  ]
+
+  const activity = recentOpps.length > 0
+    ? recentOpps.slice(0, 4).map(o => ({
+        dot:    o.color,
+        name:   o.contactName,
+        action: o.tag,
+        date:   o.date,
+      }))
+    : FALLBACK_ACTIVITY
+
+  const MONTH_LABEL = new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+
+  const weeklyData = weeklyBreakdown
+
+  const objectives = useMemo(() => {
+    const qualCount  = stageBreakdown.find(s => s.label.toLowerCase().includes('qualif'))?.count ?? 0
+    const convRate   = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0
+    const CA_TARGET  = 100_000
+    const QUAL_TARGET = 30
+    const CONV_TARGET = 25
+    return [
+      {
+        label: "Chiffre d'affaires",
+        current: fmt(pipelineValue),
+        target: fmt(CA_TARGET),
+        pct: Math.min(Math.round((pipelineValue / CA_TARGET) * 100), 100),
+        barColor: '#E2FF8D', textColor: '#111111',
+        bg: '#E2FF8D', labelC: '#556b00',
+      },
+      {
+        label: 'Leads qualifiés',
+        current: String(qualCount),
+        target: String(QUAL_TARGET),
+        pct: Math.min(Math.round((qualCount / QUAL_TARGET) * 100), 100),
+        barColor: '#E2FF8D', textColor: '#ffffff',
+        bg: '#1C1C1E', labelC: '#666',
+      },
+      {
+        label: 'Taux de conversion',
+        current: `${convRate}%`,
+        target: `${CONV_TARGET}%`,
+        pct: Math.min(Math.round((convRate / CONV_TARGET) * 100), 100),
+        barColor: '#111111', textColor: '#111111',
+        bg: '#ffffff', labelC: '#888',
+      },
+    ]
+  }, [pipelineValue, wonLeads, totalLeads, stageBreakdown])
+
+  const ALL_MODULES = [
+    { href: '/pipeline',      Icon: GitMerge,         label: 'Pipeline' },
+    { href: '/contacts',      Icon: Users,            label: 'Contacts' },
+    { href: '/conversations', Icon: MessageSquare,    label: 'Conversations' },
+    { href: '/calendrier',    Icon: CalendarDays,     label: 'Calendrier' },
+    { href: '/analyse',       Icon: TrendingUp,       label: 'Analyse' },
+    { href: '/equipe',        Icon: BotMessageSquare, label: 'Équipe IA' },
+    { href: '/taches',        Icon: CheckSquare,      label: 'Tâches' },
+    { href: '/logs',          Icon: ScrollText,       label: 'Logs' },
+    { href: '/knowledge',     Icon: Database,         label: 'Knowledge Base' },
+    { href: '/budget',        Icon: Wallet,           label: 'Budget' },
+    { href: '/parametres',    Icon: Settings,         label: 'Paramètres' },
+  ]
+
+  const pathname = usePathname()
+
+  useEffect(() => {
+    const match = ALL_MODULES.find(m => pathname.startsWith(m.href))
+    if (!match) return
+    const key = 'soren_recent_modules'
+    const prev: string[] = JSON.parse(localStorage.getItem(key) ?? '[]')
+    const next = [match.href, ...prev.filter(h => h !== match.href)].slice(0, 6)
+    localStorage.setItem(key, JSON.stringify(next))
+  }, [pathname])
+
+  const recentModules = useMemo(() => {
+    if (typeof window === 'undefined') return ALL_MODULES.slice(0, 6)
+    const stored: string[] = JSON.parse(localStorage.getItem('soren_recent_modules') ?? '[]')
+    if (stored.length === 0) return ALL_MODULES.slice(0, 6)
+    return stored
+      .map(href => ALL_MODULES.find(m => m.href === href))
+      .filter(Boolean) as typeof ALL_MODULES
+  }, [pathname])
+
+  return (
+    <>
+      {/* ── Title ── */}
+      <div className="flex items-center justify-between mb-3 flex-shrink-0 gap-2">
+        <h1 className="text-xl md:text-4xl font-extrabold text-soren-text leading-tight tracking-tight min-w-0" style={{ fontFamily: 'var(--font-montserrat)' }}>
+          Leads &amp; Workflows
+        </h1>
+        <div className="flex-shrink-0"><NewLeadWidget /></div>
+      </div>
+
+      {/* ── Grid layout ── */}
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_300px] md:grid-rows-[auto_1fr] gap-3 md:gap-4 md:flex-1 md:min-h-0">
+
+        {/* ── Card 1 — Leads actifs + breakdown ── */}
+        <Link
+          href="/pipeline"
+          className="bg-soren-card rounded-2xl md:rounded-3xl p-4 md:p-5 flex flex-col gap-3 shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all duration-200"
+          style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="font-jakarta text-[13px] font-semibold text-soren-text">Leads actifs</span>
+            <span className="bg-[#E2FF8D] text-[#111111] text-[10px] font-bold px-2 py-0.5 rounded-full">{activeLeads} total</span>
+          </div>
+
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-outfit text-[36px] font-bold text-soren-text leading-none tabular-nums">{leadsAnim}</span>
+            <span className="font-jakarta text-[13px] font-medium text-soren-subtle">leads</span>
+          </div>
+
+          <div className="flex flex-col gap-1.5 mt-1">
+--- src/lib/dashboard.ts ---
+import { getContactsLive, getOpportunitiesLive, getPipelinesLive, getCalendars, getCalendarEvents, type GHLOpportunity, type GHLCreds } from './ghl'
+
+// Strip emojis from stage names like "🔥 Qualifié" → "Qualifié"
+function cleanStageName(name: string) {
+  return name.replace(/^[^\w\d\s']+\s*/, '').trim()
+}
+
+const STAGE_COLORS: Record<string, string> = {
+  'Nouveau Lead':    '#3D4F6B',
+  '1er Contact IA':  '#4A91A8',
+  'En Conversation': '#3462EE',
+  'Qualifié':        '#C8F135',
+  'RDV Booké':       '#EFE347',
+  'Non Qualifié':    '#8896AB',
+  'Sans Réponse':    '#EC4899',
+  'Perdu':           '#EF4444',
+}
+
+const CARD_COLORS = [
+  { color: '#3462EE', textColor: 'white' },
+  { color: '#EFE347', textColor: '#121721' },
+  { color: '#4A91A8', textColor: 'white' },
+  { color: '#1A2235', textColor: 'white' },
+]
+
+export type FunnelStage = {
+  label: string
+  count: number
+  value: number
+  color: string
+  pct: number
+}
+
+export type RecentOpp = {
+  id: string
+  contactName: string
+  value: number
+  stage: string
+  tag: string
+  date: string
+  color: string
+  textColor: string
+}
+
+export type DashboardMetrics = {
+  totalContacts: number
+  pipelineValue: number
+  activeDeals: number
+  wonDeals: number
+  totalDeals: number
+}
+
+export type FeaturedContact = {
+  name: string
+  email: string
+  phone: string
+  initials: string
+}
+
+export type WeeklyDay = {
+  day: string
+  leads: number
+  booked: number
+  rdv: number
+}
+
+export type MonthlyPoint = {
+  month: string
+  value: number
+}
+
+export type DashboardData = {
+  metrics: DashboardMetrics
+  funnel: FunnelStage[]
+  recentOpps: RecentOpp[]
+  featuredContact: FeaturedContact | null
+  weeklyBreakdown: WeeklyDay[]
+  monthlyPipeline: MonthlyPoint[]
+}
+
+const EMPTY_DATA: DashboardData = {
+  metrics: { totalContacts: 0, pipelineValue: 0, activeDeals: 0, wonDeals: 0, totalDeals: 0 },
+  funnel: [], recentOpps: [], featuredContact: null, weeklyBreakdown: [], monthlyPipeline: [],
+}
+
+export async function getDashboardData(creds?: GHLCreds): Promise<DashboardData> {
+  const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6); sevenDaysAgo.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(0, 0, 0, 0)
+
+  const [contactsResult, oppsResult, pipelinesResult, calendarsResult] = await Promise.allSettled([
+    getContactsLive(10, creds),
+    getOpportunitiesLive(100, undefined, creds),
+    getPipelinesLive(creds),
+    getCalendars(),
+  ])
+
+  const { contacts = [], total = 0 } = contactsResult.status === 'fulfilled' ? contactsResult.value : {}
+  const rawOpportunities = oppsResult.status === 'fulfilled' ? (oppsResult.value ?? []) : []
+  const pipelines        = pipelinesResult.status === 'fulfilled' ? (pipelinesResult.value ?? []) : []
+  const calendars        = calendarsResult.status === 'fulfilled' ? (calendarsResult.value ?? []) : []
+
+  if (contactsResult.status === 'rejected')  console.error('[Dashboard] getContactsLive failed',    contactsResult.reason)
+  if (oppsResult.status === 'rejected')      console.error('[Dashboard] getOpportunitiesLive failed', oppsResult.reason)
+  if (pipelinesResult.status === 'rejected') console.error('[Dashboard] getPipelinesLive failed',    pipelinesResult.reason)
+  if (calendarsResult.status === 'rejected') console.error('[Dashboard] getCalendars failed',        calendarsResult.reason)
+
+  const calendarEvents = calendars.length > 0
+    ? (await Promise.allSettled(
+        calendars.map(c => getCalendarEvents(c.id, sevenDaysAgo.getTime(), tomorrow.getTime()))
+      )).flatMap(r => r.status === 'fulfilled' ? r.value : [])
+    : []
+
+  const opportunities = rawOpportunities
+
+  // Use first pipeline (ACQUISITION)
+  const pipeline = pipelines[0]
+  const stages = pipeline?.stages ?? []
+
+  // Build stage lookup by id
+  const stageById: Record<string, { name: string; position: number; color: string }> = {}
+  stages.forEach(s => {
+    const clean = cleanStageName(s.name)
+    stageById[s.id] = { name: clean, position: s.position, color: STAGE_COLORS[clean] ?? '#3D4F6B' }
+  })
+
+  // Accumulate per stage
+  const stageCounts: Record<string, { count: number; value: number }> = {}
+  stages.forEach(s => { stageCounts[s.id] = { count: 0, value: 0 } })
+
+  const pipelineOpps = opportunities.filter(o => o.pipelineId === pipeline?.id)
+  pipelineOpps.forEach(o => {
+    if (stageCounts[o.pipelineStageId]) {
+      stageCounts[o.pipelineStageId].count++
+      stageCounts[o.pipelineStageId].value += o.monetaryValue ?? 0
+    }
+  })
+
+  const maxCount = Math.max(...Object.values(stageCounts).map(s => s.count), 1)
+
+  const HIDDEN = ['Non Qualifié', 'Sans Réponse', 'Perdu']
+  const funnel: FunnelStage[] = stages
+    .filter(s => !HIDDEN.includes(cleanStageName(s.name)))
+    .sort((a, b) => a.position - b.position)
+    .map(s => {
+      const counts = stageCounts[s.id] ?? { count: 0, value: 0 }
+      const clean = cleanStageName(s.name)
+      return {
+        label: clean,
+        count: counts.count,
+        value: counts.value,
+        color: STAGE_COLORS[clean] ?? '#3D4F6B',
+        pct: counts.count > 0 ? Math.max(Math.round((counts.count / maxCount) * 100), 12) : 4,
+      }
+    })
+
+  const recentOpps: RecentOpp[] = [...opportunities]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 4)
+    .map((o, i) => {
+      const card = CARD_COLORS[i % CARD_COLORS.length]
+      const stageName = stageById[o.pipelineStageId]?.name ?? 'Lead'
+      return {
+        id: o.id,
+        contactName: o.contact?.name ?? o.name,
+        value: o.monetaryValue ?? 0,
+        stage: stageName,
+        tag: stageName,
+        date: new Date(o.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }),
+        color: card.color,
+        textColor: card.textColor,
+      }
+    })
+
+  let featuredContact: FeaturedContact | null = null
+  const properContact = contacts.find(c => {
+    const fullName = `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim()
+    return fullName.includes(' ') || (c.contactName && !c.contactName.includes('@'))
+  }) ?? contacts[0]
+  if (properContact) {
+    const fullName = `${properContact.firstName ?? ''} ${properContact.lastName ?? ''}`.trim()
+    const name = fullName.includes(' ') ? fullName : (properContact.contactName || properContact.email || '?')
+    const parts = name.split(' ')
+    const initials = (parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')
+    featuredContact = { name, email: properContact.email ?? '', phone: properContact.phone ?? '', initials: initials.toUpperCase() }
+  }
+
+  const DAY_LABELS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+  const now = new Date()
+  const weeklyBreakdown: WeeklyDay[] = Array.from({ length: 7 }, (_, i) => {
+    const dayStart = new Date(now)
+    dayStart.setDate(now.getDate() - (6 - i))
+    dayStart.setHours(0, 0, 0, 0)
+    const dayEnd = new Date(dayStart)
+    dayEnd.setHours(23, 59, 59, 999)
+
+    const created = opportunities.filter(o => { const d = new Date(o.createdAt); return d >= dayStart && d <= dayEnd })
+    const won = opportunities.filter(o => { const d = new Date(o.updatedAt); return d >= dayStart && d <= dayEnd && o.status === 'won' })
+    const rdv = calendarEvents.filter(e => {
+      const ts = typeof e.startTime === 'string' && /^\d+$/.test(e.startTime) ? Number(e.startTime) : new Date(e.startTime).getTime()
+      const d = new Date(ts)
+      return d >= dayStart && d <= dayEnd
+    })
+
+    return { day: DAY_LABELS[dayStart.getDay()], leads: created.length, booked: won.length, rdv: rdv.length }
+  })
+
+  const MONTH_FR = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc']
+  const monthlyPipeline: MonthlyPoint[] = Array.from({ length: 6 }, (_, i) => {
+    const ref = new Date()
+    ref.setDate(1)
+    ref.setMonth(ref.getMonth() - (5 - i))
+    const year = ref.getFullYear()
+    const month = ref.getMonth()
+    const monthStart = new Date(year, month, 1)
+    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999)
+    const value = opportunities
+      .filter(o => { const d = new Date(o.createdAt); return d >= monthStart && d <= monthEnd })
+      .reduce((sum, o) => sum + (o.monetaryValue ?? 0), 0)
+    return { month: MONTH_FR[month], value }
+  })
+
+  return {
+    metrics: {
+      totalContacts: total,
+      pipelineValue: opportunities.reduce((s, o) => s + (o.monetaryValue ?? 0), 0),
+      activeDeals: opportunities.filter(o => o.status === 'open').length,
+      wonDeals: opportunities.filter(o => o.status === 'won').length,
+      totalDeals: opportunities.length,
+    },
+    funnel,
+    recentOpps,
+    featuredContact,
+    weeklyBreakdown,
+    monthlyPipeline,
+  }
+}
+--- src/app/api/devis/list/route.ts ---
+import { NextResponse } from 'next/server'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from '../../../../../convex/_generated/api'
+
+export const dynamic = 'force-dynamic'
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
+
+export async function GET() {
+  try {
+    // Récupérer les devis depuis Convex
+    const devisList = await convex.query(api.devis.listDevis)
+    
+    // Formater les données pour l'interface existante
+    const formattedDevis = devisList.map((devis: any) => ({
+      id: devis.id,
+      numero: devis.numero,
+      contact_name: devis.contact_name,
+      contact_email: devis.contact_email,
+      contact_phone: devis.contact_phone || null,
+      contact_id: null,
+      conversation_id: null,
+      titre: devis.titre,
+      lignes: devis.lignes,
+      montant_ht: devis.montant_ht,
+      statut: devis.statut,
+      created_at: devis.created_at,
+      pdf_url: null,
+      source: devis.source || 'manuel',
+      envoye_le: null,
+      notes: devis.notes || null,
+      ville: devis.ville || null,
+      date_validite: devis.date_validite || null,
+      adresse_chantier: null,
+      adresse_client: devis.adresse_client || null,
+      signature_statut: devis.signature_statut || 'non_envoye',
+      signature_vu_le: null,
+      signature_signe_le: devis.signature_signe_le || null
+    }))
+
+    // Données mock pour settings (pour éviter les erreurs)
+    const settings = [{
+      key: 'company_name',
+      value: 'Soren'
+    }]
+
+    return NextResponse.json({
+      devisList: formattedDevis,
+      settings
+    })
+
+  } catch (error) {
+    console.error('Erreur API /api/devis/list:', error)
+    return NextResponse.json(
+      { error: 'Erreur lors de la récupération des devis' },
+      { status: 500 }
+    )
+  }
+}--- convex/devis.ts ---
+import { v } from "convex/values"
+import { mutation, query } from "./_generated/server"
+
+// ===== QUERIES =====
+
+// Lister tous les devis (format EXACT Supabase)
+export const listDevis = query({
+  handler: async (ctx) => {
+    const devis = await ctx.db.query("devis").order("desc").collect()
+    
+    // Format exact de l'API originale
+    return devis.map(d => ({
+      id: d._id,
+      numero: d.numero,
+      contact_name: d.contact_name,
+      contact_email: d.contact_email,
+      contact_phone: d.contact_phone,
+      contact_id: d.contact_id,
+      conversation_id: d.conversation_id,
+      titre: d.titre,
+      lignes: d.lignes,
+      montant_ht: d.montant_ht,
+      statut: d.statut,
+      created_at: d.created_at,
+      pdf_url: d.pdf_url,
+      source: d.source,
+      envoye_le: d.envoye_le,
+      notes: d.notes,
+      ville: d.ville,
+      date_validite: d.date_validite,
+      adresse_chantier: d.adresse_chantier,
+      adresse_client: d.adresse_client,
+      signature_statut: d.signature_statut,
+      signature_vu_le: d.signature_vu_le,
+      signature_signe_le: d.signature_signe_le,
+    }))
+  },
+})
+
+// Récupérer un devis par ID
+export const getDevis = query({
+  args: { id: v.id("devis") },
+  handler: async (ctx, args) => {
+    const devis = await ctx.db.get(args.id)
+    if (!devis) return null
+    
+    return {
+      id: devis._id,
+      numero: devis.numero,
+      contact_name: devis.contact_name,
+      contact_email: devis.contact_email,
+      contact_phone: devis.contact_phone,
+      contact_id: devis.contact_id,
+      conversation_id: devis.conversation_id,
+      titre: devis.titre,
+      contenu: devis.contenu,
+      lignes: devis.lignes,
+      montant_ht: devis.montant_ht,
+      statut: devis.statut,
+      created_at: devis.created_at,
+      pdf_url: devis.pdf_url,
+      source: devis.source,
+      envoye_le: devis.envoye_le,
+      notes: devis.notes,
+      ville: devis.ville,
+      date_validite: devis.date_validite,
+      adresse_chantier: devis.adresse_chantier,
+      adresse_client: devis.adresse_client,
+      signature_statut: devis.signature_statut,
+      signature_vu_le: devis.signature_vu_le,
+      signature_signe_le: devis.signature_signe_le,
+    }
+  },
+})
+
+// ===== MUTATIONS =====
+
+// Créer un devis (format EXACT)
+export const createDevis = mutation({
+  args: {
+    titre: v.string(),
+    source: v.string(),
+    lignes: v.optional(v.array(v.object({
+      description: v.string(),
+      quantite: v.number(),
+      unite: v.string(),
+      prixUnitaire: v.number(),
+      tvaRate: v.number(),
+    }))),
+    notes: v.optional(v.string()),
+    statut: v.optional(v.string()),
+    contact_id: v.optional(v.string()),
+    contact_name: v.optional(v.string()),
+    contact_email: v.optional(v.string()),
+    contact_phone: v.optional(v.string()),
+    adresse_client: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const now = new Date().toISOString()
+    
+    // Générer numéro auto
+    const count = await ctx.db.query("devis").collect()
+    const numero = `DEV-${new Date().getFullYear()}-${String(count.length + 1).padStart(3, '0')}`
+    
+    // Calculer montant HT
+    const lignes = args.lignes || []
+    const montant_ht = lignes.reduce((sum, ligne) => sum + (ligne.quantite * ligne.prixUnitaire), 0)
+    
+    const devisId = await ctx.db.insert("devis", {
+      numero,
+      titre: args.titre,
+      source: args.source,
+      lignes,
+      notes: args.notes || '',
+      statut: args.statut || 'brouillon',
+      montant_ht,
+      created_at: now,
+      contact_id: args.contact_id,
+      contact_name: args.contact_name,
+      contact_email: args.contact_email,
+      contact_phone: args.contact_phone,
+      adresse_client: args.adresse_client,
+      signature_statut: 'non_envoye',
+    })
+    
+    return devisId
+  },
+})
+
+// Mettre à jour un devis
+export const updateDevis = mutation({
+  args: {
+    id: v.id("devis"),
+    updates: v.object({
+      titre: v.optional(v.string()),
+      lignes: v.optional(v.array(v.object({
+        description: v.string(),
+        quantite: v.number(),
+        unite: v.string(),
+        prixUnitaire: v.number(),
+        tvaRate: v.number(),
+      }))),
+      notes: v.optional(v.string()),
+      statut: v.optional(v.string()),
+      contact_name: v.optional(v.string()),
+      contact_email: v.optional(v.string()),
+      contact_phone: v.optional(v.string()),
+      ville: v.optional(v.string()),
+      date_validite: v.optional(v.string()),
+      adresse_chantier: v.optional(v.string()),
+      adresse_client: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.id)
+    if (!existing) throw new Error("Devis non trouvé")
+    
+    // Recalculer montant HT si lignes modifiées
+    let montant_ht = existing.montant_ht
+    if (args.updates.lignes) {
+      montant_ht = args.updates.lignes.reduce((sum, ligne) => sum + (ligne.quantite * ligne.prixUnitaire), 0)
+    }
+    
+    await ctx.db.patch(args.id, {
+      ...args.updates,
+      montant_ht,
+    })
+    
+    return args.id
+  },
+})
+
+// Supprimer un devis
+export const deleteDevis = mutation({
+  args: { id: v.id("devis") },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.id)
+    return true
+  },
+})--- convex/schema.ts ---
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export default defineSchema({
+  users: defineTable({
+    name: v.string(),
+    email: v.string(),
+    role: v.string(),
+  }),
+  
+  // Devis - EXACT COPY des champs Supabase
+  devis: defineTable({
+    // Champs originaux Supabase (GARDÉS EXACTS)
+    numero: v.optional(v.string()),
+    contact_name: v.optional(v.string()),
+    contact_email: v.optional(v.string()),
+    contact_phone: v.optional(v.string()),
+    contact_id: v.optional(v.string()),
+    conversation_id: v.optional(v.string()),
+    titre: v.string(),
+    contenu: v.optional(v.string()), // anciennement "description" dans l'original
+    lignes: v.array(v.object({
+      description: v.string(),
+      quantite: v.number(),
+      unite: v.string(),
+      prixUnitaire: v.number(),
+      tvaRate: v.number(),
+    })),
+    notes: v.optional(v.string()),
+    montant_ht: v.optional(v.number()),
+    statut: v.string(), // brouillon, envoye, accepte, refuse, expire
+    created_at: v.string(),
+    envoye_le: v.optional(v.string()),
+    ville: v.optional(v.string()),
+    date_validite: v.optional(v.string()),
+    adresse_chantier: v.optional(v.string()),
+    adresse_client: v.optional(v.string()),
+    pdf_url: v.optional(v.string()),
+    source: v.string(), // manuel, ai, import, etc
+    signature_statut: v.optional(v.string()), // non_envoye, envoye, vu, signe
+    signature_vu_le: v.optional(v.string()),
+    signature_signe_le: v.optional(v.string()),
+  })
+    .index("by_status", ["statut"])
+    .index("by_created", ["created_at"])
+    .index("by_contact", ["contact_id"]),
+    
+  // Clients (pour compatibilité avec contact API)
+  clients: defineTable({
+    nom: v.string(),
+    email: v.string(),
+    telephone: v.optional(v.string()),
+    adresse: v.optional(v.string()),
+    ville: v.optional(v.string()),
+    codePostal: v.optional(v.string()),
+    pays: v.optional(v.string()),
+    siret: v.optional(v.string()),
+    tvaIntra: v.optional(v.string()),
+    created_at: v.string(),
+  }).index("by_email", ["email"]),
+  
+  conversations: defineTable({
+    userId: v.id("users"),
+    title: v.string(),
+    status: v.string(),
+  }),
+});
