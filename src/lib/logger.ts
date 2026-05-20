@@ -1,58 +1,38 @@
-// Structured logger — trace_id, contact_id, stage, action, status, timestamp
-import crypto from 'crypto'
+import pino from 'pino'
 
-export type LogEntry = {
-  trace_id: string
-  contact_id?: string
-  stage?: string
-  action: string
-  status: 'ok' | 'error' | 'warn'
-  detail?: string
-  timestamp: string
-}
+const logger = pino({
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  transport: process.env.NODE_ENV !== 'production' 
+    ? { target: 'pino-pretty' }
+    : undefined,
+  base: {
+    env: process.env.NODE_ENV,
+    revision: process.env.VERCEL_GIT_COMMIT_SHA,
+  },
+})
 
-function newTraceId() {
-  return crypto.randomBytes(6).toString('hex')
-}
+export class Logger {
+  static info(message: string, meta?: any) {
+    logger.info(meta, message)
+  }
 
-function emit(entry: LogEntry) {
-  // Console structuré JSON (capturé par tout log aggregator)
-  console.log(JSON.stringify(entry))
+  static error(message: string, error?: Error | any) {
+    logger.error({ error: error?.stack || error }, message)
+  }
 
-  // Alerte Telegram si erreur
-  if (entry.status === 'error') {
-    alertTelegram(entry).catch(() => {})
+  static debug(message: string, meta?: any) {
+    logger.debug(meta, message)
+  }
+
+  static warn(message: string, meta?: any) {
+    logger.warn(meta, message)
   }
 }
 
-async function alertTelegram(entry: LogEntry) {
-  const token  = process.env.TELEGRAM_BOT_TOKEN
-  const chatId = process.env.TELEGRAM_CHAT_ID
-  if (!token || !chatId) return
-
-  const text = [
-    `🚨 *QOS ALERTE* \`${entry.action}\``,
-    `Status: ${entry.status}`,
-    entry.contact_id ? `Contact: \`${entry.contact_id}\`` : null,
-    entry.stage      ? `Stage: ${entry.stage}` : null,
-    entry.detail     ? `\`${entry.detail.slice(0, 200)}\`` : null,
-    `\`${entry.timestamp}\``,
-  ].filter(Boolean).join('\n')
-
-  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
-  })
-}
-
 export const log = {
-  ok: (action: string, opts: Partial<LogEntry> = {}) =>
-    emit({ trace_id: newTraceId(), ...opts, action, status: 'ok', timestamp: new Date().toISOString() }),
-
-  error: (action: string, detail: string, opts: Partial<LogEntry> = {}) =>
-    emit({ trace_id: newTraceId(), ...opts, action, status: 'error', detail, timestamp: new Date().toISOString() }),
-
-  warn: (action: string, detail: string, opts: Partial<LogEntry> = {}) =>
-    emit({ trace_id: newTraceId(), ...opts, action, status: 'warn', detail, timestamp: new Date().toISOString() }),
+  ok:    (event: string, meta?: any) => logger.info(meta ?? {}, event),
+  warn:  (event: string, message?: string, meta?: any) => logger.warn({ ...meta, message }, event),
+  error: (event: string, message?: string, meta?: any) => logger.error({ ...meta, message }, event),
 }
+
+export default logger
