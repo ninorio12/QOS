@@ -1,13 +1,10 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 import { Bot, Zap, User, Send, ChevronDown, ChevronRight } from 'lucide-react'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = createClient()
 
 type MsgType = 'task' | 'start' | 'progress' | 'result' | 'error' | 'ack'
 
@@ -113,7 +110,7 @@ export default function AgentsPage() {
 
   // Chargement initial
   useEffect(() => {
-    supabase.from('agent_messages').select('*').order('created_at').then(({ data }) => {
+    supabase.from('agent_messages').select('*').order('created_at').then(({ data }: { data: any }) => {
       setMessages((data ?? []) as Msg[])
       setLoading(false)
     })
