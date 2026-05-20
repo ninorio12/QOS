@@ -366,12 +366,12 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
         <p className="text-[9px] font-bold uppercase tracking-[.8px] text-[#aaa]" style={{ animation: 'fadeSlideUp 400ms ease-out 150ms both' }}>Métriques</p>
         <div className="grid grid-cols-6 gap-2.5" style={{ animation: 'fadeSlideUp 400ms ease-out 170ms both' }}>
           {[
-            { label: 'Total leads',     value: String(kpis.total),        trend: 'durant la période',  bg: DARK,      text: '#fff', muted: '#666', trendC: '#FF4D00' },
-            { label: 'Pipeline',        value: fmt(kpis.pipelineValue),   trend: 'deals ouverts',    bg: '#ffffff', text: '#111', muted: '#888', trendC: '#111111' },
-            { label: 'Conversion',      value: `${kpis.conversionRate}%`, trend: 'durant la période', bg: DARK, text: '#fff', muted: '#666', trendC: '#FF4D00' },
-            { label: 'Durée moy.',      value: `${kpis.avgDays}j`,        trend: 'leads gagnés',     bg: '#ffffff', text: '#111', muted: '#888', trendC: '#888'    },
-            { label: 'Leads actifs',    value: String(kpis.activeCount),  trend: 'durant la période', bg: DARK,      text: '#fff', muted: '#666', trendC: '#FF4D00' },
-            { label: 'Valeur moy.',     value: fmt(kpis.avgValue),        trend: 'par lead',         bg: '#ffffff', text: '#111', muted: '#888', trendC: '#111111' },
+            { label: 'Total leads',  value: String(kpis.total),        trend: 'durant la période', bg: DARK,      text: '#fff', muted: '#666', trendC: '#FF4D00' },
+            { label: 'Pipeline',     value: fmt(kpis.pipelineValue),   trend: 'durant la période', bg: '#ffffff', text: '#111', muted: '#888', trendC: '#FF4D00' },
+            { label: 'Conversion',   value: `${kpis.conversionRate}%`, trend: 'durant la période', bg: DARK,      text: '#fff', muted: '#666', trendC: '#FF4D00' },
+            { label: 'Durée moy.',   value: `${kpis.avgDays}j`,        trend: 'durant la période', bg: '#ffffff', text: '#111', muted: '#888', trendC: '#FF4D00' },
+            { label: 'Leads actifs', value: String(kpis.activeCount),  trend: 'durant la période', bg: DARK,      text: '#fff', muted: '#666', trendC: '#FF4D00' },
+            { label: 'Valeur moy.',  value: fmt(kpis.avgValue),        trend: 'durant la période', bg: '#ffffff', text: '#111', muted: '#888', trendC: '#FF4D00' },
           ].map(kpi => (
             <div key={kpi.label} className={`${CARD} p-3.5 flex flex-col gap-2`} style={{ background: kpi.bg, ...SHADOW }}>
               <p className="text-[10px] font-semibold uppercase tracking-[.6px]" style={{ color: kpi.muted }}>{kpi.label}</p>
