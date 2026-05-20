@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const supabase = createAdminClient()
 
 const GHL_KEY  = process.env.GHL_API_KEY!
 const GHL_BASE = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'
@@ -38,7 +35,7 @@ export async function GET(req: NextRequest) {
   const c   = contact.status      === 'fulfilled' ? contact.value?.contact       : null
   const opp = opportunity.status  === 'fulfilled' ? opportunity.value?.opportunity : null
   const apt = appointment.status  === 'fulfilled' ? appointment.value             : null
-  const q   = quoteRes.status     === 'fulfilled' ? quoteRes.value.data           : null
+  const q   = quoteRes.status     === 'fulfilled' ? (quoteRes.value as any).data  : null
 
   // Human validation flag: statut natif DB (migration 20260416)
   const humanValidationRequired = q?.statut === 'pending_human_validation'
