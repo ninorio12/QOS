@@ -426,7 +426,7 @@ export default function CompanySettingsView() {
       {/* Header */}
       <div className="flex items-center justify-between flex-shrink-0 px-0.5">
         <div>
-          <h1 className="text-lg font-black text-soren-text leading-none">Paramètres</h1>
+          <h1 className="text-2xl font-black text-soren-text leading-none">Paramètres</h1>
           <p className="text-[10px] text-soren-subtle mt-0.5">Ces informations apparaissent sur vos devis PDF</p>
         </div>
         <button

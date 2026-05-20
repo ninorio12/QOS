@@ -100,7 +100,7 @@ export default function BudgetView() {
       {/* Header + tabs sur la même ligne */}
       <div className="flex items-center justify-between flex-shrink-0" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
         <div>
-          <h1 className="text-lg font-bold text-soren-text">Budget</h1>
+          <h1 className="text-2xl font-black text-soren-text leading-none">Budget</h1>
           <p className="text-xs text-soren-subtle">Dépenses API et abonnements en temps réel</p>
         </div>
         <div className="flex items-center gap-3">
@@ -149,7 +149,7 @@ export default function BudgetView() {
           </div>
         </div>
         {data && (
-          <p className="text-white/25 text-xs text-right">{data.startDate}<br />→ {data.endDate}</p>
+          <p className="text-white/25 text-xs text-right">{data.startDate} — {data.endDate}</p>
         )}
       </div>
 

@@ -9,7 +9,7 @@ import {
   GitMerge, Users, MessageSquare, CalendarDays,
   ArrowUpRight, Plus, X, Check,
   CheckSquare, FileText, ScrollText, Database, Wallet, Cpu,
-  Circle,
+  Circle, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 const WeeklyBarChart   = dynamic(() => import('./WeeklyBarChart'),   { ssr: false })
 const MonthlyAreaChart = dynamic(() => import('./MonthlyAreaChart'), { ssr: false })
@@ -135,6 +135,134 @@ function NewLeadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
   )
 }
 
+// ─── Date Range Calendar ──────────────────────────────────────
+const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+const DAYS_FR   = ['L','M','M','J','V','S','D']
+
+function DateRangePicker({
+  onClose,
+}: {
+  onClose: () => void
+}) {
+  const today = new Date()
+  const [viewYear,  setViewYear]  = useState(today.getFullYear())
+  const [viewMonth, setViewMonth] = useState(today.getMonth())
+  const [start, setStart] = useState<Date | null>(null)
+  const [end,   setEnd]   = useState<Date | null>(null)
+  const [hover, setHover] = useState<Date | null>(null)
+
+  function prevMonth() {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1) }
+    else setViewMonth(m => m - 1)
+  }
+  function nextMonth() {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1) }
+    else setViewMonth(m => m + 1)
+  }
+
+  function getDays() {
+    const firstDay = new Date(viewYear, viewMonth, 1).getDay()
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+    const offset = (firstDay + 6) % 7
+    const cells: (Date | null)[] = Array(offset).fill(null)
+    for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(viewYear, viewMonth, d))
+    return cells
+  }
+
+  function handleDayClick(day: Date) {
+    if (!start || (start && end)) {
+      setStart(day)
+      setEnd(null)
+    } else {
+      if (day < start) { setEnd(start); setStart(day) }
+      else { setEnd(day) }
+    }
+  }
+
+  function inRange(day: Date) {
+    const s = start; const e = end ?? hover
+    if (!s || !e) return false
+    const lo = s <= e ? s : e; const hi = s <= e ? e : s
+    return day > lo && day < hi
+  }
+  function isStart(day: Date)  { return start ? day.toDateString() === start.toDateString() : false }
+  function isEnd(day: Date)    { return end   ? day.toDateString() === end.toDateString()   : false }
+
+  const label = start && end
+    ? `${start.getDate()} ${MONTHS_FR[start.getMonth()].slice(0,3)} — ${end.getDate()} ${MONTHS_FR[end.getMonth()].slice(0,3)}`
+    : start
+      ? `${start.getDate()} ${MONTHS_FR[start.getMonth()].slice(0,3)} → …`
+      : 'Sélectionnez une plage'
+
+  return (
+    <div className="absolute top-full mt-2 left-0 z-50 bg-white rounded-2xl shadow-2xl p-4 border border-soren-border w-72"
+      style={{ animation: 'fadeSlideUp 180ms ease-out both' }}
+      onMouseLeave={() => setHover(null)}
+    >
+      {/* Nav */}
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={prevMonth} className="w-7 h-7 rounded-full hover:bg-[#F3F4F6] flex items-center justify-center transition-colors">
+          <ChevronLeft size={14} className="text-soren-muted" />
+        </button>
+        <span className="text-[13px] font-bold text-soren-text capitalize">
+          {MONTHS_FR[viewMonth]} {viewYear}
+        </span>
+        <button onClick={nextMonth} className="w-7 h-7 rounded-full hover:bg-[#F3F4F6] flex items-center justify-center transition-colors">
+          <ChevronRight size={14} className="text-soren-muted" />
+        </button>
+      </div>
+
+      {/* Day headers */}
+      <div className="grid grid-cols-7 mb-1">
+        {DAYS_FR.map((d, i) => (
+          <div key={i} className="text-center text-[10px] font-bold text-soren-subtle py-1">{d}</div>
+        ))}
+      </div>
+
+      {/* Days grid */}
+      <div className="grid grid-cols-7 gap-y-0.5">
+        {getDays().map((day, i) => {
+          if (!day) return <div key={i} />
+          const sel   = isStart(day) || isEnd(day)
+          const range = inRange(day)
+          return (
+            <button
+              key={i}
+              onClick={() => handleDayClick(day)}
+              onMouseEnter={() => !end && setHover(day)}
+              className={`
+                relative h-8 w-full text-[12px] font-medium transition-colors rounded-full
+                ${sel   ? 'bg-orange-500 text-white font-bold' : ''}
+                ${range ? 'bg-orange-100 text-orange-700 rounded-none' : ''}
+                ${!sel && !range ? 'hover:bg-[#F3F4F6] text-soren-text' : ''}
+              `}
+            >
+              {day.getDate()}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Label + actions */}
+      <div className="mt-3 pt-3 border-t border-soren-border flex items-center justify-between gap-2">
+        <span className="text-[11px] text-soren-muted flex-1 truncate">{label}</span>
+        <button
+          onClick={() => { setStart(null); setEnd(null) }}
+          className="text-[11px] text-soren-subtle hover:text-soren-text transition-colors"
+        >
+          Réinitialiser
+        </button>
+        <button
+          onClick={onClose}
+          className="text-[11px] font-semibold bg-soren-sidebar text-white px-2.5 py-1 rounded-full hover:bg-[#2a2a2a] transition-colors"
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Toast ────────────────────────────────────────────────────
 function Toast({ visible }: { visible: boolean }) {
   if (!visible) return null
@@ -176,10 +304,22 @@ export default function DashboardClient({
   monthlyPipeline  = [],
 }: DashboardProps) {
   const router = useRouter()
-  const [showModal,   setShowModal]   = useState(false)
-  const [showToast,   setShowToast]   = useState(false)
-  const [tasks,       setTasks]       = useState<AgentTask[]>([])
-  const [logs,        setLogs]        = useState<AgentLog[]>([])
+  const [showModal,       setShowModal]       = useState(false)
+  const [showToast,       setShowToast]       = useState(false)
+  const [tasks,           setTasks]           = useState<AgentTask[]>([])
+  const [logs,            setLogs]            = useState<AgentLog[]>([])
+  const [calendarOpen,    setCalendarOpen]    = useState(false)
+  const calendarRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
+        setCalendarOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   useEffect(() => {
     fetch('/api/tasks').then(r => r.json()).then((d: { tasks?: AgentTask[] }) => setTasks(d.tasks?.slice(0, 4) ?? [])).catch(() => {})
@@ -292,9 +432,28 @@ export default function DashboardClient({
     <>
       {/* ── Title ── */}
       <div className="flex items-center justify-between mb-3 flex-shrink-0 gap-2">
-        <h1 className="text-xl md:text-4xl font-extrabold text-soren-text leading-tight tracking-tight min-w-0" style={{ fontFamily: 'var(--font-montserrat)' }}>
-          Leads &amp; Workflows
-        </h1>
+        <div className="flex items-center gap-3 min-w-0">
+          <h1 className="text-2xl font-black text-soren-text leading-none tracking-tight" style={{ fontFamily: 'var(--font-montserrat)' }}>
+            Tableau de bord
+          </h1>
+          {/* Calendar date range picker */}
+          <div className="relative" ref={calendarRef}>
+            <button
+              onClick={() => setCalendarOpen(v => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[12px] font-semibold transition-all ${
+                calendarOpen
+                  ? 'bg-soren-sidebar text-white border-soren-sidebar'
+                  : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text hover:border-soren-text'
+              }`}
+            >
+              <CalendarDays size={13} />
+              <span>Période</span>
+            </button>
+            {calendarOpen && (
+              <DateRangePicker onClose={() => setCalendarOpen(false)} />
+            )}
+          </div>
+        </div>
         <div className="flex-shrink-0"><NewLeadWidget /></div>
       </div>
 

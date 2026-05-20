@@ -366,11 +366,11 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
         <p className="text-[9px] font-bold uppercase tracking-[.8px] text-[#aaa]" style={{ animation: 'fadeSlideUp 400ms ease-out 150ms both' }}>Métriques</p>
         <div className="grid grid-cols-6 gap-2.5" style={{ animation: 'fadeSlideUp 400ms ease-out 170ms both' }}>
           {[
-            { label: 'Total leads',     value: String(kpis.total),        trend: `sur ${periodDays}j`,  bg: DARK,      text: '#fff', muted: '#666', trendC: '#E2FF8D' },
+            { label: 'Total leads',     value: String(kpis.total),        trend: 'durant la période',  bg: DARK,      text: '#fff', muted: '#666', trendC: '#E2FF8D' },
             { label: 'Pipeline',        value: fmt(kpis.pipelineValue),   trend: 'deals ouverts',    bg: '#ffffff', text: '#111', muted: '#888', trendC: '#111111' },
-            { label: 'Conversion',      value: `${kpis.conversionRate}%`, trend: `${kpis.wonCount} gagné${kpis.wonCount > 1 ? 's' : ''}`, bg: DARK, text: '#fff', muted: '#666', trendC: '#E2FF8D' },
+            { label: 'Conversion',      value: `${kpis.conversionRate}%`, trend: 'durant la période', bg: DARK, text: '#fff', muted: '#666', trendC: '#E2FF8D' },
             { label: 'Durée moy.',      value: `${kpis.avgDays}j`,        trend: 'leads gagnés',     bg: '#ffffff', text: '#111', muted: '#888', trendC: '#888'    },
-            { label: 'Leads actifs',    value: String(kpis.activeCount),  trend: 'statut ouvert',    bg: DARK,      text: '#fff', muted: '#666', trendC: '#E2FF8D' },
+            { label: 'Leads actifs',    value: String(kpis.activeCount),  trend: 'durant la période', bg: DARK,      text: '#fff', muted: '#666', trendC: '#E2FF8D' },
             { label: 'Valeur moy.',     value: fmt(kpis.avgValue),        trend: 'par lead',         bg: '#ffffff', text: '#111', muted: '#888', trendC: '#111111' },
           ].map(kpi => (
             <div key={kpi.label} className={`${CARD} p-3.5 flex flex-col gap-2`} style={{ background: kpi.bg, ...SHADOW }}>

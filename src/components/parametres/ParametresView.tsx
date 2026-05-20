@@ -416,7 +416,7 @@ export default function ParametresView() {
     <div className="p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-lg font-bold text-soren-text">Paramètres</h1>
+        <h1 className="text-2xl font-black text-soren-text leading-none">Paramètres</h1>
         <p className="text-xs text-soren-muted mt-0.5">Configuration de votre espace Soren</p>
       </div>
 

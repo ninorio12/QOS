@@ -230,8 +230,9 @@ export default function ConversationList({
     <div className="flex flex-col w-[340px] flex-shrink-0 bg-[#F8F8F6] border-r border-soren-border h-full">
       {/* Header */}
       <div className="px-4 pt-5 pb-3 border-b border-soren-border">
+        <h1 className="text-2xl font-black text-soren-text leading-none mb-1">Conversations</h1>
         <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold text-soren-text">
+          <p className="text-sm font-semibold text-soren-muted">
             {getFilterLabel(activeFilter)}
           </p>
           <button

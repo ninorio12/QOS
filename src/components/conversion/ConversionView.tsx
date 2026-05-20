@@ -360,7 +360,7 @@ export default function ConversionView() {
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-lg font-bold text-soren-text">Conversion</h1>
+        <h1 className="text-2xl font-black text-soren-text leading-none">Conversion</h1>
         <p className="text-xs text-soren-muted mt-0.5">Canaux de conversion automatisés</p>
       </div>
 

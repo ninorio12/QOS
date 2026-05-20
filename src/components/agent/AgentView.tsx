@@ -70,7 +70,7 @@ export default function AgentView() {
             <Bot size={20} className="text-[#3462EE]" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-soren-text">Agent IA</h1>
+            <h1 className="text-2xl font-black text-soren-text leading-none">Agent IA</h1>
             <p className="text-xs text-soren-muted">Qualification automatique des leads — Claude Opus 4.6</p>
           </div>
         </div>

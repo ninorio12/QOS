@@ -306,7 +306,8 @@ export default function KnowledgeView() {
 
       {/* ── Sidebar ──────────────────────────────────────────── */}
       <div className="w-56 flex-shrink-0 flex flex-col p-3 gap-1 border-r border-soren-border bg-soren-card" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
-        <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-widest px-2 pt-1 pb-2">Agents</p>
+        <h1 className="text-2xl font-black text-soren-text leading-none px-2 pt-1 pb-3">Knowledge</h1>
+        <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-widest px-2 pb-2">Agents</p>
 
         {AGENTS.map(a => {
           const active = selection.type === 'agent' && selection.id === a.id
