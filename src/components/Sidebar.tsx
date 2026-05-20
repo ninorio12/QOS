@@ -166,12 +166,12 @@ export default function Sidebar() {
         <Image
           src="/vividflow-logo.png"
           alt="VividFlow"
-          width={28}
-          height={28}
+          width={32}
+          height={32}
           priority
-          className="object-contain rounded-lg flex-shrink-0"
+          className="object-contain rounded-xl flex-shrink-0 shadow-md"
         />
-        <span className="text-white font-bold text-[14px] tracking-tight">VividFlow</span>
+        <span className="text-white font-black text-[15px] tracking-tight">VividFlow</span>
       </Link>
 
       <div className="mx-3 h-px bg-soren-card/8 flex-shrink-0" />

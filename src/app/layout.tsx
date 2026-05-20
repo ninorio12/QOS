@@ -14,8 +14,12 @@ export const metadata: Metadata = {
   title: 'VividFlow QOS',
   description: 'Personal Brand OS for Coaches & Entrepreneurs',
   icons: {
-    icon: '/vividflow-logo.png',
-    apple: '/vividflow-logo.png',
+    icon:             [
+      { url: '/favicon.ico',    sizes: '48x48',  type: 'image/x-icon' },
+      { url: '/favicon-32.png', sizes: '32x32',  type: 'image/png'    },
+    ],
+    apple:            { url: '/apple-touch-icon.png', sizes: '180x180' },
+    shortcut:         '/favicon.ico',
   },
 }
 
