@@ -164,10 +164,10 @@ export default function Sidebar() {
       {/* Logo */}
       <Link href="/dashboard" className="flex items-center gap-2.5 px-4 pt-4 pb-2.5 flex-shrink-0">
         <Image
-          src="/soren-logo.png"
+          src="/vividflow-logo.png"
           alt="VividFlow"
-          width={24}
-          height={24}
+          width={28}
+          height={28}
           priority
           className="object-contain rounded-lg flex-shrink-0"
         />

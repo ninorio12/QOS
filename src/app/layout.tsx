@@ -13,6 +13,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'VividFlow QOS',
   description: 'Personal Brand OS for Coaches & Entrepreneurs',
+  icons: {
+    icon: '/vividflow-logo.png',
+    apple: '/vividflow-logo.png',
+  },
 }
 
 export default function RootLayout({
