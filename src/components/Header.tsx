@@ -194,7 +194,7 @@ export default function Header() {
                         onClick={() => { router.push('/contacts'); setSearchQuery(''); setSearchOpen(false); setContactResults([]) }}
                         className="w-full text-left px-4 py-2.5 hover:bg-soren-elevated flex items-center gap-2.5 transition-colors"
                       >
-                        <div className="w-6 h-6 rounded-full bg-[#FF4D00] flex items-center justify-center text-[9px] font-bold text-[#111111] flex-shrink-0">
+                        <div className="w-6 h-6 rounded-full bg-[#FF4D00] flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
                           {initials}
                         </div>
                         <div>
@@ -220,7 +220,7 @@ export default function Header() {
           <button
             onClick={() => setShowProfile(v => !v)}
             data-tooltip="Profil"
-            className="w-8 h-8 rounded-full bg-[#FF4D00] flex items-center justify-center text-[11px] font-bold text-[#111111] overflow-hidden hover:ring-2 hover:ring-[#FF4D00]/60 transition-all"
+            className="w-8 h-8 rounded-full bg-[#FF4D00] flex items-center justify-center text-[11px] font-bold text-white overflow-hidden hover:ring-2 hover:ring-[#FF4D00]/60 transition-all"
           >
             {profilePhoto
               ? <img src={profilePhoto} alt="avatar" className="object-cover w-full h-full" />
@@ -234,7 +234,7 @@ export default function Header() {
             <div className="absolute right-0 top-10 bg-soren-card border border-soren-border rounded-2xl shadow-xl z-50 w-56 overflow-hidden">
               <div className="px-4 py-3 border-b border-soren-border">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#FF4D00] flex items-center justify-center text-[13px] font-bold text-[#111111] overflow-hidden flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-[#FF4D00] flex items-center justify-center text-[13px] font-bold text-white overflow-hidden flex-shrink-0">
                     {profilePhoto
                       ? <img src={profilePhoto} alt="avatar" className="object-cover w-full h-full" />
                       : user?.avatar

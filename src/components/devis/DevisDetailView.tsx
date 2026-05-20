@@ -615,7 +615,7 @@ export default function DevisDetailView({ devis: initial, onClose, onUpdated, on
             <button
                 onClick={handleDownload}
                 disabled={genPdf}
-                className="flex items-center gap-1.5 bg-[#FF4D00] text-[#111] rounded-xl px-4 py-2 text-[12px] font-bold hover:bg-[#E64500] transition-colors disabled:opacity-40 font-jakarta"
+                className="flex items-center gap-1.5 bg-[#FF4D00] text-white rounded-xl px-4 py-2 text-[12px] font-bold hover:bg-[#E64500] transition-colors disabled:opacity-40 font-jakarta"
               >
                 <Download size={13} /> {genPdf ? '…' : 'Télécharger'}
               </button>

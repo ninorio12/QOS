@@ -344,7 +344,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
         <div className="grid grid-cols-3 gap-2.5" style={{ animation: 'fadeSlideUp 400ms ease-out 80ms both' }}>
           {objectives.map((obj, idx) => {
             const S = [
-              { bg: '#FF4D00', text: '#111', muted: '#556b00', barBg: 'rgba(0,0,0,0.1)',          fillC: '#111111' },
+              { bg: '#FF4D00', text: '#fff', muted: 'rgba(255,255,255,0.65)', barBg: 'rgba(0,0,0,0.1)',          fillC: '#fff' },
               { bg: DARK,      text: '#fff', muted: '#666',    barBg: 'rgba(255,255,255,0.08)', fillC: '#FF4D00' },
               { bg: '#ffffff', text: '#111', muted: '#888',    barBg: '#EBEBEB',                fillC: '#111111' },
             ][idx]!
@@ -477,7 +477,7 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
             },
             {
               title: 'Par source',
-              bg: '#FF4D00', titleC: '#111', centerColor: '#111', trackColor: 'rgba(0,0,0,0.1)',
+              bg: '#FF4D00', titleC: '#fff', centerColor: '#fff', trackColor: 'rgba(255,255,255,0.2)',
               labelC: '#3a5200', valC: '#111', barTrack: 'rgba(0,0,0,0.08)',
               centerSub: 'sources',
               data: sourceData.slice(0, 4).map((d, i) => ({

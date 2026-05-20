@@ -434,7 +434,7 @@ export default function CompanySettingsView() {
           disabled={saving || !dirty}
           className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl font-semibold text-xs transition-all ${
             dirty
-              ? 'bg-[#FF4D00] text-[#111111] hover:bg-[#E64500]'
+              ? 'bg-[#FF4D00] text-white hover:bg-[#E64500]'
               : 'bg-transparent text-[#C8CCC6] cursor-default'
           }`}
         >
@@ -488,7 +488,7 @@ export default function CompanySettingsView() {
               className="w-9 h-9 rounded-full overflow-hidden cursor-pointer ring-2 ring-offset-2 ring-transparent hover:ring-[#3462EE]/40 transition-all flex-shrink-0 relative group">
               {profilePhoto
                 ? <img src={profilePhoto} alt="profil" className="w-full h-full object-cover" />
-                : <div className="w-full h-full bg-[#FF4D00] flex items-center justify-center text-[14px] font-bold text-[#111111]">
+                : <div className="w-full h-full bg-[#FF4D00] flex items-center justify-center text-[14px] font-bold text-white">
                     {userPrenom ? userPrenom[0].toUpperCase() : 'T'}
                   </div>
               }

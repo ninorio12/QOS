@@ -104,7 +104,7 @@ const STATUS_LABELS: Record<string, string> = {
   abandoned: 'Abandonnée',
 }
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  open:      { bg: '#FF4D00', text: '#111' },
+  open:      { bg: '#FF4D00', text: '#fff' },
   won:       { bg: '#D1FAE5', text: '#065F46' },
   lost:      { bg: '#FEE2E2', text: '#991B1B' },
   abandoned: { bg: '#F3F4F6', text: '#6B7280' },

@@ -431,7 +431,7 @@ function ReceptionTab() {
           </div>
           <span className="text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0"
                 style={hasLink
-                  ? { background: '#FF4D00', color: '#111' }
+                  ? { background: '#FF4D00', color: 'white' }
                   : { background: '#F3F4F6', color: '#9CA3AF' }}>
             {hasLink ? 'Prêt' : 'À configurer'}
           </span>

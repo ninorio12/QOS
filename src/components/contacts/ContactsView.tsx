@@ -315,7 +315,7 @@ export default function ContactsView({
       <div className="px-6 pt-6 pb-3 flex-shrink-0 flex items-center justify-between gap-4" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-black text-soren-text leading-none">Contacts</h1>
-          <span className="self-end mb-1 bg-[#FF4D00] text-[#111111] text-xs font-bold px-2.5 py-1 rounded-full">
+          <span className="self-end mb-1 bg-[#FF4D00] text-white text-xs font-bold px-2.5 py-1 rounded-full">
             {contacts.length} contacts
           </span>
         </div>

@@ -372,7 +372,7 @@ export default function DashboardClient({
         current: fmt(pipelineValue),
         target: fmt(CA_TARGET),
         pct: Math.min(Math.round((pipelineValue / CA_TARGET) * 100), 100),
-        barColor: '#FF4D00', textColor: '#111111',
+        barColor: '#FF4D00', textColor: '#ffffff',
         bg: '#FF4D00', labelC: '#556b00',
       },
       {
@@ -468,7 +468,7 @@ export default function DashboardClient({
         >
           <div className="flex items-center justify-between">
             <span className="font-jakarta text-[13px] font-semibold text-soren-text">Leads actifs</span>
-            <span className="bg-[#FF4D00] text-[#111111] text-[10px] font-bold px-2 py-0.5 rounded-full">{activeLeads} total</span>
+            <span className="bg-[#FF4D00] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{activeLeads} total</span>
           </div>
 
           <div className="flex items-baseline gap-1.5">

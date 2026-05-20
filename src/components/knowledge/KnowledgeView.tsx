@@ -398,7 +398,7 @@ export default function KnowledgeView() {
                     <button
                       onClick={save}
                       className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
-                      style={{ background: saved ? '#22c55e' : '#FF4D00', color: '#111111' }}
+                      style={{ background: saved ? '#22c55e' : '#FF4D00', color: 'white' }}
                     >
                       <Save size={12} />
                       {saved ? 'Sauvegardé ✓' : 'Sauvegarder'}
@@ -495,7 +495,7 @@ export default function KnowledgeView() {
                   <button
                     onClick={save}
                     className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
-                    style={{ background: saved ? '#22c55e' : '#FF4D00', color: '#111111' }}
+                    style={{ background: saved ? '#22c55e' : '#FF4D00', color: 'white' }}
                   >
                     <Save size={12} />
                     {saved ? 'Sauvegardé ✓' : 'Sauvegarder'}
@@ -565,7 +565,7 @@ export default function KnowledgeView() {
                   onClick={saveKbDoc}
                   disabled={kbSaving}
                   className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-50"
-                  style={{ background: '#FF4D00', color: '#111111' }}
+                  style={{ background: '#FF4D00', color: 'white' }}
                 >
                   <Save size={12} />
                   {kbSaving ? 'Sauvegarde…' : 'Sauvegarder'}

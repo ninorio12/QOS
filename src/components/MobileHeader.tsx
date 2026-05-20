@@ -84,7 +84,7 @@ export default function MobileHeader() {
       <div className="relative flex-shrink-0" ref={popupRef}>
         <button
           onClick={() => setShowProfile(v => !v)}
-          className="w-8 h-8 rounded-full bg-[#FF4D00] flex items-center justify-center text-[11px] font-bold text-[#111111] overflow-hidden"
+          className="w-8 h-8 rounded-full bg-[#FF4D00] flex items-center justify-center text-[11px] font-bold text-white overflow-hidden"
         >
           {profilePhoto
             ? <img src={profilePhoto} alt="avatar" className="object-cover w-full h-full" />
