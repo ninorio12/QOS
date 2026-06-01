@@ -11,10 +11,12 @@ import {
   CheckSquare, FileText, ScrollText, Database, Wallet, Cpu,
   Circle, ChevronLeft, ChevronRight,
 } from 'lucide-react'
-const WeeklyBarChart   = dynamic(() => import('./WeeklyBarChart'),   { ssr: false })
-const MonthlyAreaChart = dynamic(() => import('./MonthlyAreaChart'), { ssr: false })
-import type { WeeklyDay, MonthlyPoint } from '@/lib/dashboard'
+const WeeklyBarChart        = dynamic(() => import('./WeeklyBarChart'),        { ssr: false })
+const MonthlyAreaChart      = dynamic(() => import('./MonthlyAreaChart'),      { ssr: false })
+const ClientTimelineChart   = dynamic(() => import('./ClientTimelineChart'),   { ssr: false })
+import type { WeeklyDay, MonthlyPoint, ClientTimelinePoint, MetierBreakdown, Payment } from '@/lib/dashboard'
 import { getAvatarColor } from '@/components/contacts/types'
+import { PieChart, Pie, Cell, Tooltip as PieTooltip, ResponsiveContainer } from 'recharts'
 
 const NewLeadWidget = dynamic(() => import('@/components/shared/NewLeadWidget'), { ssr: false })
 
@@ -48,6 +50,10 @@ interface DashboardProps {
   recentOpps:       RecentOpp[]
   weeklyBreakdown:  WeeklyDay[]
   monthlyPipeline:  MonthlyPoint[]
+  clientTimeline:   ClientTimelinePoint[]
+  metierBreakdown:  MetierBreakdown[]
+  payments:         Payment[]
+  wonCA:            number
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -57,17 +63,20 @@ function fmt(value: number): string {
 }
 
 function useCountUp(target: number, duration = 800): number {
-  const [val, setVal] = useState(0)
+  const [val, setVal] = useState(target)
+  const fromRef = useRef(target)
+
   useEffect(() => {
-    if (target === 0) { setVal(0); return }
+    const from = fromRef.current
+    if (from === target) return
     let start: number | null = null
     const step = (ts: number) => {
       if (!start) start = ts
       const p = Math.min((ts - start) / duration, 1)
       const ease = 1 - Math.pow(1 - p, 3)
-      setVal(Math.round(target * ease))
+      setVal(Math.round(from + (target - from) * ease))
       if (p < 1) requestAnimationFrame(step)
-      else setVal(target)
+      else { setVal(target); fromRef.current = target }
     }
     requestAnimationFrame(step)
   }, [target, duration])
@@ -428,6 +437,10 @@ export default function DashboardClient({
   recentOpps       = [],
   weeklyBreakdown  = [],
   monthlyPipeline  = [],
+  clientTimeline   = [],
+  metierBreakdown  = [],
+  payments         = [],
+  wonCA            = 0,
 }: DashboardProps) {
   const router = useRouter()
   const [showModal,       setShowModal]       = useState(false)
@@ -465,6 +478,8 @@ export default function DashboardClient({
   }
 
   const visibleStages = stageBreakdown.filter(s => s.count > 0).slice(0, 4)
+  const r1Count = stageBreakdown.find(s => s.label.toLowerCase().includes('r1'))?.count ?? 0
+  const r2Count = stageBreakdown.find(s => s.label.toLowerCase().includes('r2'))?.count ?? 0
 
   const FALLBACK_ACTIVITY = [
     { dot: '#FF4D00', name: 'Martin Dupont', action: 'Nouveau lead qualifié',  date: "Aujourd'hui 09:14" },
@@ -583,344 +598,145 @@ export default function DashboardClient({
         <div className="flex-shrink-0"><NewLeadWidget /></div>
       </div>
 
-      {/* ── Grid layout ── */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_300px] md:grid-rows-[auto_1fr] gap-3 md:gap-4 md:flex-1 md:min-h-0">
-
-        {/* ── Card 1 — Leads actifs + breakdown ── */}
-        <Link
-          href="/pipeline"
-          className="bg-soren-card rounded-2xl md:rounded-3xl p-4 md:p-5 flex flex-col gap-3 shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all duration-200"
-          style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}
-        >
-          <div className="flex items-center justify-between">
-            <span className="font-jakarta text-[13px] font-semibold text-soren-text">Leads actifs</span>
-            <span className="bg-[#FF4D00] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{activeLeads} total</span>
+      {/* ── 6 KPI Cards ── */}
+      <div
+        className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-3"
+        style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}
+      >
+        {[
+          { label: 'Clients',        value: String(wonLeads),   sub: 'durant la période' },
+          { label: 'CA encaissé',    value: fmt(pipelineValue), sub: 'durant la période' },
+          { label: 'CA à collecter', value: '—',                sub: 'durant la période' },
+          { label: 'Leads',          value: String(totalLeads), sub: 'actifs'            },
+          { label: 'R1',             value: String(r1Count),    sub: 'effectués'         },
+          { label: 'R2',             value: String(r2Count),    sub: 'effectués'         },
+        ].map(({ label, value, sub }) => (
+          <div key={label} className="bg-soren-card rounded-2xl p-3 md:p-4 flex flex-col gap-1.5 shadow-sm border border-soren-border/60">
+            <span className="text-[11px] font-medium text-soren-muted leading-none">{label}</span>
+            <span className="text-[26px] md:text-[30px] font-black text-soren-text leading-none tabular-nums">{value}</span>
+            <span className="text-[10px] font-semibold text-[#FF4D00]/70">{sub}</span>
           </div>
+        ))}
+      </div>
 
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-outfit text-[36px] font-bold text-soren-text leading-none tabular-nums">{leadsAnim}</span>
-            <span className="font-jakarta text-[13px] font-medium text-soren-subtle">leads</span>
-          </div>
+      {/* ── Clients sur la période + Métiers clients ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mt-3 md:mt-4">
 
-          <div className="flex flex-col gap-1.5 mt-1">
-            {(stageBreakdown.filter(s => s.count > 0).slice(0, 4).length > 0
-              ? stageBreakdown.filter(s => s.count > 0).slice(0, 4)
-              : [
-                  { label: 'Nouveau contact', color: '#3462EE', pct: 0, count: 0 },
-                  { label: 'Qualifié',        color: '#FF4D00', pct: 0, count: 0 },
-                  { label: 'RDV planifié',    color: '#4A91A8', pct: 0, count: 0 },
-                  { label: 'Signé',           color: '#22c55e', pct: 0, count: 0 },
-                ]
-            ).map(stage => (
-              <div key={stage.label} className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: stage.color }} />
-                <span className="text-[11px] text-soren-muted flex-1 truncate">{stage.label}</span>
-                <div className="w-16 h-1 bg-soren-border rounded-full overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${stage.pct}%`, background: stage.color }} />
-                </div>
-                <span className="text-[11px] font-semibold text-soren-text w-4 text-right">{stage.count}</span>
-              </div>
-            ))}
-          </div>
-        </Link>
-
-        {/* ── Card 2 — Valeur Pipeline ── */}
-        <div
-          className="bg-[#FF4D00] rounded-2xl md:rounded-3xl p-4 md:p-5 flex flex-col gap-3 shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all duration-200 cursor-pointer"
-          style={{ animation: 'fadeSlideUp 400ms ease-out 100ms both' }}
-          onClick={() => router.push('/pipeline')}
-        >
-          {/* Top — label + badge (aligné card 1) */}
-          <div className="flex items-center justify-between">
-            <span className="font-jakarta text-[13px] font-semibold text-[#111111]">Valeur Pipeline</span>
-            <span className="bg-[#111111]/10 text-[#111111] text-[10px] font-bold px-2 py-0.5 rounded-full">{activeLeads} leads</span>
-          </div>
-
-          {/* Chiffre principal — même position que card 1 */}
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-outfit text-[36px] font-bold text-[#111111] leading-none tabular-nums">
-              {fmt(pipelineAnim).replace('€', '')}
-            </span>
-            <span className="font-jakarta text-[13px] font-medium text-[#111111]/40">€</span>
-          </div>
-
-          {/* 3 chips */}
-          <div className="flex gap-1.5">
-            <div className="flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-2xl bg-[#111111]/10">
-              <span className="font-outfit text-[18px] font-bold text-[#111111] leading-none tabular-nums">{activeLeads}</span>
-              <span className="font-jakarta text-[9px] font-semibold text-[#111111]/55">leads</span>
-            </div>
-            <div className="flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-2xl bg-[#111111]/10">
-              <span className="font-outfit text-[18px] font-bold text-[#111111] leading-none tabular-nums">{wonLeads}</span>
-              <span className="font-jakarta text-[9px] font-semibold text-[#111111]/55">gagnés</span>
-            </div>
-            <div className="flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-2xl bg-[#111111]/10">
-              <span className="font-outfit text-[18px] font-bold text-[#111111] leading-none tabular-nums">
-                {totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0}%
-              </span>
-              <span className="font-jakarta text-[9px] font-semibold text-[#111111]/55">conv.</span>
-            </div>
-          </div>
-
-          {/* Voir plus */}
-          <div className="mt-auto flex items-center gap-1 text-[#111111]/50 hover:text-[#111111] transition-colors">
-            <span className="font-jakarta text-[11px] font-semibold">Voir le pipeline</span>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6h7M6.5 3l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </div>
-        </div>
-
-        {/* ── Card 3 — Agentique · Frosted Dark ── */}
-        <Link
-          href="/equipe"
-          className="rounded-2xl md:rounded-3xl flex flex-col shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all duration-200 overflow-hidden relative min-h-[200px]"
-          style={{
-            background: '#080808',
-            animation: 'fadeSlideUp 400ms ease-out 200ms both',
-          }}
-        >
-          {/* Double radial gradient — exactement comme le démo */}
-          <div className="absolute inset-0 pointer-events-none" style={{
-            background: 'radial-gradient(ellipse at 30% 0%, rgba(52,98,238,0.12) 0%, transparent 60%), radial-gradient(ellipse at 80% 100%, rgba(226,255,141,0.08) 0%, transparent 60%)',
-          }} />
-          {/* Frosted glass layer */}
-          <div className="absolute inset-0 pointer-events-none" style={{
-            background: 'rgba(255,255,255,0.03)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 'inherit',
-          }} />
-          {/* Content */}
-          <div className="relative p-4 md:p-6 flex flex-col flex-1 justify-between gap-4 md:gap-5">
-
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <span className="font-jakarta text-[13px] font-semibold text-[#FF4D00]">Agentique</span>
-            <span className="flex items-center gap-1 text-[9px] font-bold text-[#22c55e] bg-[#22c55e]/15 px-2 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse inline-block" />
-              2 actifs
-            </span>
-          </div>
-
-          {/* 3 agents */}
-          <div className="flex justify-around items-center flex-1">
-            {([
-              { name: 'VividFlow', role: 'Orchestrateur', color: '#3462EE', Icon: Cpu,          online: true  },
-              { name: 'Kai',   role: 'Commercial',     color: '#4A91A8', Icon: MessageSquare, online: true  },
-              { name: 'Mia',   role: 'Connaissance',   color: '#FF4D00', Icon: Database,      online: false },
-            ] as const).map(agent => (
-              <div key={agent.name} className="flex flex-col items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center relative"
-                  style={{
-                    background: `${agent.color}18`,
-                    border: `2px solid ${agent.online ? agent.color + '60' : 'rgba(255,255,255,0.08)'}`,
-                    boxShadow: agent.online ? `0 0 16px ${agent.color}35` : 'none',
-                  }}
-                >
-                  <agent.Icon size={16} style={{ color: agent.online ? agent.color : '#555' }} />
-                  <span
-                    className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#111]"
-                    style={{ background: agent.online ? '#22c55e' : '#3f3f46', boxShadow: agent.online ? '0 0 6px #22c55e' : 'none' }}
-                  />
-                </div>
-                <div className="text-center">
-                  <p className="text-[12px] font-semibold text-white leading-none">{agent.name}</p>
-                  <p className="text-[10px] text-white/35 mt-1">{agent.role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Progress bar */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] text-white/30">2 actifs sur 3</span>
-              <span className="text-[10px] text-white/30">67%</span>
-            </div>
-            <div className="h-1 bg-soren-card/8 rounded-full overflow-hidden">
-              <div className="h-full rounded-full bg-[#FF4D00]" style={{ width: '67%' }} />
-            </div>
-          </div>
-          </div>{/* /content */}
-        </Link>
-
-        {/* ── Right panel — row-span-2 ── */}
-        <div
-          className="md:row-span-2 bg-soren-card rounded-2xl md:rounded-3xl shadow-sm overflow-hidden flex flex-col max-h-[70vh] md:max-h-none"
-          style={{ animation: 'fadeSlideUp 400ms ease-out 300ms both' }}
-        >
-          <div className="flex-1 overflow-y-auto p-5">
-          <p className="font-jakarta text-[13px] font-semibold text-soren-text">Modules VividFlow</p>
-          <p className="font-jakarta text-[10px] font-normal text-soren-subtle mt-0.5 mb-3">Récemment visités</p>
-
-          <div className="grid grid-cols-2 gap-2">
-            {recentModules.map(({ href, Icon, label }) => (
-              <Link
-                key={label}
-                href={href}
-                className="relative bg-soren-elevated rounded-2xl p-3 flex flex-col gap-2 hover:bg-soren-sidebar transition-all duration-150 group"
-              >
-                <ArrowUpRight size={11}
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-[#FF4D00] transition-opacity" />
-                <Icon size={18} className="text-soren-muted group-hover:text-[#FF4D00] transition-colors" />
-                <span className="text-xs font-semibold text-soren-text group-hover:text-[#FF4D00] transition-colors">{label}</span>
-              </Link>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between mt-5 mb-2">
-            <p className="font-jakarta text-[13px] font-semibold text-soren-text">Opportunités</p>
-            <Link href="/pipeline" className="text-[10px] font-medium text-soren-muted hover:text-soren-text transition-colors">Tout voir →</Link>
-          </div>
-          <div className="flex flex-col">
-            {recentOpps.length === 0 ? (
-              <p className="text-[11px] text-soren-subtle italic">Aucune opportunité récente</p>
-            ) : recentOpps.map((opp) => {
-              const initials = opp.contactName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() || '?'
-              // Soft pastel bg derived from card color
-              const avatarBg: Record<string, string> = {
-                '#3462EE': '#EEF3FF', '#EFE347': '#FFFBEB',
-                '#4A91A8': '#E8F4F7', '#1A2235': '#F0F2F5',
-              }
-              const bg = avatarBg[opp.color] ?? '#F3F4F6'
-              // Pill style by stage
-              const stageLower = opp.tag.toLowerCase()
-              const pill = stageLower.includes('qualif') || stageLower.includes('signé') || stageLower.includes('rdv')
-                ? { bg: 'rgba(143,184,26,0.12)', color: '#6B9612' }
-                : stageLower.includes('nouveau') || stageLower.includes('contact') || stageLower.includes('1er')
-                ? { bg: 'rgba(52,98,238,0.10)', color: '#3462EE' }
-                : stageLower.includes('convers')
-                ? { bg: 'rgba(74,145,168,0.12)', color: '#4A91A8' }
-                : { bg: 'rgba(107,114,128,0.10)', color: '#6B7280' }
-              return (
-                <Link
-                  key={opp.id}
-                  href="/pipeline"
-                  className="flex items-center gap-3 py-2.5 border-b border-[#F0F0EB] last:border-0 hover:bg-[#F8F9F7] -mx-3 px-3 rounded-xl transition-colors group"
-                >
-                  <span
-                    className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-[12px] font-semibold"
-                    style={{ background: bg, color: opp.color }}
-                  >
-                    {initials}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-soren-text truncate group-hover:text-[#3462EE] transition-colors">{opp.contactName}</p>
-                    <p className="text-[11px] text-soren-subtle truncate">{opp.date}</p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-[13px] font-semibold text-soren-text">{fmt(opp.value)}</p>
-                    <span
-                      className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mt-0.5"
-                      style={{ background: pill.bg, color: pill.color }}
-                    >
-                      {opp.tag}
-                    </span>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-
-          {/* Tâches */}
-          <div className="mt-5">
-            <div className="flex items-center justify-between mb-2.5">
-              <p className="font-jakarta text-[13px] font-semibold text-soren-text">Tâches</p>
-              <Link href="/taches" className="text-[10px] font-medium text-soren-muted hover:text-soren-text transition-colors">Tout voir →</Link>
-            </div>
-            {tasks.length === 0 ? (
-              <p className="text-[11px] text-soren-subtle italic">Aucune tâche récente</p>
-            ) : (
-              <div className="flex flex-col gap-1.5">
-                {tasks.map(task => (
-                  <div key={task.id} className="flex items-center gap-2.5 py-1.5">
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                      task.col === 'done' ? 'bg-[#22c55e]' :
-                      task.col === 'in_progress' ? 'bg-[#3462EE]' :
-                      'bg-soren-border'
-                    }`} />
-                    <p className="text-[12px] text-soren-text truncate flex-1">{task.title}</p>
-                    <span className="text-[10px] text-soren-subtle flex-shrink-0 truncate max-w-[60px]">{task.agent}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Logs */}
-          <div className="mt-4 pb-2">
-            <div className="flex items-center justify-between mb-2.5">
-              <p className="font-jakarta text-[13px] font-semibold text-soren-text">Logs</p>
-              <Link href="/logs" className="text-[10px] font-medium text-soren-muted hover:text-soren-text transition-colors">Tout voir →</Link>
-            </div>
-            {logs.length === 0 ? (
-              <p className="text-[11px] text-soren-subtle italic">Aucun log récent</p>
-            ) : (
-              <div className="flex flex-col gap-1.5">
-                {logs.map(log => (
-                  <div key={log.id} className="flex items-start gap-2">
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 mt-0.5 ${
-                      log.level === 'error'   ? 'bg-red-500/12 text-red-500' :
-                      log.level === 'warning' ? 'bg-yellow-500/12 text-yellow-600' :
-                      'bg-soren-elevated text-soren-subtle'
-                    }`}>
-                      {(log.level ?? 'info').toUpperCase()}
-                    </span>
-                    <p className="text-[11px] text-soren-text leading-snug line-clamp-2">{log.message}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          </div>
-        </div>
-
-        {/* ── Leads par semaine — col-span-2 ── */}
+        {/* Clients sur la période */}
         <div
           className="md:col-span-2 bg-soren-card rounded-2xl md:rounded-3xl shadow-sm overflow-hidden flex flex-col"
-          style={{ animation: 'fadeSlideUp 400ms ease-out 300ms both' }}
+          style={{ animation: 'fadeSlideUp 400ms ease-out 350ms both' }}
         >
           <div className="flex items-center justify-between px-6 pt-5 pb-2 flex-shrink-0">
             <div>
-              <span className="font-jakarta text-[13px] font-semibold text-soren-text">Leads par semaine</span>
-              <p className="font-jakarta text-[10px] font-normal text-soren-subtle mt-0.5">Nouveaux leads · 7 derniers jours</p>
+              <span className="font-jakarta text-[13px] font-semibold text-soren-text">Clients sur la période</span>
+              <p className="font-jakarta text-[10px] font-normal text-soren-subtle mt-0.5">{MONTH_LABEL}</p>
             </div>
-            <div className="flex items-center gap-3 text-[10px]">
-              <span className="flex items-center gap-1.5 text-soren-muted">
-                <span className="inline-block w-2.5 h-2 rounded-sm bg-[#FF4D00]" />
-                Leads
-              </span>
-              <span className="flex items-center gap-1.5 text-soren-muted">
-                <span className="inline-block w-2.5 h-2 rounded-sm bg-soren-sidebar" />
-                Signés
-              </span>
-              <span className="flex items-center gap-1.5 text-soren-muted">
-                <span className="inline-block w-2.5 h-2 rounded-sm bg-[#3462EE]" />
-                RDV
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-soren-text bg-soren-elevated px-3 py-1 rounded-full">
+                {wonLeads} client{wonLeads !== 1 ? 's' : ''}&nbsp;&nbsp;·&nbsp;&nbsp;CA encaissé total : {fmt(wonCA)}
               </span>
             </div>
           </div>
-
-          <div className="h-[180px] md:h-auto md:flex-1 md:min-h-0 px-2 pb-4">
-            <WeeklyBarChart data={weeklyData} />
+          <div className="h-[180px] md:h-[200px] px-2 pb-4">
+            <ClientTimelineChart data={clientTimeline} />
           </div>
         </div>
 
-        {/* ── Évolution pipeline — col-span-1 ── */}
+        {/* Métiers clients */}
         <div
-          className="col-span-1 bg-soren-card rounded-2xl md:rounded-3xl shadow-sm overflow-hidden flex flex-col"
-          style={{ animation: 'fadeSlideUp 400ms ease-out 350ms both' }}
+          className="bg-soren-card rounded-2xl md:rounded-3xl p-5 shadow-sm flex flex-col gap-4"
+          style={{ animation: 'fadeSlideUp 400ms ease-out 400ms both' }}
         >
-          <div className="px-6 pt-5 pb-2 flex-shrink-0">
-            <span className="font-jakarta text-[13px] font-semibold text-soren-text">Évolution pipeline</span>
-            <p className="font-jakarta text-[10px] font-normal text-soren-subtle mt-0.5">Valeur cumulée · 6 mois</p>
+          <div className="flex items-center justify-between">
+            <span className="font-jakarta text-[13px] font-semibold text-soren-text">Métiers clients</span>
+            <ArrowUpRight size={14} className="text-soren-muted" />
           </div>
-
-          <div className="h-[180px] md:h-auto md:flex-1 md:min-h-0 px-2 pb-4">
-            <MonthlyAreaChart data={monthlyPipeline} />
-          </div>
+          {metierBreakdown.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-[12px] text-soren-subtle">Aucune donnée</div>
+          ) : (
+            <>
+              <div className="relative h-[120px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={metierBreakdown}
+                      dataKey="count"
+                      nameKey="label"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={36}
+                      outerRadius={54}
+                      strokeWidth={0}
+                    >
+                      {metierBreakdown.map((entry, i) => (
+                        <Cell key={i} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <PieTooltip
+                      contentStyle={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, fontSize: 12, padding: '6px 10px' }}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={(v: any) => v}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-[22px] font-black text-soren-text">{wonLeads}</span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                {metierBreakdown.map((m, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: m.color }} />
+                    <span className="text-[11px] text-soren-muted flex-1 truncate">{m.label}</span>
+                    <span className="text-[11px] font-semibold text-soren-text">{m.count}</span>
+                    <span className="text-[10px] text-soren-subtle w-9 text-right">{m.pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
+      </div>
+
+      {/* ── Paiements encaissés ── */}
+      <div
+        className="bg-soren-card rounded-2xl md:rounded-3xl shadow-sm mt-3 md:mt-4 overflow-hidden"
+        style={{ animation: 'fadeSlideUp 400ms ease-out 450ms both' }}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-soren-border/60">
+          <span className="font-jakarta text-[13px] font-semibold text-soren-text">Paiements encaissés</span>
+          <span className="text-[11px] font-semibold text-[#22c55e] bg-[#22c55e]/10 px-3 py-1 rounded-full">{MONTH_LABEL}</span>
+        </div>
+        {payments.length === 0 ? (
+          <div className="px-6 py-10 text-center text-[12px] text-soren-subtle">Aucun paiement sur la période</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-soren-border/60">
+                  {['DATE', 'CLIENT', 'ENTREPRISE', 'MONTANT', 'DESCRIPTION', 'STATUT'].map(h => (
+                    <th key={h} className="px-6 py-3 text-left text-[10px] font-semibold text-soren-subtle tracking-wider">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map((p, i) => (
+                  <tr key={i} className="border-b border-soren-border/40 hover:bg-soren-elevated/50 transition-colors">
+                    <td className="px-6 py-3.5 text-[12px] text-soren-muted whitespace-nowrap">{p.date}</td>
+                    <td className="px-6 py-3.5 text-[12px] font-medium text-soren-text whitespace-nowrap">{p.client}</td>
+                    <td className="px-6 py-3.5 text-[12px] text-soren-muted whitespace-nowrap">{p.entreprise}</td>
+                    <td className="px-6 py-3.5 text-[13px] font-bold text-[#FF4D00] whitespace-nowrap">{fmt(p.montant)}</td>
+                    <td className="px-6 py-3.5 text-[12px] text-soren-muted max-w-[220px] truncate">{p.description}</td>
+                    <td className="px-6 py-3.5">
+                      <span className="text-[11px] font-semibold text-[#22c55e] bg-[#22c55e]/10 px-2.5 py-1 rounded-full">{p.statut}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {showModal && (
