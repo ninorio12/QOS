@@ -275,7 +275,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   const [pendingConversion, setPendingConversion] = useState<Opportunity | null>(null)
   const [dealValue,         setDealValue]         = useState('')
   const [pipelineIdx, setPipelineIdx] = useState(() => {
-    const pid = searchParams.get('pipelineId')
+    const pid = searchParams?.get('pipelineId')
     if (!pid) return 0
     const idx = initialPipelines.findIndex(p => p.id === pid)
     return idx >= 0 ? idx : 0
