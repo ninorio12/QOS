@@ -18,10 +18,13 @@ export type DashData = {
   totalContactsCount: number
 }
 
+function localDate(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
 function defaultRange() {
   const to   = new Date(); to.setHours(0,0,0,0)
   const from = new Date(to); from.setDate(to.getDate() - 29)
-  return { from: from.toISOString().split('T')[0], to: to.toISOString().split('T')[0] }
+  return { from: localDate(from), to: localDate(to) }
 }
 
 const EMPTY: DashData = {

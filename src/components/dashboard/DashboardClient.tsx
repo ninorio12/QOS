@@ -606,7 +606,8 @@ export default function DashboardClient({
                 onApply={(start, end, label) => {
                   setActiveRange({ start, end, label })
                   setCalendarOpen(false)
-                  onRangeChange(start.toISOString().split('T')[0], end.toISOString().split('T')[0])
+                  const localDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+                  onRangeChange(localDate(start), localDate(end))
                 }}
               />
             )}

@@ -7,36 +7,36 @@ export const getMetrics = query({
   args: { from: v.string(), to: v.string() },
   handler: async (ctx, args) => {
     const { from, to } = args
-    const inPeriod = (isoOrDate: string) => {
-      const d = isoOrDate.split('T')[0]
-      return d >= from && d <= to
-    }
+    // Counts reflect the pipeline state AS OF the end of the period (cumulative ≤ to):
+    // a client/lead created earlier still exists today. The window [from,to] drives the timeline.
+    const dateOf = (isoOrDate: string) => isoOrDate.split('T')[0]
+    const upToEnd  = (isoOrDate: string) => dateOf(isoOrDate) <= to
+    const inWindow = (isoOrDate: string) => { const d = dateOf(isoOrDate); return d >= from && d <= to }
 
     // ─── Source of truth: contacts ──────────────────────────────
     const allContacts = await ctx.db.query("crm_contacts").collect()
     const contactById = new Map(allContacts.map(c => [c._id.toString(), c]))
 
-    // ─── Clients = pipeline_clients (1 row = 1 client with deal value) ──
+    // ─── Clients = pipeline_clients existing as of end of period ──
     const allClients   = await ctx.db.query("pipeline_clients").collect()
-    const periodClients = allClients.filter(c => inPeriod(c.createdAt))
+    const periodClients = allClients.filter(c => upToEnd(c.createdAt))
     const clientsCount  = periodClients.length
     const caEncaisse    = periodClients.reduce((s, c) => s + (c.value ?? 0), 0)
 
-    // ─── Leads = active (open) leads in the Leads pipeline ──────
+    // ─── Leads = active (open) leads existing as of end of period ──
     const allLeads    = await ctx.db.query("crm_leads").collect()
-    const periodLeads = allLeads.filter(l => l.status !== 'lost' && inPeriod(l.createdAt))
+    const periodLeads = allLeads.filter(l => l.status !== 'lost' && upToEnd(l.createdAt))
     const leadsCount  = periodLeads.length
 
-    // ─── R1 / R2 = distinct leads that entered those stages in period ──
-    const allHistory    = await ctx.db.query("lead_stage_history").collect()
-    const periodHistory = allHistory.filter(h => h.enteredAt >= from && h.enteredAt <= to)
-    const r1Count = new Set(periodHistory.filter(h => h.stageId === 'r1').map(h => h.leadId.toString())).size
-    const r2Count = new Set(periodHistory.filter(h => h.stageId === 'r2').map(h => h.leadId.toString())).size
+    // ─── R1 / R2 = leads CURRENTLY in those stages (created ≤ to) ──
+    const r1Count = periodLeads.filter(l => l.stageId === 'r1').length
+    const r2Count = periodLeads.filter(l => l.stageId === 'r2').length
 
-    // ─── Client timeline (per day, count + CA) ──────────────────
+    // ─── Client timeline (per day within the window, count + CA) ──
     const dayCount = new Map<string, number>()
     const dayCA    = new Map<string, number>()
-    for (const c of periodClients) {
+    for (const c of allClients) {
+      if (!inWindow(c.createdAt)) continue
       const key = c.createdAt.split('T')[0]
       dayCount.set(key, (dayCount.get(key) ?? 0) + 1)
       dayCA.set(key, (dayCA.get(key) ?? 0) + (c.value ?? 0))

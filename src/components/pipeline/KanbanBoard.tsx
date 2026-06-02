@@ -434,8 +434,10 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'lost' }),
+      }).then(() => {
+        // Keep contact statut in sync (source of truth)
+        if (activeOpp.contactId) return fetch(`/api/contact/${activeOpp.contactId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statut: 'perdu' }) })
       }).catch(() => {
-        // Revert on failure
         setLostOpps(prev => prev.filter(o => o.id !== activeId))
         setOpps(prev => [activeOpp, ...prev])
         toast('Erreur — statut non sauvegardé', 'error')
@@ -497,27 +499,19 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     }
   }
 
-  function confirmConversion() {
+  async function confirmConversion() {
     if (!pendingConversion) return
     const value = parseFloat(dealValue.replace(',', '.')) || 0
-    fetch('/api/pipeline/clients', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ghl_contact_id: pendingConversion.contactId || undefined,
-        name:      pendingConversion.name,
-        company:   pendingConversion.company || undefined,
-        email:     pendingConversion.email   || undefined,
-        phone:     pendingConversion.phone   || undefined,
-        value,
-        stageId:   'nouveau-client',
-        initials:  pendingConversion.initials,
-        createdAt: new Date().toISOString().split('T')[0],
-      }),
-    }).catch(() => {})
-    toast('Deal clôturé — bienvenue au client !', 'success')
+    const contactId = pendingConversion.contactId
     setPendingConversion(null)
     setDealValue('')
+    toast('Deal clôturé — bienvenue au client !', 'success')
+    if (!contactId) return
+    // Source of truth = contact statut. Set to client, then sync (creates client row, removes lead).
+    try {
+      await fetch(`/api/contact/${contactId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statut: 'client' }) })
+      await fetch('/api/crm/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contactId, dealValue: value }) })
+    } catch {}
   }
 
   function cancelConversion() {
