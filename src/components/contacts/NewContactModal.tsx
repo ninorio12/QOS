@@ -650,45 +650,6 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               <label className={labelCls}>Site web</label>
               <input type="url" value={form.website} onChange={set('website')} placeholder="https://exemple.fr" className={inputCls} />
             </div>
-
-            <CustomSelect
-              label="Source"
-              value={form.source}
-              onChange={v => setForm(f => ({ ...f, source: v }))}
-              options={SOURCES.map(s => ({ value: s, label: s }))}
-            />
-
-            {/* Tags */}
-            <div>
-              <label className={labelCls}>Balises</label>
-              <div className="bg-soren-elevated rounded-xl px-3 py-2.5 flex flex-wrap gap-1.5 min-h-[42px] focus-within:ring-2 focus-within:ring-[#3462EE]/40 transition-all">
-                {tags.map(t => (
-                  <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-soren-card border border-soren-border text-[#374151]">
-                    {t}
-                    <button type="button" onClick={() => removeTag(t)} className="hover:text-[#EF4444] transition-colors">
-                      <X size={9} />
-                    </button>
-                  </span>
-                ))}
-                <input
-                  value={tagInput}
-                  onChange={e => setTagInput(e.target.value)}
-                  onKeyDown={e => {
-                    if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
-                      e.preventDefault()
-                      addTag(tagInput)
-                    }
-                    if (e.key === 'Backspace' && !tagInput && tags.length > 0) {
-                      setTags(prev => prev.slice(0, -1))
-                    }
-                  }}
-                  onBlur={() => { if (tagInput.trim()) addTag(tagInput) }}
-                  placeholder={tags.length === 0 ? 'Ajouter une balise…' : ''}
-                  className="flex-1 min-w-[120px] bg-transparent text-sm text-soren-text placeholder-[#9CA3AF] outline-none"
-                />
-              </div>
-              <p className="text-[10px] text-soren-subtle mt-1">Appuyez sur Entrée ou virgule pour valider</p>
-            </div>
           </div>
 
           {/* ── Pipeline ── */}
