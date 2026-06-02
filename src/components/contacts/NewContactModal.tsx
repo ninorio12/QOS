@@ -163,16 +163,18 @@ function Section({ title }: { title: string }) {
 
 // ─── Props ────────────────────────────────────────────────────
 interface Props {
-  onClose:       () => void
-  onAdd?:        (c: GHLContact) => void
-  onSave?:       (c: GHLContact) => void
-  onAddOpp?:     (opp: Opportunity) => void
-  contact?:      GHLContact          // present = edit mode
-  pipelineInfo?: ContactPipelineInfo // current pipeline info for edit mode
+  onClose:        () => void
+  onAdd?:         (c: GHLContact) => void
+  onSave?:        (c: GHLContact, canton?: string, statut?: 'lead' | 'client' | 'perdu') => void
+  onAddOpp?:      (opp: Opportunity) => void
+  contact?:       GHLContact          // present = edit mode
+  pipelineInfo?:  ContactPipelineInfo
+  initialCanton?: string
+  initialStatut?: 'lead' | 'client' | 'perdu'
 }
 
 // ─── Modal ────────────────────────────────────────────────────
-export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, contact, pipelineInfo }: Props) {
+export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, contact, pipelineInfo, initialCanton, initialStatut }: Props) {
   const isEdit = !!contact
 
   const parsedPhone = useMemo(() => parsePhone(contact?.phone ?? null), [contact?.phone])
@@ -193,6 +195,8 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
   const [tagInput,      setTagInput]      = useState('')
   const [tags,          setTags]          = useState<string[]>(contact?.tags ?? [])
 
+  const [canton, setCanton]   = useState<string>(initialCanton ?? '')
+  const [statut, setStatut]   = useState<'lead' | 'client' | 'perdu'>(initialStatut ?? 'lead')
   const [form, setForm] = useState({
     firstName:   contact?.firstName   ?? '',
     lastName:    contact?.lastName    ?? '',
@@ -316,7 +320,17 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           tags,
           dateUpdated: new Date().toISOString(),
         }
-        onSave?.(updated)
+        try {
+          const cm = new Map(Object.entries(JSON.parse(localStorage.getItem('vividflow_contact_canton') ?? '{}')))
+          canton ? cm.set(contact.id, canton) : cm.delete(contact.id)
+          localStorage.setItem('vividflow_contact_canton', JSON.stringify(Object.fromEntries(cm)))
+        } catch {}
+        try {
+          const sm = new Map(Object.entries(JSON.parse(localStorage.getItem('vividflow_contact_statut') ?? '{}')))
+          sm.set(contact.id, statut)
+          localStorage.setItem('vividflow_contact_statut', JSON.stringify(Object.fromEntries(sm)))
+        } catch {}
+        onSave?.(updated, canton, statut)
 
       } else {
         // ── Create mode ────────────────────────────────────────
@@ -371,8 +385,11 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           const data = await res.json().catch(() => ({})) as { contact?: { id: string; dateAdded: string }; error?: string }
           if (!res.ok || data.error) throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
 
+          const newId = data.contact!.id
+          if (canton) { try { const m = new Map(Object.entries(JSON.parse(localStorage.getItem('vividflow_contact_canton') ?? '{}')));m.set(newId, canton);localStorage.setItem('vividflow_contact_canton', JSON.stringify(Object.fromEntries(m))) } catch {} }
+          if (statut !== 'lead') { try { const m = new Map(Object.entries(JSON.parse(localStorage.getItem('vividflow_contact_statut') ?? '{}')));m.set(newId, statut);localStorage.setItem('vividflow_contact_statut', JSON.stringify(Object.fromEntries(m))) } catch {} }
           const newContact: GHLContact = {
-            id:          data.contact!.id,
+            id:          newId,
             contactName: `${form.firstName} ${form.lastName}`.trim(),
             firstName:   form.firstName   || null,
             lastName:    form.lastName    || null,
@@ -442,6 +459,24 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             <div>
               <label className={labelCls}>Entreprise</label>
               <input value={form.companyName} onChange={set('companyName')} placeholder="Dupont Construction" className={inputCls} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Canton</label>
+                <select value={canton} onChange={e => setCanton(e.target.value)} className={inputCls}>
+                  <option value="">— Choisir —</option>
+                  {['AG','AI','AR','BE','BL','BS','FR','GE','GL','GR','JU','LU','NE','NW','OW','SG','SH','SO','SZ','TG','TI','UR','VD','VS','ZG','ZH'].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Statut</label>
+                <select value={statut} onChange={e => setStatut(e.target.value as 'lead' | 'client' | 'perdu')} className={inputCls}>
+                  <option value="lead">Lead</option>
+                  <option value="client">Client</option>
+                  <option value="perdu">Perdu</option>
+                </select>
+              </div>
             </div>
 
             <div>

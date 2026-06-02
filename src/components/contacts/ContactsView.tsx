@@ -13,6 +13,7 @@ import { Toaster } from '@/components/shared/Toaster'
 
 const NewLeadWidget   = dynamic(() => import('@/components/shared/NewLeadWidget'), { ssr: false })
 const ImportModal     = dynamic(() => import('./ImportModal'),     { ssr: false })
+const NewContactModal = dynamic(() => import('./NewContactModal'), { ssr: false })
 
 const COL_HEADER = 'px-4 py-3 text-left text-[11px] font-semibold text-soren-muted uppercase tracking-wide whitespace-nowrap'
 
@@ -454,8 +455,9 @@ export default function ContactsView({
     else { setChecked(new Set(filtered.map(c => c.id))); setAllChecked(true) }
   }
 
-  const [deleting,   setDeleting]   = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
+  const [deleting,         setDeleting]         = useState(false)
+  const [refreshing,       setRefreshing]       = useState(false)
+  const [selectedContact,  setSelectedContact]  = useState<GHLContact | null>(null)
 
   async function refreshContacts() {
     setRefreshing(true)
@@ -638,7 +640,7 @@ export default function ContactsView({
                   contact={contact}
                   checked={checked.has(contact.id)}
                   onCheck={toggleCheck}
-                  onClick={() => router.push(`/contacts/${contact.id}`)}
+                  onClick={() => setSelectedContact(contact)}
                   visibleCols={visibleCols}
                   source={sourceMap.get(contact.id) ?? 'inbound'}
                   statut={statutMap.get(contact.id) ?? 'lead'}
@@ -657,6 +659,25 @@ export default function ContactsView({
         <ImportModal
           onClose={() => setShowImport(false)}
           onImported={count => { setShowImport(false); if (count > 0) void refreshContacts() }}
+        />
+      )}
+
+      {selectedContact && (
+        <NewContactModal
+          contact={selectedContact}
+          initialCanton={cantonMap.get(selectedContact.id) ?? ''}
+          initialStatut={statutMap.get(selectedContact.id) ?? 'lead'}
+          onClose={() => setSelectedContact(null)}
+          onSave={(updated, newCanton, newStatut) => {
+            setContacts(prev => prev.map(c => c.id === updated.id ? updated : c))
+            if (newCanton !== undefined) {
+              setCantonMap(prev => { const m = new Map(prev); newCanton ? m.set(updated.id, newCanton) : m.delete(updated.id); return m })
+            }
+            if (newStatut !== undefined) {
+              setStatutMap(prev => { const m = new Map(prev); m.set(updated.id, newStatut); return m })
+            }
+            setSelectedContact(null)
+          }}
         />
       )}
     </div>
