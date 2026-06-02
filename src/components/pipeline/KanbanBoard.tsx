@@ -399,6 +399,10 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     try {
       const res = await fetch(`/api/crm/leads/${oppId}`, { method: 'DELETE' })
       if (!res.ok) throw new Error()
+      // Clear the contact's statut so syncAll won't recreate the lead
+      if (snapshot?.contactId) {
+        await fetch(`/api/contact/${snapshot.contactId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statut: '' }) }).catch(() => {})
+      }
       toast('Lead supprimé', 'success')
     } catch {
       if (snapshot) setOpps(prev => [snapshot, ...prev.filter(o => o.id !== oppId)])

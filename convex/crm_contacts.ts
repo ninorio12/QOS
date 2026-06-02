@@ -82,5 +82,17 @@ export const update = mutation({
 
 export const remove = mutation({
   args: { id: v.id("crm_contacts") },
-  handler: async (ctx, args) => ctx.db.delete(args.id),
+  handler: async (ctx, args) => {
+    // Cascade: remove associated lead + client + stage history
+    const leads = await ctx.db.query("crm_leads").withIndex("by_contact", q => q.eq("contactId", args.id)).collect()
+    for (const l of leads) {
+      const hist = await ctx.db.query("lead_stage_history").withIndex("by_lead", q => q.eq("leadId", l._id)).collect()
+      for (const h of hist) await ctx.db.delete(h._id)
+      await ctx.db.delete(l._id)
+    }
+    const cid = args.id.toString()
+    const clients = await ctx.db.query("pipeline_clients").withIndex("by_ghl_contact", q => q.eq("ghl_contact_id", cid)).collect()
+    for (const c of clients) await ctx.db.delete(c._id)
+    await ctx.db.delete(args.id)
+  },
 })
