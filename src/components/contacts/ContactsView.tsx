@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useClickOutside } from '@/hooks/useClickOutside'
-import { Search, Download, SlidersHorizontal, ArrowUpDown, Settings2, Sparkles, Check, ChevronDown, FileSpreadsheet, Trash2, RefreshCw } from 'lucide-react'
+import { Search, Download, SlidersHorizontal, ArrowUpDown, Settings2, Check, ChevronDown, FileSpreadsheet, Trash2, RefreshCw, Filter } from 'lucide-react'
 import { type GHLContact } from '@/lib/ghl'
 import { fetchJSON } from '@/lib/fetchJSON'
 import { getAvatarColor, formatDate, formatRelative, type ContactAttribution } from './types'
@@ -16,6 +16,12 @@ const ImportModal     = dynamic(() => import('./ImportModal'),     { ssr: false 
 
 const COL_HEADER = 'px-4 py-3 text-left text-[11px] font-semibold text-soren-muted uppercase tracking-wide whitespace-nowrap'
 
+const SWISS_CANTONS = [
+  'AG','AI','AR','BE','BL','BS','FR','GE','GL','GR',
+  'JU','LU','NE','NW','OW','SG','SH','SO','SZ','TG',
+  'TI','UR','VD','VS','ZG','ZH',
+]
+
 // ─── Avatar ────────────────────────────────────────────────────
 function Avatar({ contact }: { contact: GHLContact }) {
   const rawName  = contact.contactName || `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim()
@@ -23,10 +29,7 @@ function Avatar({ contact }: { contact: GHLContact }) {
   const initials = (name.split(' ').map((w: string) => w[0]).join('').slice(0, 2) || '?').toUpperCase()
   const color    = getAvatarColor(initials)
   return (
-    <div
-      className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
-      style={{ background: color + '22', color }}
-    >
+    <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0" style={{ background: color + '22', color }}>
       {initials}
     </div>
   )
@@ -34,71 +37,132 @@ function Avatar({ contact }: { contact: GHLContact }) {
 
 // ─── Tag pill ──────────────────────────────────────────────────
 const TAG_PALETTE = ['#3462EE','#8B5CF6','#14B8A6','#0EA5E9','#F97316','#EC4899']
-
 function tagColor(label: string) {
   const hash = label.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
   return TAG_PALETTE[hash % TAG_PALETTE.length]
 }
-
 function TagPill({ label }: { label: string }) {
   const color = tagColor(label)
   return (
-    <span
-      className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap"
-      style={{ background: color + '18', color, border: `1px solid ${color}30` }}
-    >
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap" style={{ background: color + '18', color, border: `1px solid ${color}30` }}>
       {label}
     </span>
   )
 }
 
-// ─── Origin badge ─────────────────────────────────────────────
-const ORIGIN_COLORS: Record<string, string> = {
-  Mia:    '#8B5CF6',
-  Kai:    '#3462EE',
-  VividFlow:  '#14B8A6',
-  Thomas: '#0EA5E9',
-  Toi:    '#0EA5E9',
-  Luc:    '#F97316',
-  Eva:    '#EC4899',
-}
-
-function OriginBadge({ createdBy }: { createdBy: string | undefined }) {
-  if (!createdBy) return <span className="text-sm text-[#D1D5DB]">—</span>
-  const isBot  = !['Thomas', 'Toi'].includes(createdBy)
-  const color  = ORIGIN_COLORS[createdBy] ?? '#6B7280'
+// ─── Source badge ─────────────────────────────────────────────
+function SourceBadge({ value, onClick }: { value: 'inbound' | 'outbound'; onClick: (e: React.MouseEvent) => void }) {
+  const cfg = value === 'inbound'
+    ? { bg: '#DCFCE7', color: '#16A34A', border: '#BBF7D0', label: 'inbound'  }
+    : { bg: '#FEF9C3', color: '#CA8A04', border: '#FDE68A', label: 'outbound' }
   return (
-    <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap"
-      style={{ background: color + '20', color, border: `1px solid ${color}35` }}
-    >
-      {isBot && <Sparkles size={9} className="shrink-0" />}{createdBy}
+    <span onClick={onClick} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap cursor-pointer select-none hover:opacity-80 transition-opacity" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
+      {cfg.label}
     </span>
   )
 }
 
-const ALL_COLS = ['Téléphone', 'E-mail', "Nom de l'entreprise", 'Origine', 'Créé', 'Dernière activité', 'Balises'] as const
+// ─── Statut badge ─────────────────────────────────────────────
+function StatutBadge({ value, onClick }: { value: 'lead' | 'client' | 'perdu'; onClick: (e: React.MouseEvent) => void }) {
+  const cfg =
+    value === 'client' ? { bg: '#EFF6FF', color: '#2563EB', border: '#BFDBFE', label: 'client'  } :
+    value === 'perdu'  ? { bg: '#FEF2F2', color: '#DC2626', border: '#FECACA', label: 'perdu'   } :
+                         { bg: '#F3F4F6', color: '#374151', border: '#E5E7EB', label: 'lead'    }
+  return (
+    <span onClick={onClick} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap cursor-pointer select-none hover:opacity-80 transition-opacity" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
+      {cfg.label}
+    </span>
+  )
+}
+
+// ─── Canton badge ─────────────────────────────────────────────
+function CantonBadge({ value, onClick }: { value: string | null; onClick: (e: React.MouseEvent) => void }) {
+  if (!value) return (
+    <span onClick={onClick} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap cursor-pointer text-[#9CA3AF] hover:bg-[#F3F4F6] transition-colors border border-dashed border-[#E5E7EB]">
+      + canton
+    </span>
+  )
+  return (
+    <span onClick={onClick} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap cursor-pointer select-none hover:opacity-80 transition-opacity" style={{ background: '#EFF6FF', color: '#2563EB', border: '1px solid #BFDBFE' }}>
+      {value}
+    </span>
+  )
+}
+
+// ─── Canton picker popup ──────────────────────────────────────
+function CantonPicker({ onSelect, onClose }: { onSelect: (c: string | null) => void; onClose: () => void }) {
+  const ref = useClickOutside<HTMLDivElement>(onClose)
+  return (
+    <div ref={ref} className="absolute z-30 top-full left-0 mt-1 bg-white border border-soren-border rounded-xl shadow-lg p-2 w-48" onClick={e => e.stopPropagation()}>
+      <div className="grid grid-cols-4 gap-1">
+        {SWISS_CANTONS.map(c => (
+          <button key={c} onClick={() => { onSelect(c); onClose() }} className="text-[10px] font-semibold px-1.5 py-1 rounded-lg hover:bg-[#EFF6FF] hover:text-[#2563EB] transition-colors text-[#374151]">
+            {c}
+          </button>
+        ))}
+      </div>
+      <button onClick={() => { onSelect(null); onClose() }} className="mt-1 w-full text-[10px] text-[#9CA3AF] hover:text-red-500 py-1">
+        Effacer
+      </button>
+    </div>
+  )
+}
+
+// ─── Column filter dropdown ────────────────────────────────────
+function ColFilterDropdown({ values, active, onSelect, onClose }: {
+  values:   string[]
+  active:   string | null
+  onSelect: (v: string | null) => void
+  onClose:  () => void
+}) {
+  const ref = useClickOutside<HTMLDivElement>(onClose)
+  return (
+    <div ref={ref} className="absolute left-0 top-full mt-1 bg-white border border-soren-border rounded-xl shadow-lg z-30 py-1 min-w-[140px] max-h-52 overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <button onClick={() => { onSelect(null); onClose() }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-soren-muted hover:bg-soren-elevated">
+        Tous
+      </button>
+      {values.map(v => (
+        <button key={v} onClick={() => { onSelect(v); onClose() }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-soren-text hover:bg-soren-elevated">
+          {active === v && <Check size={10} className="text-[#FF4D00]" />}
+          <span className={active === v ? 'font-semibold' : ''}>{v}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+const ALL_COLS = ['Téléphone', 'E-mail', "Nom de l'entreprise", 'Source', 'Statut', 'Canton', 'Créé', 'Dernière activité', 'Balises'] as const
 type ColName = typeof ALL_COLS[number]
+
+type ColFilter = Partial<Record<ColName | 'Nom de Contact', string>>
 
 // ─── Table row ────────────────────────────────────────────────
 function ContactRow({
-  contact, checked, onCheck, createdBy, onClick, visibleCols,
+  contact, checked, onCheck, onClick, visibleCols,
+  source, statut, canton,
+  onSourceToggle, onStatutToggle, onCantonChange,
 }: {
-  contact:     GHLContact
-  checked:     boolean
-  onCheck:     (id: string) => void
-  createdBy:   string | undefined
-  onClick:     () => void
-  visibleCols: Set<ColName>
+  contact:         GHLContact
+  checked:         boolean
+  onCheck:         (id: string) => void
+  onClick:         () => void
+  visibleCols:     Set<ColName>
+  source:          'inbound' | 'outbound'
+  statut:          'lead' | 'client' | 'perdu'
+  canton:          string | null
+  onSourceToggle:  (id: string, e: React.MouseEvent) => void
+  onStatutToggle:  (id: string, e: React.MouseEvent) => void
+  onCantonChange:  (id: string, c: string | null) => void
 }) {
   const rawName = contact.contactName || `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim() || '—'
   const name = rawName === '—' ? '—' : rawName.split(' ').map((w: string) => w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : '').join(' ')
   const v = (col: ColName) => visibleCols.has(col)
+  const [showCantonPicker, setShowCantonPicker] = useState(false)
+
   return (
     <tr className="border-b border-[#F0F0EE] hover:bg-[#FAFAF8] transition-colors group cursor-pointer" onClick={onClick}>
       <td className="pl-4 pr-2 py-3 w-10" onClick={e => e.stopPropagation()}>
-        <input type="checkbox" checked={checked} onChange={() => onCheck(contact.id)}
-          className="w-4 h-4 rounded border-[#D1D5DB] accent-[#111111] cursor-pointer" />
+        <input type="checkbox" checked={checked} onChange={() => onCheck(contact.id)} className="w-4 h-4 rounded border-[#D1D5DB] accent-[#111111] cursor-pointer" />
       </td>
       <td className="px-4 py-3 min-w-[180px]">
         <div className="flex items-center gap-2.5">
@@ -115,13 +179,81 @@ function ContactRow({
       {v("Nom de l'entreprise") && <td className="px-4 py-3 min-w-[160px]">
         {contact.companyName ? <span className="text-sm text-[#374151] truncate">{contact.companyName}</span> : <span className="text-sm text-[#D1D5DB]">—</span>}
       </td>}
-      {v('Origine') && <td className="px-4 py-3 min-w-[120px]"><OriginBadge createdBy={createdBy} /></td>}
+      {v('Source') && <td className="px-4 py-3 min-w-[110px]" onClick={e => e.stopPropagation()}>
+        <SourceBadge value={source} onClick={e => onSourceToggle(contact.id, e)} />
+      </td>}
+      {v('Statut') && <td className="px-4 py-3 min-w-[100px]" onClick={e => e.stopPropagation()}>
+        <StatutBadge value={statut} onClick={e => onStatutToggle(contact.id, e)} />
+      </td>}
+      {v('Canton') && <td className="px-4 py-3 min-w-[100px] relative" onClick={e => e.stopPropagation()}>
+        <CantonBadge value={canton} onClick={e => { e.stopPropagation(); setShowCantonPicker(v => !v) }} />
+        {showCantonPicker && (
+          <CantonPicker
+            onSelect={c => onCantonChange(contact.id, c)}
+            onClose={() => setShowCantonPicker(false)}
+          />
+        )}
+      </td>}
       {v('Créé') && <td className="px-4 py-3 min-w-[130px]"><span className="text-sm text-soren-muted">{formatDate(contact.dateAdded)}</span></td>}
       {v('Dernière activité') && <td className="px-4 py-3 min-w-[150px]"><span className="text-sm text-soren-muted">{formatRelative(contact.dateUpdated ?? contact.dateAdded)}</span></td>}
       {v('Balises') && <td className="px-4 py-3 min-w-[160px]">
         <div className="flex items-center gap-1 flex-wrap">{contact.tags.map(t => <TagPill key={t} label={t} />)}</div>
       </td>}
     </tr>
+  )
+}
+
+// ─── Column header with filter ─────────────────────────────────
+function ColHeader({
+  col, sortCol, sortDir, onSort, filterValues, activeFilter, onFilter,
+}: {
+  col:          string
+  sortCol:      string | null
+  sortDir:      'asc' | 'desc'
+  onSort:       (col: string) => void
+  filterValues: string[]
+  activeFilter: string | null
+  onFilter:     (col: string, val: string | null) => void
+}) {
+  const [showFilter, setShowFilter] = useState(false)
+  const SORTABLE = ['Nom de Contact', 'Créé', 'Dernière activité', "Nom de l'entreprise"]
+  const sortable = SORTABLE.includes(col)
+  const active   = sortCol === col
+  const filtered = !!activeFilter
+
+  return (
+    <th className={COL_HEADER + ' group/th'}>
+      <div className="flex items-center gap-1">
+        <span
+          className={sortable ? 'cursor-pointer select-none flex items-center gap-1' : 'flex items-center gap-1'}
+          onClick={() => sortable && onSort(col)}
+        >
+          {col}
+          {sortable && (active
+            ? <ChevronDown size={10} className={`text-soren-text transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} />
+            : <ArrowUpDown size={10} className="text-[#D1D5DB]" />
+          )}
+        </span>
+        {filterValues.length > 0 && (
+          <div className="relative">
+            <button
+              onClick={e => { e.stopPropagation(); setShowFilter(v => !v) }}
+              className={`ml-0.5 p-0.5 rounded transition-colors ${filtered ? 'text-[#FF4D00]' : 'text-[#D1D5DB] opacity-0 group-hover/th:opacity-100 hover:text-soren-muted'}`}
+            >
+              <Filter size={9} />
+            </button>
+            {showFilter && (
+              <ColFilterDropdown
+                values={filterValues}
+                active={activeFilter}
+                onSelect={v => onFilter(col, v)}
+                onClose={() => setShowFilter(false)}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    </th>
   )
 }
 
@@ -143,19 +275,66 @@ export default function ContactsView({
   const [debouncedQuery, setDebouncedQuery] = useState('')
 
   useEffect(() => {
+    void refreshContacts()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query), 200)
     return () => clearTimeout(t)
   }, [query])
-  const [showImport,   setShowImport]   = useState(false)
-  const [allChecked,   setAllChecked]   = useState(false)
-  const [sortCol,      setSortCol]      = useState<string|null>(null)
-  const [sortDir,      setSortDir]      = useState<'asc'|'desc'>('asc')
-  const [filterOrigin, setFilterOrigin] = useState<string|null>(null)
-  const [showFilterMenu, setShowFilterMenu] = useState(false)
-  const [showFieldsMenu, setShowFieldsMenu] = useState(false)
-  const [visibleCols,  setVisibleCols]  = useState<Set<ColName>>(new Set(ALL_COLS))
 
-  const filterMenuRef = useClickOutside<HTMLDivElement>(useCallback(() => setShowFilterMenu(false), []))
+  const [showImport,    setShowImport]    = useState(false)
+  const [allChecked,    setAllChecked]    = useState(false)
+  const [sortCol,       setSortCol]       = useState<string|null>(null)
+  const [sortDir,       setSortDir]       = useState<'asc'|'desc'>('asc')
+  const [showFieldsMenu, setShowFieldsMenu] = useState(false)
+  const [visibleCols,   setVisibleCols]  = useState<Set<ColName>>(new Set(ALL_COLS))
+  const [colFilters,    setColFilters]   = useState<ColFilter>({})
+  const [filterPipeline, setFilterPipeline] = useState(false)
+
+  const [sourceMap, setSourceMap] = useState<Map<string, 'inbound' | 'outbound'>>(() => {
+    if (typeof window === 'undefined') return new Map()
+    try { return new Map(Object.entries(JSON.parse(localStorage.getItem('vividflow_contact_source') ?? '{}'))) } catch { return new Map() }
+  })
+  const [statutMap, setStatutMap] = useState<Map<string, 'lead' | 'client' | 'perdu'>>(() => {
+    if (typeof window === 'undefined') return new Map()
+    try { return new Map(Object.entries(JSON.parse(localStorage.getItem('vividflow_contact_statut') ?? '{}'))) } catch { return new Map() }
+  })
+  const [cantonMap, setCantonMap] = useState<Map<string, string>>(() => {
+    if (typeof window === 'undefined') return new Map()
+    try { return new Map(Object.entries(JSON.parse(localStorage.getItem('vividflow_contact_canton') ?? '{}'))) } catch { return new Map() }
+  })
+
+  function handleSourceToggle(id: string, e: React.MouseEvent) {
+    e.stopPropagation()
+    setSourceMap(prev => {
+      const next = new Map(prev)
+      next.set(id, next.get(id) === 'outbound' ? 'inbound' : 'outbound')
+      try { localStorage.setItem('vividflow_contact_source', JSON.stringify(Object.fromEntries(next))) } catch {}
+      return next
+    })
+  }
+  function handleStatutToggle(id: string, e: React.MouseEvent) {
+    e.stopPropagation()
+    setStatutMap(prev => {
+      const next = new Map(prev)
+      const cur = next.get(id) ?? 'lead'
+      next.set(id, cur === 'lead' ? 'client' : cur === 'client' ? 'perdu' : 'lead')
+      try { localStorage.setItem('vividflow_contact_statut', JSON.stringify(Object.fromEntries(next))) } catch {}
+      return next
+    })
+  }
+  function handleCantonChange(id: string, c: string | null) {
+    setCantonMap(prev => {
+      const next = new Map(prev)
+      if (c === null) next.delete(id)
+      else next.set(id, c)
+      try { localStorage.setItem('vividflow_contact_canton', JSON.stringify(Object.fromEntries(next))) } catch {}
+      return next
+    })
+  }
+
   const fieldsMenuRef = useClickOutside<HTMLDivElement>(useCallback(() => setShowFieldsMenu(false), []))
 
   function toggleCol(col: ColName) {
@@ -171,12 +350,20 @@ export default function ContactsView({
     else { setSortCol(col); setSortDir('asc') }
   }
 
+  function handleColFilter(col: string, val: string | null) {
+    setColFilters(prev => {
+      const next = { ...prev }
+      if (val === null) delete next[col as keyof ColFilter]
+      else next[col as keyof ColFilter] = val
+      return next
+    })
+  }
+
   useEffect(() => {
     const el = tableRef.current
     if (!el) return
     let target = el.scrollLeft
     let raf: number | null = null
-
     function animate() {
       if (!el) return
       const diff = target - el.scrollLeft
@@ -184,7 +371,6 @@ export default function ContactsView({
       el.scrollLeft += diff * 0.12
       raf = requestAnimationFrame(animate)
     }
-
     const onWheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
       const rect = el.getBoundingClientRect()
@@ -193,16 +379,22 @@ export default function ContactsView({
       target = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, target + e.deltaY))
       if (!raf) raf = requestAnimationFrame(animate)
     }
-
     el.addEventListener('wheel', onWheel, { passive: false })
-    return () => {
-      el.removeEventListener('wheel', onWheel)
-      if (raf) cancelAnimationFrame(raf)
-    }
+    return () => { el.removeEventListener('wheel', onWheel); if (raf) cancelAnimationFrame(raf) }
+  }, [])
+
+  // Contact IDs présents dans le pipeline (chargés une fois)
+  const [pipelineContactIds, setPipelineContactIds] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    fetch('/api/pipeline-opps').then(r => r.json()).then((d: { opps?: { contactId: string }[] }) => {
+      if (d.opps) setPipelineContactIds(new Set(d.opps.map(o => o.contactId).filter(Boolean)))
+    }).catch(() => {})
   }, [])
 
   const filtered = useMemo(() => {
     let result = contacts
+
+    if (filterPipeline) result = result.filter(c => pipelineContactIds.has(c.id))
 
     if (debouncedQuery.trim()) {
       const q = debouncedQuery.toLowerCase()
@@ -212,45 +404,54 @@ export default function ContactsView({
       )
     }
 
-    if (filterOrigin) {
-      result = result.filter(c => (attributions.get(c.id) ?? 'Thomas') === filterOrigin)
+    // Column filters
+    for (const [col, val] of Object.entries(colFilters)) {
+      if (!val) continue
+      result = result.filter(c => {
+        if (col === 'Nom de Contact') return (c.contactName ?? '').toLowerCase().includes(val.toLowerCase())
+        if (col === 'Source')         return (sourceMap.get(c.id) ?? 'inbound') === val
+        if (col === 'Statut')         return (statutMap.get(c.id) ?? 'lead') === val
+        if (col === 'Canton')         return (cantonMap.get(c.id) ?? null) === val
+        if (col === "Nom de l'entreprise") return (c.companyName ?? '').toLowerCase().includes(val.toLowerCase())
+        if (col === 'Balises')        return c.tags.includes(val)
+        return true
+      })
     }
 
     if (sortCol) {
       result = [...result].sort((a, b) => {
         let va = '', vb = ''
-        if (sortCol === 'Nom de Contact') {
-          va = a.contactName ?? ''; vb = b.contactName ?? ''
-        } else if (sortCol === 'Créé') {
-          va = a.dateAdded; vb = b.dateAdded
-        } else if (sortCol === 'Dernière activité') {
-          va = a.dateUpdated ?? a.dateAdded; vb = b.dateUpdated ?? b.dateAdded
-        } else if (sortCol === "Nom de l'entreprise") {
-          va = a.companyName ?? ''; vb = b.companyName ?? ''
-        }
+        if (sortCol === 'Nom de Contact')         { va = a.contactName ?? ''; vb = b.contactName ?? '' }
+        else if (sortCol === 'Créé')              { va = a.dateAdded; vb = b.dateAdded }
+        else if (sortCol === 'Dernière activité') { va = a.dateUpdated ?? a.dateAdded; vb = b.dateUpdated ?? b.dateAdded }
+        else if (sortCol === "Nom de l'entreprise") { va = a.companyName ?? ''; vb = b.companyName ?? '' }
         return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
       })
     }
 
     return result
-  }, [contacts, debouncedQuery, filterOrigin, sortCol, sortDir, attributions])
+  }, [contacts, debouncedQuery, colFilters, sortCol, sortDir, sourceMap, statutMap, cantonMap, filterPipeline, pipelineContactIds])
+
+  // Unique values per filterable column (for dropdowns)
+  const filterOptions = useMemo(() => ({
+    'Source':              ['inbound', 'outbound'],
+    'Statut':              ['lead', 'client', 'perdu'],
+    'Canton':              SWISS_CANTONS.filter(c => contacts.some(ct => cantonMap.get(ct.id) === c)),
+    'Balises':             [...new Set(contacts.flatMap(c => c.tags))].sort(),
+    "Nom de l'entreprise": [...new Set(contacts.map(c => c.companyName).filter(Boolean) as string[])].sort(),
+    'Nom de Contact':      [] as string[],
+    'Téléphone':           [] as string[],
+    'E-mail':              [] as string[],
+    'Créé':                [] as string[],
+    'Dernière activité':   [] as string[],
+  }), [contacts, cantonMap])
 
   function toggleCheck(id: string) {
-    setChecked(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
+    setChecked(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
   }
-
   function toggleAll() {
-    if (allChecked) {
-      setChecked(new Set())
-      setAllChecked(false)
-    } else {
-      setChecked(new Set(filtered.map(c => c.id)))
-      setAllChecked(true)
-    }
+    if (allChecked) { setChecked(new Set()); setAllChecked(false) }
+    else { setChecked(new Set(filtered.map(c => c.id))); setAllChecked(true) }
   }
 
   const [deleting,   setDeleting]   = useState(false)
@@ -263,14 +464,10 @@ export default function ContactsView({
       if (data.contacts) setContacts(data.contacts)
     } catch {
       toast('Impossible de rafraîchir les contacts', 'error')
-    } finally {
-      setRefreshing(false)
-    }
+    } finally { setRefreshing(false) }
   }
 
-  function handleAdd(_c: GHLContact) {
-    void refreshContacts()
-  }
+  function handleAdd(_c: GHLContact) { void refreshContacts() }
 
   async function handleDeleteSelected() {
     if (checked.size === 0) return
@@ -278,16 +475,12 @@ export default function ContactsView({
     try {
       const results = await Promise.allSettled([...checked].map(id => fetch(`/api/contact/${id}`, { method: 'DELETE' })))
       const failed = results.filter(r => r.status === 'rejected').length
-      setChecked(new Set())
-      setAllChecked(false)
+      setChecked(new Set()); setAllChecked(false)
       await refreshContacts()
       if (failed > 0) toast(`${failed} suppression(s) échouée(s)`, 'error')
       else toast(`${results.length} contact(s) supprimé(s)`, 'success')
-    } catch {
-      toast('Erreur lors de la suppression', 'error')
-    } finally {
-      setDeleting(false)
-    }
+    } catch { toast('Erreur lors de la suppression', 'error') }
+    finally { setDeleting(false) }
   }
 
   async function exportExcel() {
@@ -297,7 +490,9 @@ export default function ContactsView({
       'Téléphone':         c.phone ?? '',
       'E-mail':            c.email ?? '',
       'Entreprise':        c.companyName ?? '',
-      'Origine':           attributions.get(c.id) ?? 'Thomas',
+      'Canton':            cantonMap.get(c.id) ?? '',
+      'Source':            sourceMap.get(c.id) ?? 'inbound',
+      'Statut':            statutMap.get(c.id) ?? 'lead',
       'Créé':              formatDate(c.dateAdded),
       'Dernière activité': formatRelative(c.dateUpdated ?? c.dateAdded),
       'Balises':           c.tags.join(', '),
@@ -308,84 +503,60 @@ export default function ContactsView({
     XLSX.writeFile(wb, `contacts-${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
+  const activeFilterCount = Object.keys(colFilters).length
+
   return (
     <div className="h-full flex flex-col overflow-hidden bg-soren-app">
       <Toaster toasts={toasts} dismiss={dismiss} />
+
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="px-6 pt-6 pb-3 flex-shrink-0 flex items-center justify-between gap-4" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-black text-soren-text leading-none">Contacts</h1>
           <span className="self-end mb-1 bg-[#FF4D00] text-white text-xs font-bold px-2.5 py-1 rounded-full">
             {contacts.length} contacts
           </span>
         </div>
         <div className="flex items-center gap-2">
           {checked.size > 0 && (
-            <button
-              onClick={handleDeleteSelected}
-              disabled={deleting}
-              className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-xs font-semibold px-3.5 py-2 rounded-full transition-colors"
-            >
+            <button onClick={handleDeleteSelected} disabled={deleting} className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-xs font-semibold px-3.5 py-2 rounded-full transition-colors">
               <Trash2 size={12} />
               {deleting ? 'Suppression…' : `Supprimer (${checked.size})`}
             </button>
           )}
-          <button
-            onClick={refreshContacts}
-            disabled={refreshing}
-            className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-xs font-semibold px-3.5 py-2 rounded-full hover:bg-soren-elevated disabled:opacity-50 transition-colors"
-          >
+          <button onClick={refreshContacts} disabled={refreshing} className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-xs font-semibold px-3.5 py-2 rounded-full hover:bg-soren-elevated disabled:opacity-50 transition-colors">
             <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
             Actualiser
           </button>
-          <button
-            onClick={exportExcel}
-            className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-xs font-semibold px-3.5 py-2 rounded-full hover:bg-soren-elevated transition-colors"
-          >
+          <button onClick={exportExcel} className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-xs font-semibold px-3.5 py-2 rounded-full hover:bg-soren-elevated transition-colors">
             <FileSpreadsheet size={12} />
             Exporter
           </button>
-          <button
-            onClick={() => setShowImport(true)}
-            className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-xs font-semibold px-3.5 py-2 rounded-full hover:bg-soren-elevated transition-colors"
-          >
+          <button onClick={() => setShowImport(true)} className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-xs font-semibold px-3.5 py-2 rounded-full hover:bg-soren-elevated transition-colors">
             <Download size={12} />
             Importer
           </button>
-          <NewLeadWidget onAddOpp={() => void refreshContacts()} />
+          <NewLeadWidget onAddOpp={() => void refreshContacts()} label="Nouveau contact" />
         </div>
       </div>
 
       {/* ── Filter bar ─────────────────────────────────────── */}
       <div className="px-6 pb-3 flex-shrink-0 flex items-center justify-between gap-4" style={{ animation: 'fadeSlideUp 400ms ease-out 70ms both' }}>
         <div className="flex items-center gap-2">
-          {/* Filtres avancés */}
-          <div className="relative" ref={filterMenuRef}>
-            <button
-              onClick={() => setShowFilterMenu(v => !v)}
-              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${filterOrigin ? 'bg-soren-sidebar text-white border-[#111111]' : 'bg-soren-card text-soren-muted border-soren-border hover:bg-soren-elevated'}`}
-            >
-              <SlidersHorizontal size={11} />
-              {filterOrigin ?? 'Filtres avancés'}
-              {filterOrigin && <button onClick={e => { e.stopPropagation(); setFilterOrigin(null) }} className="ml-1 text-white/70 hover:text-white">×</button>}
+          <button
+            onClick={() => setFilterPipeline(v => !v)}
+            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${filterPipeline ? 'bg-[#6366F1] text-white border-[#6366F1]' : 'bg-soren-card text-soren-muted border-soren-border hover:bg-soren-elevated'}`}
+          >
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M1 2h14l-5 6v5l-4-2V8L1 2z"/></svg>
+            Dans le pipeline {filterPipeline && `(${filtered.length})`}
+          </button>
+          {activeFilterCount > 0 && (
+            <button onClick={() => setColFilters({})} className="flex items-center gap-1.5 text-xs font-semibold bg-[#FF4D00] text-white px-3 py-1.5 rounded-full transition-colors">
+              <Filter size={11} />
+              {activeFilterCount} filtre{activeFilterCount > 1 ? 's' : ''} actif{activeFilterCount > 1 ? 's' : ''} ×
             </button>
-            {showFilterMenu && (
-              <div className="absolute left-0 top-full mt-1 bg-soren-card border border-soren-border rounded-2xl shadow-lg z-20 py-1 min-w-[160px]">
-                <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-wide px-3 pt-2 pb-1">Origine</p>
-                {['Thomas', 'Kai', 'VividFlow', 'Mia'].map(o => (
-                  <button key={o} onClick={() => { setFilterOrigin(o); setShowFilterMenu(false) }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-soren-text hover:bg-soren-elevated">
-                    {filterOrigin === o && <Check size={10} />}
-                    <span className={filterOrigin === o ? 'font-semibold' : ''}>{o}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          {/* Trier — indicateur actif */}
+          )}
           {sortCol && (
-            <button onClick={() => { setSortCol(null) }}
-              className="flex items-center gap-1.5 text-xs font-semibold bg-soren-sidebar text-white px-3 py-1.5 rounded-full border border-[#111111] transition-colors">
+            <button onClick={() => setSortCol(null)} className="flex items-center gap-1.5 text-xs font-semibold bg-soren-sidebar text-white px-3 py-1.5 rounded-full border border-[#111111] transition-colors">
               <ArrowUpDown size={11} />
               {sortCol} {sortDir === 'asc' ? '↑' : '↓'} ×
             </button>
@@ -410,11 +581,10 @@ export default function ContactsView({
               Gérer les champs
             </button>
             {showFieldsMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-soren-card border border-soren-border rounded-2xl shadow-lg z-20 py-2 min-w-[200px]">
+              <div className="absolute right-0 top-full mt-1 bg-soren-card border border-soren-border rounded-2xl shadow-lg z-50 py-2 min-w-[200px]">
                 <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-wide px-3 pb-1">Colonnes visibles</p>
                 {ALL_COLS.map(col => (
-                  <button key={col} onClick={() => toggleCol(col)}
-                    className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-soren-text hover:bg-soren-elevated">
+                  <button key={col} onClick={() => toggleCol(col)} className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-soren-text hover:bg-soren-elevated">
                     <span>{col}</span>
                     <span className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${visibleCols.has(col) ? 'bg-soren-sidebar border-[#111111]' : 'border-[#D1D5DB]'}`}>
                       {visibleCols.has(col) && <Check size={10} className="text-white" />}
@@ -433,29 +603,25 @@ export default function ContactsView({
           <thead className="sticky top-0 bg-soren-card z-10 border-b border-soren-border">
             <tr>
               <th className="pl-4 pr-2 py-3 w-10">
-                <input
-                  type="checkbox"
-                  checked={allChecked}
-                  onChange={toggleAll}
-                  className="w-4 h-4 rounded border-[#D1D5DB] accent-[#111111] cursor-pointer"
-                />
+                <input type="checkbox" checked={allChecked} onChange={toggleAll} className="w-4 h-4 rounded border-[#D1D5DB] accent-[#111111] cursor-pointer" />
               </th>
-              {(['Nom de Contact', ...ALL_COLS] as string[]).filter(col => col === 'Nom de Contact' || visibleCols.has(col as ColName)).map(col => {
-                const sortable = ['Nom de Contact', 'Créé', 'Dernière activité', "Nom de l'entreprise"].includes(col)
-                const active   = sortCol === col
-                return (
-                  <th key={col} className={COL_HEADER + (sortable ? ' cursor-pointer select-none' : '')}
-                    onClick={() => sortable && handleSort(col)}>
-                    <span className="flex items-center gap-1">
-                      {col}
-                      {sortable && (active
-                        ? <ChevronDown size={10} className={`text-soren-text transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} />
-                        : <ArrowUpDown size={10} className="text-[#D1D5DB]" />
-                      )}
-                    </span>
-                  </th>
-                )
-              })}
+              <ColHeader
+                col="Nom de Contact"
+                sortCol={sortCol} sortDir={sortDir} onSort={handleSort}
+                filterValues={filterOptions['Nom de Contact']}
+                activeFilter={colFilters['Nom de Contact'] ?? null}
+                onFilter={handleColFilter}
+              />
+              {ALL_COLS.filter(col => visibleCols.has(col)).map(col => (
+                <ColHeader
+                  key={col}
+                  col={col}
+                  sortCol={sortCol} sortDir={sortDir} onSort={handleSort}
+                  filterValues={filterOptions[col as keyof typeof filterOptions] ?? []}
+                  activeFilter={colFilters[col as keyof ColFilter] ?? null}
+                  onFilter={handleColFilter}
+                />
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -472,9 +638,14 @@ export default function ContactsView({
                   contact={contact}
                   checked={checked.has(contact.id)}
                   onCheck={toggleCheck}
-                  createdBy={attributions.get(contact.id)}
                   onClick={() => router.push(`/contacts/${contact.id}`)}
                   visibleCols={visibleCols}
+                  source={sourceMap.get(contact.id) ?? 'inbound'}
+                  statut={statutMap.get(contact.id) ?? 'lead'}
+                  canton={cantonMap.get(contact.id) ?? null}
+                  onSourceToggle={handleSourceToggle}
+                  onStatutToggle={handleStatutToggle}
+                  onCantonChange={handleCantonChange}
                 />
               ))
             )}
@@ -482,14 +653,10 @@ export default function ContactsView({
         </table>
       </div>
 
-
-{showImport && (
+      {showImport && (
         <ImportModal
           onClose={() => setShowImport(false)}
-          onImported={count => {
-            setShowImport(false)
-            if (count > 0) void refreshContacts()
-          }}
+          onImported={count => { setShowImport(false); if (count > 0) void refreshContacts() }}
         />
       )}
     </div>
