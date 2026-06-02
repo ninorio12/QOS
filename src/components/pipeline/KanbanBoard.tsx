@@ -154,9 +154,10 @@ interface KanbanColumnProps {
   showLost: boolean
   isLostOver: boolean
   isLastStage?: boolean
+  onReopen?: (opp: Opportunity) => void
 }
 
-function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, isLostOver, isLastStage }: KanbanColumnProps) {
+function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, isLostOver, isLastStage, onReopen }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id: stage.id })
 
   return (
@@ -189,8 +190,15 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
               </div>
             ) : (
               opps.map(opp => (
-                <div key={opp.id}>
+                <div key={opp.id} className="relative group/lost">
                   <OppCard opp={opp} muted />
+                  <button
+                    type="button"
+                    onClick={() => onReopen?.(opp)}
+                    className="absolute inset-x-0 bottom-0 top-0 flex items-center justify-center gap-1.5 rounded-lg bg-[#16A34A]/90 text-white text-[11px] font-bold opacity-0 group-hover/lost:opacity-100 transition-opacity"
+                  >
+                    ↩ Rouvrir en lead
+                  </button>
                 </div>
               ))
             )}
@@ -252,6 +260,23 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   const [showLost,       setShowLost]       = useState(false)
   const [selectedOpp,    setSelectedOpp]    = useState<Opportunity | null>(null)
   const [editContact,    setEditContact]    = useState<Record<string, unknown> | null>(null)
+
+  function reopenLead(opp: Opportunity) {
+    const firstStageId = stages[0]?.id ?? 'nouveau-lead'
+    const reopened = { ...opp, status: 'open' as const, stageId: firstStageId }
+    setLostOpps(prev => prev.filter(o => o.id !== opp.id))
+    setOpps(prev => [reopened, ...prev])
+    fetch(`/api/crm/leads/${opp.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'open', stageId: firstStageId, stageName: stages[0]?.name ?? 'Nouveau lead' }),
+    }).catch(() => {})
+    // Reset contact statut back to lead
+    if (opp.contactId) {
+      fetch(`/api/contact/${opp.contactId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statut: 'lead' }) }).catch(() => {})
+    }
+    toast('Lead rouvert', 'success')
+  }
 
   async function openContactEdit(opp: Opportunity) {
     if (!opp.contactId) { setSelectedOpp(opp); return }
@@ -611,6 +636,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
                 showLost={showLost}
                 isLostOver={overId === `${LOST_PREFIX}${stage.id}`}
                 isLastStage={i === stages.length - 1}
+                onReopen={reopenLead}
               />
             ))}
           </div>
