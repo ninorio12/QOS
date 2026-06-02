@@ -64,6 +64,15 @@ const COUNTRIES = [
 
 const SOURCES = ['Direct', 'Meta Ads', 'WhatsApp', 'LinkedIn', 'Téléphone', 'Site web', 'Referral', 'Email']
 
+const CLIENT_STAGES = [
+  { id: 'nouveau-client',     name: 'Nouveau client'      },
+  { id: 'onboarding-envoye',  name: 'Onboarding envoyé'   },
+  { id: 'onboarding-complet', name: 'Onboarding complété' },
+  { id: 'kickoff-booke',      name: 'Kickoff booké'       },
+  { id: 'setup-cree',         name: 'Setup créé'          },
+  { id: 'consulting',         name: 'Consulting'          },
+]
+
 const PIPELINE_KW: Record<'acquisition' | 'reactivation' | 'reception', string[]> = {
   acquisition:  ['acquisition'],
   reactivation: ['réactivation', 'reactivation', 'réactiv'],
@@ -185,8 +194,8 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
   const [countryCode,   setCountryCode]   = useState(parsedPhone.countryCode)
   const [showCountry,   setShowCountry]   = useState(false)
   const [countrySearch, setCountrySearch] = useState('')
-  const [pipelines,          setPipelines]          = useState<GHLPipelineData[]>([])
-  const [selectedPipelineId, setSelectedPipelineId] = useState<string | null>(pipelineInfo?.pipelineId ?? null)
+  const [ghlLeadsPipeline,   setGhlLeadsPipeline]   = useState<GHLPipelineData | null>(null)
+  const [selectedPipelineId, setSelectedPipelineId] = useState<'leads' | 'clients' | null>(null)
   const [selectedStageId,    setSelectedStageId]    = useState<string | null>(null)
   const [tagInput,      setTagInput]      = useState('')
   const [tags,          setTags]          = useState<string[]>(contact?.tags ?? [])
@@ -211,9 +220,10 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
 
   useEffect(() => {
     fetch('/api/pipelines').then(r => r.json()).then((d: { pipelines?: GHLPipelineData[] }) => {
-      setPipelines(d.pipelines ?? [])
+      const first = (d.pipelines ?? [])[0]
+      if (first) setGhlLeadsPipeline(first)
     }).catch(() => {})
-  }, [isEdit])
+  }, [])
 
   const filteredCountries = useMemo(() => {
     const q = countrySearch.toLowerCase().trim()
@@ -269,7 +279,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
         }
 
-        if (selectedPipelineId && selectedStageId) {
+        if (selectedPipelineId === 'leads' && selectedStageId && ghlLeadsPipeline) {
           await fetch('/api/opp', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -279,7 +289,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               email:           form.email       || '',
               phone:           phone            || contact.phone || '',
               company:         form.companyName || '',
-              pipelineId:      selectedPipelineId,
+              pipelineId:      ghlLeadsPipeline.id,
               pipelineStageId: selectedStageId,
               monetaryValue:   0,
               source:          '',
@@ -318,7 +328,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
         // ── Create mode ────────────────────────────────────────
         const contactName = `${form.firstName} ${form.lastName}`.trim()
 
-        if (selectedPipelineId && selectedStageId) {
+        if (selectedPipelineId === 'leads' && selectedStageId && ghlLeadsPipeline) {
           const res = await fetch('/api/opp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -327,7 +337,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               email:           form.email,
               phone,
               company:         form.companyName,
-              pipelineId:      selectedPipelineId,
+              pipelineId:      ghlLeadsPipeline.id,
               pipelineStageId: selectedStageId,
               monetaryValue:   parseFloat(form.value) || 0,
               source:          form.source === 'Direct' ? '' : form.source,
@@ -560,74 +570,62 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           {/* ── Pipeline ── */}
           <div className="border-t border-soren-border pt-5 flex flex-col gap-3">
             <Section title="Pipeline" />
-            {pipelines.length === 0 ? (
-              <div className="flex gap-2">
-                {[1, 2].map(i => <div key={i} className="flex-1 h-14 bg-soren-elevated rounded-xl animate-pulse" />)}
-              </div>
-            ) : (
-              <>
-                <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2">
+              {([
+                { id: null,       label: 'Aucun',   color: '#9CA3AF' },
+                { id: 'leads',    label: 'Leads',   color: '#3462EE' },
+                { id: 'clients',  label: 'Clients', color: '#10B981' },
+              ] as { id: 'leads' | 'clients' | null; label: string; color: string }[]).map(opt => {
+                const isSelected = selectedPipelineId === opt.id
+                return (
                   <button
+                    key={String(opt.id)}
                     type="button"
-                    onClick={() => { setSelectedPipelineId(null); setSelectedStageId(null) }}
-                    className="flex-1 min-w-[70px] flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all"
-                    style={{ borderColor: selectedPipelineId === null ? '#374151' : '#E5E7EB', background: selectedPipelineId === null ? '#37415112' : '#F9F9F7' }}
+                    onClick={() => { setSelectedPipelineId(opt.id); setSelectedStageId(null) }}
+                    className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all"
+                    style={{ borderColor: isSelected ? opt.color : '#E5E7EB', background: isSelected ? opt.color + '12' : '#F9F9F7' }}
                   >
-                    <span className="w-2 h-2 rounded-full bg-[#9CA3AF]" />
-                    <span className="text-[11px] font-bold text-soren-text">Aucun</span>
-                    {selectedPipelineId === null && <Check size={11} className="text-[#374151]" />}
+                    <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
+                    <span className="text-[11px] font-bold text-soren-text">{opt.label}</span>
+                    {isSelected && <Check size={11} style={{ color: opt.color }} />}
                   </button>
-                  {pipelines.map((p, i) => {
-                    const COLORS = ['#3462EE', '#F97316', '#8B5CF6', '#14B8A6']
-                    const color = COLORS[i % COLORS.length]
-                    const isSelected = selectedPipelineId === p.id
-                    return (
+                )
+              })}
+            </div>
+
+            {selectedPipelineId && (() => {
+              const stages = selectedPipelineId === 'clients'
+                ? CLIENT_STAGES
+                : (ghlLeadsPipeline?.stages ?? [])
+              if (!stages.length) return (
+                <div className="h-8 bg-soren-elevated rounded-xl animate-pulse" />
+              )
+              return (
+                <div className="flex flex-col gap-2">
+                  <p className="text-[10px] font-semibold text-soren-muted uppercase tracking-wide">Quelle colonne ?</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {stages.map(s => (
                       <button
-                        key={p.id}
+                        key={s.id}
                         type="button"
-                        onClick={() => { setSelectedPipelineId(p.id); setSelectedStageId(null) }}
-                        className="flex-1 min-w-[70px] flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all"
-                        style={{ borderColor: isSelected ? color : '#E5E7EB', background: isSelected ? color + '12' : '#F9F9F7' }}
+                        onClick={() => setSelectedStageId(s.id)}
+                        className="px-3 py-1.5 rounded-full text-[11px] font-semibold border-2 transition-all"
+                        style={{
+                          borderColor: selectedStageId === s.id ? '#111' : '#E5E7EB',
+                          background:  selectedStageId === s.id ? '#111' : '#fff',
+                          color:       selectedStageId === s.id ? '#fff' : '#374151',
+                        }}
                       >
-                        <span className="w-2 h-2 rounded-full" style={{ background: color }} />
-                        <span className="text-[11px] font-bold text-soren-text leading-tight text-center">{p.name}</span>
-                        {isSelected && <Check size={11} style={{ color }} />}
+                        {s.name}
                       </button>
-                    )
-                  })}
+                    ))}
+                  </div>
                 </div>
+              )
+            })()}
 
-                {selectedPipelineId && (() => {
-                  const pipe = pipelines.find(p => p.id === selectedPipelineId)
-                  if (!pipe?.stages.length) return null
-                  return (
-                    <div className="flex flex-col gap-2">
-                      <p className="text-[10px] font-semibold text-soren-muted uppercase tracking-wide">Quelle colonne ?</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {pipe.stages.map(s => (
-                          <button
-                            key={s.id}
-                            type="button"
-                            onClick={() => setSelectedStageId(s.id)}
-                            className="px-3 py-1.5 rounded-full text-[11px] font-semibold border-2 transition-all"
-                            style={{
-                              borderColor: selectedStageId === s.id ? '#111' : '#E5E7EB',
-                              background:  selectedStageId === s.id ? '#111' : '#fff',
-                              color:       selectedStageId === s.id ? '#fff' : '#374151',
-                            }}
-                          >
-                            {s.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })()}
-              </>
-            )}
-
-            {selectedPipelineId && selectedStageId && !isEdit && (
-              <div className="mt-1">
+            {selectedPipelineId === 'leads' && selectedStageId && !isEdit && (
+              <div>
                 <label className={labelCls}>Valeur estimée (€)</label>
                 <input type="number" value={form.value} onChange={set('value')} placeholder="0" className={inputCls} />
               </div>
@@ -647,7 +645,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               className="flex-1 py-2.5 rounded-full bg-soren-sidebar hover:bg-[#2a2a2a] disabled:opacity-50 text-white text-sm font-semibold transition-colors">
               {saving
                 ? (isEdit ? 'Enregistrement…' : 'Création en cours…')
-                : (isEdit ? 'Enregistrer' : selectedPipelineId && selectedStageId ? 'Créer le lead' : 'Créer le contact')}
+                : (isEdit ? 'Enregistrer' : selectedPipelineId === 'leads' && selectedStageId ? 'Créer le lead' : 'Créer le contact')}
             </button>
           </div>
         </form>
