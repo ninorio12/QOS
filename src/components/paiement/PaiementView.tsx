@@ -92,14 +92,6 @@ export default function PaiementView() {
         <Card label="Net encaissé" value={fmt(filterContact ? filtEncaisse - ov.rembourse : ov.net)} bg="#F8FAFC" border="#E2E8F0" color="#0F172A" />
       </div>
 
-      {!filterContact && (
-        <div className="px-6 mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 flex-shrink-0">
-          <ConvCard label="Taux de conversion" conv={c.global} color="#FF4D00" sub="clients / contacts" />
-          <ConvCard label="Conversion Inbound" conv={c.inbound} color="#16A34A" sub="meilleure si élevée" />
-          <ConvCard label="Conversion Outbound" conv={c.outbound} color="#CA8A04" sub="meilleure si élevée" />
-        </div>
-      )}
-
       {/* Transactions */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
         <div className="bg-soren-card border border-soren-border rounded-2xl overflow-hidden shadow-sm">

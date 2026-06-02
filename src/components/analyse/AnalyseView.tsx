@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 const DailyBarChart  = dynamic(() => import('./AnalyseCharts').then(m => m.DailyBarChart),  { ssr: false })
 const HourlyBarChart = dynamic(() => import('./AnalyseCharts').then(m => m.HourlyBarChart), { ssr: false })
 import { type GHLOpportunity, type GHLPipeline } from '@/lib/ghl'
+import ConversionRates from './ConversionRates'
 
 // ─── Types ────────────────────────────────────────────────────
 type Props = {
@@ -311,6 +312,9 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
   return (
     <div className="h-[calc(100vh-56px)] overflow-y-auto bg-soren-app">
       <div className="p-5 flex flex-col gap-2.5 max-w-[1600px]">
+
+        {/* ── Taux de conversion (Convex) ── */}
+        <ConversionRates />
 
         {/* ── Header + Filtres ── */}
         <div className="flex items-center justify-between gap-4 mb-1" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
