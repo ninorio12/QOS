@@ -184,20 +184,22 @@ export default function ClientsBoard() {
     }
 
     const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
-      const evTarget = e.target as Element
-      const col = evTarget.closest('.kanban-col') as HTMLElement | null
+      e.preventDefault()
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        target = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, target + e.deltaX))
+        if (!raf) raf = requestAnimationFrame(animate)
+        return
+      }
+      const col = (e.target as Element).closest('.kanban-col') as HTMLElement | null
       if (col && col.scrollHeight > col.clientHeight) {
         const goingDown = e.deltaY > 0
         const atBottom  = col.scrollTop + col.clientHeight >= col.scrollHeight - 1
         const atTop     = col.scrollTop <= 0
         if ((goingDown && !atBottom) || (!goingDown && !atTop)) {
-          e.preventDefault()
           col.scrollTop += e.deltaY
           return
         }
       }
-      e.preventDefault()
       target = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, target + e.deltaY))
       if (!raf) raf = requestAnimationFrame(animate)
     }
