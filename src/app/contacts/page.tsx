@@ -11,8 +11,7 @@ export default async function ContactsPage() {
   const url = process.env.NEXT_PUBLIC_CONVEX_URL
   let contacts: GHLContact[] = []
 
-  if (url) {
-    try {
+  if (url) { try {
       const c = new ConvexHttpClient(url)
       const raw = await c.query(api.crm_contacts.list)
       contacts = (raw as {

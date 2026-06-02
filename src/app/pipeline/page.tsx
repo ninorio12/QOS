@@ -7,45 +7,44 @@ import { GitMerge } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-function PipelineEmpty({ error }: { error?: string }) {
-  return (
-    <div className="h-full flex flex-col items-center justify-center">
-      <div className="text-center max-w-[300px]">
-        <div className="w-12 h-12 rounded-2xl bg-soren-card border border-soren-border flex items-center justify-center mx-auto mb-4 shadow-sm">
-          <GitMerge size={20} className="text-soren-subtle" />
-        </div>
-        <p className="text-sm font-semibold text-soren-text mb-1.5">Pipeline vide</p>
-        <p className="text-xs text-soren-subtle leading-relaxed">Crée ton premier lead pour commencer</p>
-        {error && (
-          <pre className="text-[10px] text-[#EF4444] mt-4 font-mono break-all whitespace-pre-wrap bg-[#FEF2F2] rounded-xl px-3 py-2 text-left">
-            {error}
-          </pre>
-        )}
-      </div>
-    </div>
-  )
+const DEFAULT_PIPELINE: GHLPipelineData = {
+  id: 'leads',
+  name: 'Leads',
+  stages: [
+    { id: 'nouveau-lead',   name: 'Nouveau lead',    color: '#6366F1', position: 0 },
+    { id: 'conversation',   name: 'En conversation', color: '#F59E0B', position: 1 },
+    { id: 'r1',             name: 'R1',              color: '#3B82F6', position: 2 },
+    { id: 'r2',             name: 'R2',              color: '#8B5CF6', position: 3 },
+    { id: 'nouveau-client', name: 'Nouveau client',  color: '#84cc16', position: 4 },
+  ],
 }
 
 export default async function PipelinePage() {
   const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) return <PipelineEmpty error="NEXT_PUBLIC_CONVEX_URL not configured" />
+
+  // No Convex → show empty default pipeline
+  if (!url) {
+    return (
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+        <KanbanBoard initialPipelines={[DEFAULT_PIPELINE]} initialOpportunities={[]} />
+      </div>
+    )
+  }
 
   try {
     const c = new ConvexHttpClient(url)
-
-    // Ensure default pipeline exists and get it
     const rawPipelines = await c.mutation(api.pipeline_config.ensureDefaults)
-    if (!rawPipelines?.length) return <PipelineEmpty />
 
-    const pipelines: GHLPipelineData[] = (rawPipelines as { _id: string; name: string; stages: { id: string; name: string; color: string; position: number }[] }[]).map(p => ({
-      id:     p._id,
-      name:   p.name,
-      stages: p.stages
-        .sort((a, b) => a.position - b.position)
-        .map(s => ({ id: s.id, name: s.name, color: s.color || stageColor(s.name), position: s.position })),
-    }))
+    const pipelines: GHLPipelineData[] = rawPipelines?.length
+      ? (rawPipelines as { _id: string; name: string; stages: { id: string; name: string; color: string; position: number }[] }[]).map(p => ({
+          id:     p._id,
+          name:   p.name,
+          stages: p.stages
+            .sort((a, b) => a.position - b.position)
+            .map(s => ({ id: s.id, name: s.name, color: s.color || stageColor(s.name), position: s.position })),
+        }))
+      : [DEFAULT_PIPELINE]
 
-    // Fetch leads for all pipelines
     const allLeads = await c.query(api.crm_leads.list)
     const opportunities: Opportunity[] = (allLeads as {
       _id: string; name: string; email?: string; phone?: string; company?: string;
@@ -73,7 +72,12 @@ export default async function PipelinePage() {
         <KanbanBoard initialPipelines={pipelines} initialOpportunities={opportunities} />
       </div>
     )
-  } catch (err) {
-    return <PipelineEmpty error={String(err)} />
+  } catch {
+    // Convex error → show empty default pipeline (don't block the user)
+    return (
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+        <KanbanBoard initialPipelines={[DEFAULT_PIPELINE]} initialOpportunities={[]} />
+      </div>
+    )
   }
 }
