@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import ClientsBoard from '@/components/pipeline/ClientsBoard'
 
 export default function ClientsPipelinePage() {
