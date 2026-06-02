@@ -257,10 +257,10 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
 
   const persistStageMove = useCallback(async (oppId: string, newStageId: string, prevStageId: string) => {
     try {
-      const res = await fetch(`/api/opp/${oppId}`, {
+      const res = await fetch(`/api/crm/leads/${oppId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pipelineStageId: newStageId }),
+        body: JSON.stringify({ stageId: newStageId }),
       })
       if (!res.ok) throw new Error('Erreur serveur')
     } catch {
@@ -358,13 +358,9 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     const snapshot = opps.find(o => o.id === oppId)
     setOpps(prev => prev.filter(o => o.id !== oppId))
     try {
-      const res = await fetch(`/api/opp/${oppId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'abandoned' }),
-      })
+      const res = await fetch(`/api/crm/leads/${oppId}`, { method: 'DELETE' })
       if (!res.ok) throw new Error()
-      toast('Opportunité supprimée', 'success')
+      toast('Lead supprimé', 'success')
     } catch {
       if (snapshot) setOpps(prev => [snapshot, ...prev.filter(o => o.id !== oppId)])
       toast('Erreur — suppression échouée', 'error')
@@ -395,7 +391,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
       setOpps(prev => prev.filter(o => o.id !== activeId))
       setLostOpps(prev => [...prev.filter(o => o.id !== activeId), lostOpp])
       toast('Lead marqué comme perdu', 'success')
-      fetch(`/api/opp/${activeId}`, {
+      fetch(`/api/crm/leads/${activeId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'lost' }),

@@ -88,6 +88,61 @@ export default defineSchema({
   }).index("by_date_event", ["date", "event"])
    .index("by_date", ["date"]),
 
+  // CRM Contacts — remplace GHL contacts
+  crm_contacts: defineTable({
+    firstName:   v.string(),
+    lastName:    v.optional(v.string()),
+    email:       v.optional(v.string()),
+    phone:       v.optional(v.string()),
+    companyName: v.optional(v.string()),
+    address1:    v.optional(v.string()),
+    city:        v.optional(v.string()),
+    postalCode:  v.optional(v.string()),
+    website:     v.optional(v.string()),
+    source:      v.optional(v.string()),  // 'inbound' | 'outbound'
+    statut:      v.optional(v.string()),  // 'lead' | 'client' | 'perdu'
+    canton:      v.optional(v.string()),
+    tags:        v.array(v.string()),
+    notes:       v.optional(v.string()),
+    createdAt:   v.string(),
+    updatedAt:   v.optional(v.string()),
+  })
+    .index("by_email",   ["email"])
+    .index("by_created", ["createdAt"]),
+
+  // Pipeline config — remplace GHL pipelines (stages hardcodés mais modifiables)
+  pipeline_config: defineTable({
+    name:  v.string(),          // 'Leads' ou 'Clients'
+    type:  v.string(),          // 'leads' | 'clients'
+    stages: v.array(v.object({
+      id:       v.string(),
+      name:     v.string(),
+      color:    v.string(),
+      position: v.number(),
+    })),
+  }).index("by_type", ["type"]),
+
+  // Leads (opportunités) — remplace GHL opportunities
+  crm_leads: defineTable({
+    contactId:  v.optional(v.id("crm_contacts")),
+    name:       v.string(),
+    email:      v.optional(v.string()),
+    phone:      v.optional(v.string()),
+    company:    v.optional(v.string()),
+    pipelineId: v.string(),
+    stageId:    v.string(),
+    value:      v.number(),
+    source:     v.optional(v.string()),  // 'inbound' | 'outbound'
+    status:     v.string(),              // 'open' | 'lost' | 'won'
+    initials:   v.string(),
+    createdAt:  v.string(),
+  })
+    .index("by_pipeline", ["pipelineId"])
+    .index("by_stage",    ["stageId"])
+    .index("by_status",   ["status"])
+    .index("by_contact",  ["contactId"])
+    .index("by_created",  ["createdAt"]),
+
   // Pipeline Clients — remplace localStorage vividflow_clients
   pipeline_clients: defineTable({
     ghl_contact_id: v.optional(v.string()), // lien vers le contact GHL / futur contact Convex

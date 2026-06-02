@@ -222,9 +222,9 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
   const selectedCountry = COUNTRIES.find(c => c.code === countryCode) ?? COUNTRIES[0]
 
   useEffect(() => {
-    fetch('/api/pipelines').then(r => r.json()).then((d: { pipelines?: GHLPipelineData[] }) => {
+    fetch('/api/crm/pipelines').then(r => r.json()).then((d: { pipelines?: { _id: string; name: string; stages: { id: string; name: string; color: string; position: number }[] }[] }) => {
       const first = (d.pipelines ?? [])[0]
-      if (first) setGhlLeadsPipeline(first)
+      if (first) setGhlLeadsPipeline({ id: first._id, name: first.name, stages: first.stages.sort((a, b) => a.position - b.position) })
     }).catch(() => {})
   }, [])
 
@@ -323,43 +323,45 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
         const contactName = `${form.firstName} ${form.lastName}`.trim()
 
         if (mode === 'leads' && ghlLeadsPipeline) {
-          // Fixed Leads pipeline → first stage
-          const firstStageId = ghlLeadsPipeline.stages[0]?.id ?? ''
-          const res = await fetch('/api/opp', {
+          // Create contact in Convex CRM
+          const cRes = await fetch('/api/crm/contacts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contactName, email: form.email, phone,
-              company:         form.companyName,
-              pipelineId:      ghlLeadsPipeline.id,
-              pipelineStageId: firstStageId,
-              monetaryValue:   0,
-              source:          '',
-            }),
+            body: JSON.stringify({ firstName: form.firstName, lastName: form.lastName || undefined, email: form.email || undefined, phone: phone || undefined, companyName: form.companyName || undefined, source: inoutbound, statut: 'lead', canton: canton || undefined, tags: [] }),
           })
-          const data = await res.json().catch(() => ({})) as { opp?: Opportunity; error?: string }
-          if (!res.ok || data.error) throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
-          fetch('/api/contact/meta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ghl_contact_id: data.opp!.contactId, source: inoutbound }) }).catch(() => {})
+          const cData = await cRes.json().catch(() => ({})) as { contact?: { id: string; _id: string }; error?: string }
+          if (!cRes.ok || cData.error) throw new Error(cData.error ?? `Erreur ${cRes.status}`)
+          const contactId = cData.contact!._id ?? cData.contact!.id
+          const initials = contactName.trim().split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase() || '?'
+          const firstStageId = ghlLeadsPipeline.stages[0]?.id ?? ''
+          // Create lead in Convex
+          const lRes = await fetch('/api/crm/leads', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contactId, name: contactName, email: form.email || undefined, phone: phone || undefined, company: form.companyName || undefined, pipelineId: ghlLeadsPipeline.id, stageId: firstStageId, value: 0, source: inoutbound, initials }),
+          })
+          const lData = await lRes.json().catch(() => ({})) as { lead?: Opportunity; error?: string }
+          if (!lRes.ok || lData.error) throw new Error(lData.error ?? `Erreur ${lRes.status}`)
           const newContact: GHLContact = {
-            id: data.opp!.contactId, contactName,
+            id: contactId, contactName,
             firstName: form.firstName || null, lastName: form.lastName || null,
             email: form.email || null, phone: phone || null,
             companyName: form.companyName || null,
             dateAdded: new Date().toISOString(), dateUpdated: null, tags: [],
           }
           onAdd?.(newContact)
-          onAddOpp?.(data.opp!)
+          if (lData.lead) onAddOpp?.(lData.lead)
 
         } else if (mode === 'clients') {
-          // Fixed Clients pipeline → create GHL contact + persist to Convex pipeline_clients
-          const res = await fetch('/api/contact', {
+          // Create contact in Convex CRM
+          const cRes = await fetch('/api/crm/contacts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ firstName: form.firstName, lastName: form.lastName, email: form.email, phone, companyName: form.companyName }),
+            body: JSON.stringify({ firstName: form.firstName, lastName: form.lastName || undefined, email: form.email || undefined, phone: phone || undefined, companyName: form.companyName || undefined, source: 'inbound', statut: 'client', tags: [] }),
           })
-          const data = await res.json().catch(() => ({})) as { contact?: { id: string; dateAdded: string }; error?: string }
-          if (!res.ok || data.error) throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
-          const newId = data.contact!.id
+          const cData = await cRes.json().catch(() => ({})) as { contact?: { id: string; _id: string }; error?: string }
+          if (!cRes.ok || cData.error) throw new Error(cData.error ?? `Erreur ${cRes.status}`)
+          const newId = cData.contact!._id ?? cData.contact!.id
           const initials = contactName.trim().split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase() || '?'
           const dealVal = parseFloat(clientValue.replace(',', '.')) || 0
           fetch('/api/pipeline/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ghl_contact_id: newId, name: contactName, company: form.companyName || undefined, email: form.email || undefined, phone: phone || undefined, value: dealVal, stageId: 'nouveau-client', initials, createdAt: new Date().toISOString().split('T')[0] }) }).catch(() => {})
@@ -368,7 +370,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             firstName: form.firstName || null, lastName: form.lastName || null,
             email: form.email || null, phone: phone || null,
             companyName: form.companyName || null,
-            dateAdded: data.contact!.dateAdded, dateUpdated: null, tags: [],
+            dateAdded: new Date().toISOString(), dateUpdated: null, tags: [],
           }
           onAdd?.(newContact)
 

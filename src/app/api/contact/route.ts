@@ -1,86 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidateTag } from 'next/cache'
-import { getAuthContext } from '@/lib/auth-context'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from '../../../../convex/_generated/api'
 
-export async function GET(req: NextRequest) {
-  const ctx = await getAuthContext()
-  if (!ctx) { const { MOCK_CONTACTS } = await import('@/lib/mock-data'); return NextResponse.json({ contacts: MOCK_CONTACTS }) }
+export const dynamic = 'force-dynamic'
 
-  const { ghlApiKey: apiKey, ghlLocationId: locationId } = ctx
-  const baseUrl = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'
-
-  const q      = req.nextUrl.searchParams.get('q') ?? ''
-  const limit  = req.nextUrl.searchParams.get('limit') ?? '100'
-  let url = `${baseUrl}/contacts/?locationId=${locationId}&limit=${limit}`
-  if (q) url += `&query=${encodeURIComponent(q)}`
-
-  const res = await fetch(url, {
-    headers: {
-      Authorization:  `Bearer ${apiKey}`,
-      Version:        '2021-07-28',
-      'Content-Type': 'application/json',
-    },
-    cache: 'no-store',
-  })
-
-  if (!res.ok) return NextResponse.json({ contacts: [] }, { status: 200 })
-  const data = await res.json() as { contacts?: unknown[] }
-  return NextResponse.json({ contacts: data.contacts ?? [] })
+function convex() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) throw new Error('NEXT_PUBLIC_CONVEX_URL not set')
+  return new ConvexHttpClient(url)
 }
 
-const AI_AGENTS = ['kai', 'vividflow', 'mia'] as const
+export async function GET(req: NextRequest) {
+  try {
+    const c = convex()
+    const q = req.nextUrl.searchParams.get('q') ?? ''
+    const raw = await c.query(api.crm_contacts.list)
+    let contacts = (raw as { _id: string; firstName: string; lastName?: string; email?: string; phone?: string; companyName?: string; address1?: string; city?: string; postalCode?: string; website?: string; source?: string; statut?: string; canton?: string; tags: string[]; createdAt: string; updatedAt?: string }[])
+      .map(ct => ({
+        id:          ct._id,
+        contactName: `${ct.firstName} ${ct.lastName ?? ''}`.trim(),
+        firstName:   ct.firstName   || null,
+        lastName:    ct.lastName    || null,
+        email:       ct.email       || null,
+        phone:       ct.phone       || null,
+        companyName: ct.companyName || null,
+        address1:    ct.address1    || null,
+        city:        ct.city        || null,
+        postalCode:  ct.postalCode  || null,
+        website:     ct.website     || null,
+        source:      ct.source      || null,
+        tags:        ct.tags        ?? [],
+        dateAdded:   ct.createdAt,
+        dateUpdated: ct.updatedAt   || null,
+      }))
+    if (q) {
+      const lower = q.toLowerCase()
+      contacts = contacts.filter(c =>
+        `${c.contactName} ${c.email ?? ''} ${c.phone ?? ''} ${c.companyName ?? ''}`.toLowerCase().includes(lower)
+      )
+    }
+    return NextResponse.json({ contacts })
+  } catch (err) {
+    return NextResponse.json({ contacts: [], error: String(err) }, { status: 500 })
+  }
+}
 
 export async function POST(req: NextRequest) {
-  const ctx = await getAuthContext()
-  if (!ctx) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-
-  const { ghlApiKey: apiKey, ghlLocationId: locationId } = ctx
-  const baseUrl = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'
-
-  const { firstName, lastName, email, phone, companyName, createdBy, tags: extraTags } =
-    await req.json() as {
-      firstName:   string
-      lastName:    string
-      email:       string
-      phone:       string
-      companyName: string
-      createdBy?:  string
-      tags?:       string[]
+  try {
+    const body = await req.json() as {
+      firstName: string; lastName?: string; email?: string; phone?: string; companyName?: string
     }
-
-  const agentName = createdBy?.toLowerCase()
-  const isAiAgent = AI_AGENTS.includes(agentName as typeof AI_AGENTS[number])
-  const tags = [
-    ...(extraTags ?? []),
-    ...(isAiAgent ? ['ia', agentName!] : []),
-  ]
-
-  const res = await fetch(`${baseUrl}/contacts/`, {
-    method: 'POST',
-    headers: {
-      Authorization:  `Bearer ${apiKey}`,
-      Version:        '2021-07-28',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      locationId,
-      firstName:   firstName   || undefined,
-      lastName:    lastName    || undefined,
-      email:       email       || undefined,
-      phone:       phone       || undefined,
-      companyName: companyName || undefined,
-      tags:        tags.length ? tags : undefined,
-    }),
-    cache: 'no-store',
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    return NextResponse.json({ error: err }, { status: res.status })
+    const c = convex()
+    const id = await c.mutation(api.crm_contacts.create, {
+      firstName:   body.firstName,
+      lastName:    body.lastName   || undefined,
+      email:       body.email      || undefined,
+      phone:       body.phone      || undefined,
+      companyName: body.companyName || undefined,
+      tags:        [],
+    })
+    return NextResponse.json({ contact: { id, _id: id, dateAdded: new Date().toISOString() } })
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 })
   }
-
-  const data = await res.json() as { contact: { id: string; dateAdded: string } }
-  revalidateTag('ghl-contacts')
-  revalidateTag('ghl-opportunities')
-  return NextResponse.json({ contact: data.contact })
 }

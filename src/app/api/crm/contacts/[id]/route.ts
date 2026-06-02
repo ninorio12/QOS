@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ConvexHttpClient } from 'convex/browser'
-import { api } from '../../../../../convex/_generated/api'
-import { type Id } from '../../../../../convex/_generated/dataModel'
+import { api } from '../../../../../../convex/_generated/api'
+import { type Id } from '../../../../../../convex/_generated/dataModel'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,9 +13,9 @@ function convex() {
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const ct = await convex().query(api.crm_contacts.get, { id: params.id as Id<'crm_contacts'> })
-    if (!ct) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    return NextResponse.json({ contact: { ...ct, id: ct._id } })
+    const contact = await convex().query(api.crm_contacts.get, { id: params.id as Id<'crm_contacts'> })
+    if (!contact) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    return NextResponse.json({ contact: { ...contact, id: contact._id } })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
