@@ -33,7 +33,14 @@ export default async function PipelinePage() {
 
   try {
     const c = new ConvexHttpClient(url)
-    const rawPipelines = await c.mutation(api.pipeline_config.ensureDefaults)
+    // Use a QUERY (not the ensureDefaults mutation) — calling a mutation before
+    // a query on the same ConvexHttpClient can return stale/empty query results.
+    let rawPipelines = await c.query(api.pipeline_config.list)
+    if (!rawPipelines?.length) {
+      // First-ever load: create defaults with a fresh client, then re-query
+      await new ConvexHttpClient(url).mutation(api.pipeline_config.ensureDefaults)
+      rawPipelines = await new ConvexHttpClient(url).query(api.pipeline_config.list)
+    }
 
     const pipelines: GHLPipelineData[] = rawPipelines?.length
       ? (rawPipelines as { _id: string; name: string; stages: { id: string; name: string; color: string; position: number }[] }[]).map(p => ({
@@ -45,7 +52,7 @@ export default async function PipelinePage() {
         }))
       : [DEFAULT_PIPELINE]
 
-    const allLeads = await c.query(api.crm_leads.list)
+    const allLeads = await new ConvexHttpClient(url).query(api.crm_leads.list)
     const opportunities: Opportunity[] = (allLeads as {
       _id: string; name: string; email?: string; phone?: string; company?: string;
       pipelineId: string; stageId: string; value: number; source?: string;
