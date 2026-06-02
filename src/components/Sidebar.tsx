@@ -49,9 +49,7 @@ const ACQUISITION_PRE: NavItem[] = [
 const ACQUISITION_POST: NavItem[] = [
   { href: '/contacts',      icon: Users,           label: 'Contacts' },
   { href: '/onboarding',    icon: Rocket,          label: 'Onboarding' },
-  { href: '/devis',         icon: FileText,        label: 'Contrats' },
   { href: '/paiement',      icon: CreditCard,      label: 'Paiement' },
-  { href: '/conversations', icon: MessageSquare,   label: 'Conversations', also: ['/conversion'] },
   { href: '/calendrier',    icon: CalendarDays,    label: 'Calendrier' },
   { href: '/analyse',       icon: TrendingUp,      label: 'Analyse', also: ['/growth'] },
 ]

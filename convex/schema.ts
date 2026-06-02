@@ -195,6 +195,7 @@ export default defineSchema({
       uploadedAt: v.string(),
     })),
     form:       v.optional(v.any()),         // valeurs du formulaire onboarding (clés API, etc.)
+    contractGenerated: v.optional(v.boolean()), // contrat déjà généré au moins une fois
     kickoffEventId: v.optional(v.string()),
     updatedAt:  v.string(),
   }).index("by_contact", ["contactId"]),

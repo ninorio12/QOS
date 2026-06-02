@@ -18,6 +18,7 @@ import type * as devis from "../devis.js";
 import type * as files from "../files.js";
 import type * as lead_stage_history from "../lead_stage_history.js";
 import type * as onboarding from "../onboarding.js";
+import type * as paiement from "../paiement.js";
 import type * as pipeline_clients from "../pipeline_clients.js";
 import type * as pipeline_config from "../pipeline_config.js";
 import type * as seed from "../seed.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   files: typeof files;
   lead_stage_history: typeof lead_stage_history;
   onboarding: typeof onboarding;
+  paiement: typeof paiement;
   pipeline_clients: typeof pipeline_clients;
   pipeline_config: typeof pipeline_config;
   seed: typeof seed;

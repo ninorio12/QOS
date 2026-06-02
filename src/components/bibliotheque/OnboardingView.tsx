@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import {
@@ -53,6 +53,8 @@ function fmt(n: number) { return `${Math.round(n).toLocaleString('fr-FR')} €` 
 // ─── Main ─────────────────────────────────────────────────────
 export default function OnboardingView() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const targetContact = searchParams?.get('contact') ?? null
   const liveClients = useQuery(api.pipeline_clients.list)
   const [clients, setClients] = useState<ClientLite[]>([])
   const [selected, setSelected] = useState<string | null>(null)
@@ -61,8 +63,12 @@ export default function OnboardingView() {
     if (!liveClients) return
     const cs = (liveClients as (ClientLite & { _id: string })[]).map(c => ({ id: c._id, ghl_contact_id: c.ghl_contact_id, name: c.name, company: c.company, value: c.value }))
     setClients(cs)
-    setSelected(prev => prev ?? (cs.length ? (cs[0].ghl_contact_id ?? cs[0].id) : null))
-  }, [liveClients])
+    setSelected(prev => {
+      // Prefer the ?contact target if it matches a client
+      if (targetContact && cs.some(c => (c.ghl_contact_id ?? c.id) === targetContact)) return targetContact
+      return prev ?? (cs.length ? (cs[0].ghl_contact_id ?? cs[0].id) : null)
+    })
+  }, [liveClients, targetContact])
 
   const current = clients.find(c => (c.ghl_contact_id ?? c.id) === selected) ?? null
 
@@ -159,6 +165,7 @@ function ClientOnboarding({ client, contactId, router }: { client: ClientLite; c
         signed={doc?.signedContract}
         onPayment={p => save({ payment: p })}
         onSigned={s => save({ signedContract: s })}
+        onGenerated={() => save({ contractGenerated: true })}
       />
 
       <OnboardingForm
@@ -289,12 +296,13 @@ function SignedContractView({ signed, onReplace }: { signed: SignedContract; onR
   )
 }
 
-function ContractStep({ done, onToggle, client, full, payment, signed, onPayment, onSigned }: {
+function ContractStep({ done, onToggle, client, full, payment, signed, onPayment, onSigned, onGenerated }: {
   done: boolean; onToggle: (v: boolean) => void; client: ClientLite; full: FullContact | null
   payment?: { installments: number; amounts: number[] }
   signed?: SignedContract
   onPayment: (p: { installments: number; amounts: number[] }) => void
   onSigned: (s: SignedContract) => void
+  onGenerated: () => void
 }) {
   const genUploadUrl = useMutation(api.files.generateUploadUrl)
   const [busy, setBusy] = useState(false)
@@ -331,6 +339,7 @@ function ContractStep({ done, onToggle, client, full, payment, signed, onPayment
       if (preview) { window.open(url, '_blank') }
       else { const a = document.createElement('a'); a.href = url; a.download = `contrat-${client.name}.pdf`; a.click() }
       setTimeout(() => URL.revokeObjectURL(url), 10000)
+      onGenerated()
     } catch { /* ignore */ } finally { setBusy(false) }
   }
 

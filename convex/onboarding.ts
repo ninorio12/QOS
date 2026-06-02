@@ -77,6 +77,7 @@ export const patch = mutation({
     refunds:         v.optional(v.array(v.object({ amount: v.number(), date: v.string(), note: v.optional(v.string()) }))),
     signedContract:  v.optional(v.object({ fileName: v.string(), storageId: v.optional(v.string()), dataUrl: v.optional(v.string()), uploadedAt: v.string() })),
     form:            v.optional(v.any()),
+    contractGenerated: v.optional(v.boolean()),
     kickoffEventId:  v.optional(v.string()),
   },
   handler: async (ctx, args) => {

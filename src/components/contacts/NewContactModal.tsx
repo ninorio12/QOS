@@ -273,11 +273,39 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
   const isEdit = !!contact
   const router = useRouter()
 
+  function clientFullName() {
+    return contact?.contactName || `${contact?.firstName ?? ''} ${contact?.lastName ?? ''}`.trim()
+  }
+
   function goToModule(base: string) {
     if (!contact?.id) return
-    const name = contact.contactName || `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim()
     onClose()
-    router.push(`${base}?contact=${contact.id}&name=${encodeURIComponent(name)}`)
+    router.push(`${base}?contact=${contact.id}&name=${encodeURIComponent(clientFullName())}`)
+  }
+
+  // Contrat: open the generated PDF if it exists, else go to onboarding to generate it
+  async function openContract() {
+    if (!contact?.id) return
+    try {
+      const ob = await fetch(`/api/onboarding?contactId=${contact.id}`).then(r => r.json()) as { onboarding?: { contractGenerated?: boolean; payment?: { installments: number; amounts: number[] } } }
+      if (!ob.onboarding?.contractGenerated) { goToModule('/onboarding'); return }
+      const amounts = ob.onboarding.payment?.amounts ?? []
+      const amount  = amounts.reduce((s, a) => s + a, 0)
+      const res = await fetch('/api/onboarding/contract', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientName: clientFullName(), company: contact.companyName, address: contact.address1,
+          phone: contact.phone, email: contact.email, representant: clientFullName(),
+          amount, installments: ob.onboarding.payment?.installments ?? 1, amounts, currency: 'CHF', preview: true,
+        }),
+      })
+      if (!res.ok) { goToModule('/onboarding'); return }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 10000)
+      onClose()
+    } catch { goToModule('/onboarding') }
   }
 
   const parsedPhone = useMemo(() => parsePhone(contact?.phone ?? null), [contact?.phone])
@@ -642,11 +670,11 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                 <Section title="Suivi client" />
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { base: '/onboarding', label: 'Onboarding', Icon: ClipboardList, color: '#3462EE' },
-                    { base: '/paiement',   label: 'Paiement',   Icon: CreditCard,   color: '#10B981' },
-                    { base: '/devis',      label: 'Contrat',    Icon: FileText,     color: '#F97316' },
-                  ].map(({ base, label, Icon, color }) => (
-                    <button key={base} type="button" onClick={() => goToModule(base)}
+                    { label: 'Onboarding', Icon: ClipboardList, color: '#3462EE', action: () => goToModule('/onboarding') },
+                    { label: 'Paiement',   Icon: CreditCard,   color: '#10B981', action: () => goToModule('/paiement') },
+                    { label: 'Contrat',    Icon: FileText,     color: '#F97316', action: openContract },
+                  ].map(({ label, Icon, color, action }) => (
+                    <button key={label} type="button" onClick={action}
                       className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 border-soren-border hover:border-[#C8CBD0] transition-all"
                       style={{ background: '#F9F9F7' }}
                     >
