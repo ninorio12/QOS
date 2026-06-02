@@ -729,10 +729,6 @@ export default function DashboardClient({
             <span className="text-[10px] font-semibold text-[#FF4D00]/70">durant la période</span>
           </div>
           <div className="px-5 py-6 text-center text-[11px] text-soren-subtle">Connectez votre banque pour voir les paiements</div>
-          {false && (
-            <div className="overflow-x-auto">
-              <div />
-          )}
         </div>
 
         {/* Publicités investies */}
