@@ -59,8 +59,13 @@ function Avatar({ initials }: { initials: string }) {
 
 // ─── Opportunity Card ─────────────────────────────────────────
 function OppCard({ opp, isDragging = false, muted = false, hideValue = false }: { opp: Opportunity; isDragging?: boolean; muted?: boolean; hideValue?: boolean }) {
-  const color = SOURCE_COLORS[opp.source] ?? '#3462EE'
-  const date  = new Date(opp.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+  const date = new Date(opp.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+  const sourceType: 'inbound' | 'outbound' = (() => {
+    try {
+      const m = JSON.parse(localStorage.getItem('vividflow_contact_source') ?? '{}') as Record<string, string>
+      return (m[opp.contactId] as 'inbound' | 'outbound') ?? 'inbound'
+    } catch { return 'inbound' }
+  })()
 
   return (
     <div className={`
@@ -83,15 +88,10 @@ function OppCard({ opp, isDragging = false, muted = false, hideValue = false }: 
               {opp.value > 0 ? `€${opp.value.toLocaleString('fr-FR')}` : '—'}
             </span>
           )}
-          {(opp.source || opp.tags[0]) && (
-            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full truncate max-w-[64px]"
-              style={opp.source
-                ? { color, background: color + '15' }
-                : { color: '#6B7280', background: '#F3F4F6' }
-              }>
-              {opp.source || opp.tags[0]}
-            </span>
-          )}
+          {sourceType === 'inbound'
+            ? <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#DCFCE7', color: '#16A34A' }}>inbound</span>
+            : <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF9C3', color: '#CA8A04' }}>outbound</span>
+          }
         </div>
         <Avatar initials={opp.initials} />
       </div>
@@ -180,7 +180,7 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
           showLost
             ? 'bg-black/[0.02]'
             : isLastStage
-              ? isOver ? 'bg-[#D1FAE5] ring-1 ring-[#6EE7B7]' : 'bg-[#ECFDF5] ring-1 ring-[#A7F3D0]'
+              ? isOver ? 'bg-[#86EFAC] ring-2 ring-[#16A34A]' : 'bg-[#BBF7D0] ring-2 ring-[#22C55E]'
               : isOver ? 'bg-[#FF4D00]/10 ring-1 ring-[#FF4D00]/40' : 'bg-black/[0.04]'
         }`}
       >
