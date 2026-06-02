@@ -486,7 +486,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               <input value={form.companyName} onChange={set('companyName')} placeholder="Dupont Construction" className={inputCls} />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid gap-3 ${mode ? 'grid-cols-1' : 'grid-cols-2'}`}>
               <div>
                 <label className={labelCls}>Canton</label>
                 <select value={canton} onChange={e => setCanton(e.target.value)} className={inputCls}>
@@ -494,14 +494,16 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                   {['AG','AI','AR','BE','BL','BS','FR','GE','GL','GR','JU','LU','NE','NW','OW','SG','SH','SO','SZ','TG','TI','UR','VD','VS','ZG','ZH'].map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-              <div>
-                <label className={labelCls}>Statut</label>
-                <select value={statut} onChange={e => setStatut(e.target.value as 'lead' | 'client' | 'perdu')} className={inputCls}>
-                  <option value="lead">Lead</option>
-                  <option value="client">Client</option>
-                  <option value="perdu">Perdu</option>
-                </select>
-              </div>
+              {!mode && (
+                <div>
+                  <label className={labelCls}>Statut</label>
+                  <select value={statut} onChange={e => setStatut(e.target.value as 'lead' | 'client' | 'perdu')} className={inputCls}>
+                    <option value="lead">Lead</option>
+                    <option value="client">Client</option>
+                    <option value="perdu">Perdu</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             <div>
