@@ -180,7 +180,7 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
           showLost
             ? 'bg-black/[0.02]'
             : isLastStage
-              ? isOver ? 'bg-[#86EFAC] ring-2 ring-[#16A34A]' : 'bg-[#BBF7D0] ring-2 ring-[#22C55E]'
+              ? isOver ? 'bg-[#D1FAE5] ring-1 ring-[#6EE7B7]' : 'bg-[#F0FDF4] ring-1 ring-[#BBF7D0]'
               : isOver ? 'bg-[#FF4D00]/10 ring-1 ring-[#FF4D00]/40' : 'bg-black/[0.04]'
         }`}
       >
