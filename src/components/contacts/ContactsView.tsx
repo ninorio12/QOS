@@ -544,13 +544,6 @@ export default function ContactsView({
       {/* ── Filter bar ─────────────────────────────────────── */}
       <div className="relative z-10 px-6 pb-3 flex-shrink-0 flex items-center justify-between gap-4" style={{ animation: 'fadeSlideUp 400ms ease-out 70ms both' }}>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setFilterPipeline(v => !v)}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${filterPipeline ? 'bg-[#6366F1] text-white border-[#6366F1]' : 'bg-soren-card text-soren-muted border-soren-border hover:bg-soren-elevated'}`}
-          >
-            <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M1 2h14l-5 6v5l-4-2V8L1 2z"/></svg>
-            Dans le pipeline {filterPipeline && `(${filtered.length})`}
-          </button>
           {activeFilterCount > 0 && (
             <button onClick={() => setColFilters({})} className="flex items-center gap-1.5 text-xs font-semibold bg-[#FF4D00] text-white px-3 py-1.5 rounded-full transition-colors">
               <Filter size={11} />
