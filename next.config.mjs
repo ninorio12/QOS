@@ -12,9 +12,8 @@ const nextConfig = {
 
   experimental: {
     optimizePackageImports: ['lucide-react'],
+    serverComponentsExternalPackages: ['puppeteer', 'puppeteer-core', '@sparticuz/chromium'],
   },
-
-  serverExternalPackages: ['puppeteer'],
 
   webpack: (config, { dev }) => {
     if (dev) {
