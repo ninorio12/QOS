@@ -282,10 +282,16 @@ export default function ContactsView({
   const router = useRouter()
   const tableRef = useRef<HTMLDivElement>(null)
   const { toasts, toast, dismiss } = useToast()
+  // Persisted filter state (survives navigation until explicitly cleared)
+  const readSaved = () => {
+    if (typeof window === 'undefined') return null
+    try { return JSON.parse(localStorage.getItem('vividflow_contacts_filters') ?? 'null') as { query?: string; sortCol?: string | null; sortDir?: 'asc'|'desc'; colFilters?: ColFilter; filterPipeline?: boolean } | null } catch { return null }
+  }
+
   const [contacts,     setContacts]     = useState<GHLContact[]>(initial)
   const [checked,      setChecked]      = useState<Set<string>>(new Set())
-  const [query,          setQuery]          = useState('')
-  const [debouncedQuery, setDebouncedQuery] = useState('')
+  const [query,          setQuery]          = useState(() => readSaved()?.query ?? '')
+  const [debouncedQuery, setDebouncedQuery] = useState(() => readSaved()?.query ?? '')
 
   useEffect(() => {
     void refreshContacts()
@@ -299,14 +305,21 @@ export default function ContactsView({
 
   const [showImport,    setShowImport]    = useState(false)
   const [allChecked,    setAllChecked]    = useState(false)
-  const [sortCol,       setSortCol]       = useState<string|null>(null)
-  const [sortDir,       setSortDir]       = useState<'asc'|'desc'>('asc')
+  const [sortCol,       setSortCol]       = useState<string|null>(() => readSaved()?.sortCol ?? null)
+  const [sortDir,       setSortDir]       = useState<'asc'|'desc'>(() => readSaved()?.sortDir ?? 'asc')
   const [showFieldsMenu, setShowFieldsMenu] = useState(false)
   const [visibleCols,   setVisibleCols]  = useState<Set<ColName>>(new Set(ALL_COLS))
-  const [colFilters,    setColFilters]   = useState<ColFilter>({})
-  const [filterPipeline, setFilterPipeline] = useState(false)
+  const [colFilters,    setColFilters]   = useState<ColFilter>(() => readSaved()?.colFilters ?? {})
+  const [filterPipeline, setFilterPipeline] = useState(() => readSaved()?.filterPipeline ?? false)
   const [page,          setPage]          = useState(1)
   const PER_PAGE = 30
+
+  // Persist filters whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('vividflow_contacts_filters', JSON.stringify({ query, sortCol, sortDir, colFilters, filterPipeline }))
+    } catch {}
+  }, [query, sortCol, sortDir, colFilters, filterPipeline])
 
   const [sourceMap, setSourceMap] = useState<Map<string, SourceVal>>(new Map())
   const [statutMap, setStatutMap] = useState<Map<string, 'lead' | 'client' | 'perdu'>>(new Map())
