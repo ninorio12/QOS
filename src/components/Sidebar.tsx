@@ -8,7 +8,7 @@ import {
   LayoutDashboard, GitMerge, Users, MessageSquare, CalendarDays,
   TrendingUp, BotMessageSquare, CheckSquare,
   ScrollText, Database, Wallet, Settings, LogOut, GitBranch, FileText,
-  Radio, ChevronDown, Library, FolderOpen, HardDrive, ListChecks, Users2, CreditCard,
+  Radio, ChevronDown, Library, FolderOpen, HardDrive, ListChecks, Users2, CreditCard, Rocket,
 } from 'lucide-react'
 import Image from 'next/image'
 import { logout } from '@/app/login/actions'
@@ -48,7 +48,7 @@ const ACQUISITION_PRE: NavItem[] = [
 
 const ACQUISITION_POST: NavItem[] = [
   { href: '/contacts',      icon: Users,           label: 'Contacts' },
-  { href: '/onboarding',    icon: Users2,          label: 'Onboarding' },
+  { href: '/onboarding',    icon: Rocket,          label: 'Onboarding' },
   { href: '/devis',         icon: FileText,        label: 'Contrats' },
   { href: '/paiement',      icon: CreditCard,      label: 'Paiement' },
   { href: '/conversations', icon: MessageSquare,   label: 'Conversations', also: ['/conversion'] },

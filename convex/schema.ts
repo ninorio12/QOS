@@ -177,6 +177,24 @@ export default defineSchema({
     .index("by_stage", ["stageId"])
     .index("by_created", ["createdAt"]),
 
+  // Onboarding — 1 row par client (process d'onboarding persisté)
+  onboarding: defineTable({
+    contactId:  v.string(),                 // crm_contacts _id
+    tasks:      v.optional(v.any()),         // { contractSent, formSent, kickoffPlanned, ... } booleans
+    payment:    v.optional(v.object({       // split du montant
+      installments: v.number(),             // 1, 2, 3...
+      amounts:      v.array(v.number()),    // montant par échéance
+    })),
+    signedContract: v.optional(v.object({   // contrat signé uploadé
+      fileName:   v.string(),
+      dataUrl:    v.string(),               // base64 data URL
+      uploadedAt: v.string(),
+    })),
+    form:       v.optional(v.any()),         // valeurs du formulaire onboarding (clés API, etc.)
+    kickoffEventId: v.optional(v.string()),
+    updatedAt:  v.string(),
+  }).index("by_contact", ["contactId"]),
+
   // Métadonnées contacts — remplace localStorage vividflow_contact_source/canton/statut
   contact_meta: defineTable({
     ghl_contact_id: v.string(),
