@@ -177,7 +177,7 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
           showLost
             ? 'bg-black/[0.02]'
             : isLastStage
-              ? isOver ? 'bg-[#10B981]/50 ring-2 ring-[#10B981]' : 'bg-[#10B981]/25 ring-2 ring-[#10B981]/60'
+              ? isOver ? 'bg-[#D1FAE5] ring-1 ring-[#6EE7B7]' : 'bg-[#ECFDF5] ring-1 ring-[#A7F3D0]'
               : isOver ? 'bg-[#FF4D00]/10 ring-1 ring-[#FF4D00]/40' : 'bg-black/[0.04]'
         }`}
       >
@@ -208,7 +208,7 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
           </SortableContext>
         )}
 
-        {!showLost && <LostZone stageId={stage.id} isOver={isLostOver} />}
+        {!showLost && !isLastStage && <LostZone stageId={stage.id} isOver={isLostOver} />}
       </div>
     </div>
   )
