@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import {
   DndContext,
   DragOverlay,
@@ -157,7 +157,6 @@ interface KanbanColumnProps {
 
 function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, isLostOver, isLastStage }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id: stage.id })
-  const total = opps.reduce((sum, o) => sum + o.value, 0)
 
   return (
     <div className="flex flex-col w-56 flex-shrink-0 h-full">
@@ -182,7 +181,7 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
         }`}
       >
         {showLost ? (
-          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5">
+          <div className="flex-1 min-h-0 overflow-y-auto kanban-col flex flex-col gap-1.5">
             {opps.length === 0 ? (
               <div className="h-full flex items-center justify-center">
                 <p className="text-[11px] text-soren-subtle">Aucun perdu</p>
@@ -251,7 +250,6 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   const [lostOpps,       setLostOpps]       = useState<Opportunity[]>([])
   const [showLost,       setShowLost]       = useState(false)
   const [selectedOpp,    setSelectedOpp]    = useState<Opportunity | null>(null)
-  const router       = useRouter()
   const searchParams = useSearchParams()
   const wasDragged = useRef(false)
   const { toasts, toast, dismiss } = useToast()
@@ -415,12 +413,20 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     // Dropped on lost zone
     if (overId.startsWith(LOST_PREFIX)) {
       const targetStageId = overId.slice(LOST_PREFIX.length)
+      const lostOpp = { ...activeOpp, stageId: targetStageId, status: 'lost' as const }
       setOpps(prev => prev.filter(o => o.id !== activeId))
-      setLostOpps(prev => [
-        ...prev.filter(o => o.id !== activeId),
-        { ...activeOpp, stageId: targetStageId, status: 'lost' as const },
-      ])
+      setLostOpps(prev => [...prev.filter(o => o.id !== activeId), lostOpp])
       toast('Lead marqué comme perdu', 'success')
+      fetch(`/api/opp/${activeId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'lost' }),
+      }).catch(() => {
+        // Revert on failure
+        setLostOpps(prev => prev.filter(o => o.id !== activeId))
+        setOpps(prev => [activeOpp, ...prev])
+        toast('Erreur — statut non sauvegardé', 'error')
+      })
       return
     }
 
@@ -600,7 +606,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
                 key={stage.id}
                 stage={stage}
                 opps={getColOpps(stage.id)}
-                isOver={!showLost && overId === stage.id}
+                isOver={!showLost && (overId === stage.id || (i === stages.length - 1 && opps.some(o => o.id === overId && o.stageId === stage.id)))}
                 onCardClick={opp => setSelectedOpp(opp)}
                 wasDragged={wasDragged}
                 showLost={showLost}
