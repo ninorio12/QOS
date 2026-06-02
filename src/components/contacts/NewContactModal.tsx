@@ -211,8 +211,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
 
   useEffect(() => {
     fetch('/api/pipelines').then(r => r.json()).then((d: { pipelines?: GHLPipelineData[] }) => {
-      const all = d.pipelines ?? []
-      setPipelines(all.filter(p => classifyPipeline(p.name) !== 'reception'))
+      setPipelines(d.pipelines ?? [])
     }).catch(() => {})
   }, [isEdit])
 
