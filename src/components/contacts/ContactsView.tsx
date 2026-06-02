@@ -23,6 +23,15 @@ const SWISS_CANTONS = [
   'TI','UR','VD','VS','ZG','ZH',
 ]
 
+const CANTON_NAMES: Record<string, string> = {
+  AG: 'Argovie', AI: 'Appenzell Rh.-Int.', AR: 'Appenzell Rh.-Ext.', BE: 'Berne',
+  BL: 'Bâle-Campagne', BS: 'Bâle-Ville', FR: 'Fribourg', GE: 'Genève', GL: 'Glaris',
+  GR: 'Grisons', JU: 'Jura', LU: 'Lucerne', NE: 'Neuchâtel', NW: 'Nidwald',
+  OW: 'Obwald', SG: 'Saint-Gall', SH: 'Schaffhouse', SO: 'Soleure', SZ: 'Schwytz',
+  TG: 'Thurgovie', TI: 'Tessin', UR: 'Uri', VD: 'Vaud', VS: 'Valais', ZG: 'Zoug', ZH: 'Zurich',
+}
+const cantonName = (code: string | null) => code ? (CANTON_NAMES[code] ?? code) : code
+
 // ─── Avatar ────────────────────────────────────────────────────
 function Avatar({ contact }: { contact: GHLContact }) {
   const rawName  = contact.contactName || `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim()
@@ -85,7 +94,7 @@ function CantonBadge({ value, onClick }: { value: string | null; onClick: (e: Re
   )
   return (
     <span onClick={onClick} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap cursor-pointer select-none hover:opacity-80 transition-opacity" style={{ background: '#EFF6FF', color: '#2563EB', border: '1px solid #BFDBFE' }}>
-      {value}
+      {cantonName(value)}
     </span>
   )
 }
@@ -94,15 +103,14 @@ function CantonBadge({ value, onClick }: { value: string | null; onClick: (e: Re
 function CantonPicker({ onSelect, onClose }: { onSelect: (c: string | null) => void; onClose: () => void }) {
   const ref = useClickOutside<HTMLDivElement>(onClose)
   return (
-    <div ref={ref} className="absolute z-30 top-full left-0 mt-1 bg-white border border-soren-border rounded-xl shadow-lg p-2 w-48" onClick={e => e.stopPropagation()}>
-      <div className="grid grid-cols-4 gap-1">
-        {SWISS_CANTONS.map(c => (
-          <button key={c} onClick={() => { onSelect(c); onClose() }} className="text-[10px] font-semibold px-1.5 py-1 rounded-lg hover:bg-[#EFF6FF] hover:text-[#2563EB] transition-colors text-[#374151]">
-            {c}
-          </button>
-        ))}
-      </div>
-      <button onClick={() => { onSelect(null); onClose() }} className="mt-1 w-full text-[10px] text-[#9CA3AF] hover:text-red-500 py-1">
+    <div ref={ref} className="absolute z-30 top-full left-0 mt-1 bg-white border border-soren-border rounded-xl shadow-lg p-1 w-52 max-h-64 overflow-y-auto" onClick={e => e.stopPropagation()}>
+      {SWISS_CANTONS.map(c => (
+        <button key={c} onClick={() => { onSelect(c); onClose() }} className="w-full text-left text-[11px] font-medium px-2.5 py-1.5 rounded-lg hover:bg-[#EFF6FF] hover:text-[#2563EB] transition-colors text-[#374151] flex items-center justify-between">
+          <span>{CANTON_NAMES[c]}</span>
+          <span className="text-[9px] text-[#9CA3AF]">{c}</span>
+        </button>
+      ))}
+      <button onClick={() => { onSelect(null); onClose() }} className="mt-1 w-full text-[10px] text-[#9CA3AF] hover:text-red-500 py-1.5 border-t border-soren-border">
         Effacer
       </button>
     </div>

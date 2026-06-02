@@ -572,7 +572,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               <label className={labelCls}>Canton</label>
               <select value={canton} onChange={e => setCanton(e.target.value)} className={inputCls}>
                 <option value="">— Choisir —</option>
-                {['AG','AI','AR','BE','BL','BS','FR','GE','GL','GR','JU','LU','NE','NW','OW','SG','SH','SO','SZ','TG','TI','UR','VD','VS','ZG','ZH'].map(c => <option key={c} value={c}>{c}</option>)}
+                {Object.entries({AG:'Argovie',AI:'Appenzell Rh.-Int.',AR:'Appenzell Rh.-Ext.',BE:'Berne',BL:'Bâle-Campagne',BS:'Bâle-Ville',FR:'Fribourg',GE:'Genève',GL:'Glaris',GR:'Grisons',JU:'Jura',LU:'Lucerne',NE:'Neuchâtel',NW:'Nidwald',OW:'Obwald',SG:'Saint-Gall',SH:'Schaffhouse',SO:'Soleure',SZ:'Schwytz',TG:'Thurgovie',TI:'Tessin',UR:'Uri',VD:'Vaud',VS:'Valais',ZG:'Zoug',ZH:'Zurich'}).map(([code, name]) => <option key={code} value={code}>{name}</option>)}
               </select>
             </div>
 
