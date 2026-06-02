@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useClickOutside } from '@/hooks/useClickOutside'
 import { Search, Download, SlidersHorizontal, ArrowUpDown, Settings2, Check, ChevronDown, FileSpreadsheet, Trash2, RefreshCw, Filter } from 'lucide-react'
 import { type GHLContact } from '@/lib/ghl'
@@ -266,8 +266,7 @@ export default function ContactsView({
   contacts:     GHLContact[]
   attributions: Map<string, string>
 }) {
-  const router       = useRouter()
-  const searchParams = useSearchParams()
+  const router = useRouter()
   const tableRef = useRef<HTMLDivElement>(null)
   const { toasts, toast, dismiss } = useToast()
   const [contacts,     setContacts]     = useState<GHLContact[]>(initial)

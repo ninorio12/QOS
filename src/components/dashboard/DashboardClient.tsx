@@ -728,36 +728,10 @@ export default function DashboardClient({
             <span className="font-jakarta text-[12px] font-semibold text-soren-text">Paiements encaissés</span>
             <span className="text-[10px] font-semibold text-[#FF4D00]/70">durant la période</span>
           </div>
-          {filteredPayments.length === 0 ? (
-            <div className="px-5 py-6 text-center text-[11px] text-soren-subtle">Aucun paiement sur la période</div>
-          ) : (
+          <div className="px-5 py-6 text-center text-[11px] text-soren-subtle">Connectez votre banque pour voir les paiements</div>
+          {false && (
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-soren-border/60">
-                    {['DATE', 'CLIENT', 'ENTREPRISE', 'MONTANT', 'DESCRIPTION', 'STATUT'].map(h => (
-                      <th key={h} className="px-4 py-2 text-left text-[9px] font-semibold text-soren-subtle tracking-wider">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredPayments.map((p, i) => (
-                    <tr key={i} className="border-b border-soren-border/40 hover:bg-soren-elevated/50 transition-colors">
-                      <td className="px-4 py-2 text-[11px] text-soren-muted whitespace-nowrap">
-                        {new Date(p.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </td>
-                      <td className="px-4 py-2 text-[11px] font-medium text-soren-text whitespace-nowrap">{p.client}</td>
-                      <td className="px-4 py-2 text-[11px] text-soren-muted whitespace-nowrap">{p.entreprise}</td>
-                      <td className="px-4 py-2 text-[12px] font-bold text-[#FF4D00] whitespace-nowrap">{fmt(p.montant)}</td>
-                      <td className="px-4 py-2 text-[11px] text-soren-muted max-w-[160px] truncate">{p.description}</td>
-                      <td className="px-4 py-2">
-                        <span className="text-[10px] font-semibold text-[#22c55e] bg-[#22c55e]/10 px-2 py-0.5 rounded-full">{p.statut}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+              <div />
           )}
         </div>
 
