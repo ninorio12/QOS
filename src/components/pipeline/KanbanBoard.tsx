@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   DndContext,
@@ -57,7 +58,7 @@ function Avatar({ initials }: { initials: string }) {
 }
 
 // ─── Opportunity Card ─────────────────────────────────────────
-function OppCard({ opp, isDragging = false, muted = false }: { opp: Opportunity; isDragging?: boolean; muted?: boolean }) {
+function OppCard({ opp, isDragging = false, muted = false, hideValue = false }: { opp: Opportunity; isDragging?: boolean; muted?: boolean; hideValue?: boolean }) {
   const color = SOURCE_COLORS[opp.source] ?? '#3462EE'
   const date  = new Date(opp.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
 
@@ -77,9 +78,11 @@ function OppCard({ opp, isDragging = false, muted = false }: { opp: Opportunity;
       </div>
       <div className="flex items-center justify-between gap-1 min-w-0">
         <div className="flex items-center gap-1 min-w-0 overflow-hidden">
-          <span className="text-xs font-bold text-soren-text shrink-0">
-            {opp.value > 0 ? `€${opp.value.toLocaleString('fr-FR')}` : '—'}
-          </span>
+          {!hideValue && (
+            <span className="text-xs font-bold text-soren-text shrink-0">
+              {opp.value > 0 ? `€${opp.value.toLocaleString('fr-FR')}` : '—'}
+            </span>
+          )}
           {(opp.source || opp.tags[0]) && (
             <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full truncate max-w-[64px]"
               style={opp.source
@@ -97,7 +100,7 @@ function OppCard({ opp, isDragging = false, muted = false }: { opp: Opportunity;
 }
 
 // ─── Sortable Card ────────────────────────────────────────────
-function SortableCard({ opp, onCardClick, wasDragged }: { opp: Opportunity; onCardClick: () => void; wasDragged: React.MutableRefObject<boolean> }) {
+function SortableCard({ opp, onCardClick, wasDragged }: { opp: Opportunity; onCardClick: () => void; wasDragged: React.MutableRefObject<boolean>; }) {
   const { attributes, listeners, setNodeRef, isDragging, transform, transition } = useSortable({
     id: opp.id,
     transition: { duration: 200, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' },
@@ -114,7 +117,7 @@ function SortableCard({ opp, onCardClick, wasDragged }: { opp: Opportunity; onCa
         transition,
       }}
     >
-      <OppCard opp={opp} />
+      <OppCard opp={opp} hideValue />
     </div>
   )
 }
@@ -293,8 +296,10 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     }
   }, [toast])
 
-  const [activeId,    setActiveId]    = useState<string | null>(null)
-  const [overId,      setOverId]      = useState<string | null>(null)
+  const [activeId,          setActiveId]          = useState<string | null>(null)
+  const [overId,            setOverId]            = useState<string | null>(null)
+  const [pendingConversion, setPendingConversion] = useState<Opportunity | null>(null)
+  const [dealValue,         setDealValue]         = useState('')
   const [pipelineIdx, setPipelineIdx] = useState(() => {
     const pid = searchParams.get('pipelineId')
     if (!pid) return 0
@@ -421,22 +426,9 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     if (targetStage) {
       const isLast = stages[stages.length - 1]?.id === targetStage.id
       if (isLast) {
-        // Move to Clients pipeline via localStorage
         setOpps(prev => prev.filter(o => o.id !== activeId))
-        try {
-          const existing = JSON.parse(localStorage.getItem('vividflow_clients') ?? '[]') as unknown[]
-          const newClient = {
-            id:        activeOpp.id,
-            name:      activeOpp.name,
-            company:   activeOpp.company,
-            value:     activeOpp.value,
-            createdAt: activeOpp.createdAt,
-            initials:  activeOpp.initials,
-            stageId:   'nouveau-client',
-          }
-          localStorage.setItem('vividflow_clients', JSON.stringify([newClient, ...existing]))
-        } catch {}
-        toast('Lead converti → Pipeline Clients', 'success')
+        setPendingConversion(activeOpp)
+        setDealValue('')
         return
       }
       if (activeOpp.stageId !== targetStage.id) {
@@ -472,6 +464,33 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
       })
       persistStageMove(activeId, overOpp.stageId, prevStageId)
     }
+  }
+
+  function confirmConversion() {
+    if (!pendingConversion) return
+    try {
+      const existing = JSON.parse(localStorage.getItem('vividflow_clients') ?? '[]') as unknown[]
+      const newClient = {
+        id:        pendingConversion.id,
+        name:      pendingConversion.name,
+        company:   pendingConversion.company,
+        value:     parseFloat(dealValue.replace(',', '.')) || 0,
+        createdAt: pendingConversion.createdAt,
+        initials:  pendingConversion.initials,
+        stageId:   'nouveau-client',
+      }
+      localStorage.setItem('vividflow_clients', JSON.stringify([newClient, ...existing]))
+    } catch {}
+    toast('Deal clôturé — bienvenue au client !', 'success')
+    setPendingConversion(null)
+    setDealValue('')
+  }
+
+  function cancelConversion() {
+    if (!pendingConversion) return
+    setOpps(prev => [pendingConversion, ...prev])
+    setPendingConversion(null)
+    setDealValue('')
   }
 
   function handleAddOpp(lead: Opportunity | Lead) {
@@ -584,9 +603,53 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
         {!showLost && <TrashZone visible={!!activeId} isOver={overId === TRASH_ID} />}
 
         <DragOverlay dropAnimation={dropAnimation}>
-          {activeOpp && <OppCard opp={activeOpp} isDragging />}
+          {activeOpp && <OppCard opp={activeOpp} isDragging hideValue />}
         </DragOverlay>
       </DndContext>
+
+      {pendingConversion && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={cancelConversion} />
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-7 flex flex-col items-center gap-4 text-center">
+            <div className="text-4xl">🎉</div>
+            <div>
+              <h2 className="text-lg font-black text-[#111]">Félicitations !</h2>
+              <p className="text-sm text-[#6B7280] mt-1">
+                <span className="font-semibold text-[#111]">{pendingConversion.name}</span> devient client !
+              </p>
+            </div>
+            <div className="w-full">
+              <label className="block text-xs font-semibold text-[#374151] mb-2 text-left">Montant du deal (€)</label>
+              <input
+                autoFocus
+                type="number"
+                placeholder="ex: 3500"
+                value={dealValue}
+                onChange={e => setDealValue(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && confirmConversion()}
+                className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-3 text-lg font-bold text-[#111] placeholder-[#D1D5DB] outline-none focus:ring-2 focus:ring-[#10B981]/40 focus:border-[#10B981] transition-all text-center"
+              />
+            </div>
+            <div className="flex gap-2 w-full">
+              <button
+                type="button"
+                onClick={cancelConversion}
+                className="flex-1 py-2.5 rounded-full border border-[#E5E7EB] text-sm text-[#6B7280] hover:bg-[#F9FAFB] transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={confirmConversion}
+                className="flex-1 py-2.5 rounded-full bg-[#10B981] hover:bg-[#059669] text-white text-sm font-bold transition-colors shadow-sm"
+              >
+                Confirmer le deal
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }
