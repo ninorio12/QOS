@@ -9,8 +9,8 @@ import { type GHLPipelineData, type Opportunity } from '@/components/pipeline/ty
 import { type ContactPipelineInfo } from '@/app/contacts/page'
 import { fetchJSON } from '@/lib/fetchJSON'
 
-const inputCls = 'w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all'
-const labelCls = 'block text-xs font-medium text-soren-muted mb-1.5'
+const inputCls = 'w-full bg-soren-elevated border-0 rounded-xl px-3 py-2 text-[12px] text-soren-text placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all'
+const labelCls = 'block text-[11px] font-medium text-soren-muted mb-1'
 
 // ─── Pays ──────────────────────────────────────────────────────
 const COUNTRIES = [
@@ -206,7 +206,7 @@ function Combobox({
       <button
         type="button"
         onClick={() => { setOpen(o => !o); setQuery('') }}
-        className="w-full bg-soren-elevated rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all flex items-center justify-between gap-2"
+        className="w-full bg-soren-elevated rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all flex items-center justify-between gap-2"
       >
         <span className={value ? 'text-soren-text' : 'text-soren-subtle'}>{value || placeholder}</span>
         <ChevronDown size={13} className={`text-soren-subtle transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -232,14 +232,14 @@ function Combobox({
             )}
             {filtered.map(o => (
               <button key={o} type="button" onClick={() => { onChange(o); setOpen(false) }}
-                className="w-full text-left flex items-center justify-between px-4 py-2 text-sm text-soren-text hover:bg-soren-elevated">
+                className="w-full text-left flex items-center justify-between px-4 py-2 text-[12px] text-soren-text hover:bg-soren-elevated">
                 {o}
                 {o === value && <Check size={13} className="text-[#3462EE]" />}
               </button>
             ))}
             {canCreate && (
               <button type="button" onClick={() => { onChange(query.trim()); setOpen(false) }}
-                className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-[#3462EE] font-semibold hover:bg-soren-elevated border-t border-soren-border">
+                className="w-full text-left flex items-center gap-2 px-4 py-2 text-[12px] text-[#3462EE] font-semibold hover:bg-soren-elevated border-t border-soren-border">
                 <Plus size={13} /> Créer « {query.trim()} »
               </button>
             )}
@@ -533,7 +533,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               <div className="flex gap-2">
                 <div className="relative flex-shrink-0">
                   <button type="button" onClick={() => setShowCountry(s => !s)}
-                    className="flex items-center gap-1.5 bg-soren-elevated rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 whitespace-nowrap">
+                    className="flex items-center gap-1.5 bg-soren-elevated rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 whitespace-nowrap">
                     <span>{selectedCountry.flag}</span>
                     <span className="font-medium text-soren-text">{selectedCountry.dial}</span>
                     <ChevronDown size={12} className={`text-soren-subtle transition-transform ${showCountry ? 'rotate-180' : ''}`} />
@@ -550,7 +550,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                         {filteredCountries.map(c => (
                           <button key={c.code} type="button"
                             onClick={() => { setCountryCode(c.code); setShowCountry(false); setCountrySearch('') }}
-                            className={`w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-soren-elevated ${c.code === countryCode ? 'bg-[#F0F0EC]' : ''}`}>
+                            className={`w-full text-left flex items-center gap-2.5 px-4 py-2 text-[12px] transition-colors hover:bg-soren-elevated ${c.code === countryCode ? 'bg-[#F0F0EC]' : ''}`}>
                             <span>{c.flag}</span>
                             <span className="flex-1 text-soren-text text-xs">{c.name}</span>
                             <span className="text-soren-subtle text-xs flex-shrink-0">{c.dial}</span>
