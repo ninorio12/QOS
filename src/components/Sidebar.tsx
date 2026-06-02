@@ -1,14 +1,14 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSWRConfig } from 'swr'
 import {
   LayoutDashboard, GitMerge, Users, MessageSquare, CalendarDays,
   TrendingUp, BotMessageSquare, CheckSquare,
   ScrollText, Database, Wallet, Settings, LogOut, GitBranch, FileText,
-  ServerCog, Radio,
+  Radio, ChevronDown, Library, FolderOpen, HardDrive, ListChecks, Users2,
 } from 'lucide-react'
 import Image from 'next/image'
 import { logout } from '@/app/login/actions'
@@ -42,23 +42,31 @@ const prefetchFetcher = async (url: string) => {
   }
 }
 
-const ACQUISITION: NavItem[] = [
+const ACQUISITION_PRE: NavItem[] = [
   { href: '/dashboard',     icon: LayoutDashboard, label: 'Tableau de bord' },
-  { href: '/pipeline',      icon: GitMerge,        label: 'Pipeline' },
+]
+
+const ACQUISITION_POST: NavItem[] = [
   { href: '/contacts',      icon: Users,           label: 'Contacts' },
   { href: '/conversations', icon: MessageSquare,   label: 'Conversations', also: ['/conversion'] },
-  { href: '/devis',         icon: FileText,        label: 'Devis' },
+  { href: '/devis',         icon: FileText,        label: 'Contrats' },
   { href: '/calendrier',    icon: CalendarDays,    label: 'Calendrier' },
   { href: '/analyse',       icon: TrendingUp,      label: 'Analyse', also: ['/growth'] },
 ]
 
+const BIBLIOTHEQUES: NavItem[] = [
+  { href: '/bibliotheque/projets',    icon: Library,     label: 'Projets'    },
+  { href: '/bibliotheque/data',       icon: HardDrive,   label: 'Data'       },
+  { href: '/bibliotheque/records',    icon: FolderOpen,  label: 'Records'    },
+  { href: '/bibliotheque/process',    icon: ListChecks,  label: 'Process'    },
+  { href: '/bibliotheque/onboarding', icon: Users2,      label: 'Onboarding' },
+]
+
 const AGENTIQUE: NavItem[] = [
-  { href: '/cockpit',       icon: ServerCog,        label: 'Cockpit Hermes' },
-  { href: '/equipe',        icon: BotMessageSquare, label: 'Équipe IA' },
+{ href: '/equipe',        icon: BotMessageSquare, label: 'Équipe IA' },
   { href: '/taches',        icon: CheckSquare,      label: 'Tâches' },
   { href: '/logs',          icon: ScrollText,       label: 'Activités' },
   { href: '/knowledge',     icon: Database,         label: 'Base de connaissance' },
-  { href: '/communication', icon: Radio,            label: 'Communication' },
 ]
 
 const CONFIGURATION: NavItem[] = [
@@ -78,6 +86,7 @@ function SectionLabel({ label }: { label: string }) {
 function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   const { href, icon: Icon, label, also = [] } = item
   const { mutate, cache } = useSWRConfig()
+  const router = useRouter()
   const active =
     pathname === href ||
     (href !== '/dashboard' && pathname.startsWith(href)) ||
@@ -90,10 +99,18 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
     void mutate(endpoint, prefetchFetcher(endpoint))
   }
 
+  function handleClick(e: React.MouseEvent) {
+    if (active) {
+      e.preventDefault()
+      router.refresh()
+    }
+  }
+
   return (
     <Link
       href={href}
       onMouseEnter={handleMouseEnter}
+      onClick={handleClick}
       className={`
         flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-150
         ${active
@@ -108,8 +125,140 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   )
 }
 
+function BibliothequeNav({ pathname }: { pathname: string }) {
+  const onBiblio = pathname.startsWith('/bibliotheque')
+  const projetsActive = onBiblio && !pathname.startsWith('/bibliotheque/data') && !pathname.startsWith('/bibliotheque/records') && !pathname.startsWith('/bibliotheque/process') && !pathname.startsWith('/bibliotheque/onboarding')
+  const dataActive    = pathname.startsWith('/bibliotheque/data')
+  const recordsActive = pathname.startsWith('/bibliotheque/records')
+
+  const processActive  = pathname.startsWith('/bibliotheque/process')
+  const onboardActive  = pathname.startsWith('/bibliotheque/onboarding')
+
+  const SUBS = [
+    { href: '/bibliotheque/projets',    label: 'Projets',    active: projetsActive },
+    { href: '/bibliotheque/data',       label: 'Data',       active: dataActive    },
+    { href: '/bibliotheque/records',    label: 'Records',    active: recordsActive },
+    { href: '/bibliotheque/process',    label: 'Process',    active: processActive },
+    { href: '/bibliotheque/onboarding', label: 'Onboarding', active: onboardActive },
+  ]
+
+  return (
+    <>
+      <Link
+        href="/bibliotheque/projets"
+        className={`
+          flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-150
+          ${onBiblio
+            ? 'bg-[#FF4D00] text-white shadow-sm'
+            : 'text-white/50 hover:text-white/90 hover:bg-soren-card/8'
+          }
+        `}
+      >
+        <Library size={13} strokeWidth={onBiblio ? 2.5 : 1.8} className="flex-shrink-0" />
+        <span className={`text-[12px] truncate flex-1 ${onBiblio ? 'font-semibold' : 'font-medium'}`}>Bibliothèque</span>
+        {onBiblio && <ChevronDown size={10} className="flex-shrink-0 text-white/60" />}
+      </Link>
+
+      {onBiblio && (
+        <div className="ml-4 flex flex-col gap-0.5 mt-0.5">
+          {SUBS.map(({ href, label, active }) => (
+            <Link key={href} href={href} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] transition-all duration-150 ${
+              active ? 'bg-white/10 text-white font-semibold' : 'text-white/40 font-medium hover:text-white/70 hover:bg-white/5'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors ${active ? 'bg-[#FF4D00]' : 'bg-white/20'}`} />
+              {label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+function PipelineNav({ pathname }: { pathname: string }) {
+  const router = useRouter()
+  const onPipeline = pathname.startsWith('/pipeline')
+  const leadsActive   = onPipeline && !pathname.startsWith('/pipeline/clients')
+  const clientsActive = pathname.startsWith('/pipeline/clients')
+  const [open, setOpen] = useState(onPipeline)
+
+  useEffect(() => { if (onPipeline) setOpen(true); else setOpen(false) }, [onPipeline])
+
+  return (
+    <>
+      <button
+        onClick={() => { if (!onPipeline) router.push('/pipeline'); else setOpen(v => !v) }}
+        className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-150 ${
+          onPipeline
+            ? 'bg-[#FF4D00] text-white shadow-sm'
+            : 'text-white/50 hover:text-white/90 hover:bg-soren-card/8'
+        }`}
+      >
+        <GitMerge size={13} strokeWidth={onPipeline ? 2.5 : 1.8} className="flex-shrink-0" />
+        <span className={`text-[12px] truncate flex-1 text-left ${onPipeline ? 'font-semibold' : 'font-medium'}`}>Pipeline</span>
+        <ChevronDown
+          size={10}
+          className="flex-shrink-0 transition-transform duration-300"
+          style={{ transform: open ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+        />
+      </button>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateRows: open ? '1fr' : '0fr',
+          transition: 'grid-template-rows 280ms cubic-bezier(0.4,0,0.2,1)',
+        }}
+      >
+        <div style={{ overflow: 'hidden' }}>
+        <div className="ml-4 flex flex-col gap-0.5 mt-0.5 pb-0.5">
+          <Link
+            href="/pipeline"
+            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] transition-all duration-150 ${
+              leadsActive
+                ? 'bg-white/10 text-white font-semibold'
+                : 'text-white/40 font-medium hover:text-white/70 hover:bg-white/5'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors ${leadsActive ? 'bg-[#FF4D00]' : 'bg-white/20'}`} />
+            Leads
+          </Link>
+          <Link
+            href="/pipeline/clients"
+            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] transition-all duration-150 ${
+              clientsActive
+                ? 'bg-white/10 text-white font-semibold'
+                : 'text-white/40 font-medium hover:text-white/70 hover:bg-white/5'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors ${clientsActive ? 'bg-[#FF4D00]' : 'bg-white/20'}`} />
+            Clients
+          </Link>
+        </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
 export default function Sidebar() {
   const pathname = usePathname()
+  const navRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const nav = navRef.current
+    if (!nav) return
+    const saved = sessionStorage.getItem('sidebar_scroll')
+    if (saved) nav.scrollTop = parseInt(saved, 10)
+  }, [])
+
+  useEffect(() => {
+    const nav = navRef.current
+    if (!nav) return
+    const save = () => sessionStorage.setItem('sidebar_scroll', String(nav.scrollTop))
+    nav.addEventListener('scroll', save, { passive: true })
+    return () => nav.removeEventListener('scroll', save)
+  }, [])
   const [profilePhoto, setProfilePhoto] = useState('')
   const [prenom, setPrenom] = useState('')
   const [role, setRole] = useState<'superadmin' | 'client' | null>(null)
@@ -117,11 +266,11 @@ export default function Sidebar() {
   useEffect(() => {
     function load() {
       try {
-        const p = localStorage.getItem('soren_profile_photo')
+        const p = localStorage.getItem('vividflow_profile_photo')
         setProfilePhoto(p ?? '')
       } catch {}
       try {
-        const compte = JSON.parse(localStorage.getItem('soren_compte') ?? '{}')
+        const compte = JSON.parse(localStorage.getItem('vividflow_compte') ?? '{}')
         setPrenom(compte.prenom ?? '')
       } catch {}
     }
@@ -157,7 +306,7 @@ export default function Sidebar() {
     })
   }, [])
 
-  const isSuperAdmin = role === 'superadmin' || role === null // null = chargement, on affiche tout par défaut
+  const isSuperAdmin = role === 'superadmin' || role === null
 
   return (
     <aside className="fixed left-3 top-3 bottom-3 w-56 bg-soren-sidebar rounded-2xl flex flex-col z-50 overflow-hidden shadow-xl">
@@ -177,9 +326,14 @@ export default function Sidebar() {
       <div className="mx-3 h-px bg-soren-card/8 flex-shrink-0" />
 
       {/* Nav */}
-      <nav className="flex flex-col flex-1 px-2 py-1 overflow-hidden">
+      <nav ref={navRef} className="flex flex-col flex-1 px-2 py-1 overflow-y-auto">
         <SectionLabel label="Acquisition" />
-        {ACQUISITION.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
+        {ACQUISITION_PRE.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
+        <PipelineNav pathname={pathname} />
+        {ACQUISITION_POST.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
+
+        <SectionLabel label="Bibliothèques" />
+        {BIBLIOTHEQUES.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
 
         {isSuperAdmin && (
           <>
