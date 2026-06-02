@@ -190,7 +190,8 @@ export default function ClientsBoard() {
         if (!raf) raf = requestAnimationFrame(animate)
         return
       }
-      const col = (e.target as Element).closest('.kanban-col') as HTMLElement | null
+      const col = document.elementsFromPoint(e.clientX, e.clientY)
+        .find(el => el.classList.contains('kanban-col')) as HTMLElement | undefined
       if (col && col.scrollHeight > col.clientHeight) {
         const goingDown = e.deltaY > 0
         const atBottom  = col.scrollTop + col.clientHeight >= col.scrollHeight - 1

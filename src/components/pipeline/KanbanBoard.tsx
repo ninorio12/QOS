@@ -328,8 +328,9 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
         if (!raf) raf = requestAnimationFrame(animate)
         return
       }
-      // Cursor over a scrollable column → scroll it vertically
-      const col = (e.target as Element).closest('.kanban-col') as HTMLElement | null
+      // Cursor over a scrollable column (anywhere in the column area) → scroll it vertically
+      const col = document.elementsFromPoint(e.clientX, e.clientY)
+        .find(el => el.classList.contains('kanban-col')) as HTMLElement | undefined
       if (col && col.scrollHeight > col.clientHeight) {
         const goingDown = e.deltaY > 0
         const atBottom  = col.scrollTop + col.clientHeight >= col.scrollHeight - 1
