@@ -1,12 +1,34 @@
-import puppeteer from 'puppeteer'
+// PDF generation that works both locally and on Vercel serverless.
+// Vercel: puppeteer-core + @sparticuz/chromium (no bundled Chrome).
+// Local dev: full puppeteer with its downloaded Chrome.
+
+const isServerless = !!process.env.AWS_LAMBDA_FUNCTION_VERSION || !!process.env.VERCEL
 
 export async function generatePdfBuffer(html: string): Promise<Buffer> {
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  })
+  let browser: { newPage: () => Promise<unknown>; close: () => Promise<void> } & Record<string, unknown>
+
+  if (isServerless) {
+    const chromium = (await import('@sparticuz/chromium')).default
+    const puppeteer = await import('puppeteer-core')
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    }) as never
+  } else {
+    const puppeteer = (await import('puppeteer')).default
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    }) as never
+  }
+
   try {
-    const page = await browser.newPage()
+    const page = await browser.newPage() as {
+      setContent: (h: string, o: object) => Promise<void>
+      pdf: (o: object) => Promise<Uint8Array>
+    }
     await page.setContent(html, { waitUntil: 'networkidle0' })
     const pdf = await page.pdf({
       format: 'A4',
