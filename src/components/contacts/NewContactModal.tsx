@@ -288,7 +288,9 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
   const [tags,          setTags]          = useState<string[]>(contact?.tags ?? [])
 
   const [canton, setCanton]   = useState<string>(initialCanton ?? '')
-  const [statut, setStatut]   = useState<'lead' | 'client' | 'perdu'>(initialStatut ?? 'lead')
+  const [statut, setStatut]   = useState<'lead' | 'client' | 'perdu'>(
+    mode === 'leads' ? 'lead' : mode === 'clients' ? 'client' : (initialStatut ?? 'lead')
+  )
   const [metier, setMetier]   = useState<string>((contact as Record<string, unknown> & { metier?: string } | undefined)?.metier ?? '')
   const [niche,  setNiche]    = useState<string>((contact as Record<string, unknown> & { niche?: string } | undefined)?.niche ?? '')
   const [metierOptions, setMetierOptions] = useState<string[]>([])
@@ -412,113 +414,39 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
         onSave?.(updated, canton, statut)
 
       } else {
-        // ── Create mode ────────────────────────────────────────
+        // ── Create mode — ONE unified path everywhere ───────────
+        // Always: create the contact, then sync it to the right pipeline based on statut.
         const contactName = `${form.firstName} ${form.lastName}`.trim()
-
-        if (mode === 'leads' && ghlLeadsPipeline) {
-          // Create contact in Convex CRM
-          const cRes = await fetch('/api/crm/contacts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ firstName: form.firstName, lastName: form.lastName || undefined, email: form.email || undefined, phone: phone || undefined, companyName: form.companyName || undefined, source: inoutbound, statut: 'lead', canton: canton || undefined, metier: metier || undefined, niche: niche || undefined, tags: [] }),
-          })
-          const cData = await cRes.json().catch(() => ({})) as { contact?: { id: string; _id: string }; error?: string }
-          if (!cRes.ok || cData.error) throw new Error(cData.error ?? `Erreur ${cRes.status}`)
-          const contactId = cData.contact!._id ?? cData.contact!.id
-          const initials = contactName.trim().split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase() || '?'
-          const firstStageId = ghlLeadsPipeline.stages[0]?.id ?? ''
-          // Create lead in Convex
-          const lRes = await fetch('/api/crm/leads', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contactId, name: contactName, email: form.email || undefined, phone: phone || undefined, company: form.companyName || undefined, pipelineId: ghlLeadsPipeline.id, stageId: firstStageId, value: 0, source: inoutbound, initials }),
-          })
-          const lData = await lRes.json().catch(() => ({})) as { lead?: Opportunity; error?: string }
-          if (!lRes.ok || lData.error) throw new Error(lData.error ?? `Erreur ${lRes.status}`)
-          const newContact: GHLContact = {
-            id: contactId, contactName,
-            firstName: form.firstName || null, lastName: form.lastName || null,
-            email: form.email || null, phone: phone || null,
-            companyName: form.companyName || null,
-            dateAdded: new Date().toISOString(), dateUpdated: null, tags: [],
-          }
-          onAdd?.(newContact)
-          if (lData.lead) onAddOpp?.(lData.lead)
-
-        } else if (mode === 'clients') {
-          // Create contact in Convex CRM
-          const cRes = await fetch('/api/crm/contacts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ firstName: form.firstName, lastName: form.lastName || undefined, email: form.email || undefined, phone: phone || undefined, companyName: form.companyName || undefined, source: 'inbound', statut: 'client', metier: metier || undefined, niche: niche || undefined, tags: [] }),
-          })
-          const cData = await cRes.json().catch(() => ({})) as { contact?: { id: string; _id: string }; error?: string }
-          if (!cRes.ok || cData.error) throw new Error(cData.error ?? `Erreur ${cRes.status}`)
-          const newId = cData.contact!._id ?? cData.contact!.id
-          const initials = contactName.trim().split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase() || '?'
-          const dealVal = parseFloat(clientValue.replace(',', '.')) || 0
-          fetch('/api/pipeline/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ghl_contact_id: newId, name: contactName, company: form.companyName || undefined, email: form.email || undefined, phone: phone || undefined, value: dealVal, stageId: 'nouveau-client', initials, createdAt: new Date().toISOString().split('T')[0] }) }).catch(() => {})
-          const newContact: GHLContact = {
-            id: newId, contactName,
-            firstName: form.firstName || null, lastName: form.lastName || null,
-            email: form.email || null, phone: phone || null,
-            companyName: form.companyName || null,
-            dateAdded: new Date().toISOString(), dateUpdated: null, tags: [],
-          }
-          onAdd?.(newContact)
-
-        } else if (selectedPipelineId === 'leads' && selectedStageId && ghlLeadsPipeline) {
-          const res = await fetch('/api/opp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contactName, email: form.email, phone,
-              company:         form.companyName,
-              pipelineId:      ghlLeadsPipeline.id,
-              pipelineStageId: selectedStageId,
-              monetaryValue:   parseFloat(form.value) || 0,
-              source:          form.source === 'Direct' ? '' : form.source,
-            }),
-          })
-          const data = await res.json().catch(() => ({})) as { opp?: Opportunity; error?: string }
-          if (!res.ok || data.error) throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
-          const newContact: GHLContact = {
-            id: data.opp!.contactId, contactName,
-            firstName: form.firstName || null, lastName: form.lastName || null,
-            email: form.email || null, phone: phone || null,
-            companyName: form.companyName || null,
-            dateAdded: new Date().toISOString(), dateUpdated: null, tags: [],
-          }
-          onAdd?.(newContact)
-          onAddOpp?.(data.opp!)
-
-        } else {
-          // General contact creation — full Convex contact + sync to pipeline by statut
-          const res = await fetch('/api/crm/contacts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              firstName: form.firstName, lastName: form.lastName || undefined,
-              email: form.email || undefined, phone: phone || undefined,
-              companyName: form.companyName || undefined,
-              source: inoutbound, statut, canton: canton || undefined,
-              metier: metier || undefined, niche: niche || undefined, tags: [],
-            }),
-          })
-          const data = await res.json().catch(() => ({})) as { contact?: { id: string; _id: string }; error?: string }
-          if (!res.ok || data.error) throw new Error(data.error ?? `Erreur ${res.status}`)
-          const newId = data.contact!._id ?? data.contact!.id
-          await fetch('/api/crm/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contactId: newId, dealValue: statut === 'client' ? (parseFloat(clientValue.replace(',', '.')) || 0) : undefined }) }).catch(() => {})
-          const newContact: GHLContact = {
-            id: newId, contactName,
-            firstName: form.firstName || null, lastName: form.lastName || null,
-            email: form.email || null, phone: phone || null,
-            companyName: form.companyName || null,
-            metier: metier || null, niche: niche || null,
-            dateAdded: new Date().toISOString(), dateUpdated: null, tags: [],
-          }
-          onAdd?.(newContact)
+        const res = await fetch('/api/crm/contacts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName: form.firstName, lastName: form.lastName || undefined,
+            email: form.email || undefined, phone: phone || undefined,
+            companyName: form.companyName || undefined,
+            address1: form.address1 || undefined, city: form.city || undefined,
+            postalCode: form.postalCode || undefined, website: form.website || undefined,
+            source: inoutbound, statut, canton: canton || undefined,
+            metier: metier || undefined, niche: niche || undefined, tags: [],
+          }),
+        })
+        const data = await res.json().catch(() => ({})) as { contact?: { id: string; _id: string }; error?: string }
+        if (!res.ok || data.error) throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
+        const newId = data.contact!._id ?? data.contact!.id
+        await fetch('/api/crm/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contactId: newId, dealValue: statut === 'client' ? (parseFloat(clientValue.replace(',', '.')) || 0) : undefined }),
+        }).catch(() => {})
+        const newContact: GHLContact = {
+          id: newId, contactName,
+          firstName: form.firstName || null, lastName: form.lastName || null,
+          email: form.email || null, phone: phone || null,
+          companyName: form.companyName || null,
+          metier: metier || null, niche: niche || null,
+          dateAdded: new Date().toISOString(), dateUpdated: null, tags: [],
         }
+        onAdd?.(newContact)
       }
 
       onClose()
@@ -538,7 +466,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
         <div className="flex items-center justify-between px-6 py-4 border-b border-soren-border flex-shrink-0">
           <div>
             <h2 className="text-base font-bold text-soren-text">
-              {isEdit ? 'Modifier le contact' : mode === 'clients' ? 'Nouveau client' : 'Nouveau lead'}
+              {isEdit ? 'Modifier le contact' : mode === 'clients' ? 'Nouveau client' : mode === 'leads' ? 'Nouveau lead' : 'Nouveau contact'}
             </h2>
             <p className="text-xs text-soren-subtle mt-0.5">
               {isEdit ? 'Les modifications sont synchronisées avec le CRM.' : 'Contact + opportunité synchronisés automatiquement'}
@@ -656,9 +584,51 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             </div>
           </div>
 
-          {/* ── Pipeline ── */}
-          {mode === 'leads' ? (
-            <div className="border-t border-soren-border pt-5 flex flex-col gap-3">
+          {/* ── Statut + Source (même fiche partout) ── */}
+          <div className="border-t border-soren-border pt-5 flex flex-col gap-4">
+            {/* Statut — locked depending on mode */}
+            <div className="flex flex-col gap-2">
+              <Section title="Statut" />
+              <div className="flex gap-2">
+                {([
+                  { id: 'lead',   label: 'Lead',   color: '#374151' },
+                  { id: 'client', label: 'Client', color: '#10B981' },
+                  { id: 'perdu',  label: 'Perdu',  color: '#EF4444' },
+                ] as { id: 'lead' | 'client' | 'perdu'; label: string; color: string }[]).map(opt => {
+                  // mode='leads' locks to lead; mode='clients' locks to client
+                  const locked = (mode === 'leads' && opt.id !== 'lead') || (mode === 'clients' && opt.id !== 'client')
+                  const isSelected = statut === opt.id
+                  return (
+                    <button key={opt.id} type="button"
+                      disabled={locked}
+                      onClick={() => !locked && setStatut(opt.id)}
+                      className={`flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all ${locked ? 'opacity-30 cursor-not-allowed' : ''}`}
+                      style={{ borderColor: isSelected ? opt.color : '#E5E7EB', background: isSelected ? opt.color + '14' : '#F9F9F7' }}
+                    >
+                      <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
+                      <span className="text-[11px] font-bold" style={{ color: isSelected ? opt.color : '#374151' }}>{opt.label}</span>
+                      {isSelected && <Check size={11} style={{ color: opt.color }} />}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-[10px] text-soren-subtle">
+                {statut === 'lead'   && 'Le contact apparaîtra dans le pipeline Leads.'}
+                {statut === 'client' && 'Le contact apparaîtra dans le pipeline Clients.'}
+                {statut === 'perdu'  && 'Le contact apparaîtra dans les leads perdus.'}
+              </p>
+            </div>
+
+            {/* Montant du deal — only when client */}
+            {statut === 'client' && (
+              <div className="flex flex-col gap-2">
+                <Section title="Montant du deal" />
+                <input type="number" value={clientValue} onChange={e => setClientValue(e.target.value)} placeholder="ex: 3500" className={inputCls} />
+              </div>
+            )}
+
+            {/* Source */}
+            <div className="flex flex-col gap-2">
               <Section title="Source" />
               <div className="flex gap-2">
                 {SOURCE_OPTS.map(opt => {
@@ -677,76 +647,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                 })}
               </div>
             </div>
-          ) : mode === 'clients' ? (
-            <div className="border-t border-soren-border pt-5 flex flex-col gap-3">
-              <Section title="Montant du deal" />
-              <div>
-                <label className={labelCls}>Valeur (€)</label>
-                <input type="number" value={clientValue} onChange={e => setClientValue(e.target.value)} placeholder="ex: 3500" className={inputCls} />
-              </div>
-            </div>
-          ) : (
-            <div className="border-t border-soren-border pt-5 flex flex-col gap-4">
-              {/* Statut */}
-              <div className="flex flex-col gap-2">
-                <Section title="Statut" />
-                <div className="flex gap-2">
-                  {([
-                    { id: 'lead',   label: 'Lead',   color: '#374151' },
-                    { id: 'client', label: 'Client', color: '#10B981' },
-                    { id: 'perdu',  label: 'Perdu',  color: '#EF4444' },
-                  ] as { id: 'lead' | 'client' | 'perdu'; label: string; color: string }[]).map(opt => {
-                    const isSelected = statut === opt.id
-                    return (
-                      <button key={opt.id} type="button"
-                        onClick={() => setStatut(opt.id)}
-                        className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all"
-                        style={{ borderColor: isSelected ? opt.color : '#E5E7EB', background: isSelected ? opt.color + '14' : '#F9F9F7' }}
-                      >
-                        <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
-                        <span className="text-[11px] font-bold" style={{ color: isSelected ? opt.color : '#374151' }}>{opt.label}</span>
-                        {isSelected && <Check size={11} style={{ color: opt.color }} />}
-                      </button>
-                    )
-                  })}
-                </div>
-                <p className="text-[10px] text-soren-subtle">
-                  {statut === 'lead'   && 'Le contact apparaîtra dans le pipeline Leads.'}
-                  {statut === 'client' && 'Le contact apparaîtra dans le pipeline Clients.'}
-                  {statut === 'perdu'  && 'Le contact apparaîtra dans les leads perdus.'}
-                </p>
-              </div>
-
-              {/* Montant du deal (client only) */}
-              {statut === 'client' && (
-                <div className="flex flex-col gap-2">
-                  <Section title="Montant du deal" />
-                  <input type="number" value={clientValue} onChange={e => setClientValue(e.target.value)} placeholder="ex: 3500" className={inputCls} />
-                </div>
-              )}
-
-              {/* Source */}
-              <div className="flex flex-col gap-2">
-                <Section title="Source" />
-                <div className="flex gap-2">
-                  {SOURCE_OPTS.map(opt => {
-                    const isSelected = inoutbound === opt.id
-                    return (
-                      <button key={opt.id} type="button"
-                        onClick={() => setInoutbound(opt.id)}
-                        className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all"
-                        style={{ borderColor: isSelected ? opt.color : '#E5E7EB', background: isSelected ? opt.bg : '#F9F9F7' }}
-                      >
-                        <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
-                        <span className="text-[10px] font-bold leading-tight text-center" style={{ color: isSelected ? opt.color : '#374151' }}>{opt.label}</span>
-                        {isSelected && <Check size={11} style={{ color: opt.color }} />}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
+          </div>
 
           {error && (
             <p className="text-xs text-[#EF4444] bg-[#FEF2F2] rounded-xl px-3 py-2">{error}</p>
