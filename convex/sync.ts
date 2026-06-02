@@ -10,7 +10,7 @@ export const syncAllContacts = mutation({
       .withIndex("by_type", q => q.eq("type", "leads"))
       .first()
 
-    let leadsCreated = 0, clientsCreated = 0
+    let leadsCreated = 0, clientsCreated = 0, lostCreated = 0
 
     for (const contact of contacts) {
       const name = `${contact.firstName} ${contact.lastName ?? ''}`.trim()
@@ -53,9 +53,28 @@ export const syncAllContacts = mutation({
           })
           clientsCreated++
         }
+      } else if (contact.statut === 'perdu' && leadsPipeline) {
+        const existing = await ctx.db
+          .query("crm_leads")
+          .withIndex("by_contact", q => q.eq("contactId", contact._id))
+          .first()
+        if (existing) {
+          if (existing.status !== 'lost') await ctx.db.patch(existing._id, { status: 'lost' })
+        } else {
+          const firstStage = [...leadsPipeline.stages].sort((a, b) => a.position - b.position)[0]
+          await ctx.db.insert("crm_leads", {
+            contactId: contact._id, name,
+            email: contact.email ?? undefined, phone: contact.phone ?? undefined,
+            company: contact.companyName ?? undefined,
+            pipelineId: leadsPipeline._id, stageId: firstStage?.id ?? 'nouveau-lead',
+            value: 0, source: contact.source ?? 'inbound', status: 'lost', initials,
+            createdAt: new Date().toISOString(),
+          })
+          lostCreated++
+        }
       }
     }
-    return { leadsCreated, clientsCreated, total: contacts.length }
+    return { leadsCreated, clientsCreated, lostCreated, total: contacts.length }
   },
 })
 
