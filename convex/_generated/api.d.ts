@@ -15,6 +15,7 @@ import type * as crm_contacts from "../crm_contacts.js";
 import type * as crm_leads from "../crm_leads.js";
 import type * as dashboard from "../dashboard.js";
 import type * as devis from "../devis.js";
+import type * as files from "../files.js";
 import type * as lead_stage_history from "../lead_stage_history.js";
 import type * as onboarding from "../onboarding.js";
 import type * as pipeline_clients from "../pipeline_clients.js";
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   crm_leads: typeof crm_leads;
   dashboard: typeof dashboard;
   devis: typeof devis;
+  files: typeof files;
   lead_stage_history: typeof lead_stage_history;
   onboarding: typeof onboarding;
   pipeline_clients: typeof pipeline_clients;

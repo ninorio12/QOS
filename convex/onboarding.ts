@@ -21,7 +21,7 @@ export const patch = mutation({
     contactId:       v.string(),
     tasks:           v.optional(v.any()),
     payment:         v.optional(v.object({ installments: v.number(), amounts: v.array(v.number()) })),
-    signedContract:  v.optional(v.object({ fileName: v.string(), dataUrl: v.string(), uploadedAt: v.string() })),
+    signedContract:  v.optional(v.object({ fileName: v.string(), storageId: v.optional(v.string()), dataUrl: v.optional(v.string()), uploadedAt: v.string() })),
     form:            v.optional(v.any()),
     kickoffEventId:  v.optional(v.string()),
   },

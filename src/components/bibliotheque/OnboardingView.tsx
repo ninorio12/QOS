@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQuery } from 'convex/react'
+import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import {
   Rocket, CheckCircle2, Circle, ChevronRight, Eye, Download,
@@ -12,11 +12,12 @@ import {
 // ─── Types ────────────────────────────────────────────────────
 type ClientLite = { id: string; ghl_contact_id?: string; name: string; company: string; value: number }
 type FullContact = { id: string; firstName?: string; lastName?: string; companyName?: string; address1?: string; phone?: string; email?: string }
+type SignedContract = { fileName: string; storageId?: string; dataUrl?: string; uploadedAt: string }
 type OnboardingDoc = {
   contactId: string
   tasks?: Record<string, boolean>
   payment?: { installments: number; amounts: number[] }
-  signedContract?: { fileName: string; dataUrl: string; uploadedAt: string }
+  signedContract?: SignedContract
   form?: Record<string, { value?: string; status?: string }>
 }
 
@@ -191,14 +192,29 @@ function StepCard({ icon, title, done, onToggle, children, extra }: {
   )
 }
 
+function SignedContractView({ signed, onReplace }: { signed: SignedContract; onReplace: () => void }) {
+  const url = useQuery(api.files.getUrl, signed.storageId ? { storageId: signed.storageId } : 'skip')
+  const href = url ?? signed.dataUrl ?? '#'
+  return (
+    <div className="flex items-center gap-2 bg-[#DCFCE7] border border-[#BBF7D0] rounded-xl px-3 py-2.5">
+      <FileCheck2 size={15} className="text-[#16A34A]" />
+      <span className="text-[12px] font-semibold text-[#16A34A] flex-1 truncate">{signed.fileName}</span>
+      <a href={href} target="_blank" rel="noreferrer" className="text-[11px] font-semibold text-[#16A34A] underline">Voir</a>
+      <button onClick={onReplace} className="text-[11px] text-soren-muted hover:text-soren-text">Remplacer</button>
+    </div>
+  )
+}
+
 function ContractStep({ done, onToggle, client, full, payment, signed, onPayment, onSigned }: {
   done: boolean; onToggle: (v: boolean) => void; client: ClientLite; full: FullContact | null
   payment?: { installments: number; amounts: number[] }
-  signed?: { fileName: string; dataUrl: string; uploadedAt: string }
+  signed?: SignedContract
   onPayment: (p: { installments: number; amounts: number[] }) => void
-  onSigned: (s: { fileName: string; dataUrl: string; uploadedAt: string }) => void
+  onSigned: (s: SignedContract) => void
 }) {
+  const genUploadUrl = useMutation(api.files.generateUploadUrl)
   const [busy, setBusy] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
   const installments = payment?.installments ?? 1
@@ -233,10 +249,14 @@ function ContractStep({ done, onToggle, client, full, payment, signed, onPayment
     } catch { /* ignore */ } finally { setBusy(false) }
   }
 
-  function handleFile(file: File) {
-    const reader = new FileReader()
-    reader.onload = () => onSigned({ fileName: file.name, dataUrl: reader.result as string, uploadedAt: new Date().toISOString() })
-    reader.readAsDataURL(file)
+  async function handleFile(file: File) {
+    setUploading(true)
+    try {
+      const uploadUrl = await genUploadUrl()
+      const res = await fetch(uploadUrl, { method: 'POST', headers: { 'Content-Type': file.type }, body: file })
+      const { storageId } = await res.json() as { storageId: string }
+      onSigned({ fileName: file.name, storageId, uploadedAt: new Date().toISOString() })
+    } catch { /* ignore */ } finally { setUploading(false) }
   }
 
   return (
@@ -277,12 +297,7 @@ function ContractStep({ done, onToggle, client, full, payment, signed, onPayment
         <div className="flex flex-col gap-2">
           <span className="text-[11px] font-semibold text-soren-muted">Contrat signé</span>
           {signed ? (
-            <div className="flex items-center gap-2 bg-[#DCFCE7] border border-[#BBF7D0] rounded-xl px-3 py-2.5">
-              <FileCheck2 size={15} className="text-[#16A34A]" />
-              <span className="text-[12px] font-semibold text-[#16A34A] flex-1 truncate">{signed.fileName}</span>
-              <a href={signed.dataUrl} download={signed.fileName} className="text-[11px] font-semibold text-[#16A34A] underline">Voir</a>
-              <button onClick={() => fileRef.current?.click()} className="text-[11px] text-soren-muted hover:text-soren-text">Remplacer</button>
-            </div>
+            <SignedContractView signed={signed} onReplace={() => fileRef.current?.click()} />
           ) : (
             <div
               onDragOver={e => { e.preventDefault(); setDragOver(true) }}
@@ -292,7 +307,7 @@ function ContractStep({ done, onToggle, client, full, payment, signed, onPayment
               className={`flex flex-col items-center justify-center gap-1.5 py-6 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${dragOver ? 'border-[#FF4D00] bg-[#FF4D00]/5' : 'border-soren-border hover:border-[#C8CBD0]'}`}
             >
               <Upload size={18} className="text-soren-subtle" />
-              <span className="text-[11px] text-soren-subtle">Glisse le contrat signé ici, ou clique pour parcourir</span>
+              <span className="text-[11px] text-soren-subtle">{uploading ? 'Upload en cours…' : 'Glisse le contrat signé ici, ou clique pour parcourir'}</span>
             </div>
           )}
           <input ref={fileRef} type="file" accept="application/pdf,image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />

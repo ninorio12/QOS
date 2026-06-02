@@ -185,9 +185,10 @@ export default defineSchema({
       installments: v.number(),             // 1, 2, 3...
       amounts:      v.array(v.number()),    // montant par échéance
     })),
-    signedContract: v.optional(v.object({   // contrat signé uploadé
+    signedContract: v.optional(v.object({   // contrat signé uploadé (Convex File Storage)
       fileName:   v.string(),
-      dataUrl:    v.string(),               // base64 data URL
+      storageId:  v.optional(v.string()),   // Convex storage id
+      dataUrl:    v.optional(v.string()),   // legacy inline (deprecated)
       uploadedAt: v.string(),
     })),
     form:       v.optional(v.any()),         // valeurs du formulaire onboarding (clés API, etc.)
