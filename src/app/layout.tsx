@@ -11,8 +11,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'VividFlow QOS',
-  description: 'Personal Brand OS for Coaches & Entrepreneurs',
+  title: 'VividFlow Data OS',
+  description: 'VividFlow Data OS',
   icons: {
     icon:             [
       { url: '/favicon.ico',    sizes: '48x48',  type: 'image/x-icon' },
