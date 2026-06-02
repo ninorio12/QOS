@@ -6,6 +6,11 @@ export default defineSchema({
     name: v.string(),
     email: v.string(),
     role: v.string(),
+    avatarUrl:     v.optional(v.string()),
+    clerkUserId:   v.optional(v.string()),
+    createdAt:     v.optional(v.number()),
+    lastSeenAt:    v.optional(v.number()),
+    workspaceId:   v.optional(v.string()),
   }),
   
   // Devis - EXACT COPY des champs Supabase
