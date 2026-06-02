@@ -492,8 +492,6 @@ export default function DashboardClient({
   }
 
   const visibleStages = stageBreakdown.filter(s => s.count > 0).slice(0, 4)
-  const r1Count = stageBreakdown.find(s => s.label.toLowerCase().includes('r1'))?.count ?? 0
-  const r2Count = stageBreakdown.find(s => s.label.toLowerCase().includes('r2'))?.count ?? 0
 
   const FALLBACK_ACTIVITY = [
     { dot: '#FF4D00', name: 'Martin Dupont', action: 'Nouveau lead qualifié',  date: "Aujourd'hui 09:14" },
