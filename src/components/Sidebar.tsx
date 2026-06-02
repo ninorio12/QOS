@@ -176,25 +176,67 @@ function BibliothequeNav({ pathname }: { pathname: string }) {
 }
 
 function PipelineNav({ pathname }: { pathname: string }) {
-  const leadsActive   = pathname === '/pipeline' || (pathname.startsWith('/pipeline') && !pathname.startsWith('/pipeline/clients'))
+  const router = useRouter()
+  const onPipeline = pathname.startsWith('/pipeline')
+  const leadsActive   = onPipeline && !pathname.startsWith('/pipeline/clients')
   const clientsActive = pathname.startsWith('/pipeline/clients')
+  const [open, setOpen] = useState(onPipeline)
 
-  const item = (href: string, label: string, active: boolean) => (
-    <Link
-      href={href}
-      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-150 ${
-        active ? 'bg-[#FF4D00] text-white shadow-sm' : 'text-white/50 hover:text-white/90 hover:bg-soren-card/8'
-      }`}
-    >
-      <GitMerge size={13} strokeWidth={active ? 2.5 : 1.8} className="flex-shrink-0" />
-      <span className={`text-[12px] truncate ${active ? 'font-semibold' : 'font-medium'}`}>{label}</span>
-    </Link>
-  )
+  useEffect(() => { if (onPipeline) setOpen(true); else setOpen(false) }, [onPipeline])
 
   return (
     <>
-      {item('/pipeline', 'Pipeline Leads', leadsActive)}
-      {item('/pipeline/clients', 'Pipeline Clients', clientsActive)}
+      <button
+        onClick={() => { if (!onPipeline) router.push('/pipeline'); else setOpen(v => !v) }}
+        className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-150 ${
+          onPipeline
+            ? 'bg-[#FF4D00] text-white shadow-sm'
+            : 'text-white/50 hover:text-white/90 hover:bg-soren-card/8'
+        }`}
+      >
+        <GitMerge size={13} strokeWidth={onPipeline ? 2.5 : 1.8} className="flex-shrink-0" />
+        <span className={`text-[12px] truncate flex-1 text-left ${onPipeline ? 'font-semibold' : 'font-medium'}`}>Pipeline</span>
+        <ChevronDown
+          size={10}
+          className="flex-shrink-0 transition-transform duration-300"
+          style={{ transform: open ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+        />
+      </button>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateRows: open ? '1fr' : '0fr',
+          transition: 'grid-template-rows 280ms cubic-bezier(0.4,0,0.2,1)',
+        }}
+      >
+        <div style={{ overflow: 'hidden' }}>
+        <div className="ml-4 flex flex-col gap-0.5 mt-0.5 pb-0.5">
+          <Link
+            href="/pipeline"
+            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] transition-all duration-150 ${
+              leadsActive
+                ? 'bg-white/10 text-white font-semibold'
+                : 'text-white/40 font-medium hover:text-white/70 hover:bg-white/5'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors ${leadsActive ? 'bg-[#FF4D00]' : 'bg-white/20'}`} />
+            Leads
+          </Link>
+          <Link
+            href="/pipeline/clients"
+            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] transition-all duration-150 ${
+              clientsActive
+                ? 'bg-white/10 text-white font-semibold'
+                : 'text-white/40 font-medium hover:text-white/70 hover:bg-white/5'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors ${clientsActive ? 'bg-[#FF4D00]' : 'bg-white/20'}`} />
+            Clients
+          </Link>
+        </div>
+        </div>
+      </div>
     </>
   )
 }

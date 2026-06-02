@@ -1,7 +1,8 @@
 'use client'
 
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, Dot } from 'recharts'
-import type { ClientTimelinePoint } from '@/lib/dashboard'
+
+type ClientTimelinePoint = { date: string; value: number; ca?: number }
 
 function fmt(v: number) {
   if (v >= 1_000_000) return `€${(v / 1_000_000).toFixed(1)}M`
@@ -33,12 +34,12 @@ export default function ClientTimelineChart({ data }: { data: ClientTimelinePoin
         <Tooltip
           contentStyle={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, fontSize: 12, padding: '6px 10px' }}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          formatter={(v: any) => fmt(v as number)}
+          formatter={(v: any) => [fmt(v as number), 'CA encaissé']}
           labelStyle={{ color: '#111', fontWeight: 600 }}
         />
         <Line
           type="monotone"
-          dataKey="value"
+          dataKey="ca"
           stroke="#FF4D00"
           strokeWidth={2}
           dot={<Dot r={3} fill="#FF4D00" strokeWidth={0} />}

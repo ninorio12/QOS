@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 const NewLeadWidget = dynamic(() => import('@/components/shared/NewLeadWidget'), { ssr: false })
+const NewContactModal = dynamic(() => import('@/components/contacts/NewContactModal'), { ssr: false })
 import {
   DndContext,
   DragOverlay,
@@ -33,6 +34,7 @@ import { Toaster } from '@/components/shared/Toaster'
 type ClientStage = { id: string; name: string; color: string; position: number }
 type Client = {
   id: string
+  ghl_contact_id?: string
   name: string
   company: string
   value: number
@@ -92,7 +94,7 @@ function ClientCard({ client, isDragging = false }: { client: Client; isDragging
   )
 }
 
-function SortableClientCard({ client, wasDragged }: { client: Client; wasDragged: React.MutableRefObject<boolean> }) {
+function SortableClientCard({ client, wasDragged, onCardClick }: { client: Client; wasDragged: React.MutableRefObject<boolean>; onCardClick: () => void }) {
   const { attributes, listeners, setNodeRef, isDragging, transform, transition } = useSortable({
     id: client.id,
     transition: { duration: 200, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' },
@@ -102,6 +104,7 @@ function SortableClientCard({ client, wasDragged }: { client: Client; wasDragged
       ref={setNodeRef}
       {...listeners}
       {...attributes}
+      onClick={() => { if (!wasDragged.current) onCardClick() }}
       style={{ opacity: isDragging ? 0.3 : 1, transform: CSS.Transform.toString(transform), transition }}
     >
       <ClientCard client={client} />
@@ -109,11 +112,12 @@ function SortableClientCard({ client, wasDragged }: { client: Client; wasDragged
   )
 }
 
-function ClientColumn({ stage, clients, isOver, wasDragged }: {
+function ClientColumn({ stage, clients, isOver, wasDragged, onCardClick }: {
   stage: ClientStage
   clients: Client[]
   isOver: boolean
   wasDragged: React.MutableRefObject<boolean>
+  onCardClick: (c: Client) => void
 }) {
   const { setNodeRef } = useDroppable({ id: stage.id })
   const total = clients.reduce((sum, c) => sum + c.value, 0)
@@ -142,7 +146,7 @@ function ClientColumn({ stage, clients, isOver, wasDragged }: {
         <SortableContext items={clients.map(c => c.id)} strategy={verticalListSortingStrategy}>
           <div className="flex-1 min-h-0 overflow-y-auto kanban-col flex flex-col gap-1.5">
             {clients.map(client => (
-              <SortableClientCard key={client.id} client={client} wasDragged={wasDragged} />
+              <SortableClientCard key={client.id} client={client} wasDragged={wasDragged} onCardClick={() => onCardClick(client)} />
             ))}
             {clients.length === 0 && (
               <div className="h-full flex items-center justify-center">
@@ -161,18 +165,29 @@ export default function ClientsBoard() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [overId,   setOverId]   = useState<string | null>(null)
   const [scrolled, setScrolled] = useState(false)
+  const [editContact, setEditContact] = useState<Record<string, unknown> | null>(null)
   const boardRef   = useRef<HTMLDivElement>(null)
   const wasDragged = useRef(false)
   const { toasts, toast, dismiss } = useToast()
 
   const activeClient = clients.find(c => c.id === activeId) ?? null
 
+  async function openClientEdit(client: Client) {
+    if (!client.ghl_contact_id) { toast('Aucune fiche contact liée', 'error'); return }
+    try {
+      const res = await fetch(`/api/contact/${client.ghl_contact_id}`)
+      const data = await res.json() as { contact?: Record<string, unknown> }
+      if (data.contact) setEditContact({ ...data.contact, id: client.ghl_contact_id })
+      else toast('Fiche contact introuvable', 'error')
+    } catch { toast('Erreur de chargement', 'error') }
+  }
+
   // Load from Convex on mount (map Convex _id → id)
   useEffect(() => {
     fetch('/api/pipeline/clients')
       .then(r => r.json())
       .then((d: { clients?: (Client & { _id?: string })[] }) => {
-        if (d.clients) setClients(d.clients.map(c => ({ ...c, id: c._id ?? c.id })))
+        if (d.clients) setClients(d.clients.map(c => ({ ...c, id: c._id ?? c.id, ghl_contact_id: c.ghl_contact_id })))
       })
       .catch(() => {})
   }, [])
@@ -341,6 +356,7 @@ export default function ClientsBoard() {
                 clients={clients.filter(c => c.stageId === stage.id)}
                 isOver={overId === stage.id}
                 wasDragged={wasDragged}
+                onCardClick={openClientEdit}
               />
             ))}
           </div>
@@ -350,6 +366,19 @@ export default function ClientsBoard() {
           {activeClient && <ClientCard client={activeClient} isDragging />}
         </DragOverlay>
       </DndContext>
+
+      {editContact && (
+        <NewContactModal
+          contact={editContact as never}
+          onClose={() => setEditContact(null)}
+          onSave={() => {
+            setEditContact(null)
+            fetch('/api/pipeline/clients').then(r => r.json()).then((d: { clients?: (Client & { _id?: string })[] }) => {
+              if (d.clients) setClients(d.clients.map(c => ({ ...c, id: c._id ?? c.id, ghl_contact_id: c.ghl_contact_id })))
+            }).catch(() => {})
+          }}
+        />
+      )}
     </div>
   )
 }
