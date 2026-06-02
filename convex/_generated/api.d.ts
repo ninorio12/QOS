@@ -20,6 +20,7 @@ import type * as pipeline_clients from "../pipeline_clients.js";
 import type * as pipeline_config from "../pipeline_config.js";
 import type * as seed from "../seed.js";
 import type * as seedDevis from "../seedDevis.js";
+import type * as sync from "../sync.js";
 
 import type {
   ApiFromModules,
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   pipeline_config: typeof pipeline_config;
   seed: typeof seed;
   seedDevis: typeof seedDevis;
+  sync: typeof sync;
 }>;
 
 /**

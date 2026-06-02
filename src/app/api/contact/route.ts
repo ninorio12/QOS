@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const c = convex()
     const q = req.nextUrl.searchParams.get('q') ?? ''
     const raw = await c.query(api.crm_contacts.list)
-    let contacts = (raw as { _id: string; firstName: string; lastName?: string; email?: string; phone?: string; companyName?: string; address1?: string; city?: string; postalCode?: string; website?: string; source?: string; statut?: string; canton?: string; tags: string[]; createdAt: string; updatedAt?: string }[])
+    let contacts = (raw as { _id: string; firstName: string; lastName?: string; email?: string; phone?: string; companyName?: string; address1?: string; city?: string; postalCode?: string; website?: string; source?: string; statut?: string; canton?: string; metier?: string; niche?: string; tags: string[]; createdAt: string; updatedAt?: string }[])
       .map(ct => ({
         id:          ct._id,
         contactName: `${ct.firstName} ${ct.lastName ?? ''}`.trim(),
@@ -29,6 +29,10 @@ export async function GET(req: NextRequest) {
         postalCode:  ct.postalCode  || null,
         website:     ct.website     || null,
         source:      ct.source      || null,
+        statut:      ct.statut      || null,
+        canton:      ct.canton      || null,
+        metier:      ct.metier      || null,
+        niche:       ct.niche       || null,
         tags:        ct.tags        ?? [],
         dateAdded:   ct.createdAt,
         dateUpdated: ct.updatedAt   || null,

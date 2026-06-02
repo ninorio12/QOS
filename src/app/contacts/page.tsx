@@ -18,7 +18,7 @@ export default async function ContactsPage() {
         _id: string; firstName: string; lastName?: string; email?: string;
         phone?: string; companyName?: string; address1?: string; city?: string;
         postalCode?: string; website?: string; source?: string; statut?: string;
-        canton?: string; tags: string[]; notes?: string; createdAt: string; updatedAt?: string
+        canton?: string; metier?: string; niche?: string; tags: string[]; notes?: string; createdAt: string; updatedAt?: string
       }[]).map(c => ({
         id:          c._id,
         contactName: `${c.firstName} ${c.lastName ?? ''}`.trim(),
@@ -32,6 +32,8 @@ export default async function ContactsPage() {
         postalCode:  c.postalCode  || null,
         website:     c.website     || null,
         source:      c.source      || null,
+        metier:      c.metier      || null,
+        niche:       c.niche       || null,
         tags:        c.tags        ?? [],
         dateAdded:   c.createdAt,
         dateUpdated: c.updatedAt   || null,

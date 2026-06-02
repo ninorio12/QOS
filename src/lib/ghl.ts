@@ -267,6 +267,10 @@ export type GHLContact = {
   customFields?:  { id: string; value: string | null }[]
   dnd?:           boolean
   type?:          string | null
+  metier?:        string | null
+  niche?:         string | null
+  statut?:        string | null
+  canton?:        string | null
 }
 
 export type GHLUser = {

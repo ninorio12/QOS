@@ -165,6 +165,84 @@ function CustomSelect({
   )
 }
 
+// ─── Combobox (select existing OR create new) ─────────────────
+function Combobox({
+  label, value, onChange, options, placeholder,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  options: string[]
+  placeholder: string
+}) {
+  const [open, setOpen]   = useState(false)
+  const [query, setQuery] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const filtered = query.trim()
+    ? options.filter(o => o.toLowerCase().includes(query.toLowerCase()))
+    : options
+  const canCreate = query.trim() && !options.some(o => o.toLowerCase() === query.trim().toLowerCase())
+
+  return (
+    <div ref={ref} className="relative">
+      <label className={labelCls}>{label}</label>
+      <button
+        type="button"
+        onClick={() => { setOpen(o => !o); setQuery('') }}
+        className="w-full bg-soren-elevated rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all flex items-center justify-between gap-2"
+      >
+        <span className={value ? 'text-soren-text' : 'text-soren-subtle'}>{value || placeholder}</span>
+        <ChevronDown size={13} className={`text-soren-subtle transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-soren-card border border-soren-border rounded-2xl shadow-xl overflow-hidden flex flex-col" style={{ maxHeight: 260 }}>
+          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-soren-border flex-shrink-0">
+            <Search size={11} className="text-soren-subtle flex-shrink-0" />
+            <input
+              autoFocus
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Rechercher ou créer…"
+              className="flex-1 text-xs text-soren-text placeholder-[#9CA3AF] outline-none bg-transparent"
+            />
+          </div>
+          <div className="overflow-y-auto flex-1">
+            {value && (
+              <button type="button" onClick={() => { onChange(''); setOpen(false) }}
+                className="w-full text-left px-4 py-2 text-xs text-soren-subtle hover:bg-soren-elevated">
+                — Aucun —
+              </button>
+            )}
+            {filtered.map(o => (
+              <button key={o} type="button" onClick={() => { onChange(o); setOpen(false) }}
+                className="w-full text-left flex items-center justify-between px-4 py-2 text-sm text-soren-text hover:bg-soren-elevated">
+                {o}
+                {o === value && <Check size={13} className="text-[#3462EE]" />}
+              </button>
+            ))}
+            {canCreate && (
+              <button type="button" onClick={() => { onChange(query.trim()); setOpen(false) }}
+                className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-[#3462EE] font-semibold hover:bg-soren-elevated border-t border-soren-border">
+                <Plus size={13} /> Créer « {query.trim()} »
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Section header ───────────────────────────────────────────
 function Section({ title }: { title: string }) {
   return <p className="text-[10px] font-bold uppercase tracking-widest text-soren-subtle">{title}</p>
@@ -207,6 +285,18 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
   const [statut, setStatut]   = useState<'lead' | 'client' | 'perdu'>(initialStatut ?? 'lead')
   const [metier, setMetier]   = useState<string>((contact as Record<string, unknown> & { metier?: string } | undefined)?.metier ?? '')
   const [niche,  setNiche]    = useState<string>((contact as Record<string, unknown> & { niche?: string } | undefined)?.niche ?? '')
+  const [metierOptions, setMetierOptions] = useState<string[]>([])
+  const [nicheOptions,  setNicheOptions]  = useState<string[]>([])
+
+  useEffect(() => {
+    fetch('/api/crm/contacts/options')
+      .then(r => r.json())
+      .then((d: { metiers?: string[]; niches?: string[] }) => {
+        setMetierOptions(d.metiers ?? [])
+        setNicheOptions(d.niches ?? [])
+      })
+      .catch(() => {})
+  }, [])
   const [form, setForm] = useState({
     firstName:   contact?.firstName   ?? '',
     lastName:    contact?.lastName    ?? '',
@@ -262,7 +352,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
 
     try {
       if (isEdit && contact) {
-        // ── Edit mode ──────────────────────────────────────────
+        // ── Edit mode ── full contact update in Convex
         const res = await fetch(`/api/contact/${contact.id}`, {
           method:  'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -276,6 +366,10 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             city:        form.city,
             postalCode:  form.postalCode,
             website:     form.website,
+            canton:      canton || undefined,
+            statut,
+            metier:      metier || undefined,
+            niche:       niche  || undefined,
             tags,
           }),
         })
@@ -284,23 +378,12 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
         }
 
-        if (selectedPipelineId === 'leads' && selectedStageId && ghlLeadsPipeline) {
-          await fetch('/api/opp', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contactId:       contact.id,
-              contactName:     `${form.firstName} ${form.lastName}`.trim() || contact.contactName,
-              email:           form.email       || '',
-              phone:           phone            || contact.phone || '',
-              company:         form.companyName || '',
-              pipelineId:      ghlLeadsPipeline.id,
-              pipelineStageId: selectedStageId,
-              monetaryValue:   0,
-              source:          '',
-            }),
-          })
-        }
+        // Sync to the right pipeline based on statut (lead → Leads, client → Clients)
+        await fetch('/api/crm/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contactId: contact.id }),
+        }).catch(() => {})
 
         const updated: GHLContact = {
           ...contact,
@@ -314,10 +397,11 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           city:        form.city        || null,
           postalCode:  form.postalCode  || null,
           website:     form.website     || null,
+          metier:      metier           || null,
+          niche:       niche            || null,
           tags,
           dateUpdated: new Date().toISOString(),
         }
-        fetch('/api/contact/meta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ghl_contact_id: contact.id, canton: canton || undefined, statut }) }).catch(() => {})
         onSave?.(updated, canton, statut)
 
       } else {
@@ -402,21 +486,29 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           onAddOpp?.(data.opp!)
 
         } else {
-          const res = await fetch('/api/contact', {
+          // General contact creation — full Convex contact + sync to pipeline by statut
+          const res = await fetch('/api/crm/contacts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ firstName: form.firstName, lastName: form.lastName, email: form.email, phone, companyName: form.companyName }),
+            body: JSON.stringify({
+              firstName: form.firstName, lastName: form.lastName || undefined,
+              email: form.email || undefined, phone: phone || undefined,
+              companyName: form.companyName || undefined,
+              source: 'inbound', statut, canton: canton || undefined,
+              metier: metier || undefined, niche: niche || undefined, tags: [],
+            }),
           })
-          const data = await res.json().catch(() => ({})) as { contact?: { id: string; dateAdded: string }; error?: string }
-          if (!res.ok || data.error) throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
-          const newId = data.contact!.id
-          if (canton || statut !== 'lead') fetch('/api/contact/meta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ghl_contact_id: newId, canton: canton || undefined, statut }) }).catch(() => {})
+          const data = await res.json().catch(() => ({})) as { contact?: { id: string; _id: string }; error?: string }
+          if (!res.ok || data.error) throw new Error(data.error ?? `Erreur ${res.status}`)
+          const newId = data.contact!._id ?? data.contact!.id
+          await fetch('/api/crm/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contactId: newId }) }).catch(() => {})
           const newContact: GHLContact = {
             id: newId, contactName,
             firstName: form.firstName || null, lastName: form.lastName || null,
             email: form.email || null, phone: phone || null,
             companyName: form.companyName || null,
-            dateAdded: data.contact!.dateAdded, dateUpdated: null, tags: [],
+            metier: metier || null, niche: niche || null,
+            dateAdded: new Date().toISOString(), dateUpdated: null, tags: [],
           }
           onAdd?.(newContact)
         }
@@ -494,14 +586,8 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Métier</label>
-                <input value={metier} onChange={e => setMetier(e.target.value)} placeholder="ex: Architecte" className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Niche</label>
-                <input value={niche} onChange={e => setNiche(e.target.value)} placeholder="ex: Immobilier" className={inputCls} />
-              </div>
+              <Combobox label="Métier" value={metier} onChange={setMetier} options={metierOptions} placeholder="ex: Architecte" />
+              <Combobox label="Niche"  value={niche}  onChange={setNiche}  options={nicheOptions}  placeholder="ex: Immobilier" />
             </div>
 
             <div>

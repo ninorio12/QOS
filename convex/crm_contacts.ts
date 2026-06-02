@@ -12,6 +12,16 @@ export const get = query({
   handler: async (ctx, args) => ctx.db.get(args.id),
 })
 
+// Distinct métiers + niches (for dropdowns in the contact modal)
+export const distinctMetiersNiches = query({
+  handler: async (ctx) => {
+    const all = await ctx.db.query("crm_contacts").collect()
+    const metiers = [...new Set(all.map(c => c.metier).filter(Boolean) as string[])].sort()
+    const niches  = [...new Set(all.map(c => c.niche).filter(Boolean) as string[])].sort()
+    return { metiers, niches }
+  },
+})
+
 export const create = mutation({
   args: {
     firstName:   v.string(),

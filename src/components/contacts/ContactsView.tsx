@@ -132,7 +132,7 @@ function ColFilterDropdown({ values, active, onSelect, onClose }: {
   )
 }
 
-const ALL_COLS = ['Téléphone', 'E-mail', "Nom de l'entreprise", 'Source', 'Statut', 'Canton', 'Créé', 'Dernière activité', 'Balises'] as const
+const ALL_COLS = ['Téléphone', 'E-mail', "Nom de l'entreprise", 'Métier', 'Niche', 'Source', 'Statut', 'Canton', 'Créé', 'Dernière activité', 'Balises'] as const
 type ColName = typeof ALL_COLS[number]
 
 type ColFilter = Partial<Record<ColName | 'Nom de Contact', string>>
@@ -179,6 +179,12 @@ function ContactRow({
       </td>}
       {v("Nom de l'entreprise") && <td className="px-4 py-3 min-w-[160px]">
         {contact.companyName ? <span className="text-sm text-[#374151] truncate">{contact.companyName}</span> : <span className="text-sm text-[#D1D5DB]">—</span>}
+      </td>}
+      {v('Métier') && <td className="px-4 py-3 min-w-[140px]">
+        {contact.metier ? <span className="text-sm text-[#374151] truncate">{contact.metier}</span> : <span className="text-sm text-[#D1D5DB]">—</span>}
+      </td>}
+      {v('Niche') && <td className="px-4 py-3 min-w-[140px]">
+        {contact.niche ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#F3F4F6] text-[#6B7280] whitespace-nowrap">{contact.niche}</span> : <span className="text-sm text-[#D1D5DB]">—</span>}
       </td>}
       {v('Source') && <td className="px-4 py-3 min-w-[110px]" onClick={e => e.stopPropagation()}>
         <SourceBadge value={source} onClick={e => onSourceToggle(contact.id, e)} />
@@ -297,27 +303,20 @@ export default function ContactsView({
   const [statutMap, setStatutMap] = useState<Map<string, 'lead' | 'client' | 'perdu'>>(new Map())
   const [cantonMap, setCantonMap] = useState<Map<string, string>>(new Map())
 
-  // Load metadata from Convex when contacts load
+  // Load source/statut/canton directly from the contact objects (crm_contacts fields)
   useEffect(() => {
-    if (!contacts.length) return
-    const ids = contacts.map(c => c.id).join(',')
-    fetch(`/api/contact/meta?ids=${ids}`)
-      .then(r => r.json())
-      .then((d: { meta?: { ghl_contact_id: string; source?: string; statut?: string; canton?: string }[] }) => {
-        if (!d.meta) return
-        const src = new Map<string, 'inbound' | 'outbound'>()
-        const sta = new Map<string, 'lead' | 'client' | 'perdu'>()
-        const can = new Map<string, string>()
-        for (const m of d.meta) {
-          if (m.source) src.set(m.ghl_contact_id, m.source as 'inbound' | 'outbound')
-          if (m.statut) sta.set(m.ghl_contact_id, m.statut as 'lead' | 'client' | 'perdu')
-          if (m.canton) can.set(m.ghl_contact_id, m.canton)
-        }
-        setSourceMap(src)
-        setStatutMap(sta)
-        setCantonMap(can)
-      })
-      .catch(() => {})
+    const src = new Map<string, 'inbound' | 'outbound'>()
+    const sta = new Map<string, 'lead' | 'client' | 'perdu'>()
+    const can = new Map<string, string>()
+    for (const c of contacts) {
+      const ext = c as GHLContact & { statut?: string | null; canton?: string | null }
+      if (ext.source) src.set(c.id, ext.source as 'inbound' | 'outbound')
+      if (ext.statut) sta.set(c.id, ext.statut as 'lead' | 'client' | 'perdu')
+      if (ext.canton) can.set(c.id, ext.canton)
+    }
+    setSourceMap(src)
+    setStatutMap(sta)
+    setCantonMap(can)
   }, [contacts])
 
   function handleSourceToggle(id: string, e: React.MouseEvent) {
@@ -326,7 +325,7 @@ export default function ContactsView({
       const next = new Map(prev)
       const newVal = next.get(id) === 'outbound' ? 'inbound' : 'outbound'
       next.set(id, newVal)
-      fetch('/api/contact/meta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ghl_contact_id: id, source: newVal }) }).catch(() => {})
+      fetch(`/api/contact/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source: newVal }) }).catch(() => {})
       return next
     })
   }
@@ -337,7 +336,11 @@ export default function ContactsView({
       const cur = next.get(id) ?? 'lead'
       const newVal = cur === 'lead' ? 'client' : cur === 'client' ? 'perdu' : 'lead'
       next.set(id, newVal as 'lead' | 'client' | 'perdu')
-      fetch('/api/contact/meta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ghl_contact_id: id, statut: newVal }) }).catch(() => {})
+      // Persist statut then sync to the right pipeline
+      fetch(`/api/contact/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statut: newVal }) })
+        .then(() => fetch('/api/crm/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contactId: id }) }))
+        .then(() => { if (newVal === 'lead') toast('Contact ajouté au pipeline Leads', 'success'); else if (newVal === 'client') toast('Contact ajouté au pipeline Clients', 'success') })
+        .catch(() => {})
       return next
     })
   }
@@ -346,7 +349,7 @@ export default function ContactsView({
       const next = new Map(prev)
       if (c === null) next.delete(id)
       else next.set(id, c)
-      fetch('/api/contact/meta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ghl_contact_id: id, canton: c ?? '' }) }).catch(() => {})
+      fetch(`/api/contact/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ canton: c ?? '' }) }).catch(() => {})
       return next
     })
   }
@@ -429,6 +432,8 @@ export default function ContactsView({
         if (col === 'Statut')         return (statutMap.get(c.id) ?? 'lead') === val
         if (col === 'Canton')         return (cantonMap.get(c.id) ?? null) === val
         if (col === "Nom de l'entreprise") return (c.companyName ?? '').toLowerCase().includes(val.toLowerCase())
+        if (col === 'Métier')         return (c.metier ?? '') === val
+        if (col === 'Niche')          return (c.niche ?? '') === val
         if (col === 'Balises')        return c.tags.includes(val)
         return true
       })
@@ -453,6 +458,8 @@ export default function ContactsView({
     'Source':              ['inbound', 'outbound'],
     'Statut':              ['lead', 'client', 'perdu'],
     'Canton':              SWISS_CANTONS.filter(c => contacts.some(ct => cantonMap.get(ct.id) === c)),
+    'Métier':              [...new Set(contacts.map(c => c.metier).filter(Boolean) as string[])].sort(),
+    'Niche':               [...new Set(contacts.map(c => c.niche).filter(Boolean) as string[])].sort(),
     'Balises':             [...new Set(contacts.flatMap(c => c.tags))].sort(),
     "Nom de l'entreprise": [...new Set(contacts.map(c => c.companyName).filter(Boolean) as string[])].sort(),
     'Nom de Contact':      [] as string[],
