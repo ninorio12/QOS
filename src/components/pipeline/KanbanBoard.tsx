@@ -165,9 +165,6 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
           <span className="text-[9px] font-bold bg-soren-card border border-soren-border text-soren-muted px-1.5 py-0.5 rounded-full min-w-[16px] text-center shadow-sm">
             {opps.length}
           </span>
-          {isLastStage && !showLost && (
-            <span className="text-[9px] font-bold bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/30 px-1.5 py-0.5 rounded-full">→ Clients</span>
-          )}
         </div>
         {total > 0 && (
           <span className="text-[9px] text-soren-subtle font-medium">€{total.toLocaleString('fr-FR')}</span>
@@ -422,6 +419,26 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     // Dropped on a column (stage)
     const targetStage = stages.find(s => s.id === overId)
     if (targetStage) {
+      const isLast = stages[stages.length - 1]?.id === targetStage.id
+      if (isLast) {
+        // Move to Clients pipeline via localStorage
+        setOpps(prev => prev.filter(o => o.id !== activeId))
+        try {
+          const existing = JSON.parse(localStorage.getItem('vividflow_clients') ?? '[]') as unknown[]
+          const newClient = {
+            id:        activeOpp.id,
+            name:      activeOpp.name,
+            company:   activeOpp.company,
+            value:     activeOpp.value,
+            createdAt: activeOpp.createdAt,
+            initials:  activeOpp.initials,
+            stageId:   'nouveau-client',
+          }
+          localStorage.setItem('vividflow_clients', JSON.stringify([newClient, ...existing]))
+        } catch {}
+        toast('Lead converti → Pipeline Clients', 'success')
+        return
+      }
       if (activeOpp.stageId !== targetStage.id) {
         const prevStageId = activeOpp.stageId
         setOpps(prev => prev.map(o => o.id === activeId ? { ...o, stageId: targetStage.id } : o))
