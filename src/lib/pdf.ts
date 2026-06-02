@@ -10,10 +10,12 @@ export async function generatePdfBuffer(html: string): Promise<Buffer> {
   if (isServerless) {
     const chromium = (await import('@sparticuz/chromium')).default
     const puppeteer = await import('puppeteer-core')
+    // Load the Chromium brotli pack from a remote URL (the bin folder isn't bundled by Vercel)
+    const remotePack = 'https://github.com/Sparticuz/chromium/releases/download/v149.0.0/chromium-v149.0.0-pack.tar'
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
+      executablePath: await chromium.executablePath(remotePack),
       headless: true,
     }) as never
   } else {
