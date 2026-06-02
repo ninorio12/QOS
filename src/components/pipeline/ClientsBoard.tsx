@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
+import { useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
 const NewLeadWidget = dynamic(() => import('@/components/shared/NewLeadWidget'), { ssr: false })
 const NewContactModal = dynamic(() => import('@/components/contacts/NewContactModal'), { ssr: false })
 import {
@@ -182,15 +184,13 @@ export default function ClientsBoard() {
     } catch { toast('Erreur de chargement', 'error') }
   }
 
-  // Load from Convex on mount (map Convex _id → id)
+  // Reactive live data from Convex — updates instantly on any change, anywhere
+  const liveClients = useQuery(api.pipeline_clients.list)
+  const draggingRef = useRef(false)
   useEffect(() => {
-    fetch('/api/pipeline/clients')
-      .then(r => r.json())
-      .then((d: { clients?: (Client & { _id?: string })[] }) => {
-        if (d.clients) setClients(d.clients.map(c => ({ ...c, id: c._id ?? c.id, ghl_contact_id: c.ghl_contact_id })))
-      })
-      .catch(() => {})
-  }, [])
+    if (!liveClients || draggingRef.current) return
+    setClients((liveClients as (Client & { _id: string })[]).map(c => ({ ...c, id: c._id, ghl_contact_id: c.ghl_contact_id })))
+  }, [liveClients])
 
   useEffect(() => {
     const el = boardRef.current
@@ -247,6 +247,7 @@ export default function ClientsBoard() {
   function handleDragStart({ active }: DragStartEvent) {
     setActiveId(active.id as string)
     wasDragged.current = true
+    draggingRef.current = true
   }
 
   function handleDragOver({ over }: DragOverEvent) {
@@ -257,6 +258,8 @@ export default function ClientsBoard() {
     setActiveId(null)
     setOverId(null)
     setTimeout(() => { wasDragged.current = false }, 50)
+    // Release reactive sync shortly after, so the persisted change is reflected
+    setTimeout(() => { draggingRef.current = false }, 800)
     if (!over) return
 
     const activeId   = active.id as string
@@ -320,22 +323,8 @@ export default function ClientsBoard() {
               {clients.length} clients · <span className="font-semibold text-soren-text">€{totalValue.toLocaleString('fr-FR')}</span>
             </p>
           </div>
-          <NewLeadWidget
-            mode="clients"
-            onAdd={c => {
-              const name = c.contactName || `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim()
-              const initials = name.trim().split(' ').map(w => w[0] ?? '').join('').slice(0, 2).toUpperCase() || '?'
-              const newClient: Client = { id: c.id, name, company: c.companyName ?? '', value: 0, createdAt: new Date().toISOString().split('T')[0], initials, stageId: CLIENT_STAGES[0].id }
-              setClients(prev => [newClient, ...prev.filter(cl => cl.id !== c.id)])
-              fetch('/api/pipeline/clients', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ghl_contact_id: c.id, name, company: c.companyName ?? undefined, email: c.email ?? undefined, phone: c.phone ?? undefined, value: 0, stageId: CLIENT_STAGES[0].id, initials, createdAt: new Date().toISOString().split('T')[0] }),
-              }).then(r => r.json()).then((d: { id?: string }) => {
-                if (d.id) setClients(prev => prev.map(cl => cl.id === c.id ? { ...cl, id: d.id! } : cl))
-              }).catch(() => {})
-            }}
-          />
+          {/* Modal creates contact + client server-side; reactive query shows it instantly */}
+          <NewLeadWidget mode="clients" />
         </div>
 
         {/* Board */}
@@ -371,12 +360,7 @@ export default function ClientsBoard() {
         <NewContactModal
           contact={editContact as never}
           onClose={() => setEditContact(null)}
-          onSave={() => {
-            setEditContact(null)
-            fetch('/api/pipeline/clients').then(r => r.json()).then((d: { clients?: (Client & { _id?: string })[] }) => {
-              if (d.clients) setClients(d.clients.map(c => ({ ...c, id: c._id ?? c.id, ghl_contact_id: c.ghl_contact_id })))
-            }).catch(() => {})
-          }}
+          onSave={() => setEditContact(null)}
         />
       )}
     </div>

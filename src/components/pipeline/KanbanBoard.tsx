@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
 import {
   DndContext,
   DragOverlay,
@@ -260,6 +262,25 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   const [showLost,       setShowLost]       = useState(false)
   const [selectedOpp,    setSelectedOpp]    = useState<Opportunity | null>(null)
   const [editContact,    setEditContact]    = useState<Record<string, unknown> | null>(null)
+  const draggingRef = useRef(false)
+
+  // Reactive live leads — updates instantly on any change, anywhere
+  const liveLeads = useQuery(api.crm_leads.list)
+  useEffect(() => {
+    if (!liveLeads || draggingRef.current) return
+    const mapped: Opportunity[] = (liveLeads as {
+      _id: string; name: string; email?: string; phone?: string; company?: string;
+      pipelineId: string; stageId: string; value: number; source?: string;
+      status: string; initials: string; createdAt: string; contactId?: string
+    }[]).map(l => ({
+      id: l._id, name: l.name, company: l.company ?? '', value: l.value,
+      source: l.source ?? '', createdAt: l.createdAt.split('T')[0], initials: l.initials,
+      stageId: l.stageId, pipelineId: l.pipelineId, email: l.email ?? '', phone: l.phone ?? '',
+      contactId: l.contactId ?? '', tags: [], status: l.status as Opportunity['status'],
+    }))
+    setOpps(mapped.filter(o => o.status !== 'lost'))
+    setLostOpps(mapped.filter(o => o.status === 'lost'))
+  }, [liveLeads])
 
   function reopenLead(opp: Opportunity) {
     const firstStageId = stages[0]?.id ?? 'nouveau-lead'
@@ -387,6 +408,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   function handleDragStart({ active }: DragStartEvent) {
     setActiveId(active.id as string)
     wasDragged.current = true
+    draggingRef.current = true
   }
 
   function handleDragOver({ over }: DragOverEvent) {
@@ -414,6 +436,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     setActiveId(null)
     setOverId(null)
     setTimeout(() => { wasDragged.current = false }, 50)
+    setTimeout(() => { draggingRef.current = false }, 800)
     if (!over) return
 
     const activeId  = active.id as string
