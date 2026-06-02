@@ -8,7 +8,7 @@ import {
   LayoutDashboard, GitMerge, Users, MessageSquare, CalendarDays,
   TrendingUp, BotMessageSquare, CheckSquare,
   ScrollText, Database, Wallet, Settings, LogOut, GitBranch, FileText,
-  Radio, ChevronDown, Library, FolderOpen, HardDrive, ListChecks, Users2,
+  Radio, ChevronDown, Library, FolderOpen, HardDrive, ListChecks, Users2, CreditCard,
 } from 'lucide-react'
 import Image from 'next/image'
 import { logout } from '@/app/login/actions'
@@ -48,8 +48,10 @@ const ACQUISITION_PRE: NavItem[] = [
 
 const ACQUISITION_POST: NavItem[] = [
   { href: '/contacts',      icon: Users,           label: 'Contacts' },
-  { href: '/conversations', icon: MessageSquare,   label: 'Conversations', also: ['/conversion'] },
+  { href: '/onboarding',    icon: Users2,          label: 'Onboarding' },
   { href: '/devis',         icon: FileText,        label: 'Contrats' },
+  { href: '/paiement',      icon: CreditCard,      label: 'Paiement' },
+  { href: '/conversations', icon: MessageSquare,   label: 'Conversations', also: ['/conversion'] },
   { href: '/calendrier',    icon: CalendarDays,    label: 'Calendrier' },
   { href: '/analyse',       icon: TrendingUp,      label: 'Analyse', also: ['/growth'] },
 ]
@@ -59,7 +61,6 @@ const BIBLIOTHEQUES: NavItem[] = [
   { href: '/bibliotheque/data',       icon: HardDrive,   label: 'Data'       },
   { href: '/bibliotheque/records',    icon: FolderOpen,  label: 'Records'    },
   { href: '/bibliotheque/process',    icon: ListChecks,  label: 'Process'    },
-  { href: '/bibliotheque/onboarding', icon: Users2,      label: 'Onboarding' },
 ]
 
 const AGENTIQUE: NavItem[] = [
@@ -132,14 +133,12 @@ function BibliothequeNav({ pathname }: { pathname: string }) {
   const recordsActive = pathname.startsWith('/bibliotheque/records')
 
   const processActive  = pathname.startsWith('/bibliotheque/process')
-  const onboardActive  = pathname.startsWith('/bibliotheque/onboarding')
 
   const SUBS = [
     { href: '/bibliotheque/projets',    label: 'Projets',    active: projetsActive },
     { href: '/bibliotheque/data',       label: 'Data',       active: dataActive    },
     { href: '/bibliotheque/records',    label: 'Records',    active: recordsActive },
     { href: '/bibliotheque/process',    label: 'Process',    active: processActive },
-    { href: '/bibliotheque/onboarding', label: 'Onboarding', active: onboardActive },
   ]
 
   return (
