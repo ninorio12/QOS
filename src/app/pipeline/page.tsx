@@ -103,7 +103,7 @@ export default async function PipelinePage() {
     fetchError = err instanceof Error ? err.message : String(err)
   }
 
-  // No mock fallback — show real data or empty state
+  if (pipelines.length === 0) return <PipelineEmpty error={fetchError ?? undefined} />
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-h-0">
