@@ -237,7 +237,8 @@ function ContractStep({ done, onToggle, client, full, payment, signed, onPayment
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientName: client.name, company: client.company || full?.companyName, address: full?.address1,
-          phone: full?.phone, email: full?.email, amount: client.value, installments, amounts, preview,
+          phone: full?.phone, email: full?.email, representant: client.name,
+          amount: client.value, installments, amounts, currency: 'CHF', preview,
         }),
       })
       if (!res.ok) throw new Error()
