@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { X, ChevronDown, Search, Check, Plus } from 'lucide-react'
+import { X, ChevronDown, Search, Check, Plus, ClipboardList, CreditCard, FileText } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { type GHLContact } from '@/lib/ghl'
 import { type GHLPipelineData, type Opportunity } from '@/components/pipeline/types'
 import { type ContactPipelineInfo } from '@/app/contacts/page'
@@ -270,6 +271,14 @@ interface Props {
 // ─── Modal ────────────────────────────────────────────────────
 export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, contact, pipelineInfo, initialCanton, initialStatut, mode }: Props) {
   const isEdit = !!contact
+  const router = useRouter()
+
+  function goToModule(base: string) {
+    if (!contact?.id) return
+    const name = contact.contactName || `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim()
+    onClose()
+    router.push(`${base}?contact=${contact.id}&name=${encodeURIComponent(name)}`)
+  }
 
   const parsedPhone = useMemo(() => parsePhone(contact?.phone ?? null), [contact?.phone])
 
@@ -624,6 +633,28 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               <div className="flex flex-col gap-2">
                 <Section title="Montant du deal" />
                 <input type="number" value={clientValue} onChange={e => setClientValue(e.target.value)} placeholder="ex: 3500" className={inputCls} />
+              </div>
+            )}
+
+            {/* Raccourcis client — edit mode only (need a saved contact) */}
+            {statut === 'client' && isEdit && contact?.id && (
+              <div className="flex flex-col gap-2">
+                <Section title="Suivi client" />
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { base: '/onboarding', label: 'Onboarding', Icon: ClipboardList, color: '#3462EE' },
+                    { base: '/paiement',   label: 'Paiement',   Icon: CreditCard,   color: '#10B981' },
+                    { base: '/devis',      label: 'Contrat',    Icon: FileText,     color: '#F97316' },
+                  ].map(({ base, label, Icon, color }) => (
+                    <button key={base} type="button" onClick={() => goToModule(base)}
+                      className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 border-soren-border hover:border-[#C8CBD0] transition-all"
+                      style={{ background: '#F9F9F7' }}
+                    >
+                      <Icon size={16} style={{ color }} />
+                      <span className="text-[10px] font-bold text-soren-text leading-tight text-center">{label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
