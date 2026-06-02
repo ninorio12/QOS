@@ -135,7 +135,7 @@ function ClientColumn({ stage, clients, isOver, wasDragged }: {
 
       <div
         ref={setNodeRef}
-        className={`flex-1 flex flex-col rounded-xl p-2 transition-colors overflow-hidden ${
+        className={`flex-1 flex flex-col rounded-xl p-2 transition-colors overflow-clip ${
           isOver ? 'bg-[#FF4D00]/10 ring-1 ring-[#FF4D00]/40' : 'bg-black/[0.04]'
         }`}
       >
@@ -307,7 +307,7 @@ export default function ClientsBoard() {
             className="pointer-events-none absolute right-0 top-0 bottom-4 w-8 z-10"
             style={{ background: 'linear-gradient(to left, var(--bg-app) 40%, transparent)' }}
           />
-          <div ref={boardRef} className="flex gap-4 overflow-x-auto px-6 pb-4 kanban-scroll items-stretch h-full">
+          <div ref={boardRef} className="flex gap-4 overflow-x-auto px-6 pb-4 kanban-scroll kanban-board-row">
             {CLIENT_STAGES.map(stage => (
               <ClientColumn
                 key={stage.id}

@@ -584,7 +584,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
             className="pointer-events-none absolute right-0 top-0 bottom-4 w-8 z-10"
             style={{ background: 'linear-gradient(to left, var(--bg-app) 40%, transparent)' }}
           />
-          <div ref={boardRef} className="flex gap-4 overflow-x-auto px-6 pb-4 kanban-scroll items-stretch h-full">
+          <div ref={boardRef} className="flex gap-4 overflow-x-auto px-6 pb-4 kanban-scroll kanban-board-row">
             {stages.map((stage, i) => (
               <KanbanColumn
                 key={stage.id}
