@@ -61,10 +61,13 @@ function TagPill({ label }: { label: string }) {
 }
 
 // ─── Source badge ─────────────────────────────────────────────
-function SourceBadge({ value, onClick }: { value: 'inbound' | 'outbound'; onClick: (e: React.MouseEvent) => void }) {
+type SourceVal = 'inbound' | 'outbound' | 'recommandation'
+function SourceBadge({ value, onClick }: { value: SourceVal; onClick: (e: React.MouseEvent) => void }) {
   const cfg = value === 'inbound'
     ? { bg: '#DCFCE7', color: '#16A34A', border: '#BBF7D0', label: 'inbound'  }
-    : { bg: '#FEF9C3', color: '#CA8A04', border: '#FDE68A', label: 'outbound' }
+    : value === 'outbound'
+      ? { bg: '#FEF9C3', color: '#CA8A04', border: '#FDE68A', label: 'outbound' }
+      : { bg: '#EDE9FE', color: '#7C3AED', border: '#DDD6FE', label: 'recommandation' }
   return (
     <span onClick={onClick} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap cursor-pointer select-none hover:opacity-80 transition-opacity" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
       {cfg.label}
@@ -156,7 +159,7 @@ function ContactRow({
   onCheck:         (id: string) => void
   onClick:         () => void
   visibleCols:     Set<ColName>
-  source:          'inbound' | 'outbound'
+  source:          SourceVal
   statut:          'lead' | 'client' | 'perdu'
   canton:          string | null
   onSourceToggle:  (id: string, e: React.MouseEvent) => void
@@ -302,19 +305,21 @@ export default function ContactsView({
   const [visibleCols,   setVisibleCols]  = useState<Set<ColName>>(new Set(ALL_COLS))
   const [colFilters,    setColFilters]   = useState<ColFilter>({})
   const [filterPipeline, setFilterPipeline] = useState(false)
+  const [page,          setPage]          = useState(1)
+  const PER_PAGE = 30
 
-  const [sourceMap, setSourceMap] = useState<Map<string, 'inbound' | 'outbound'>>(new Map())
+  const [sourceMap, setSourceMap] = useState<Map<string, SourceVal>>(new Map())
   const [statutMap, setStatutMap] = useState<Map<string, 'lead' | 'client' | 'perdu'>>(new Map())
   const [cantonMap, setCantonMap] = useState<Map<string, string>>(new Map())
 
   // Load source/statut/canton directly from the contact objects (crm_contacts fields)
   useEffect(() => {
-    const src = new Map<string, 'inbound' | 'outbound'>()
+    const src = new Map<string, SourceVal>()
     const sta = new Map<string, 'lead' | 'client' | 'perdu'>()
     const can = new Map<string, string>()
     for (const c of contacts) {
       const ext = c as GHLContact & { statut?: string | null; canton?: string | null }
-      if (ext.source) src.set(c.id, ext.source as 'inbound' | 'outbound')
+      if (ext.source) src.set(c.id, ext.source as SourceVal)
       if (ext.statut) sta.set(c.id, ext.statut as 'lead' | 'client' | 'perdu')
       if (ext.canton) can.set(c.id, ext.canton)
     }
@@ -327,7 +332,8 @@ export default function ContactsView({
     e.stopPropagation()
     setSourceMap(prev => {
       const next = new Map(prev)
-      const newVal = next.get(id) === 'outbound' ? 'inbound' : 'outbound'
+      const cur = next.get(id) ?? 'inbound'
+      const newVal: SourceVal = cur === 'inbound' ? 'outbound' : cur === 'outbound' ? 'recommandation' : 'inbound'
       next.set(id, newVal)
       fetch(`/api/contact/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source: newVal }) }).catch(() => {})
       return next
@@ -456,9 +462,16 @@ export default function ContactsView({
     return result
   }, [contacts, debouncedQuery, colFilters, sortCol, sortDir, sourceMap, statutMap, cantonMap, filterPipeline, pipelineContactIds])
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
+  const safePage    = Math.min(page, totalPages)
+  const paginated   = useMemo(() => filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE), [filtered, safePage])
+
+  // Reset to page 1 when filters/search change
+  useEffect(() => { setPage(1) }, [debouncedQuery, colFilters, sortCol, sortDir, filterPipeline])
+
   // Unique values per filterable column (for dropdowns)
   const filterOptions = useMemo(() => ({
-    'Source':              ['inbound', 'outbound'],
+    'Source':              ['inbound', 'outbound', 'recommandation'],
     'Statut':              ['lead', 'client', 'perdu'],
     'Canton':              SWISS_CANTONS.filter(c => contacts.some(ct => cantonMap.get(ct.id) === c)),
     'Métier':              [...new Set(contacts.map(c => c.metier).filter(Boolean) as string[])].sort(),
@@ -651,7 +664,7 @@ export default function ContactsView({
                 </td>
               </tr>
             ) : (
-              filtered.map(contact => (
+              paginated.map(contact => (
                 <ContactRow
                   key={contact.id}
                   contact={contact}
@@ -671,6 +684,46 @@ export default function ContactsView({
           </tbody>
         </table>
       </div>
+
+      {/* ── Pagination footer ── */}
+      {filtered.length > 0 && (
+        <div className="flex items-center justify-between px-6 py-3 flex-shrink-0 border-t border-soren-border">
+          <span className="text-[12px] text-soren-muted">
+            {(safePage - 1) * PER_PAGE + 1}–{Math.min(safePage * PER_PAGE, filtered.length)} sur {filtered.length}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className="px-3 py-1.5 rounded-lg text-[12px] font-semibold border border-soren-border text-soren-muted hover:bg-soren-elevated disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Précédent
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
+              .map((p, idx, arr) => (
+                <span key={p} className="flex items-center">
+                  {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1 text-soren-subtle text-[12px]">…</span>}
+                  <button
+                    onClick={() => setPage(p)}
+                    className={`min-w-[32px] px-2 py-1.5 rounded-lg text-[12px] font-semibold transition-colors ${
+                      p === safePage ? 'bg-soren-sidebar text-white' : 'text-soren-muted hover:bg-soren-elevated border border-soren-border'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                </span>
+              ))}
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className="px-3 py-1.5 rounded-lg text-[12px] font-semibold border border-soren-border text-soren-muted hover:bg-soren-elevated disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Suivant
+            </button>
+          </div>
+        </div>
+      )}
 
       {showImport && (
         <ImportModal

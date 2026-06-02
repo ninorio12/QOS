@@ -64,6 +64,12 @@ const COUNTRIES = [
 
 const SOURCES = ['Direct', 'Meta Ads', 'WhatsApp', 'LinkedIn', 'Téléphone', 'Site web', 'Referral', 'Email']
 
+const SOURCE_OPTS = [
+  { id: 'inbound',        color: '#16A34A', bg: '#DCFCE7', label: 'Inbound'        },
+  { id: 'outbound',       color: '#CA8A04', bg: '#FEF9C3', label: 'Outbound'       },
+  { id: 'recommandation', color: '#7C3AED', bg: '#EDE9FE', label: 'Recommandation' },
+] as const
+
 const CLIENT_STAGES = [
   { id: 'nouveau-client',     name: 'Nouveau client'      },
   { id: 'onboarding-envoye',  name: 'Onboarding envoyé'   },
@@ -276,9 +282,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
   const [ghlLeadsPipeline,   setGhlLeadsPipeline]   = useState<GHLPipelineData | null>(null)
   const [selectedPipelineId, setSelectedPipelineId] = useState<'leads' | 'clients' | null>(null)
   const [selectedStageId,    setSelectedStageId]    = useState<string | null>(null)
-  const [inoutbound,         setInoutbound]         = useState<'inbound' | 'outbound'>(
-    ((contact as (Record<string, unknown> & { source?: string }) | undefined)?.source === 'outbound') ? 'outbound' : 'inbound'
-  )
+  const [inoutbound, setInoutbound] = useState<'inbound' | 'outbound' | 'recommandation'>(((contact as (Record<string,unknown> & {source?:string}) | undefined)?.source as 'inbound'|'outbound'|'recommandation') ?? 'inbound')
   const [clientValue,        setClientValue]        = useState('')
   const [tagInput,      setTagInput]      = useState('')
   const [tags,          setTags]          = useState<string[]>(contact?.tags ?? [])
@@ -657,20 +661,17 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             <div className="border-t border-soren-border pt-5 flex flex-col gap-3">
               <Section title="Source" />
               <div className="flex gap-2">
-                {(['inbound', 'outbound'] as const).map(opt => {
-                  const cfg = opt === 'inbound'
-                    ? { color: '#16A34A', bg: '#DCFCE7', label: 'Inbound' }
-                    : { color: '#CA8A04', bg: '#FEF9C3', label: 'Outbound' }
-                  const isSelected = inoutbound === opt
+                {SOURCE_OPTS.map(opt => {
+                  const isSelected = inoutbound === opt.id
                   return (
-                    <button key={opt} type="button"
-                      onClick={() => setInoutbound(opt)}
+                    <button key={opt.id} type="button"
+                      onClick={() => setInoutbound(opt.id)}
                       className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all"
-                      style={{ borderColor: isSelected ? cfg.color : '#E5E7EB', background: isSelected ? cfg.bg : '#F9F9F7' }}
+                      style={{ borderColor: isSelected ? opt.color : '#E5E7EB', background: isSelected ? opt.bg : '#F9F9F7' }}
                     >
-                      <span className="w-2 h-2 rounded-full" style={{ background: cfg.color }} />
-                      <span className="text-[11px] font-bold" style={{ color: isSelected ? cfg.color : '#374151' }}>{cfg.label}</span>
-                      {isSelected && <Check size={11} style={{ color: cfg.color }} />}
+                      <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
+                      <span className="text-[10px] font-bold leading-tight text-center" style={{ color: isSelected ? opt.color : '#374151' }}>{opt.label}</span>
+                      {isSelected && <Check size={11} style={{ color: opt.color }} />}
                     </button>
                   )
                 })}
@@ -728,20 +729,17 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               <div className="flex flex-col gap-2">
                 <Section title="Source" />
                 <div className="flex gap-2">
-                  {(['inbound', 'outbound'] as const).map(opt => {
-                    const cfg = opt === 'inbound'
-                      ? { color: '#16A34A', bg: '#DCFCE7', label: 'Inbound' }
-                      : { color: '#CA8A04', bg: '#FEF9C3', label: 'Outbound' }
-                    const isSelected = inoutbound === opt
+                  {SOURCE_OPTS.map(opt => {
+                    const isSelected = inoutbound === opt.id
                     return (
-                      <button key={opt} type="button"
-                        onClick={() => setInoutbound(opt)}
+                      <button key={opt.id} type="button"
+                        onClick={() => setInoutbound(opt.id)}
                         className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all"
-                        style={{ borderColor: isSelected ? cfg.color : '#E5E7EB', background: isSelected ? cfg.bg : '#F9F9F7' }}
+                        style={{ borderColor: isSelected ? opt.color : '#E5E7EB', background: isSelected ? opt.bg : '#F9F9F7' }}
                       >
-                        <span className="w-2 h-2 rounded-full" style={{ background: cfg.color }} />
-                        <span className="text-[11px] font-bold" style={{ color: isSelected ? cfg.color : '#374151' }}>{cfg.label}</span>
-                        {isSelected && <Check size={11} style={{ color: cfg.color }} />}
+                        <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
+                        <span className="text-[10px] font-bold leading-tight text-center" style={{ color: isSelected ? opt.color : '#374151' }}>{opt.label}</span>
+                        {isSelected && <Check size={11} style={{ color: opt.color }} />}
                       </button>
                     )
                   })}
