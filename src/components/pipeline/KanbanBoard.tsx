@@ -27,7 +27,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Trash2, Eye, EyeOff } from 'lucide-react'
-import { type GHLPipelineData, type GHLStage, type Opportunity, type Lead, SOURCE_COLORS } from './types'
+import { type GHLPipelineData, type GHLStage, type Opportunity, type Lead } from './types'
 import { getAvatarColor } from '@/components/contacts/types'
 import dynamic from 'next/dynamic'
 import { useToast } from '@/hooks/useToast'
@@ -173,7 +173,7 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
 
       <div
         ref={setNodeRef}
-        className={`flex-1 flex flex-col rounded-xl p-2 transition-colors overflow-hidden ${
+        className={`flex-1 flex flex-col rounded-xl p-2 transition-colors overflow-clip ${
           showLost
             ? 'bg-black/[0.02]'
             : isLastStage
@@ -352,10 +352,6 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   const stages       = pipeline?.stages ?? []
   const activeOpp    = opps.find(o => o.id === activeId) ?? null
   const pipelineOpps = opps.filter(o => o.pipelineId === pipeline?.id)
-  const totalPipeline = showLost
-    ? lostOpps.filter(o => o.pipelineId === pipeline?.id).reduce((sum, o) => sum + o.value, 0)
-    : pipelineOpps.reduce((sum, o) => sum + o.value, 0)
-
   const getColOpps = useCallback((stageId: string) => {
     if (showLost) {
       return lostOpps.filter(o => o.stageId === stageId && o.pipelineId === pipeline?.id)
@@ -439,6 +435,15 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     // Dropped on another card
     const overOpp = opps.find(o => o.id === overId)
     if (!overOpp) return
+
+    // If target card is in last stage → conversion popup
+    const overStageIdx = stages.findIndex(s => s.id === overOpp.stageId)
+    if (overStageIdx === stages.length - 1 && activeOpp.stageId !== overOpp.stageId) {
+      setOpps(prev => prev.filter(o => o.id !== activeId))
+      setPendingConversion(activeOpp)
+      setDealValue('')
+      return
+    }
 
     if (activeOpp.stageId === overOpp.stageId) {
       setOpps(prev => {
