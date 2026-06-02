@@ -34,7 +34,7 @@ export default function AgentView() {
   const [config, setConfig] = useState<AgentConfig>(() => {
     if (typeof window === 'undefined') return DEFAULT_AGENT_CONFIG
     try {
-      const saved = localStorage.getItem('soren_agent_config')
+      const saved = localStorage.getItem('vividflow_agent_config')
       return saved ? { ...DEFAULT_AGENT_CONFIG, ...JSON.parse(saved) } : DEFAULT_AGENT_CONFIG
     } catch { return DEFAULT_AGENT_CONFIG }
   })
@@ -45,7 +45,7 @@ export default function AgentView() {
   useEffect(() => () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current) }, [])
 
   function handleSave() {
-    try { localStorage.setItem('soren_agent_config', JSON.stringify(config)) } catch {}
+    try { localStorage.setItem('vividflow_agent_config', JSON.stringify(config)) } catch {}
     setSaved(true)
     if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
     savedTimerRef.current = setTimeout(() => setSaved(false), 2000)
@@ -70,7 +70,6 @@ export default function AgentView() {
             <Bot size={20} className="text-[#3462EE]" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-soren-text leading-none">Agent IA</h1>
             <p className="text-xs text-soren-muted">Qualification automatique des leads — Claude Opus 4.6</p>
           </div>
         </div>

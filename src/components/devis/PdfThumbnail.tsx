@@ -22,11 +22,11 @@ export default function PdfThumbnail({
   montantTtc,
 }: PdfThumbnailProps) {
   const [logo,       setLogo]       = useState('')
-  const [entreprise, setEntreprise] = useState('SOREN')
+  const [entreprise, setEntreprise] = useState('VividFlow')
 
   useEffect(() => {
     try {
-      const stored = JSON.parse(localStorage.getItem('soren_compte') ?? '{}')
+      const stored = JSON.parse(localStorage.getItem('vividflow_compte') ?? '{}')
       if (stored.logo)       setLogo(stored.logo)
       if (stored.entreprise) setEntreprise(stored.entreprise)
     } catch {}

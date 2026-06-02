@@ -1,13 +1,21 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+const MOCK_COMPANY = {
+  name: 'VividFlow',
+  email: 'contact@vividflow.ch',
+  phone: '+41 22 000 00 00',
+  address: 'Genève, Suisse',
+  logo_url: null,
+}
+
 export async function GET() {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('company_settings')
     .select('*')
     .single()
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) return Response.json({ company: MOCK_COMPANY })
   return Response.json({ company: data })
 }
 

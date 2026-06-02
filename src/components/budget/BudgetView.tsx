@@ -100,7 +100,6 @@ export default function BudgetView() {
       {/* Header + tabs sur la même ligne */}
       <div className="flex items-center justify-between flex-shrink-0" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
         <div>
-          <h1 className="text-2xl font-black text-soren-text leading-none">Budget</h1>
           <p className="text-xs text-soren-subtle">Dépenses API et abonnements en temps réel</p>
         </div>
         <div className="flex items-center gap-3">

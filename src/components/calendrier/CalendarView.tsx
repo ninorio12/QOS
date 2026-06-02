@@ -932,7 +932,6 @@ export default function CalendarView({
         <div className="flex items-center justify-between flex-shrink-0 gap-2 min-w-0">
           {/* Left: title + nav */}
           <div className="flex items-center gap-2 min-w-0 shrink-0">
-            <h1 className="text-2xl font-black text-soren-text leading-none whitespace-nowrap">Calendrier</h1>
             <div className="flex items-center gap-1">
               <button
                 onClick={goToday}

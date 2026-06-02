@@ -42,7 +42,7 @@ type GHLOpportunityEvent = {
 
 function verifySecret(req: NextRequest): boolean {
   const ghlSecret = process.env.GHL_WEBHOOK_SECRET
-  if (!ghlSecret) return true
+  if (!ghlSecret) return false
   const received = req.headers.get('x-wc-webhook-secret') ?? req.headers.get('x-ghl-secret') ?? ''
   return received === ghlSecret
 }

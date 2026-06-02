@@ -167,14 +167,14 @@ function WhatsAppTab() {
   const [templates, setTemplates] = useState<Template[]>(() => {
     if (typeof window === 'undefined') return INITIAL_TEMPLATES
     try {
-      const stored = localStorage.getItem('soren_wa_templates')
+      const stored = localStorage.getItem('vividflow_wa_templates')
       return stored ? JSON.parse(stored) : INITIAL_TEMPLATES
     } catch { return INITIAL_TEMPLATES }
   })
   const [saved, setSaved] = useState<Record<number, boolean>>({})
 
   function saveTemplate(i: number) {
-    try { localStorage.setItem('soren_wa_templates', JSON.stringify(templates)) } catch {}
+    try { localStorage.setItem('vividflow_wa_templates', JSON.stringify(templates)) } catch {}
     setSaved(s => ({ ...s, [i]: true }))
     setTimeout(() => setSaved(s => ({ ...s, [i]: false })), 2000)
   }
@@ -360,7 +360,6 @@ export default function ConversionView() {
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-black text-soren-text leading-none">Conversion</h1>
         <p className="text-xs text-soren-muted mt-0.5">Canaux de conversion automatisés</p>
       </div>
 

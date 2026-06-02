@@ -7,9 +7,14 @@ export const maxDuration = 300
 
 export async function GET(req: NextRequest) {
   // Vérification secret (Vercel Cron ou appel manuel)
+  const configuredSecret = process.env.AGENT_EXECUTOR_SECRET
+  if (!configuredSecret) {
+    return NextResponse.json({ error: 'agent executor secret not configured' }, { status: 500 })
+  }
+
   const secret = req.nextUrl.searchParams.get('secret')
     ?? req.headers.get('authorization')?.replace('Bearer ', '')
-  if (secret !== process.env.AGENT_EXECUTOR_SECRET) {
+  if (secret !== configuredSecret) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 

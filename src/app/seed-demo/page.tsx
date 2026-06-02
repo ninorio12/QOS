@@ -94,7 +94,7 @@ export default function SeedDemoPage() {
     setStep('settings')
     try {
       // 1. localStorage → preview
-      localStorage.setItem('soren_compte', JSON.stringify(SOREN_COMPANY))
+      localStorage.setItem('vividflow_compte', JSON.stringify(SOREN_COMPANY))
 
       // 2. Supabase company_settings → PDF serveur
       const sr = await fetch('/api/settings/company', {
@@ -132,7 +132,7 @@ export default function SeedDemoPage() {
   }
 
   const STEPS: { key: Step; label: string }[] = [
-    { key: 'settings', label: 'Paramètres SOREN' },
+    { key: 'settings', label: 'Paramètres VividFlow' },
     { key: 'devis',    label: 'Création devis Jean Dupont' },
     { key: 'pdf',      label: 'Génération PDF' },
     { key: 'done',     label: 'Terminé' },
@@ -145,7 +145,7 @@ export default function SeedDemoPage() {
         <div style={{ fontSize: 32, marginBottom: 8 }}>🏠</div>
         <h1 style={{ fontSize: 20, fontWeight: 800, color: '#111', margin: '0 0 8px' }}>Seed démo</h1>
         <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 28, lineHeight: 1.5 }}>
-          Injecte les paramètres <strong>SOREN</strong> (local + Supabase), crée le devis <strong>Jean Dupont</strong> avec les 4 lignes et génère le PDF.
+          Injecte les paramètres <strong>VividFlow</strong> (local + Supabase), crée le devis <strong>Jean Dupont</strong> avec les 4 lignes et génère le PDF.
         </p>
 
         {step === 'idle' && (

@@ -157,9 +157,7 @@ function ClientColumn({ stage, clients, isOver, wasDragged }: {
 }
 
 export default function ClientsBoard() {
-  const [clients, setClients] = useState<Client[]>(() => {
-    try { return JSON.parse(localStorage.getItem('vividflow_clients') ?? '[]') as Client[] } catch { return [] }
-  })
+  const [clients, setClients] = useState<Client[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [overId,   setOverId]   = useState<string | null>(null)
   const [scrolled, setScrolled] = useState(false)
@@ -168,6 +166,14 @@ export default function ClientsBoard() {
   const { toasts, toast, dismiss } = useToast()
 
   const activeClient = clients.find(c => c.id === activeId) ?? null
+
+  // Load from Convex on mount
+  useEffect(() => {
+    fetch('/api/pipeline/clients')
+      .then(r => r.json())
+      .then((d: { clients?: Client[] }) => { if (d.clients) setClients(d.clients) })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     const el = boardRef.current
@@ -245,6 +251,11 @@ export default function ClientsBoard() {
     if (targetStage) {
       if (activeClient.stageId !== targetStage.id) {
         setClients(prev => prev.map(c => c.id === activeId ? { ...c, stageId: targetStage.id } : c))
+        fetch(`/api/pipeline/clients/${activeId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stageId: targetStage.id }),
+        }).catch(() => setClients(prev => prev.map(c => c.id === activeId ? { ...c, stageId: activeClient.stageId } : c)))
       }
       return
     }
@@ -270,12 +281,13 @@ export default function ClientsBoard() {
         col.splice(idx, 0, moved)
         return [...rest, ...col]
       })
+      fetch(`/api/pipeline/clients/${activeId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stageId: overClient.stageId }),
+      }).catch(() => setClients(prev => prev.map(c => c.id === activeId ? { ...c, stageId: activeClient.stageId } : c)))
     }
   }
-
-  useEffect(() => {
-    try { localStorage.setItem('vividflow_clients', JSON.stringify(clients)) } catch {}
-  }, [clients])
 
   const totalValue = clients.reduce((sum, c) => sum + c.value, 0)
 
@@ -296,10 +308,15 @@ export default function ClientsBoard() {
             onAdd={c => {
               const name = c.contactName || `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim()
               const initials = name.trim().split(' ').map(w => w[0] ?? '').join('').slice(0, 2).toUpperCase() || '?'
-              const existing = JSON.parse(localStorage.getItem('vividflow_clients') ?? '[]') as Client[]
-              const found = existing.find(cl => cl.id === c.id)
-              if (found) setClients(prev => [found, ...prev.filter(cl => cl.id !== c.id)])
-              else setClients(prev => [{ id: c.id, name, company: c.companyName ?? '', value: 0, createdAt: new Date().toISOString().split('T')[0], initials, stageId: CLIENT_STAGES[0].id }, ...prev])
+              const newClient: Client = { id: c.id, name, company: c.companyName ?? '', value: 0, createdAt: new Date().toISOString().split('T')[0], initials, stageId: CLIENT_STAGES[0].id }
+              setClients(prev => [newClient, ...prev.filter(cl => cl.id !== c.id)])
+              fetch('/api/pipeline/clients', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ghl_contact_id: c.id, name, company: c.companyName ?? undefined, email: c.email ?? undefined, phone: c.phone ?? undefined, value: 0, stageId: CLIENT_STAGES[0].id, initials, createdAt: new Date().toISOString().split('T')[0] }),
+              }).then(r => r.json()).then((d: { id?: string }) => {
+                if (d.id) setClients(prev => prev.map(cl => cl.id === c.id ? { ...cl, id: d.id! } : cl))
+              }).catch(() => {})
             }}
           />
         </div>

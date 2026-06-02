@@ -7,7 +7,12 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   const ctx = await getAuthContext()
-  if (!ctx) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!ctx) {
+    const { MOCK_CONTACTS } = await import('@/lib/mock-data')
+    const contact = MOCK_CONTACTS.find(c => c.id === params.id) ?? null
+    if (!contact) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    return NextResponse.json({ contact })
+  }
 
   const { ghlApiKey: apiKey } = ctx
   const baseUrl = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'

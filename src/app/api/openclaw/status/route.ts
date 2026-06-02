@@ -14,7 +14,7 @@ function offlineStatus() {
   return {
     ok:     false,
     uptime: 0,
-    agents: { soren: offline, kai: offline, mia: offline },
+    agents: { vividflow: offline, kai: offline, mia: offline },
   }
 }
 

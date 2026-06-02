@@ -56,7 +56,7 @@ export const KAI_TOOLS: Anthropic.Tool[] = [
       type: 'object',
       properties: {
         title:  { type: 'string', description: 'Titre de la tâche' },
-        agent:  { type: 'string', description: 'Agent assigné: kai, soren, mia' },
+        agent:  { type: 'string', description: 'Agent assigné: kai, vividflow, mia' },
         human:  { type: 'boolean', description: 'Vrai si la tâche nécessite une intervention humaine' },
       },
       required: ['title', 'agent'],
@@ -123,7 +123,7 @@ export const SOREN_TOOLS: Anthropic.Tool[] = [
       type: 'object',
       properties: {
         title:  { type: 'string', description: 'Titre de la tâche' },
-        agent:  { type: 'string', description: 'Agent assigné: kai, soren, mia' },
+        agent:  { type: 'string', description: 'Agent assigné: kai, vividflow, mia' },
         human:  { type: 'boolean', description: 'Nécessite intervention humaine' },
       },
       required: ['title', 'agent'],

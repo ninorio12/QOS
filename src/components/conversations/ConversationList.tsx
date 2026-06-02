@@ -11,7 +11,7 @@ import { Sparkles, Star } from 'lucide-react'
 function useStarred() {
   const [starred, setStarred] = useState<Set<string>>(() => {
     try {
-      const raw = localStorage.getItem('soren_starred_convs')
+      const raw = localStorage.getItem('vividflow_starred_convs')
       return new Set(raw ? JSON.parse(raw) as string[] : [])
     } catch { return new Set() }
   })
@@ -20,7 +20,7 @@ function useStarred() {
     setStarred(prev => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
-      try { localStorage.setItem('soren_starred_convs', JSON.stringify([...next])) } catch {}
+      try { localStorage.setItem('vividflow_starred_convs', JSON.stringify([...next])) } catch {}
       return next
     })
   }, [])
@@ -230,7 +230,6 @@ export default function ConversationList({
     <div className="flex flex-col w-[340px] flex-shrink-0 bg-[#F8F8F6] border-r border-soren-border h-full">
       {/* Header */}
       <div className="px-4 pt-5 pb-3 border-b border-soren-border">
-        <h1 className="text-2xl font-black text-soren-text leading-none mb-1">Conversations</h1>
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-semibold text-soren-muted">
             {getFilterLabel(activeFilter)}

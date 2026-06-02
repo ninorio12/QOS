@@ -263,7 +263,6 @@ export default function CommunicationView() {
         <div className="px-4 pt-4 pb-3 border-b border-soren-border bg-soren-app/60">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h1 className="text-2xl font-black text-soren-text leading-tight">Communication</h1>
               <p className="text-xs text-soren-muted mt-0.5">Inbox interne façon WhatsApp, reliée au CRM.</p>
             </div>
             <button className="w-8 h-8 rounded-xl bg-soren-sidebar text-white flex items-center justify-center hover:bg-[#2a2a2a] transition-colors">

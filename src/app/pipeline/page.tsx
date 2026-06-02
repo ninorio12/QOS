@@ -95,7 +95,7 @@ export default async function PipelinePage() {
         email:      (opp.contact?.email ?? ''),
         phone:      (opp.contact?.phone ?? ''),
         contactId:  (opp.contact?.id ?? ''),
-        tags:       (opp.contact?.tags ?? []).filter(t => !['ia', 'kai', 'soren', 'mia', 'auto', 'ia active', 'auto ia active'].includes(t.toLowerCase())),
+        tags:       (opp.contact?.tags ?? []).filter(t => !['ia', 'kai', 'vividflow', 'mia', 'auto', 'ia active', 'auto ia active'].includes(t.toLowerCase())),
         status:     'open' as const,
       }
     })
@@ -103,20 +103,7 @@ export default async function PipelinePage() {
     fetchError = err instanceof Error ? err.message : String(err)
   }
 
-  // GHL non connecté → pipeline vide mais fonctionnel (pas d'erreur)
-  if (pipelines.length === 0) {
-    pipelines = [{
-      id: 'default',
-      name: 'Pipeline principal',
-      stages: [
-        { id: 'nouveau',      name: 'Nouveau lead',    color: '#6366F1', position: 0 },
-        { id: 'qualification', name: 'Qualification',  color: '#F59E0B', position: 1 },
-        { id: 'proposition',  name: 'Proposition',     color: '#3B82F6', position: 2 },
-        { id: 'negociation',  name: 'Négociation',     color: '#8B5CF6', position: 3 },
-        { id: 'gagne',        name: 'Gagné',           color: '#10B981', position: 4 },
-      ],
-    }]
-  }
+  // No mock fallback — show real data or empty state
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-h-0">

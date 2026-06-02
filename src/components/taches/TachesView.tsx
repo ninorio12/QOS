@@ -5,7 +5,7 @@ import { Circle, Clock, AlertTriangle, CheckCircle2, AlertCircle, Plus, X, Histo
 
 // ─── Types ────────────────────────────────────────────────────
 type ColId     = 'todo' | 'inprogress' | 'error' | 'done' | 'archived'
-type AgentId   = 'soren' | 'kai' | 'mia'
+type AgentId   = 'vividflow' | 'kai' | 'mia'
 type FilterTab = 'all' | 'human'
 
 type Task = {
@@ -19,7 +19,7 @@ type Task = {
 
 // ─── Static meta ──────────────────────────────────────────────
 const AGENT_META: Record<AgentId, { label: string; color: string; bg: string }> = {
-  soren: { label: 'VividFlow', color: '#4A91A8', bg: '#4A91A815' },
+  vividflow: { label: 'VividFlow', color: '#4A91A8', bg: '#4A91A815' },
   kai:   { label: 'Kai',   color: '#1A5C38', bg: '#1A5C3815' },
   mia:   { label: 'Mia',   color: '#E8836A', bg: '#E8836A15' },
 }
@@ -36,7 +36,7 @@ const COL_ORDER: ColId[] = ['todo', 'inprogress', 'error', 'done', 'archived']
 
 const AGENTS_FILTER: { id: AgentId | 'all'; label: string }[] = [
   { id: 'all',   label: 'Tous' },
-  { id: 'soren', label: 'VividFlow' },
+  { id: 'vividflow', label: 'VividFlow' },
   { id: 'kai',   label: 'Kai' },
   { id: 'mia',   label: 'Mia' },
 ]
@@ -75,7 +75,7 @@ function AddTaskModal({ onClose, onAdd }: { onClose: () => void; onAdd: (title: 
             className="w-full bg-soren-elevated rounded-xl px-3 py-2.5 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#4A91A8]/30"
           />
           <div className="flex gap-2">
-            {(['soren', 'kai', 'mia'] as AgentId[]).map(a => {
+            {(['vividflow', 'kai', 'mia'] as AgentId[]).map(a => {
               const m = AGENT_META[a]
               return (
                 <button key={a} type="button" onClick={() => setAgent(a)}
@@ -372,7 +372,6 @@ export default function TachesView() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
         <div>
-          <h1 className="text-2xl font-black text-soren-text leading-none">Tâches</h1>
           <p className="text-xs text-soren-muted mt-1">Suivez l'activité de vos agents en temps réel</p>
         </div>
 
@@ -493,12 +492,12 @@ const SEED_TASKS: Task[] = [
   { id: 't1',  title: 'Qualifier lead Martin Dupont — Réno Pro',  agent: 'kai',   col: 'inprogress', created_at: '2026-04-05T10:30:00Z' },
   { id: 't2',  title: 'Envoyer devis façade — Thomas Bernard',    agent: 'mia',   col: 'todo',       created_at: '2026-04-05T09:15:00Z' },
   { id: 't3',  title: 'Relancer Xavier Lambert — XL BTP',         agent: 'kai',   col: 'todo',       created_at: '2026-04-04T16:00:00Z' },
-  { id: 't4',  title: 'Analyser pipeline ACQUISITION',            agent: 'soren', col: 'done',       created_at: '2026-04-04T10:45:00Z' },
-  { id: 't5',  title: 'Générer rapport hebdo Telegram',           agent: 'soren', col: 'done',       created_at: '2026-04-04T08:00:00Z' },
+  { id: 't4',  title: 'Analyser pipeline ACQUISITION',            agent: 'vividflow', col: 'done',       created_at: '2026-04-04T10:45:00Z' },
+  { id: 't5',  title: 'Générer rapport hebdo Telegram',           agent: 'vividflow', col: 'done',       created_at: '2026-04-04T08:00:00Z' },
   { id: 't6',  title: 'Créer fiche contact Didier Fabre',         agent: 'mia',   col: 'done',       created_at: '2026-04-03T14:20:00Z' },
   { id: 't7',  title: 'Appel Vapi Martin Dupont — non joignable', agent: 'kai',   col: 'error', human: true, created_at: '2026-04-05T10:42:00Z' },
   { id: 't8',  title: 'Synchroniser Knowledge Base — 47 fiches',  agent: 'mia',   col: 'inprogress', created_at: '2026-04-05T09:50:00Z' },
-  { id: 't9',  title: 'RDV confirmé — Inès Duprez 7 avril 14h',   agent: 'soren', col: 'todo',       created_at: '2026-04-05T08:00:00Z' },
+  { id: 't9',  title: 'RDV confirmé — Inès Duprez 7 avril 14h',   agent: 'vividflow', col: 'todo',       created_at: '2026-04-05T08:00:00Z' },
   { id: 't10', title: 'Archiver leads perdus mars 2026',          agent: 'mia',   col: 'todo',       created_at: '2026-04-05T07:30:00Z' },
-  { id: 't11', title: 'Webhook Meta Ads — test leads entrants',   agent: 'soren', col: 'inprogress', created_at: '2026-04-05T11:00:00Z' },
+  { id: 't11', title: 'Webhook Meta Ads — test leads entrants',   agent: 'vividflow', col: 'inprogress', created_at: '2026-04-05T11:00:00Z' },
 ]

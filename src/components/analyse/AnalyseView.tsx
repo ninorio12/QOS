@@ -314,7 +314,6 @@ export default function AnalyseView({ opportunities, pipelines, initialPipeline,
 
         {/* ── Header + Filtres ── */}
         <div className="flex items-center justify-between gap-4 mb-1" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
-          <h1 className="text-[22px] font-black text-soren-text tracking-tight">Analyse</h1>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 bg-soren-card border border-soren-border rounded-[10px] p-[3px]">
               {pipelineTabs.map(tab => (

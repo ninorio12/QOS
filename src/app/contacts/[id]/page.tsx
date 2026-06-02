@@ -15,6 +15,10 @@ const BASE = () => process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq
 const LOC  = () => process.env.GHL_LOCATION_ID!
 
 async function fetchContact(id: string): Promise<GHLContact | null> {
+  if (!process.env.GHL_API_KEY) {
+    const { MOCK_CONTACTS } = await import('@/lib/mock-data')
+    return (MOCK_CONTACTS.find(c => c.id === id) as GHLContact | undefined) ?? null
+  }
   try {
     const res = await fetch(`${BASE()}/contacts/${id}`, { headers: GHL_HEADERS(), cache: 'no-store' })
     if (!res.ok) return null

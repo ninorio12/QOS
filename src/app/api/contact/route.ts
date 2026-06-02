@@ -4,7 +4,7 @@ import { getAuthContext } from '@/lib/auth-context'
 
 export async function GET(req: NextRequest) {
   const ctx = await getAuthContext()
-  if (!ctx) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!ctx) { const { MOCK_CONTACTS } = await import('@/lib/mock-data'); return NextResponse.json({ contacts: MOCK_CONTACTS }) }
 
   const { ghlApiKey: apiKey, ghlLocationId: locationId } = ctx
   const baseUrl = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ contacts: data.contacts ?? [] })
 }
 
-const AI_AGENTS = ['kai', 'soren', 'mia'] as const
+const AI_AGENTS = ['kai', 'vividflow', 'mia'] as const
 
 export async function POST(req: NextRequest) {
   const ctx = await getAuthContext()

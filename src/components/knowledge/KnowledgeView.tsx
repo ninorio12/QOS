@@ -16,7 +16,7 @@ type KBDoc = {
 
 const AGENTS = [
   {
-    id: 'soren',
+    id: 'vividflow',
     name: 'VividFlow',
     role: 'COO · Orchestrateur',
     model: 'claude-haiku-4-5',
@@ -117,7 +117,7 @@ Tu lis le document entreprise, extrais les informations clés (tarifs, services,
 - 47 fiches clients actives
 - 12 templates de devis disponibles
 - Dernière synchro site web : jamais`,
-    skills: ['generate_devis', 'update_kb', 'scrape_website', 'archive_document', 'notify_soren'],
+    skills: ['generate_devis', 'update_kb', 'scrape_website', 'archive_document', 'notify_vividflow'],
   },
 ]
 
@@ -161,7 +161,7 @@ const SKILL_META: Record<string, { label: string; icon: React.ElementType; color
   update_kb:          { label: 'MAJ base de conn.',  icon: Database,     color: '#E8836A' },
   scrape_website:     { label: 'Scraper site web',   icon: Globe,        color: '#14B8A6' },
   archive_document:   { label: 'Archiver doc',       icon: Save,         color: '#9CA3AF' },
-  notify_soren:       { label: 'Notifier VividFlow',     icon: Zap,          color: '#4A91A8' },
+  notify_vividflow:   { label: 'Notifier VividFlow',     icon: Zap,          color: '#4A91A8' },
 }
 
 function SkillBadge({ skill }: { skill: string }) {
@@ -183,7 +183,7 @@ type Tab = 'soul' | 'memoire' | 'skills'
 type Selection = { type: 'agent'; id: string } | { type: 'commun' }
 
 export default function KnowledgeView() {
-  const [selection, setSelection] = useState<Selection>({ type: 'agent', id: 'soren' })
+  const [selection, setSelection] = useState<Selection>({ type: 'agent', id: 'vividflow' })
   const [tab, setTab] = useState<Tab>('soul')
   const [editing, setEditing] = useState(false)
   const [contents, setContents] = useState<Record<string, Record<string, string>>>(() =>
@@ -306,7 +306,6 @@ export default function KnowledgeView() {
 
       {/* ── Sidebar ──────────────────────────────────────────── */}
       <div className="w-56 flex-shrink-0 flex flex-col p-3 gap-1 border-r border-soren-border bg-soren-card" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
-        <h1 className="text-2xl font-black text-soren-text leading-none px-2 pt-1 pb-3">Knowledge</h1>
         <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-widest px-2 pb-2">Agents</p>
 
         {AGENTS.map(a => {

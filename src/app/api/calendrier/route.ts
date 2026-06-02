@@ -22,9 +22,55 @@ function mapStatus(raw: string): string {
   return 'confirmed'
 }
 
+const MOCK_APPOINTMENTS = (() => {
+  const now = new Date()
+  const d = (offsetDays: number, h: number, m = 0) => {
+    const dt = new Date(now)
+    dt.setDate(dt.getDate() + offsetDays)
+    dt.setHours(h, m, 0, 0)
+    return dt.toISOString()
+  }
+  return [
+    {
+      id: 'mock-1', calendarId: 'mock-cal', title: 'RDV client — Rénovation façade', contactName: 'M. Dubois',
+      startTime: d(0, 9), endTime: d(0, 10), status: 'confirmed',
+      calendarName: 'VividFlow', notes: 'Visite initiale, apporter catalogues', color: '#3462EE', source: 'ghl',
+    },
+    {
+      id: 'mock-2', calendarId: 'mock-cal', title: 'Visite chantier — Résidence Les Acacias', contactName: 'Mme Favre',
+      startTime: d(1, 14), endTime: d(1, 15, 30), status: 'confirmed',
+      calendarName: 'VividFlow', notes: 'Contrôle avancement travaux', color: '#4A91A8', source: 'ghl',
+    },
+    {
+      id: 'mock-3', calendarId: 'mock-cal', title: 'Présentation devis — Isolation thermique', contactName: 'M. & Mme Rochat',
+      startTime: d(2, 10, 30), endTime: d(2, 11, 30), status: 'confirmed',
+      calendarName: 'VividFlow', notes: 'Devis 8 500 CHF — à valider', color: '#FF4D00', source: 'ghl',
+    },
+    {
+      id: 'mock-4', calendarId: 'mock-cal', title: 'RDV client — Ravalement balcons', contactName: 'Syndic Cité Verte',
+      startTime: d(3, 8, 30), endTime: d(3, 9, 30), status: 'pending',
+      calendarName: 'VividFlow', notes: 'Copropriété 12 logements', color: '#EFE347', source: 'ghl',
+    },
+    {
+      id: 'mock-5', calendarId: 'google', title: 'Réunion équipe — Planning semaine', contactName: '—',
+      startTime: d(4, 8), endTime: d(4, 9), status: 'confirmed',
+      calendarName: 'Google Calendar', notes: null, color: '#34A853', source: 'google',
+    },
+    {
+      id: 'mock-6', calendarId: 'mock-cal', title: 'Suivi chantier — Peinture extérieure Rue du Lac', contactName: 'M. Bonnet',
+      startTime: d(5, 13), endTime: d(5, 14), status: 'confirmed',
+      calendarName: 'VividFlow', notes: 'Vérifier finitions avant réception', color: '#8B5CF6', source: 'ghl',
+    },
+  ]
+})()
+
 export async function GET() {
   const ctx = await getAuthContext()
-  if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!ctx) return NextResponse.json({
+    appointments: MOCK_APPOINTMENTS,
+    calendars: [{ id: 'mock-cal', name: 'VividFlow' }],
+    googleConfigured: false,
+  })
 
   const now   = Date.now()
   const RANGE = 30 * 24 * 60 * 60 * 1000

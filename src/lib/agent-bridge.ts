@@ -3,7 +3,7 @@
 
 import { createAdminClient } from './supabase/admin'
 
-const supabase = createAdminClient()
+function getSupabase() { return createAdminClient() }
 
 export type MsgType = 'task' | 'start' | 'progress' | 'result' | 'error' | 'ack'
 
@@ -34,7 +34,7 @@ export const bridge = {
   ): Promise<number> {
     const { from = 'qos', refId } = opts
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('agent_messages')
       .insert({ from_agent: from, to_agent: to, type, subject, payload, ref_id: refId ?? null })
       .select('id')
@@ -49,7 +49,8 @@ export const bridge = {
 
   // Lire l'inbox non lue
   async inbox(agent: 'qos' | 'hermes'): Promise<AgentMessage[]> {
-    const { data } = await supabase
+    const sb = getSupabase()
+    const { data } = await sb
       .from('agent_messages')
       .select('*')
       .or(`to_agent.eq.${agent},to_agent.eq.all`)
@@ -58,14 +59,15 @@ export const bridge = {
 
     const msgs = (data ?? []) as AgentMessage[]
     if (msgs.length > 0) {
-      await supabase.from('agent_messages').update({ read: true }).in('id', msgs.map(m => m.id))
+      await sb.from('agent_messages').update({ read: true }).in('id', msgs.map(m => m.id))
     }
     return msgs
   },
 
   // Historique pour la page /agents
   async history(limit = 50): Promise<AgentMessage[]> {
-    const { data } = await supabase
+    const sb = getSupabase()
+    const { data } = await sb
       .from('agent_messages')
       .select('*')
       .order('created_at', { ascending: false })

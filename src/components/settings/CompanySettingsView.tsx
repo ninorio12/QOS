@@ -349,11 +349,11 @@ export default function CompanySettingsView() {
       setAddrRueRaw(p.rue); setAddrCPRaw(p.cp); setAddrCityRaw(p.city)
     })
     try {
-      const stored = localStorage.getItem('soren_profile_photo')
+      const stored = localStorage.getItem('vividflow_profile_photo')
       if (stored) setProfilePhotoRaw(stored)
     } catch {}
     try {
-      const compte = JSON.parse(localStorage.getItem('soren_compte') ?? '{}')
+      const compte = JSON.parse(localStorage.getItem('vividflow_compte') ?? '{}')
       if (compte.prenom) setUserPrenomRaw(compte.prenom)
       if (compte.nom)    setUserNomRaw(compte.nom)
     } catch {}
@@ -372,7 +372,7 @@ export default function CompanySettingsView() {
         canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
         const compressed = canvas.toDataURL('image/jpeg', 0.8)
         setProfilePhotoRaw(compressed)
-        try { localStorage.setItem('soren_profile_photo', compressed) } catch {}
+        try { localStorage.setItem('vividflow_profile_photo', compressed) } catch {}
         window.dispatchEvent(new Event('profile-photo-updated'))
       }
       img.src = e.target?.result as string
@@ -412,8 +412,8 @@ export default function CompanySettingsView() {
     const address = [addrRue, [addrCP, addrCity].filter(Boolean).join(' ')].filter(Boolean).join('\n')
     await fetch('/api/settings/company', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, address }) })
     try {
-      const existing = JSON.parse(localStorage.getItem('soren_compte') ?? '{}')
-      localStorage.setItem('soren_compte', JSON.stringify({ ...existing, prenom: userPrenom, nom: userNom }))
+      const existing = JSON.parse(localStorage.getItem('vividflow_compte') ?? '{}')
+      localStorage.setItem('vividflow_compte', JSON.stringify({ ...existing, prenom: userPrenom, nom: userNom }))
     } catch {}
     setSaving(false); setSaved(true); setDirty(false)
     window.dispatchEvent(new Event('company-settings-updated'))
@@ -426,7 +426,6 @@ export default function CompanySettingsView() {
       {/* Header */}
       <div className="flex items-center justify-between flex-shrink-0 px-0.5">
         <div>
-          <h1 className="text-2xl font-black text-soren-text leading-none">Paramètres</h1>
           <p className="text-[10px] text-soren-subtle mt-0.5">Ces informations apparaissent sur vos devis PDF</p>
         </div>
         <button
@@ -506,7 +505,7 @@ export default function CompanySettingsView() {
               </button>
               {profilePhoto && (
                 <button type="button"
-                  onClick={() => { setProfilePhotoRaw(''); try { localStorage.removeItem('soren_profile_photo') } catch {}; window.dispatchEvent(new Event('profile-photo-updated')) }}
+                  onClick={() => { setProfilePhotoRaw(''); try { localStorage.removeItem('vividflow_profile_photo') } catch {}; window.dispatchEvent(new Event('profile-photo-updated')) }}
                   className="text-[11px] text-red-400 hover:text-red-600 transition-colors text-left">
                   Supprimer
                 </button>

@@ -29,7 +29,7 @@ export function SkillsTab({ agentId, status, onToggle }: SkillsTabProps) {
   // We show all tools that were ever registered — infer from TOOL_DESCRIPTIONS keys
   // filtered by what makes sense per agent
   const AGENT_TOOLS: Record<string, string[]> = {
-    soren: ['telegram_send', 'sessions_send', 'log_interaction', 'ghl_get_pipeline', 'ghl_detect_stale_leads', 'update_soul'],
+    vividflow: ['telegram_send', 'sessions_send', 'log_interaction', 'ghl_get_pipeline', 'ghl_detect_stale_leads', 'update_soul'],
     kai:   ['telegram_send', 'sessions_send', 'log_interaction', 'ghl_get_pipeline', 'ghl_update_stage', 'twilio_send_sms'],
     mia:   ['telegram_send', 'sessions_send', 'log_interaction'],
   }

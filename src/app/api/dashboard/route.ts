@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { getAuthContext } from '@/lib/auth-context'
 import { getDashboardData } from '@/lib/dashboard'
+import { MOCK_DASHBOARD } from '@/lib/mock-data'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const ctx = await getAuthContext()
-  if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!ctx) return NextResponse.json(MOCK_DASHBOARD)
 
   try {
     const creds = { apiKey: ctx.ghlApiKey, locationId: ctx.ghlLocationId }

@@ -30,34 +30,41 @@ const NAV_PAGES = [
 ]
 
 const PAGE_LABELS: Record<string, string> = {
-  '/dashboard':     'Tableau de bord',
-  '/pipeline':      'Pipeline',
-  '/contacts':      'Contacts',
-  '/conversations': 'Conversations',
-  '/calendrier':    'Calendrier',
-  '/analyse':       'Analyse',
-  '/cockpit':       'Cockpit Hermes',
-  '/equipe':        'Équipe IA',
-  '/taches':        'Tâches',
-  '/logs':          'Logs',
-  '/knowledge':     'Knowledge Base',
-  '/communication': 'Communication',
-  '/budget':        'Budget',
-  '/conversion':    'Conversion',
-  '/growth':        'Growth & ROI',
-  '/agent':         'Agent IA',
-  '/parametres':    'Paramètres',
-  '/architecture':  'Architecture IA',
-  '/devis':         'Devis',
-  '/workflows':     'Workflows',
-  '/chatbot':       'Chatbot',
+  '/dashboard':          'Tableau de bord',
+  '/pipeline':           'Pipeline',
+  '/pipeline/clients':   'Pipeline',
+  '/contacts':           'Contacts',
+  '/conversations':      'Conversations',
+  '/calendrier':         'Calendrier',
+  '/analyse':            'Analyse',
+  '/cockpit':            'Cockpit Hermes',
+  '/equipe':             'Équipe IA',
+  '/taches':             'Tâches',
+  '/logs':               'Logs',
+  '/knowledge':          'Knowledge Base',
+  '/communication':      'Communication',
+  '/budget':             'Budget',
+  '/conversion':         'Conversion',
+  '/growth':             'Growth & ROI',
+  '/agent':              'Agent IA',
+  '/parametres':         'Paramètres',
+  '/architecture':       'Architecture IA',
+  '/devis':              'Contrats',
+  '/workflows':          'Workflows',
+  '/chatbot':            'Chatbot',
+}
+
+const SUB_LABELS: Record<string, string> = {
+  '/pipeline':           'Leads',
+  '/pipeline/clients':   'Clients',
 }
 
 export default function Header() {
   const pathname = usePathname()
   const router   = useRouter()
   const base = '/' + (pathname.split('/')[1] ?? '')
-  const label = PAGE_LABELS[base] ?? 'VividFlow'
+  const label    = PAGE_LABELS[pathname] ?? PAGE_LABELS[base] ?? 'VividFlow'
+  const subLabel = SUB_LABELS[pathname] ?? null
 
   const [showProfile,  setShowProfile]  = useState(false)
   const [searchQuery,  setSearchQuery]  = useState('')
@@ -111,9 +118,9 @@ export default function Header() {
 
   useEffect(() => {
     function load() {
-      try { setProfilePhoto(localStorage.getItem('soren_profile_photo') ?? '') } catch {}
+      try { setProfilePhoto(localStorage.getItem('vividflow_profile_photo') ?? '') } catch {}
       try {
-        const compte = JSON.parse(localStorage.getItem('soren_compte') ?? '{}')
+        const compte = JSON.parse(localStorage.getItem('vividflow_compte') ?? '{}')
         setPrenom(compte.prenom ?? '')
       } catch {}
     }
@@ -146,9 +153,13 @@ export default function Header() {
     <header className="fixed top-0 left-60 right-0 h-14 bg-soren-app border-b border-soren-border/50 flex items-center px-6 gap-4 z-40">
       {/* Breadcrumb */}
       <div className="flex items-center gap-1.5 flex-1 min-w-0">
-        <span className="text-xs font-semibold uppercase tracking-wider text-soren-subtle">SOREN</span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-soren-subtle">VividFlow</span>
         <span className="text-xs text-[#C8CCC6]">›</span>
         <span className="text-xs font-semibold uppercase tracking-wider text-soren-subtle truncate">{label}</span>
+        {subLabel && <>
+          <span className="text-xs text-[#C8CCC6]">›</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-soren-text truncate">{subLabel}</span>
+        </>}
       </div>
 
       {/* Right: search + bell + avatar */}

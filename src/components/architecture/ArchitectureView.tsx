@@ -301,7 +301,7 @@ export default function ArchitectureView() {
             <div className="flex items-start justify-between">
               <NodeCard label="Meta Ads" sub="Lead Forms webhook" color="#1877F2" icon={Globe}
                 nodeRef={metaRef} />
-              <NodeCard label="SOREN" sub="Orchestrateur · Claude Opus 4.6" color="#3462EE"
+              <NodeCard label="VividFlow" sub="Orchestrateur · Claude Opus 4.6" color="#3462EE"
                 icon={Cpu} large nodeRef={sorenRef} />
               <NodeCard label="Telegram" sub="Digest Thomas · grammY" color="#2AABEE"
                 icon={Send} pulse={false} nodeRef={teleRef} />

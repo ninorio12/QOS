@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { sendWhatsApp } from '@/lib/twilio'
 import { getConversationMessages } from '@/lib/ghl'
 import { env } from '@/lib/env'
+import { getClientIp, checkRateLimit } from '@/lib/rate-limit'
 
 function getAnthropicClient() {
   return new Anthropic({ apiKey: env.anthropicKey() })
@@ -14,13 +15,26 @@ export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return Response.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+
+    const ip = getClientIp(req)
+    const rate = checkRateLimit({ key: `chat:${user.id}:${ip}`, limit: 20, windowMs: 60_000 })
+    if (!rate.allowed) {
+      return Response.json(
+        { error: `Limite atteinte. Réessayez dans ${rate.retryAfter} secondes.` },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfter) } }
+      )
+    }
+
     const { conversationId, message, contactName, contactPhone, systemPrompt } = await req.json()
 
     if (!message?.trim()) {
       return Response.json({ error: 'Message vide' }, { status: 400 })
     }
-
-    const supabase = await createClient()
 
     // Check ai_enabled if conversationId provided
     if (conversationId) {

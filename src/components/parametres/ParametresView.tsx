@@ -5,7 +5,7 @@ import { CheckCircle, XCircle, ExternalLink, Building2, Check } from 'lucide-rea
 
 type Tab = 'compte' | 'integrations' | 'paiement'
 
-const LS_KEY = 'soren_compte'
+const LS_KEY = 'vividflow_compte'
 
 // ─── Compte tab ──────────────────────────────────────────────
 function CompteTab() {
@@ -416,7 +416,6 @@ export default function ParametresView() {
     <div className="p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-black text-soren-text leading-none">Paramètres</h1>
         <p className="text-xs text-soren-muted mt-0.5">Configuration de votre espace VividFlow</p>
       </div>
 

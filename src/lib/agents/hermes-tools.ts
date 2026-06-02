@@ -3,12 +3,12 @@ import type Anthropic from '@anthropic-ai/sdk'
 export const HERMES_TOOLS: Anthropic.Tool[] = [
   {
     name: 'create_task',
-    description: 'Créer une tâche pour un agent (ops, doc, kai, soren, mia)',
+    description: 'Créer une tâche pour un agent (ops, doc, kai, vividflow, mia)',
     input_schema: {
       type: 'object',
       properties: {
         title:    { type: 'string', description: 'Titre de la tâche' },
-        agent:    { type: 'string', enum: ['ops', 'doc', 'kai', 'soren', 'mia'] },
+        agent:    { type: 'string', enum: ['ops', 'doc', 'kai', 'vividflow', 'mia'] },
         priority: { type: 'number', description: '0=normal, 1=haute, 2=urgente', default: 0 },
         context:  { type: 'object', description: 'Contexte additionnel' },
       },

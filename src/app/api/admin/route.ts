@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-const supabase = createAdminClient()
+const getSupabase = () => createAdminClient()
 
 const GHL_KEY  = process.env.GHL_API_KEY!
 const GHL_BASE = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'
@@ -14,8 +14,13 @@ async function ghl(path: string) {
 }
 
 export async function GET(req: NextRequest) {
+  const configuredSecret = process.env.HERMES_SHARED_SECRET
+  if (!configuredSecret) {
+    return NextResponse.json({ error: 'admin secret not configured' }, { status: 500 })
+  }
+
   const secret = req.nextUrl.searchParams.get('secret')
-  if (secret !== (process.env.HERMES_SHARED_SECRET ?? 'hermes-qos-2026')) {
+  if (secret !== configuredSecret) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -29,7 +34,7 @@ export async function GET(req: NextRequest) {
     ghl(`/contacts/${demoContactId}`),
     ghl(`/opportunities/${demoOpportunityId}`),
     ghl(`/calendars/events/${demoAppointmentId}`),
-    supabase.from('devis').select('id,statut,notes,montant_ht,created_at').eq('id', demoQuoteId).single(),
+    getSupabase().from('devis').select('id,statut,notes,montant_ht,created_at').eq('id', demoQuoteId).single(),
   ])
 
   const c   = contact.status      === 'fulfilled' ? contact.value?.contact       : null

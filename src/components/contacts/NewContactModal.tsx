@@ -315,16 +315,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           tags,
           dateUpdated: new Date().toISOString(),
         }
-        try {
-          const cm = new Map(Object.entries(JSON.parse(localStorage.getItem('vividflow_contact_canton') ?? '{}')))
-          canton ? cm.set(contact.id, canton) : cm.delete(contact.id)
-          localStorage.setItem('vividflow_contact_canton', JSON.stringify(Object.fromEntries(cm)))
-        } catch {}
-        try {
-          const sm = new Map(Object.entries(JSON.parse(localStorage.getItem('vividflow_contact_statut') ?? '{}')))
-          sm.set(contact.id, statut)
-          localStorage.setItem('vividflow_contact_statut', JSON.stringify(Object.fromEntries(sm)))
-        } catch {}
+        fetch('/api/contact/meta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ghl_contact_id: contact.id, canton: canton || undefined, statut }) }).catch(() => {})
         onSave?.(updated, canton, statut)
 
       } else {
@@ -348,11 +339,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           })
           const data = await res.json().catch(() => ({})) as { opp?: Opportunity; error?: string }
           if (!res.ok || data.error) throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
-          try {
-            const m = JSON.parse(localStorage.getItem('vividflow_contact_source') ?? '{}') as Record<string, string>
-            m[data.opp!.contactId] = inoutbound
-            localStorage.setItem('vividflow_contact_source', JSON.stringify(m))
-          } catch {}
+          fetch('/api/contact/meta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ghl_contact_id: data.opp!.contactId, source: inoutbound }) }).catch(() => {})
           const newContact: GHLContact = {
             id: data.opp!.contactId, contactName,
             firstName: form.firstName || null, lastName: form.lastName || null,
@@ -364,7 +351,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           onAddOpp?.(data.opp!)
 
         } else if (mode === 'clients') {
-          // Fixed Clients pipeline → create contact + add to localStorage clients
+          // Fixed Clients pipeline → create GHL contact + persist to Convex pipeline_clients
           const res = await fetch('/api/contact', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -374,11 +361,8 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           if (!res.ok || data.error) throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
           const newId = data.contact!.id
           const initials = contactName.trim().split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase() || '?'
-          try {
-            const existing = JSON.parse(localStorage.getItem('vividflow_clients') ?? '[]') as unknown[]
-            existing.unshift({ id: newId, name: contactName, company: form.companyName, value: parseFloat(clientValue.replace(',', '.')) || 0, createdAt: new Date().toISOString().split('T')[0], initials, stageId: 'nouveau-client' })
-            localStorage.setItem('vividflow_clients', JSON.stringify(existing))
-          } catch {}
+          const dealVal = parseFloat(clientValue.replace(',', '.')) || 0
+          fetch('/api/pipeline/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ghl_contact_id: newId, name: contactName, company: form.companyName || undefined, email: form.email || undefined, phone: phone || undefined, value: dealVal, stageId: 'nouveau-client', initials, createdAt: new Date().toISOString().split('T')[0] }) }).catch(() => {})
           const newContact: GHLContact = {
             id: newId, contactName,
             firstName: form.firstName || null, lastName: form.lastName || null,
@@ -422,8 +406,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           const data = await res.json().catch(() => ({})) as { contact?: { id: string; dateAdded: string }; error?: string }
           if (!res.ok || data.error) throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
           const newId = data.contact!.id
-          if (canton) { try { const m = new Map(Object.entries(JSON.parse(localStorage.getItem('vividflow_contact_canton') ?? '{}')));m.set(newId, canton);localStorage.setItem('vividflow_contact_canton', JSON.stringify(Object.fromEntries(m))) } catch {} }
-          if (statut !== 'lead') { try { const m = new Map(Object.entries(JSON.parse(localStorage.getItem('vividflow_contact_statut') ?? '{}')));m.set(newId, statut);localStorage.setItem('vividflow_contact_statut', JSON.stringify(Object.fromEntries(m))) } catch {} }
+          if (canton || statut !== 'lead') fetch('/api/contact/meta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ghl_contact_id: newId, canton: canton || undefined, statut }) }).catch(() => {})
           const newContact: GHLContact = {
             id: newId, contactName,
             firstName: form.firstName || null, lastName: form.lastName || null,

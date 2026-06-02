@@ -24,7 +24,7 @@ export type EquipeAgent = {
 
 export const EQUIPE_AGENTS: EquipeAgent[] = [
   {
-    id: 'soren',
+    id: 'vividflow',
     name: 'VividFlow',
     role: 'COO / Orchestrateur Système',
     roleShort: 'COO · ORCHESTRATEUR',

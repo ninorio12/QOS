@@ -272,7 +272,6 @@ export default function TranscriptsView() {
       {/* Left list */}
       <div className="flex flex-col w-[300px] flex-shrink-0 bg-soren-card border-r border-soren-border">
         <div className="px-4 pt-5 pb-4 border-b border-soren-border">
-          <h1 className="text-2xl font-black text-soren-text leading-none">Transcripts</h1>
           <p className="text-xs text-soren-muted mt-0.5">{MOCK_TRANSCRIPTS.length} conversations</p>
         </div>
         <div className="flex-1 overflow-y-auto">

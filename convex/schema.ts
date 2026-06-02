@@ -87,4 +87,28 @@ export default defineSchema({
     lastUpdated: v.number()
   }).index("by_date_event", ["date", "event"])
    .index("by_date", ["date"]),
+
+  // Pipeline Clients — remplace localStorage vividflow_clients
+  pipeline_clients: defineTable({
+    ghl_contact_id: v.optional(v.string()), // lien vers le contact GHL / futur contact Convex
+    name: v.string(),
+    company: v.optional(v.string()),
+    email: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    value: v.number(),
+    stageId: v.string(),
+    initials: v.string(),
+    createdAt: v.string(),
+  })
+    .index("by_ghl_contact", ["ghl_contact_id"])
+    .index("by_stage", ["stageId"])
+    .index("by_created", ["createdAt"]),
+
+  // Métadonnées contacts — remplace localStorage vividflow_contact_source/canton/statut
+  contact_meta: defineTable({
+    ghl_contact_id: v.string(),
+    source: v.optional(v.string()),   // 'inbound' | 'outbound'
+    statut: v.optional(v.string()),   // 'lead' | 'client' | 'perdu'
+    canton: v.optional(v.string()),
+  }).index("by_ghl_contact", ["ghl_contact_id"]),
 })

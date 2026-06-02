@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function GET() {
   const ctx = await getAuthContext()
-  if (!ctx) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!ctx) { const { MOCK_TASKS } = await import('@/lib/mock-data'); return NextResponse.json({ tasks: MOCK_TASKS }) }
 
   const supabase = await createClient()
   const { data, error } = await supabase

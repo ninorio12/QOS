@@ -294,25 +294,40 @@ export default function ContactsView({
   const [colFilters,    setColFilters]   = useState<ColFilter>({})
   const [filterPipeline, setFilterPipeline] = useState(false)
 
-  const [sourceMap, setSourceMap] = useState<Map<string, 'inbound' | 'outbound'>>(() => {
-    if (typeof window === 'undefined') return new Map()
-    try { return new Map(Object.entries(JSON.parse(localStorage.getItem('vividflow_contact_source') ?? '{}'))) } catch { return new Map() }
-  })
-  const [statutMap, setStatutMap] = useState<Map<string, 'lead' | 'client' | 'perdu'>>(() => {
-    if (typeof window === 'undefined') return new Map()
-    try { return new Map(Object.entries(JSON.parse(localStorage.getItem('vividflow_contact_statut') ?? '{}'))) } catch { return new Map() }
-  })
-  const [cantonMap, setCantonMap] = useState<Map<string, string>>(() => {
-    if (typeof window === 'undefined') return new Map()
-    try { return new Map(Object.entries(JSON.parse(localStorage.getItem('vividflow_contact_canton') ?? '{}'))) } catch { return new Map() }
-  })
+  const [sourceMap, setSourceMap] = useState<Map<string, 'inbound' | 'outbound'>>(new Map())
+  const [statutMap, setStatutMap] = useState<Map<string, 'lead' | 'client' | 'perdu'>>(new Map())
+  const [cantonMap, setCantonMap] = useState<Map<string, string>>(new Map())
+
+  // Load metadata from Convex when contacts load
+  useEffect(() => {
+    if (!contacts.length) return
+    const ids = contacts.map(c => c.id).join(',')
+    fetch(`/api/contact/meta?ids=${ids}`)
+      .then(r => r.json())
+      .then((d: { meta?: { ghl_contact_id: string; source?: string; statut?: string; canton?: string }[] }) => {
+        if (!d.meta) return
+        const src = new Map<string, 'inbound' | 'outbound'>()
+        const sta = new Map<string, 'lead' | 'client' | 'perdu'>()
+        const can = new Map<string, string>()
+        for (const m of d.meta) {
+          if (m.source) src.set(m.ghl_contact_id, m.source as 'inbound' | 'outbound')
+          if (m.statut) sta.set(m.ghl_contact_id, m.statut as 'lead' | 'client' | 'perdu')
+          if (m.canton) can.set(m.ghl_contact_id, m.canton)
+        }
+        setSourceMap(src)
+        setStatutMap(sta)
+        setCantonMap(can)
+      })
+      .catch(() => {})
+  }, [contacts])
 
   function handleSourceToggle(id: string, e: React.MouseEvent) {
     e.stopPropagation()
     setSourceMap(prev => {
       const next = new Map(prev)
-      next.set(id, next.get(id) === 'outbound' ? 'inbound' : 'outbound')
-      try { localStorage.setItem('vividflow_contact_source', JSON.stringify(Object.fromEntries(next))) } catch {}
+      const newVal = next.get(id) === 'outbound' ? 'inbound' : 'outbound'
+      next.set(id, newVal)
+      fetch('/api/contact/meta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ghl_contact_id: id, source: newVal }) }).catch(() => {})
       return next
     })
   }
@@ -321,8 +336,9 @@ export default function ContactsView({
     setStatutMap(prev => {
       const next = new Map(prev)
       const cur = next.get(id) ?? 'lead'
-      next.set(id, cur === 'lead' ? 'client' : cur === 'client' ? 'perdu' : 'lead')
-      try { localStorage.setItem('vividflow_contact_statut', JSON.stringify(Object.fromEntries(next))) } catch {}
+      const newVal = cur === 'lead' ? 'client' : cur === 'client' ? 'perdu' : 'lead'
+      next.set(id, newVal as 'lead' | 'client' | 'perdu')
+      fetch('/api/contact/meta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ghl_contact_id: id, statut: newVal }) }).catch(() => {})
       return next
     })
   }
@@ -331,7 +347,7 @@ export default function ContactsView({
       const next = new Map(prev)
       if (c === null) next.delete(id)
       else next.set(id, c)
-      try { localStorage.setItem('vividflow_contact_canton', JSON.stringify(Object.fromEntries(next))) } catch {}
+      fetch('/api/contact/meta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ghl_contact_id: id, canton: c ?? '' }) }).catch(() => {})
       return next
     })
   }

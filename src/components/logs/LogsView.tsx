@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { Search, Radio } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
-type AgentId  = 'soren' | 'kai' | 'mia'
+type AgentId  = 'vividflow' | 'kai' | 'mia'
 type LogLevel = 'info' | 'success' | 'error' | 'warning'
 
 type LogEntry = {
@@ -20,7 +20,7 @@ type LogEntry = {
 
 // ─── Meta ─────────────────────────────────────────────────────
 const AGENT_META: Record<AgentId, { label: string; color: string; bg: string }> = {
-  soren:  { label: 'VividFlow',  color: '#4A91A8', bg: '#4A91A815' },
+  vividflow:  { label: 'VividFlow',  color: '#4A91A8', bg: '#4A91A815' },
   kai:    { label: 'Kai',    color: '#1A5C38', bg: '#1A5C3815' },
   mia:    { label: 'Mia',    color: '#E8836A', bg: '#E8836A15' },
 }
@@ -36,21 +36,21 @@ const LEVEL_META: Record<LogLevel, { label: string; color: string; bg: string }>
 function now() { return new Date().toLocaleTimeString('fr-FR') }
 
 const SEED_LOGS: LogEntry[] = [
-  { id: 'l01', time: now(), agent: 'soren', level: 'info',    message: 'Heartbeat exécuté — 3 leads analysés',                   detail: 'Pipeline ACQUISITION · leads actifs : Martin Dupont, Xavier Lambert, Inès Duprez' },
+  { id: 'l01', time: now(), agent: 'vividflow', level: 'info',    message: 'Heartbeat exécuté — 3 leads analysés',                   detail: 'Pipeline ACQUISITION · leads actifs : Martin Dupont, Xavier Lambert, Inès Duprez' },
   { id: 'l02', time: now(), agent: 'kai',   level: 'success', message: 'Lead Martin Dupont qualifié — stage mis à jour',          detail: 'Opportunité #opp-447 → stage "Qualifié" · valeur €4,500' },
   { id: 'l03', time: now(), agent: 'kai',   level: 'info',    message: 'Message WhatsApp envoyé à +33612345001',                  detail: 'Contact : Martin Dupont · template : confirmation_rdv' },
   { id: 'l04', time: now(), agent: 'mia',   level: 'success', message: 'Devis généré — Rénovation façade €8,900',                 detail: 'Document PDF créé · envoi planifié demain 09h00 · BN Bâtiment' },
-  { id: 'l05', time: now(), agent: 'soren', level: 'info',    message: 'Directive envoyée à Kai : relancer Xavier Lambert',       detail: 'Priorité haute · délai : 24h · canal : WhatsApp' },
+  { id: 'l05', time: now(), agent: 'vividflow', level: 'info',    message: 'Directive envoyée à Kai : relancer Xavier Lambert',       detail: 'Priorité haute · délai : 24h · canal : WhatsApp' },
   { id: 'l06', time: now(), agent: 'kai',   level: 'error',   message: 'Échec appel Vapi — Martin Dupont non joignable',          detail: 'Erreur Vapi : timeout 30s · tentative 2/3 · prochain essai dans 2h' },
   { id: 'l07', time: now(), agent: 'kai',   level: 'warning', message: 'Lead sans réponse depuis 48h — intervention recommandée', detail: 'Contact : Xavier Lambert · dernière interaction : 4 avril' },
   { id: 'l08', time: now(), agent: 'mia',   level: 'info',    message: 'Base de connaissance mise à jour',                        detail: 'Fichier MEMORY.md · 3 entrées ajoutées' },
-  { id: 'l09', time: now(), agent: 'soren', level: 'success', message: 'Analyse pipeline terminée — rapport généré',              detail: 'Pipeline ACQUISITION · 12 opportunités · valeur totale €74,600' },
+  { id: 'l09', time: now(), agent: 'vividflow', level: 'success', message: 'Analyse pipeline terminée — rapport généré',              detail: 'Pipeline ACQUISITION · 12 opportunités · valeur totale €74,600' },
   { id: 'l10', time: now(), agent: 'kai',   level: 'info',    message: 'Nouveau lead détecté — Didier Fabre',                     detail: 'Source : formulaire web · score qualification : 72/100' },
   { id: 'l11', time: now(), agent: 'mia',   level: 'success', message: 'Document créé : Fiche client Xavier Lambert',             detail: 'Type : fiche_contact · ID : doc-0219 · taille : 2.4 Ko' },
-  { id: 'l12', time: now(), agent: 'soren', level: 'info',    message: 'Connexion CRM vérifiée — 12 opportunités actives',        detail: 'Token valide · quota API : 847/1000 requêtes restantes' },
+  { id: 'l12', time: now(), agent: 'vividflow', level: 'info',    message: 'Connexion CRM vérifiée — 12 opportunités actives',        detail: 'Token valide · quota API : 847/1000 requêtes restantes' },
   { id: 'l13', time: now(), agent: 'kai',   level: 'success', message: 'RDV planifié — Inès Duprez 7 avril 14h',                  detail: 'Calendrier mis à jour · confirmation envoyée par email' },
   { id: 'l14', time: now(), agent: 'mia',   level: 'warning', message: 'Devis en attente de validation depuis 24h',               detail: 'Devis #dv-0114 — Plomberie chauffage · contact : Marie Colin' },
-  { id: 'l15', time: now(), agent: 'soren', level: 'info',    message: 'Démarrage orchestrateur — agents actifs : 3/3',           detail: 'VividFlow v1.0 · Kai v1.0 · Mia v1.0 · modèle : claude-haiku-4-5' },
+  { id: 'l15', time: now(), agent: 'vividflow', level: 'info',    message: 'Démarrage orchestrateur — agents actifs : 3/3',           detail: 'VividFlow v1.0 · Kai v1.0 · Mia v1.0 · modèle : claude-haiku-4-5' },
 ]
 
 // ─── Live log generators ──────────────────────────────────────
@@ -58,13 +58,13 @@ let liveCounter = 100
 
 const LIVE_TEMPLATES: { agent: AgentId; level: LogLevel; message: string; detail?: string }[] = [
   { agent: 'kai',   level: 'info',    message: 'Scan conversations entrantes — {n} nouvelles',           detail: 'Source : webhook · traitement en cours' },
-  { agent: 'soren', level: 'info',    message: 'Heartbeat — pipeline actif · {n} opportunités ouvertes', detail: 'Délai prochain cycle : 3h00' },
+  { agent: 'vividflow', level: 'info',    message: 'Heartbeat — pipeline actif · {n} opportunités ouvertes', detail: 'Délai prochain cycle : 3h00' },
   { agent: 'mia',   level: 'success', message: 'Synchronisation KB terminée — {n} documents',            detail: 'Fichiers mis à jour : MEMORY.md, kai.md' },
   { agent: 'kai',   level: 'success', message: 'Relance WhatsApp envoyée → Xavier Lambert',              detail: 'Template : relance_48h · score urgence : 87/100' },
-  { agent: 'soren', level: 'success', message: 'Rapport digest Telegram envoyé',                         detail: 'Pipeline €74,6k · 12 leads actifs · 1 RDV cette semaine' },
+  { agent: 'vividflow', level: 'success', message: 'Rapport digest Telegram envoyé',                         detail: 'Pipeline €74,6k · 12 leads actifs · 1 RDV cette semaine' },
   { agent: 'mia',   level: 'info',    message: 'Template devis chargé — {n} variantes disponibles',      detail: 'Secteur : rénovation façade · gamme : standard/premium' },
   { agent: 'kai',   level: 'info',    message: 'Score qualification calculé — lead {name} : {s}/100',    detail: 'Critères : budget, délai, décideur, besoin défini' },
-  { agent: 'soren', level: 'warning', message: 'Lead inactif depuis 72h — escalade recommandée',         detail: 'Contact : Marie Colin · valeur estimée : €12,000' },
+  { agent: 'vividflow', level: 'warning', message: 'Lead inactif depuis 72h — escalade recommandée',         detail: 'Contact : Marie Colin · valeur estimée : €12,000' },
   { agent: 'kai',   level: 'success', message: 'Opportunité mise à jour → stade avancé',                 detail: 'Pipeline ACQUISITION · valeur : €45,000 · tag : prioritaire' },
   { agent: 'mia',   level: 'info',    message: 'Archivage mensuel — {n} fiches clients traitées',        detail: 'Mois : mars 2026 · statuts : won/lost/abandoned archivés' },
 ]
@@ -93,7 +93,7 @@ type LevelFilter = LogLevel | 'all'
 
 const AGENT_OPTIONS: { id: AgentFilter; label: string }[] = [
   { id: 'all',    label: 'Tous' },
-  { id: 'soren',  label: 'VividFlow' },
+  { id: 'vividflow',  label: 'VividFlow' },
   { id: 'kai',    label: 'Kai' },
   { id: 'mia',    label: 'Mia' },
 ]
@@ -231,7 +231,6 @@ export default function LogsView() {
       <div className="px-6 pt-5 pb-4 flex-shrink-0 bg-soren-card border-b border-[#F0F0EE]">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-black text-soren-text leading-none">Logs</h1>
             <p className="text-xs text-soren-subtle mt-1">Activité des agents en temps réel</p>
           </div>
 

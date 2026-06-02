@@ -25,7 +25,7 @@ function tsToISO(ts: number | null): string {
 
 export async function GET() {
   const ctx = await getAuthContext()
-  if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!ctx) { const { MOCK_CONVERSATIONS } = await import('@/lib/mock-data'); return NextResponse.json({ conversations: MOCK_CONVERSATIONS }) }
 
   try {
     const [convRes, oppRes, pipeRes] = await Promise.allSettled([

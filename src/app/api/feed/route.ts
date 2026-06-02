@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const ctx = await getAuthContext()
-  if (!ctx) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!ctx) return NextResponse.json({ conversations: [] })
 
   const supabase = await createClient()
 

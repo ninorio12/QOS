@@ -28,9 +28,9 @@ export const env = {
   twilioFrom:   () => requireEnv('TWILIO_WHATSAPP_FROM'),
 
   // Supabase
-  supabaseUrl:  () => requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
-  supabaseAnon: () => requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
-  supabaseServiceRole: () => requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
+  supabaseUrl:  () => optionalEnv('NEXT_PUBLIC_SUPABASE_URL', ''),
+  supabaseAnon: () => optionalEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', ''),
+  supabaseServiceRole: () => optionalEnv('SUPABASE_SERVICE_ROLE_KEY', ''),
 
   // APITemplate
   apiTemplateKey: () => requireEnv('APITEMPLATE_API_KEY'),

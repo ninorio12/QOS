@@ -5,7 +5,7 @@ import { runAgent, type AgentMessage } from '@/lib/agents/runner'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const VALID_AGENTS = ['soren', 'kai', 'mia'] as const
+const VALID_AGENTS = ['vividflow', 'kai', 'mia'] as const
 type ValidAgent = typeof VALID_AGENTS[number]
 
 export async function POST(

@@ -100,14 +100,14 @@ export async function POST(req: NextRequest) {
   if (mode === 'admin') {
     if (text === '/status') {
       const creds  = getVividFlowCreds()
-      const result = await runAgent('soren', 'Donne-moi un résumé rapide : combien de leads actifs, valeur du pipeline, et les 3 dernières opportunités.', creds, null)
+      const result = await runAgent('vividflow', 'Donne-moi un résumé rapide : combien de leads actifs, valeur du pipeline, et les 3 dernières opportunités.', creds, null)
       await sendTelegram(chatId, result.response, 'HTML', botTok)
       return new Response('OK', { status: 200 })
     }
 
     if (text === '/tasks') {
       const creds  = getVividFlowCreds()
-      const result = await runAgent('soren', 'Liste-moi les tâches en cours des agents. Quelles sont les priorités ?', creds, null)
+      const result = await runAgent('vividflow', 'Liste-moi les tâches en cours des agents. Quelles sont les priorités ?', creds, null)
       await sendTelegram(chatId, result.response, 'HTML', botTok)
       return new Response('OK', { status: 200 })
     }
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
       const ctx   = await buildClientContext(fromName)
       agentText   = buildClientSystemPrefix(ctx) + ' ' + text
     }
-    const result    = await runAgent('soren', agentText, creds, null)
+    const result    = await runAgent('vividflow', agentText, creds, null)
 
     let reply = result.response || 'Je n\'ai pas de réponse pour le moment.'
 

@@ -50,9 +50,9 @@ export default function MobileHeader() {
 
   useEffect(() => {
     function load() {
-      try { setProfilePhoto(localStorage.getItem('soren_profile_photo') ?? '') } catch {}
+      try { setProfilePhoto(localStorage.getItem('vividflow_profile_photo') ?? '') } catch {}
       try {
-        const compte = JSON.parse(localStorage.getItem('soren_compte') ?? '{}')
+        const compte = JSON.parse(localStorage.getItem('vividflow_compte') ?? '{}')
         setPrenom(compte.prenom ?? '')
       } catch {}
     }

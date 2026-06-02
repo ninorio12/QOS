@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-const supabase = createAdminClient()
+const supabase = () => createAdminClient()
 
 // IDs Telegram reconnus
 const KNOWN_AGENTS: Record<number, string> = {
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 
   // Stocker dans le bridge Supabase
   try {
-    await supabase.from('agent_messages').insert({
+    await supabase().from('agent_messages').insert({
       from_agent: fromName === 'hermes' ? 'hermes' : fromName,
       to_agent: 'qos',
       type,

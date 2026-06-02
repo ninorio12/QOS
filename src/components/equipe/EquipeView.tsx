@@ -36,7 +36,7 @@ type AgentRunState = {
 
 // ─── Logs ─────────────────────────────────────────────────────
 const BOOT_LOGS: Record<string, string[]> = {
-  soren: [
+  vividflow: [
     '[08:31:00] Orchestrateur démarré — agents : 5/5',
     '[08:31:02] Analyse pipeline ACQUISITION — 7 opportunités actives',
     '[08:31:04] Directive envoyée à Kai : relancer Xavier Lambert',
@@ -69,7 +69,7 @@ const BOOT_LOGS: Record<string, string[]> = {
 }
 
 const HEARTBEAT_LOGS: Record<string, string[]> = {
-  soren: [
+  vividflow: [
     'Analyse pipeline — {n} opportunités nouvelles',
     'Rapport digest envoyé à Thomas via Telegram',
     'Directive envoyée à Kai : prioriser lead Xavier',
@@ -412,7 +412,7 @@ function AgentCardInTraining({ agent }: { agent: EquipeAgent }) {
 
 // ─── Main view ────────────────────────────────────────────────
 export default function EquipeView() {
-  const soren = EQUIPE_AGENTS.find(a => a.id === 'soren')!
+  const soren = EQUIPE_AGENTS.find(a => a.id === 'vividflow')!
   const kai   = EQUIPE_AGENTS.find(a => a.id === 'kai')!
   const alex  = EQUIPE_AGENTS.find(a => a.id === 'alex')!
   const mia   = EQUIPE_AGENTS.find(a => a.id === 'mia')!
@@ -425,13 +425,13 @@ export default function EquipeView() {
 
   useEffect(() => {
     try {
-      const stored = JSON.parse(localStorage.getItem('soren_compte') ?? '{}')
+      const stored = JSON.parse(localStorage.getItem('vividflow_compte') ?? '{}')
       if (stored.prenom) setPrenom(stored.prenom)
     } catch {}
   }, [])
 
   const [runStates, setRunStates] = useState<Record<string, AgentRunState>>({
-    soren: { status: 'online', lastHeartbeat: 'En ligne', logs: BOOT_LOGS.soren },
+    vividflow: { status: 'online', lastHeartbeat: 'En ligne', logs: BOOT_LOGS.vividflow },
     kai:   { status: 'online', lastHeartbeat: 'En ligne', logs: BOOT_LOGS.kai },
     alex:  { status: 'offline', lastHeartbeat: 'Jamais', logs: [] },
     mia:   { status: 'offline', lastHeartbeat: 'Jamais', logs: [] },
@@ -484,7 +484,7 @@ export default function EquipeView() {
   }
 
   const anyOnline = Object.values(runStates).some(s => s.status === 'online')
-  const agentIds  = new Set(['soren', 'kai', 'alex', 'mia', 'leo'])
+  const agentIds  = new Set(['vividflow', 'kai', 'alex', 'mia', 'leo'])
   const interAgentEvents = gatewayEvents.filter(e => agentIds.has(e.from) && agentIds.has(e.to)).slice(-3).reverse()
 
   return (
@@ -493,7 +493,6 @@ export default function EquipeView() {
       {/* Header */}
       <div className="flex items-center justify-between mb-2 flex-shrink-0" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
         <div>
-          <h1 className="text-xl font-black text-soren-text leading-none">Équipe IA</h1>
           <p className="text-xs text-soren-subtle mt-0.5">Vos agents autonomes et leur organisation</p>
         </div>
         {anyOnline && (
@@ -515,11 +514,11 @@ export default function EquipeView() {
         <div className="w-full max-w-[1052px]">
         <VividFlowHeroCard
           agent={soren}
-          runState={runStates.soren}
-          isSelected={selectedAgent === 'soren'}
-          onClick={() => setSelectedAgent(p => p === 'soren' ? null : 'soren')}
-          onStart={() => startAgent('soren')}
-          onStop={() => stopAgent('soren')}
+          runState={runStates.vividflow}
+          isSelected={selectedAgent === 'vividflow'}
+          onClick={() => setSelectedAgent(p => p === 'vividflow' ? null : 'vividflow')}
+          onStart={() => startAgent('vividflow')}
+          onStop={() => stopAgent('vividflow')}
           prenom={prenom}
         />
         </div>

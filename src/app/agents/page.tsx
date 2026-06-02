@@ -5,8 +5,6 @@ import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Bot, Zap, User, Send, ChevronDown, ChevronRight } from 'lucide-react'
 
-const supabase = createClient()
-
 type MsgType = 'task' | 'start' | 'progress' | 'result' | 'error' | 'ack'
 
 type Msg = {
@@ -102,6 +100,7 @@ function MessageBubble({ msg }: { msg: Msg }) {
 }
 
 export default function AgentsPage() {
+  const supabase = createClient()
   const [messages, setMessages] = useState<Msg[]>([])
   const [loading, setLoading]   = useState(true)
   const [input, setInput]       = useState('')

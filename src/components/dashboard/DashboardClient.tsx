@@ -18,7 +18,8 @@ import type { WeeklyDay, MonthlyPoint, ClientTimelinePoint, MetierBreakdown, Pay
 import { getAvatarColor } from '@/components/contacts/types'
 import { PieChart, Pie, Cell, Tooltip as PieTooltip, ResponsiveContainer } from 'recharts'
 
-const NewLeadWidget = dynamic(() => import('@/components/shared/NewLeadWidget'), { ssr: false })
+const NewLeadWidget  = dynamic(() => import('@/components/shared/NewLeadWidget'),        { ssr: false })
+const RollingNumber  = dynamic(() => import('@/components/dashboard/RollingNumber'),     { ssr: false })
 
 
 // ─── Types ────────────────────────────────────────────────────
@@ -157,7 +158,6 @@ const PRESETS = [
   { label: 'Trimestre en cours',   key: 'quarter' },
   { label: 'Année en cours',       key: 'year'    },
   { label: 'Toutes les périodes',  key: 'all'     },
-  { label: 'Plage de dates',       key: 'custom'  },
 ]
 
 function getPresetRange(key: string): { start: Date; end: Date } {
@@ -247,7 +247,7 @@ function MonthGrid({
   )
 }
 
-function DateRangePicker({ onClose }: { onClose: () => void }) {
+function DateRangePicker({ onClose, onApply }: { onClose: () => void; onApply: (start: Date, end: Date, label: string) => void }) {
   const today        = new Date(); today.setHours(0,0,0,0)
   const initial      = getPresetRange('4w')
   const [preset,     setPreset]    = useState('4w')
@@ -387,7 +387,15 @@ function DateRangePicker({ onClose }: { onClose: () => void }) {
         {/* Footer */}
         <div className="flex items-center justify-end px-5 pb-4">
           <button
-            onClick={onClose}
+            onClick={() => {
+              if (start && end) {
+                const label = preset === 'custom'
+                  ? `${start.toLocaleDateString('fr-FR', { day:'numeric', month:'short' })} – ${end.toLocaleDateString('fr-FR', { day:'numeric', month:'short' })}`
+                  : (PRESETS.find(p => p.key === preset)?.label ?? 'Période')
+                onApply(start, end, label)
+              }
+              onClose()
+            }}
             className="bg-[#111111] hover:bg-[#222] text-white text-[13px] font-semibold px-5 py-2 rounded-xl transition-colors"
           >
             Appliquer
@@ -448,6 +456,7 @@ export default function DashboardClient({
   const [tasks,           setTasks]           = useState<AgentTask[]>([])
   const [logs,            setLogs]            = useState<AgentLog[]>([])
   const [calendarOpen,    setCalendarOpen]    = useState(false)
+  const [activeRange,     setActiveRange]     = useState<{ start: Date; end: Date; label: string } | null>(null)
   const calendarRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -497,7 +506,28 @@ export default function DashboardClient({
       }))
     : FALLBACK_ACTIVITY
 
-  const MONTH_LABEL = new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+  const MONTH_LABEL = activeRange?.label ?? new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+
+  const filteredTimeline = useMemo(() => {
+    if (!activeRange) return clientTimeline
+    const { start, end } = activeRange
+    return clientTimeline.filter(p => {
+      const d = new Date(p.date)
+      return d >= start && d <= end
+    })
+  }, [clientTimeline, activeRange])
+
+  const filteredPayments = useMemo(() => {
+    if (!activeRange) return payments
+    const { start, end } = activeRange
+    return payments.filter(p => {
+      const d = new Date(p.date)
+      return d >= start && d <= end
+    })
+  }, [payments, activeRange])
+
+  const periodCA      = useMemo(() => filteredPayments.reduce((s, p) => s + p.montant, 0), [filteredPayments])
+  const periodClients = filteredPayments.length
 
   const weeklyData = weeklyBreakdown
 
@@ -554,7 +584,7 @@ export default function DashboardClient({
   useEffect(() => {
     const match = ALL_MODULES.find(m => pathname.startsWith(m.href))
     if (!match) return
-    const key = 'soren_recent_modules'
+    const key = 'vividflow_recent_modules'
     const prev: string[] = JSON.parse(localStorage.getItem(key) ?? '[]')
     const next = [match.href, ...prev.filter(h => h !== match.href)].slice(0, 6)
     localStorage.setItem(key, JSON.stringify(next))
@@ -562,7 +592,7 @@ export default function DashboardClient({
 
   const recentModules = useMemo(() => {
     if (typeof window === 'undefined') return ALL_MODULES.slice(0, 6)
-    const stored: string[] = JSON.parse(localStorage.getItem('soren_recent_modules') ?? '[]')
+    const stored: string[] = JSON.parse(localStorage.getItem('vividflow_recent_modules') ?? '[]')
     if (stored.length === 0) return ALL_MODULES.slice(0, 6)
     return stored
       .map(href => ALL_MODULES.find(m => m.href === href))
@@ -574,9 +604,6 @@ export default function DashboardClient({
       {/* ── Title ── */}
       <div className="flex items-center justify-between mb-3 flex-shrink-0 gap-2">
         <div className="flex items-center gap-3 min-w-0">
-          <h1 className="text-2xl font-black text-soren-text leading-none tracking-tight" style={{ fontFamily: 'var(--font-montserrat)' }}>
-            Tableau de bord
-          </h1>
           {/* Calendar date range picker */}
           <div className="relative" ref={calendarRef}>
             <button
@@ -591,11 +618,14 @@ export default function DashboardClient({
               <span>Période</span>
             </button>
             {calendarOpen && (
-              <DateRangePicker onClose={() => setCalendarOpen(false)} />
+              <DateRangePicker
+                onClose={() => setCalendarOpen(false)}
+                onApply={(start, end, label) => { setActiveRange({ start, end, label }); setCalendarOpen(false) }}
+              />
             )}
           </div>
         </div>
-        <div className="flex-shrink-0"><NewLeadWidget /></div>
+        <div className="flex-shrink-0"><NewLeadWidget compact /></div>
       </div>
 
       {/* ── 6 KPI Cards ── */}
@@ -604,8 +634,8 @@ export default function DashboardClient({
         style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}
       >
         {[
-          { label: 'Clients',        value: String(wonLeads),   sub: 'durant la période' },
-          { label: 'CA encaissé',    value: fmt(pipelineValue), sub: 'durant la période' },
+          { label: 'Clients',        value: String(activeRange ? periodClients : wonLeads),   sub: 'durant la période' },
+          { label: 'CA encaissé',    value: fmt(activeRange ? periodCA : wonCA),              sub: 'durant la période' },
           { label: 'CA à collecter', value: '—',                sub: 'durant la période' },
           { label: 'Leads',          value: String(totalLeads), sub: 'actifs'            },
           { label: 'R1',             value: String(r1Count),    sub: 'effectués'         },
@@ -613,7 +643,7 @@ export default function DashboardClient({
         ].map(({ label, value, sub }) => (
           <div key={label} className="bg-soren-card rounded-2xl p-3 md:p-4 flex flex-col gap-1.5 shadow-sm border border-soren-border/60">
             <span className="text-[11px] font-medium text-soren-muted leading-none">{label}</span>
-            <span className="text-[26px] md:text-[30px] font-black text-soren-text leading-none tabular-nums">{value}</span>
+            <RollingNumber value={value} className="text-[26px] md:text-[30px] font-black text-soren-text leading-none tabular-nums" />
             <span className="text-[10px] font-semibold text-[#FF4D00]/70">{sub}</span>
           </div>
         ))}
@@ -639,7 +669,7 @@ export default function DashboardClient({
             </div>
           </div>
           <div className="h-[180px] md:h-[200px] px-2 pb-4">
-            <ClientTimelineChart data={clientTimeline} />
+            <ClientTimelineChart data={filteredTimeline} />
           </div>
         </div>
 
@@ -699,44 +729,103 @@ export default function DashboardClient({
         </div>
       </div>
 
-      {/* ── Paiements encaissés ── */}
-      <div
-        className="bg-soren-card rounded-2xl md:rounded-3xl shadow-sm mt-3 md:mt-4 overflow-hidden"
-        style={{ animation: 'fadeSlideUp 400ms ease-out 450ms both' }}
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-soren-border/60">
-          <span className="font-jakarta text-[13px] font-semibold text-soren-text">Paiements encaissés</span>
-          <span className="text-[11px] font-semibold text-[#22c55e] bg-[#22c55e]/10 px-3 py-1 rounded-full">{MONTH_LABEL}</span>
-        </div>
-        {payments.length === 0 ? (
-          <div className="px-6 py-10 text-center text-[12px] text-soren-subtle">Aucun paiement sur la période</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-soren-border/60">
-                  {['DATE', 'CLIENT', 'ENTREPRISE', 'MONTANT', 'DESCRIPTION', 'STATUT'].map(h => (
-                    <th key={h} className="px-6 py-3 text-left text-[10px] font-semibold text-soren-subtle tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {payments.map((p, i) => (
-                  <tr key={i} className="border-b border-soren-border/40 hover:bg-soren-elevated/50 transition-colors">
-                    <td className="px-6 py-3.5 text-[12px] text-soren-muted whitespace-nowrap">{p.date}</td>
-                    <td className="px-6 py-3.5 text-[12px] font-medium text-soren-text whitespace-nowrap">{p.client}</td>
-                    <td className="px-6 py-3.5 text-[12px] text-soren-muted whitespace-nowrap">{p.entreprise}</td>
-                    <td className="px-6 py-3.5 text-[13px] font-bold text-[#FF4D00] whitespace-nowrap">{fmt(p.montant)}</td>
-                    <td className="px-6 py-3.5 text-[12px] text-soren-muted max-w-[220px] truncate">{p.description}</td>
-                    <td className="px-6 py-3.5">
-                      <span className="text-[11px] font-semibold text-[#22c55e] bg-[#22c55e]/10 px-2.5 py-1 rounded-full">{p.statut}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* ── Paiements encaissés + Publicités ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mt-3 md:mt-4">
+
+        {/* Paiements encaissés — col-span-2 */}
+        <div
+          className="md:col-span-2 bg-soren-card rounded-2xl md:rounded-3xl shadow-sm overflow-hidden flex flex-col"
+          style={{ animation: 'fadeSlideUp 400ms ease-out 450ms both' }}
+        >
+          <div className="flex items-center justify-between px-5 py-3 border-b border-soren-border/60 flex-shrink-0">
+            <span className="font-jakarta text-[12px] font-semibold text-soren-text">Paiements encaissés</span>
+            <span className="text-[10px] font-semibold text-[#FF4D00]/70">durant la période</span>
           </div>
-        )}
+          {filteredPayments.length === 0 ? (
+            <div className="px-5 py-6 text-center text-[11px] text-soren-subtle">Aucun paiement sur la période</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-soren-border/60">
+                    {['DATE', 'CLIENT', 'ENTREPRISE', 'MONTANT', 'DESCRIPTION', 'STATUT'].map(h => (
+                      <th key={h} className="px-4 py-2 text-left text-[9px] font-semibold text-soren-subtle tracking-wider">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPayments.map((p, i) => (
+                    <tr key={i} className="border-b border-soren-border/40 hover:bg-soren-elevated/50 transition-colors">
+                      <td className="px-4 py-2 text-[11px] text-soren-muted whitespace-nowrap">
+                        {new Date(p.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </td>
+                      <td className="px-4 py-2 text-[11px] font-medium text-soren-text whitespace-nowrap">{p.client}</td>
+                      <td className="px-4 py-2 text-[11px] text-soren-muted whitespace-nowrap">{p.entreprise}</td>
+                      <td className="px-4 py-2 text-[12px] font-bold text-[#FF4D00] whitespace-nowrap">{fmt(p.montant)}</td>
+                      <td className="px-4 py-2 text-[11px] text-soren-muted max-w-[160px] truncate">{p.description}</td>
+                      <td className="px-4 py-2">
+                        <span className="text-[10px] font-semibold text-[#22c55e] bg-[#22c55e]/10 px-2 py-0.5 rounded-full">{p.statut}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Publicités investies */}
+        <div
+          className="bg-soren-card rounded-2xl md:rounded-3xl shadow-sm flex flex-col p-5 gap-4"
+          style={{ animation: 'fadeSlideUp 400ms ease-out 480ms both' }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <span className="font-jakarta text-[13px] font-semibold text-soren-text">Publicités investies</span>
+            <span className="text-[10px] font-semibold text-[#FF4D00]/70">durant la période</span>
+          </div>
+
+          {/* Platform + budget */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <svg width="20" height="20" viewBox="0 0 291 191" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                <defs>
+                  <linearGradient id="mg1" x1="61" y1="117" x2="259" y2="127" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#0064e1" offset="0"/><stop stopColor="#0064e1" offset="0.4"/>
+                    <stop stopColor="#0073ee" offset="0.83"/><stop stopColor="#0082fb" offset="1"/>
+                  </linearGradient>
+                  <linearGradient id="mg2" x1="45" y1="139" x2="45" y2="66" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#0082fb" offset="0"/><stop stopColor="#0064e0" offset="1"/>
+                  </linearGradient>
+                </defs>
+                <path fill="#0081fb" d="m31.06,125.96c0,10.98 2.41,19.41 5.56,24.51 4.13,6.68 10.29,9.51 16.57,9.51 8.1,0 15.51-2.01 29.79-21.76 11.44-15.83 24.92-38.05 33.99-51.98l15.36-23.6c10.67-16.39 23.02-34.61 37.18-46.96 11.56-10.08 24.03-15.68 36.58-15.68 21.07,0 41.14,12.21 56.5,35.11 16.81,25.08 24.97,56.67 24.97,89.27 0,19.38-3.82,33.62-10.32,44.87-6.28,10.88-18.52,21.75-39.11,21.75l0-31.02c17.63,0 22.03-16.2 22.03-34.74 0-26.42-6.16-55.74-19.73-76.69-9.63-14.86-22.11-23.94-35.84-23.94-14.85,0-26.8,11.2-40.23,31.17-7.14,10.61-14.47,23.54-22.7,38.13l-9.06,16.05c-18.2,32.27-22.81,39.62-31.91,51.75-15.95,21.24-29.57,29.29-47.5,29.29-21.27,0-34.72-9.21-43.05-23.09-6.8-11.31-10.14-26.15-10.14-43.06z"/>
+                <path fill="url(#mg1)" d="m24.49,37.3c14.24-21.95 34.79-37.3 58.36-37.3 13.65,0 27.22,4.04 41.39,15.61 15.5,12.65 32.02,33.48 52.63,67.81l7.39,12.32c17.84,29.72 27.99,45.01 33.93,52.22 7.64,9.26 12.99,12.02 19.94,12.02 17.63,0 22.03-16.2 22.03-34.74l27.4-.86c0,19.38-3.82,33.62-10.32,44.87-6.28,10.88-18.52,21.75-39.11,21.75-12.8,0-24.14-2.78-36.68-14.61-9.64-9.08-20.91-25.21-29.58-39.71l-25.79-43.08c-12.94-21.62-24.81-37.74-31.68-45.04-7.39-7.85-16.89-17.33-32.05-17.33-12.27,0-22.69,8.61-31.41,21.78z"/>
+                <path fill="url(#mg2)" d="m82.35,31.23c-12.27,0-22.69,8.61-31.41,21.78-12.33,18.61-19.88,46.33-19.88,72.95 0,10.98 2.41,19.41 5.56,24.51l-26.48,17.44c-6.8-11.31-10.14-26.15-10.14-43.06 0-30.75 8.44-62.8 24.49-87.55 14.24-21.95 34.79-37.3 58.36-37.3z"/>
+              </svg>
+              <div>
+                <p className="text-[11px] font-semibold text-soren-text leading-none">Meta Ads</p>
+                <p className="text-[9px] text-soren-subtle mt-0.5">Facebook · Instagram</p>
+              </div>
+            </div>
+            <p className="text-[20px] font-black text-soren-text tabular-nums">{fmt(1200)}</p>
+          </div>
+
+          {/* Stats */}
+          <div className="flex flex-col gap-2 pt-1 border-t border-soren-border/50">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-soren-muted">Leads générés</span>
+              <span className="text-[13px] font-bold text-soren-text tabular-nums">8</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-soren-muted">Coût par lead</span>
+              <span className="text-[13px] font-bold text-soren-text tabular-nums">{fmt(150)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-soren-muted">ROI estimé</span>
+              <span className="text-[13px] font-bold tabular-nums" style={{ color: '#16a34a' }}>×{(periodCA/1200).toFixed(1)}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {showModal && (

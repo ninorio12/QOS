@@ -69,6 +69,27 @@ export type MonthlyPoint = {
   value: number
 }
 
+export type ClientTimelinePoint = {
+  date: string
+  value: number
+}
+
+export type MetierBreakdown = {
+  label: string
+  count: number
+  pct: number
+  color: string
+}
+
+export type Payment = {
+  date: string
+  client: string
+  entreprise: string
+  montant: number
+  description: string
+  statut: string
+}
+
 export type DashboardData = {
   metrics: DashboardMetrics
   funnel: FunnelStage[]
@@ -76,11 +97,18 @@ export type DashboardData = {
   featuredContact: FeaturedContact | null
   weeklyBreakdown: WeeklyDay[]
   monthlyPipeline: MonthlyPoint[]
+  clientTimeline: ClientTimelinePoint[]
+  metierBreakdown: MetierBreakdown[]
+  payments: Payment[]
+  wonCA: number
 }
+
+const METIER_COLORS = ['#FF4D00', '#3462EE', '#22c55e', '#EFE347', '#4A91A8', '#EC4899', '#8896AB']
 
 const EMPTY_DATA: DashboardData = {
   metrics: { totalContacts: 0, pipelineValue: 0, activeDeals: 0, wonDeals: 0, totalDeals: 0 },
   funnel: [], recentOpps: [], featuredContact: null, weeklyBreakdown: [], monthlyPipeline: [],
+  clientTimeline: [], metierBreakdown: [], payments: [], wonCA: 0,
 }
 
 export async function getDashboardData(creds?: GHLCreds): Promise<DashboardData> {
@@ -219,6 +247,55 @@ export async function getDashboardData(creds?: GHLCreds): Promise<DashboardData>
     return { month: MONTH_FR[month], value }
   })
 
+  // ── Won opportunities data ──────────────────────────────────
+  const wonOpps = opportunities.filter(o => o.status === 'won')
+  const wonCA   = wonOpps.reduce((s, o) => s + (o.monetaryValue ?? 0), 0)
+
+  // Client timeline — last 28 days grouped by day
+  const clientTimeline: ClientTimelinePoint[] = Array.from({ length: 28 }, (_, i) => {
+    const dayStart = new Date()
+    dayStart.setDate(dayStart.getDate() - (27 - i))
+    dayStart.setHours(0, 0, 0, 0)
+    const dayEnd = new Date(dayStart)
+    dayEnd.setHours(23, 59, 59, 999)
+    const dayValue = wonOpps
+      .filter(o => { const d = new Date(o.updatedAt); return d >= dayStart && d <= dayEnd })
+      .reduce((s, o) => s + (o.monetaryValue ?? 0), 0)
+    return {
+      date: dayStart.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }).replace('.', ''),
+      value: dayValue,
+    }
+  })
+
+  // Metier breakdown — from contact tags
+  const tagCounts: Record<string, number> = {}
+  wonOpps.forEach(o => {
+    const tag = o.contact?.tags?.[0] ?? 'Autre'
+    tagCounts[tag] = (tagCounts[tag] ?? 0) + 1
+  })
+  const totalMetier = wonOpps.length || 1
+  const metierBreakdown: MetierBreakdown[] = Object.entries(tagCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([label, count], i) => ({
+      label,
+      count,
+      pct: Math.round((count / totalMetier) * 100),
+      color: METIER_COLORS[i % METIER_COLORS.length],
+    }))
+
+  // Payments list — won opportunities sorted by date desc
+  const payments: Payment[] = [...wonOpps]
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 20)
+    .map(o => ({
+      date: new Date(o.updatedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }),
+      client: o.contact?.name ?? '—',
+      entreprise: o.contact?.tags?.[1] ?? o.contact?.tags?.[0] ?? '—',
+      montant: o.monetaryValue ?? 0,
+      description: o.name,
+      statut: 'Payé',
+    }))
+
   return {
     metrics: {
       totalContacts: total,
@@ -232,5 +309,9 @@ export async function getDashboardData(creds?: GHLCreds): Promise<DashboardData>
     featuredContact,
     weeklyBreakdown,
     monthlyPipeline,
+    clientTimeline,
+    metierBreakdown,
+    payments,
+    wonCA,
   }
 }

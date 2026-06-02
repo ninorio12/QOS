@@ -832,7 +832,6 @@ export default function WorkflowsView({ workflows, escalade }: Props) {
     <div className="p-6 h-full flex flex-col">
       {/* Header */}
       <div className="mb-4" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
-        <h1 className="text-2xl font-bold text-soren-text">Automatisation</h1>
         <p className="text-soren-muted text-sm mt-1">Chatbot GHL, workflows natifs et orchestration N8N</p>
       </div>
 

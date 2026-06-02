@@ -154,7 +154,6 @@ export default function DevisListView({ devisList, brandColor, onNew, onSelect, 
       {/* Header */}
       <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0 gap-4" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
         <div className="flex-shrink-0">
-          <h1 className="font-montserrat text-[26px] font-extrabold text-soren-text leading-none">Devis</h1>
           <p className="text-[12px] text-soren-subtle mt-0.5 font-jakarta">
             {devisList.length} devis{enAttente > 0 ? ` · ${enAttente} en attente` : ''}
           </p>

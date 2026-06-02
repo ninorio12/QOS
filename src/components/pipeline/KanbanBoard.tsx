@@ -254,28 +254,6 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   const wasDragged = useRef(false)
   const { toasts, toast, dismiss } = useToast()
 
-  useEffect(() => {
-    const bc = new BroadcastChannel('soren-opp-updates')
-    bc.onmessage = (e: MessageEvent<Record<string, unknown>>) => {
-      if (e.data.type === 'opp-updated') {
-        const d = e.data as { id: string; pipelineId: string; stageId: string; status: string; value: number }
-        setOpps(prev => prev.map(o =>
-          o.id === d.id
-            ? { ...o, stageId: d.stageId, pipelineId: d.pipelineId, status: d.status as Opportunity['status'], value: d.value }
-            : o
-        ))
-      }
-      if (e.data.type === 'contact-updated') {
-        const d = e.data as { contactId: string; name: string; email: string; phone: string }
-        setOpps(prev => prev.map(o =>
-          o.contactId === d.contactId
-            ? { ...o, name: d.name || o.name, email: d.email || o.email, phone: d.phone || o.phone }
-            : o
-        ))
-      }
-    }
-    return () => bc.close()
-  }, [])
 
   const persistStageMove = useCallback(async (oppId: string, newStageId: string, prevStageId: string) => {
     try {
@@ -486,19 +464,22 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
 
   function confirmConversion() {
     if (!pendingConversion) return
-    try {
-      const existing = JSON.parse(localStorage.getItem('vividflow_clients') ?? '[]') as unknown[]
-      const newClient = {
-        id:        pendingConversion.id,
+    const value = parseFloat(dealValue.replace(',', '.')) || 0
+    fetch('/api/pipeline/clients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ghl_contact_id: pendingConversion.contactId || undefined,
         name:      pendingConversion.name,
-        company:   pendingConversion.company,
-        value:     parseFloat(dealValue.replace(',', '.')) || 0,
-        createdAt: pendingConversion.createdAt,
-        initials:  pendingConversion.initials,
+        company:   pendingConversion.company || undefined,
+        email:     pendingConversion.email   || undefined,
+        phone:     pendingConversion.phone   || undefined,
+        value,
         stageId:   'nouveau-client',
-      }
-      localStorage.setItem('vividflow_clients', JSON.stringify([newClient, ...existing]))
-    } catch {}
+        initials:  pendingConversion.initials,
+        createdAt: new Date().toISOString().split('T')[0],
+      }),
+    }).catch(() => {})
     toast('Deal clôturé — bienvenue au client !', 'success')
     setPendingConversion(null)
     setDealValue('')

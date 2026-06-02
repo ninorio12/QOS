@@ -1,6 +1,8 @@
-// Mock Supabase admin - même que le client
-import { createClient } from './client'
+import { createClient } from '@supabase/supabase-js'
+import { env } from '@/lib/env'
 
 export function createAdminClient() {
-  return createClient()
+  return createClient(env.supabaseUrl(), env.supabaseServiceRole(), {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
 }

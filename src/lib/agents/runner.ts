@@ -17,7 +17,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 // ─── System prompts par agent ─────────────────────────────────────────────────
 
 const SYSTEM_PROMPTS: Record<string, string> = {
-  soren: `Tu es VividFlow, le COO Digital et orchestrateur IA de l'agence Qorpo IA.
+  vividflow: `Tu es VividFlow, le COO Digital et orchestrateur IA de l'agence Qorpo IA.
 Tu travailles pour des entreprises BTP/rénovation. Tu pilotes les agents Kai et Mia.
 Tu as accès aux données du CRM, pipeline, et tâches en cours.
 Tu es direct, précis, et proactif. Tu réponds en français.
@@ -68,7 +68,7 @@ RÈGLES :
 }
 
 const TOOLS_BY_AGENT: Record<string, Anthropic.Tool[]> = {
-  soren: SOREN_TOOLS,
+  vividflow: SOREN_TOOLS,
   kai:   KAI_TOOLS,
   mia:   MIA_TOOLS,
   ops:   OPS_TOOLS,
@@ -90,7 +90,7 @@ export type AgentRunResult = {
 
 // ─── Runner principal ─────────────────────────────────────────────────────────
 
-export type AgentId = 'soren' | 'kai' | 'mia' | 'ops' | 'doc'
+export type AgentId = 'vividflow' | 'kai' | 'mia' | 'ops' | 'doc'
 
 export async function runAgent(
   agentId: AgentId,
