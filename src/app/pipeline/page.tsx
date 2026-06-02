@@ -6,6 +6,7 @@ import type { GHLPipelineData, Opportunity } from '@/components/pipeline/types'
 import { GitMerge } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 const DEFAULT_PIPELINE: GHLPipelineData = {
   id: 'leads',

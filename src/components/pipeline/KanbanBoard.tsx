@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import {
   DndContext,
   DragOverlay,
@@ -35,6 +35,7 @@ import { Toaster } from '@/components/shared/Toaster'
 import ContactSlideOver from './ContactSlideOver'
 
 const NewLeadWidget = dynamic(() => import('@/components/shared/NewLeadWidget'), { ssr: false })
+const NewContactModal = dynamic(() => import('@/components/contacts/NewContactModal'), { ssr: false })
 
 const dropAnimation: DropAnimation = {
   duration: 220,
@@ -250,7 +251,19 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   const [lostOpps,       setLostOpps]       = useState<Opportunity[]>(initialOpportunities.filter(o => o.status === 'lost'))
   const [showLost,       setShowLost]       = useState(false)
   const [selectedOpp,    setSelectedOpp]    = useState<Opportunity | null>(null)
+  const [editContact,    setEditContact]    = useState<Record<string, unknown> | null>(null)
+
+  async function openContactEdit(opp: Opportunity) {
+    if (!opp.contactId) { setSelectedOpp(opp); return }
+    try {
+      const res = await fetch(`/api/contact/${opp.contactId}`)
+      const data = await res.json() as { contact?: Record<string, unknown> }
+      if (data.contact) setEditContact({ ...data.contact, id: opp.contactId, contactName: opp.name })
+      else setSelectedOpp(opp)
+    } catch { setSelectedOpp(opp) }
+  }
   const searchParams = useSearchParams()
+  const router = useRouter()
   const wasDragged = useRef(false)
   const { toasts, toast, dismiss } = useToast()
 
@@ -523,6 +536,14 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
         onClose={() => setSelectedOpp(null)}
       />
 
+      {editContact && (
+        <NewContactModal
+          contact={editContact as never}
+          onClose={() => setEditContact(null)}
+          onSave={() => { setEditContact(null); router.refresh() }}
+        />
+      )}
+
       <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0">
@@ -585,7 +606,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
                 stage={stage}
                 opps={getColOpps(stage.id)}
                 isOver={!showLost && (overId === stage.id || (i === stages.length - 1 && opps.some(o => o.id === overId && o.stageId === stage.id)))}
-                onCardClick={opp => setSelectedOpp(opp)}
+                onCardClick={opp => openContactEdit(opp)}
                 wasDragged={wasDragged}
                 showLost={showLost}
                 isLostOver={overId === `${LOST_PREFIX}${stage.id}`}

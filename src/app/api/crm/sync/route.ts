@@ -4,6 +4,7 @@ import { api } from '../../../../../convex/_generated/api'
 import { type Id } from '../../../../../convex/_generated/dataModel'
 
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 export async function POST(req: NextRequest) {
   const url = process.env.NEXT_PUBLIC_CONVEX_URL
