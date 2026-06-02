@@ -135,7 +135,7 @@ function ClientColumn({ stage, clients, isOver, wasDragged }: {
 
       <div
         ref={setNodeRef}
-        className={`flex-1 flex flex-col rounded-xl p-2 transition-colors overflow-clip ${
+        className={`flex-1 flex flex-col rounded-xl p-2 transition-colors overflow-hidden ${
           isOver ? 'bg-[#FF4D00]/10 ring-1 ring-[#FF4D00]/40' : 'bg-black/[0.04]'
         }`}
       >

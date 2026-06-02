@@ -173,7 +173,7 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
 
       <div
         ref={setNodeRef}
-        className={`flex-1 flex flex-col rounded-xl p-2 transition-colors overflow-clip ${
+        className={`flex-1 flex flex-col rounded-xl p-2 transition-colors overflow-hidden ${
           showLost
             ? 'bg-black/[0.02]'
             : isLastStage

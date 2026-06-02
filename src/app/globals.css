@@ -122,20 +122,20 @@ html.dark .nav-island {
 .kanban-scroll::-webkit-scrollbar-track { background: var(--bg-elevated); border-radius: 999px; }
 .kanban-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
 
-/* Kanban board row — explicit height so columns can scroll */
+/* Kanban board row */
 .kanban-board-row {
-  height: calc(100vh - 130px);
   align-items: stretch;
 }
-@media (max-width: 767px) {
-  .kanban-board-row { height: calc(100vh - 180px); }
-}
 
-/* Vertical scroll inside kanban columns */
+/* Vertical scroll inside kanban columns — max-height bypasses broken flex chain */
 .kanban-col {
+  max-height: calc(100vh - 210px);
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
+}
+@media (max-width: 767px) {
+  .kanban-col { max-height: calc(100vh - 250px); }
 }
 .kanban-col::-webkit-scrollbar { width: 4px; }
 .kanban-col::-webkit-scrollbar-track { background: transparent; border-radius: 999px; }
