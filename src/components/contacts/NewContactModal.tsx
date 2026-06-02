@@ -205,6 +205,8 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
 
   const [canton, setCanton]   = useState<string>(initialCanton ?? '')
   const [statut, setStatut]   = useState<'lead' | 'client' | 'perdu'>(initialStatut ?? 'lead')
+  const [metier, setMetier]   = useState<string>((contact as Record<string, unknown> & { metier?: string } | undefined)?.metier ?? '')
+  const [niche,  setNiche]    = useState<string>((contact as Record<string, unknown> & { niche?: string } | undefined)?.niche ?? '')
   const [form, setForm] = useState({
     firstName:   contact?.firstName   ?? '',
     lastName:    contact?.lastName    ?? '',
@@ -327,7 +329,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           const cRes = await fetch('/api/crm/contacts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ firstName: form.firstName, lastName: form.lastName || undefined, email: form.email || undefined, phone: phone || undefined, companyName: form.companyName || undefined, source: inoutbound, statut: 'lead', canton: canton || undefined, tags: [] }),
+            body: JSON.stringify({ firstName: form.firstName, lastName: form.lastName || undefined, email: form.email || undefined, phone: phone || undefined, companyName: form.companyName || undefined, source: inoutbound, statut: 'lead', canton: canton || undefined, metier: metier || undefined, niche: niche || undefined, tags: [] }),
           })
           const cData = await cRes.json().catch(() => ({})) as { contact?: { id: string; _id: string }; error?: string }
           if (!cRes.ok || cData.error) throw new Error(cData.error ?? `Erreur ${cRes.status}`)
@@ -357,7 +359,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           const cRes = await fetch('/api/crm/contacts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ firstName: form.firstName, lastName: form.lastName || undefined, email: form.email || undefined, phone: phone || undefined, companyName: form.companyName || undefined, source: 'inbound', statut: 'client', tags: [] }),
+            body: JSON.stringify({ firstName: form.firstName, lastName: form.lastName || undefined, email: form.email || undefined, phone: phone || undefined, companyName: form.companyName || undefined, source: 'inbound', statut: 'client', metier: metier || undefined, niche: niche || undefined, tags: [] }),
           })
           const cData = await cRes.json().catch(() => ({})) as { contact?: { id: string; _id: string }; error?: string }
           if (!cRes.ok || cData.error) throw new Error(cData.error ?? `Erreur ${cRes.status}`)
@@ -489,6 +491,17 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                   </select>
                 </div>
               )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Métier</label>
+                <input value={metier} onChange={e => setMetier(e.target.value)} placeholder="ex: Architecte" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Niche</label>
+                <input value={niche} onChange={e => setNiche(e.target.value)} placeholder="ex: Immobilier" className={inputCls} />
+              </div>
             </div>
 
             <div>

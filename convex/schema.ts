@@ -102,6 +102,8 @@ export default defineSchema({
     source:      v.optional(v.string()),  // 'inbound' | 'outbound'
     statut:      v.optional(v.string()),  // 'lead' | 'client' | 'perdu'
     canton:      v.optional(v.string()),
+    metier:      v.optional(v.string()),  // profession / secteur
+    niche:       v.optional(v.string()),  // niche business
     tags:        v.array(v.string()),
     notes:       v.optional(v.string()),
     createdAt:   v.string(),
@@ -121,6 +123,17 @@ export default defineSchema({
       position: v.number(),
     })),
   }).index("by_type", ["type"]),
+
+  // Historique des mouvements de stage (pour métriques période réelle)
+  lead_stage_history: defineTable({
+    leadId:    v.id("crm_leads"),
+    stageId:   v.string(),
+    stageName: v.string(),
+    enteredAt: v.string(),   // ISO date YYYY-MM-DD
+  })
+    .index("by_lead",    ["leadId"])
+    .index("by_stage",   ["stageId"])
+    .index("by_entered", ["enteredAt"]),
 
   // Leads (opportunités) — remplace GHL opportunities
   crm_leads: defineTable({

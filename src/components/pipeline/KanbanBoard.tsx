@@ -256,11 +256,12 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
 
 
   const persistStageMove = useCallback(async (oppId: string, newStageId: string, prevStageId: string) => {
+    const stageName = stages.find(s => s.id === newStageId)?.name ?? newStageId
     try {
       const res = await fetch(`/api/crm/leads/${oppId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stageId: newStageId }),
+        body: JSON.stringify({ stageId: newStageId, stageName }),
       })
       if (!res.ok) throw new Error('Erreur serveur')
     } catch {

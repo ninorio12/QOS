@@ -1,78 +1,68 @@
 'use client'
 
+import { useState, useCallback } from 'react'
 import useSWR from 'swr'
 import DashboardClient from '@/components/dashboard/DashboardClient'
 import DashboardLoading from './loading'
-import type { WeeklyDay, MonthlyPoint, FunnelStage, RecentOpp, DashboardMetrics, ClientTimelinePoint, MetierBreakdown, Payment } from '@/lib/dashboard'
 
-type DashData = {
-  metrics:         DashboardMetrics
-  funnel:          FunnelStage[]
-  recentOpps:      RecentOpp[]
-  weeklyBreakdown: WeeklyDay[]
-  monthlyPipeline: MonthlyPoint[]
-  clientTimeline:  ClientTimelinePoint[]
-  metierBreakdown: MetierBreakdown[]
-  payments:        Payment[]
-  wonCA:           number
+export type DashData = {
+  clientsCount:       number
+  caEncaisse:         number
+  leadsCount:         number
+  r1Count:            number
+  r2Count:            number
+  clientTimeline:     { date: string; value: number; ca: number }[]
+  metierBreakdown:    { label: string; niche: string; count: number; pct: number; color: string; contacts: { name: string; company: string }[] }[]
+  nicheBreakdown:     { niche: string; metiers: { metier: string; count: number; contacts: { name: string; company: string }[] }[] }[]
+  recentLeads:        { id: string; name: string; stageId: string; createdAt: string; value: number; source: string }[]
+  totalContactsCount: number
 }
 
-const EMPTY_METRICS: DashboardMetrics = {
-  totalContacts: 0, pipelineValue: 0, activeDeals: 0, wonDeals: 0, totalDeals: 0,
+function defaultRange() {
+  const to   = new Date(); to.setHours(0,0,0,0)
+  const from = new Date(to); from.setDate(to.getDate() - 29)
+  return { from: from.toISOString().split('T')[0], to: to.toISOString().split('T')[0] }
 }
 
-const fetcher = async (url: string): Promise<DashData> => {
-  const res  = await fetch(url)
-  const json = await res.json() as Partial<DashData>
-  return {
-    metrics:         json.metrics         ?? EMPTY_METRICS,
-    funnel:          json.funnel          ?? [],
-    recentOpps:      json.recentOpps      ?? [],
-    weeklyBreakdown: json.weeklyBreakdown ?? [],
-    monthlyPipeline: json.monthlyPipeline ?? [],
-    clientTimeline:  json.clientTimeline  ?? [],
-    metierBreakdown: json.metierBreakdown ?? [],
-    payments:        json.payments        ?? [],
-    wonCA:           json.wonCA           ?? 0,
-  }
+const EMPTY: DashData = {
+  clientsCount: 0, caEncaisse: 0, leadsCount: 0, r1Count: 0, r2Count: 0,
+  clientTimeline: [], metierBreakdown: [], nicheBreakdown: [], recentLeads: [], totalContactsCount: 0,
 }
 
 export default function DashboardPage() {
-  const { data, isLoading } = useSWR<DashData>('/api/dashboard', fetcher, {
-    revalidateOnFocus:    false,
-    revalidateIfStale:    false,
-    revalidateOnMount:    true,
-    revalidateOnReconnect: false,
-    dedupingInterval:     60_000,
-  })
+  const [range, setRange] = useState(defaultRange)
+
+  const key = `/api/dashboard?from=${range.from}&to=${range.to}`
+  const { data, isLoading } = useSWR<DashData>(key, async (url: string) => {
+    const res  = await fetch(url)
+    const json = await res.json() as Partial<DashData>
+    return { ...EMPTY, ...json }
+  }, { revalidateOnFocus: false, dedupingInterval: 30_000 })
+
+  const handleRangeChange = useCallback((from: string, to: string) => {
+    setRange({ from, to })
+  }, [])
 
   if (isLoading && !data) return <DashboardLoading />
 
-  const metrics         = data?.metrics         ?? EMPTY_METRICS
-  const funnel          = data?.funnel          ?? []
-  const recentOpps      = data?.recentOpps      ?? []
-  const weeklyBreakdown = data?.weeklyBreakdown ?? []
-  const monthlyPipeline = data?.monthlyPipeline ?? []
-  const clientTimeline  = data?.clientTimeline  ?? []
-  const metierBreakdown = data?.metierBreakdown ?? []
-  const payments        = data?.payments        ?? []
-  const wonCA           = data?.wonCA           ?? 0
+  const d = data ?? EMPTY
 
   return (
     <div className="md:h-full flex flex-col px-3 py-3 md:p-5 md:overflow-auto page-fade-in">
       <DashboardClient
-        activeLeads={metrics.activeDeals    ?? 0}
-        pipelineValue={metrics.pipelineValue ?? 0}
-        wonLeads={metrics.wonDeals           ?? 0}
-        totalLeads={metrics.totalDeals       ?? 0}
-        stageBreakdown={funnel}
-        recentOpps={recentOpps}
-        weeklyBreakdown={weeklyBreakdown}
-        monthlyPipeline={monthlyPipeline}
-        clientTimeline={clientTimeline}
-        metierBreakdown={metierBreakdown}
-        payments={payments}
-        wonCA={wonCA}
+        clientsCount={d.clientsCount}
+        caEncaisse={d.caEncaisse}
+        leadsCount={d.leadsCount}
+        r1Count={d.r1Count}
+        r2Count={d.r2Count}
+        clientTimeline={d.clientTimeline}
+        metierBreakdown={d.metierBreakdown}
+        nicheBreakdown={d.nicheBreakdown}
+        recentLeads={d.recentLeads}
+        totalContactsCount={d.totalContactsCount}
+        rangeFrom={range.from}
+        rangeTo={range.to}
+        onRangeChange={handleRangeChange}
       />
     </div>
   )

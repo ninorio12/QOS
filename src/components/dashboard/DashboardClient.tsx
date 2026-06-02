@@ -43,18 +43,31 @@ interface RecentOpp {
 }
 
 interface DashboardProps {
-  activeLeads:      number
-  pipelineValue:    number
-  wonLeads:         number
-  totalLeads:       number
-  stageBreakdown:   StageBreakdown[]
-  recentOpps:       RecentOpp[]
-  weeklyBreakdown:  WeeklyDay[]
-  monthlyPipeline:  MonthlyPoint[]
-  clientTimeline:   ClientTimelinePoint[]
-  metierBreakdown:  MetierBreakdown[]
-  payments:         Payment[]
-  wonCA:            number
+  // New Convex-based props
+  clientsCount:       number
+  caEncaisse:         number
+  leadsCount:         number
+  r1Count:            number
+  r2Count:            number
+  clientTimeline:     { date: string; value: number; ca: number }[]
+  metierBreakdown:    { label: string; niche: string; count: number; pct: number; color: string; contacts: { name: string; company: string }[] }[]
+  nicheBreakdown:     { niche: string; metiers: { metier: string; count: number; contacts: { name: string; company: string }[] }[] }[]
+  recentLeads:        { id: string; name: string; stageId: string; createdAt: string; value: number; source: string }[]
+  totalContactsCount: number
+  rangeFrom:          string
+  rangeTo:            string
+  onRangeChange:      (from: string, to: string) => void
+  // Legacy props (unused, kept for compat)
+  activeLeads?:      number
+  pipelineValue?:    number
+  wonLeads?:         number
+  totalLeads?:       number
+  stageBreakdown?:   StageBreakdown[]
+  recentOpps?:       RecentOpp[]
+  weeklyBreakdown?:  WeeklyDay[]
+  monthlyPipeline?:  MonthlyPoint[]
+  payments?:         Payment[]
+  wonCA?:            number
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -437,22 +450,16 @@ interface AgentLog {
 
 // ─── Main export ──────────────────────────────────────────────
 export default function DashboardClient({
-  activeLeads      = 0,
-  pipelineValue    = 0,
-  wonLeads         = 0,
-  totalLeads       = 0,
-  stageBreakdown   = [],
-  recentOpps       = [],
-  weeklyBreakdown  = [],
-  monthlyPipeline  = [],
-  clientTimeline   = [],
-  metierBreakdown  = [],
-  payments         = [],
-  wonCA            = 0,
+  clientsCount = 0, caEncaisse = 0, leadsCount = 0, r1Count = 0, r2Count = 0,
+  clientTimeline = [], metierBreakdown = [], nicheBreakdown = [], recentLeads = [],
+  totalContactsCount = 0, rangeFrom, rangeTo, onRangeChange,
+  // legacy
+  stageBreakdown = [], weeklyBreakdown = [],
 }: DashboardProps) {
   const router = useRouter()
   const [showModal,       setShowModal]       = useState(false)
   const [showToast,       setShowToast]       = useState(false)
+  const [showMetierModal, setShowMetierModal] = useState(false)
   const [tasks,           setTasks]           = useState<AgentTask[]>([])
   const [logs,            setLogs]            = useState<AgentLog[]>([])
   const [calendarOpen,    setCalendarOpen]    = useState(false)
@@ -474,11 +481,9 @@ export default function DashboardClient({
     fetch('/api/agent-logs?limit=4').then(r => r.json()).then((d: { logs?: AgentLog[] }) => setLogs(d.logs?.slice(0, 4) ?? [])).catch(() => {})
   }, [])
 
-  const leadsAnim    = useCountUp(activeLeads)
-  const pipelineAnim = useCountUp(pipelineValue)
   const LEADS_TARGET = 50
-  const leadsPct     = Math.min(Math.round((activeLeads / LEADS_TARGET) * 100), 100)
-  const filledBars   = Math.min(Math.round((activeLeads / LEADS_TARGET) * 8), 8)
+  const leadsPct     = Math.min(Math.round((leadsCount / LEADS_TARGET) * 100), 100)
+  const filledBars   = Math.min(Math.round((leadsCount / LEADS_TARGET) * 8), 8)
 
   function handleSuccess() {
     setShowToast(true)
@@ -497,60 +502,40 @@ export default function DashboardClient({
     { dot: '#D1D5DB', name: 'Carlos Mendes', action: 'Relance automatique',    date: 'Hier 14:20' },
   ]
 
-  const activity = recentOpps.length > 0
-    ? recentOpps.slice(0, 4).map(o => ({
-        dot:    o.color,
-        name:   o.contactName,
-        action: o.tag,
-        date:   o.date,
+  const activity = recentLeads.length > 0
+    ? recentLeads.slice(0, 4).map(o => ({
+        dot:    o.source === 'inbound' ? '#16A34A' : '#CA8A04',
+        name:   o.name,
+        action: `Colonne: ${o.stageId}`,
+        date:   o.createdAt,
       }))
     : FALLBACK_ACTIVITY
 
-  const MONTH_LABEL = activeRange?.label ?? new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+  const MONTH_LABEL = activeRange?.label ?? `${rangeFrom} → ${rangeTo}`
 
-  const filteredTimeline = useMemo(() => {
-    if (!activeRange) return clientTimeline
-    const { start, end } = activeRange
-    return clientTimeline.filter(p => {
-      const d = new Date(p.date)
-      return d >= start && d <= end
-    })
-  }, [clientTimeline, activeRange])
-
-  const filteredPayments = useMemo(() => {
-    if (!activeRange) return payments
-    const { start, end } = activeRange
-    return payments.filter(p => {
-      const d = new Date(p.date)
-      return d >= start && d <= end
-    })
-  }, [payments, activeRange])
-
-  const periodCA      = useMemo(() => filteredPayments.reduce((s, p) => s + p.montant, 0), [filteredPayments])
-  const periodClients = filteredPayments.length
+  // clientTimeline already filtered by period from API
 
   const weeklyData = weeklyBreakdown
 
   const objectives = useMemo(() => {
-    const qualCount  = stageBreakdown.find(s => s.label.toLowerCase().includes('qualif'))?.count ?? 0
-    const convRate   = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0
+    const convRate   = leadsCount > 0 ? Math.round((clientsCount / leadsCount) * 100) : 0
     const CA_TARGET  = 100_000
-    const QUAL_TARGET = 30
+    const LEADS_T    = 50
     const CONV_TARGET = 25
     return [
       {
-        label: "Chiffre d'affaires",
-        current: fmt(pipelineValue),
+        label: "CA encaissé",
+        current: fmt(caEncaisse),
         target: fmt(CA_TARGET),
-        pct: Math.min(Math.round((pipelineValue / CA_TARGET) * 100), 100),
+        pct: Math.min(Math.round((caEncaisse / CA_TARGET) * 100), 100),
         barColor: '#FF4D00', textColor: '#ffffff',
         bg: '#FF4D00', labelC: '#556b00',
       },
       {
-        label: 'Leads qualifiés',
-        current: String(qualCount),
-        target: String(QUAL_TARGET),
-        pct: Math.min(Math.round((qualCount / QUAL_TARGET) * 100), 100),
+        label: 'Leads',
+        current: String(leadsCount),
+        target: String(LEADS_T),
+        pct: Math.min(Math.round((leadsCount / LEADS_T) * 100), 100),
         barColor: '#FF4D00', textColor: '#ffffff',
         bg: '#1C1C1E', labelC: '#666',
       },
@@ -563,7 +548,7 @@ export default function DashboardClient({
         bg: '#ffffff', labelC: '#888',
       },
     ]
-  }, [pipelineValue, wonLeads, totalLeads, stageBreakdown])
+  }, [caEncaisse, leadsCount, clientsCount])
 
   const ALL_MODULES = [
     { href: '/pipeline',      Icon: GitMerge,         label: 'Pipeline' },
@@ -620,7 +605,11 @@ export default function DashboardClient({
             {calendarOpen && (
               <DateRangePicker
                 onClose={() => setCalendarOpen(false)}
-                onApply={(start, end, label) => { setActiveRange({ start, end, label }); setCalendarOpen(false) }}
+                onApply={(start, end, label) => {
+                  setActiveRange({ start, end, label })
+                  setCalendarOpen(false)
+                  onRangeChange(start.toISOString().split('T')[0], end.toISOString().split('T')[0])
+                }}
               />
             )}
           </div>
@@ -634,12 +623,12 @@ export default function DashboardClient({
         style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}
       >
         {[
-          { label: 'Clients',        value: String(activeRange ? periodClients : wonLeads),   sub: 'durant la période' },
-          { label: 'CA encaissé',    value: fmt(activeRange ? periodCA : wonCA),              sub: 'durant la période' },
-          { label: 'CA à collecter', value: '—',                sub: 'durant la période' },
-          { label: 'Leads',          value: String(totalLeads), sub: 'actifs'            },
-          { label: 'R1',             value: String(r1Count),    sub: 'effectués'         },
-          { label: 'R2',             value: String(r2Count),    sub: 'effectués'         },
+          { label: 'Clients',        value: String(clientsCount), sub: 'durant la période' },
+          { label: 'CA encaissé',    value: fmt(caEncaisse),      sub: 'durant la période' },
+          { label: 'CA à collecter', value: '—',                  sub: 'en attente'        },
+          { label: 'Leads',          value: String(leadsCount),   sub: 'durant la période' },
+          { label: 'R1',             value: String(r1Count),      sub: 'durant la période' },
+          { label: 'R2',             value: String(r2Count),      sub: 'durant la période' },
         ].map(({ label, value, sub }) => (
           <div key={label} className="bg-soren-card rounded-2xl p-3 md:p-4 flex flex-col gap-1.5 shadow-sm border border-soren-border/60">
             <span className="text-[11px] font-medium text-soren-muted leading-none">{label}</span>
@@ -664,12 +653,12 @@ export default function DashboardClient({
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-semibold text-soren-text bg-soren-elevated px-3 py-1 rounded-full">
-                {wonLeads} client{wonLeads !== 1 ? 's' : ''}&nbsp;&nbsp;·&nbsp;&nbsp;CA encaissé total : {fmt(wonCA)}
+                {clientsCount} client{clientsCount !== 1 ? 's' : ''}&nbsp;&nbsp;·&nbsp;&nbsp;CA encaissé : {fmt(caEncaisse)}
               </span>
             </div>
           </div>
           <div className="h-[180px] md:h-[200px] px-2 pb-4">
-            <ClientTimelineChart data={filteredTimeline} />
+            <ClientTimelineChart data={clientTimeline} />
           </div>
         </div>
 
@@ -678,10 +667,10 @@ export default function DashboardClient({
           className="bg-soren-card rounded-2xl md:rounded-3xl p-5 shadow-sm flex flex-col gap-4"
           style={{ animation: 'fadeSlideUp 400ms ease-out 400ms both' }}
         >
-          <div className="flex items-center justify-between">
+          <button className="flex items-center justify-between w-full" onClick={() => setShowMetierModal(true)}>
             <span className="font-jakarta text-[13px] font-semibold text-soren-text">Métiers clients</span>
             <ArrowUpRight size={14} className="text-soren-muted" />
-          </div>
+          </button>
           {metierBreakdown.length === 0 ? (
             <div className="flex-1 flex items-center justify-center text-[12px] text-soren-subtle">Aucune donnée</div>
           ) : (
@@ -711,7 +700,7 @@ export default function DashboardClient({
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-[22px] font-black text-soren-text">{wonLeads}</span>
+                  <span className="text-[22px] font-black text-soren-text">{clientsCount}</span>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
@@ -822,7 +811,7 @@ export default function DashboardClient({
             </div>
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-soren-muted">ROI estimé</span>
-              <span className="text-[13px] font-bold tabular-nums" style={{ color: '#16a34a' }}>×{(periodCA/1200).toFixed(1)}</span>
+              <span className="text-[13px] font-bold tabular-nums" style={{ color: '#16a34a' }}>×{(caEncaisse/1200).toFixed(1)}</span>
             </div>
           </div>
         </div>
@@ -831,7 +820,56 @@ export default function DashboardClient({
       {showModal && (
         <NewLeadModal onClose={() => setShowModal(false)} onSuccess={handleSuccess} />
       )}
-<Toast visible={showToast} />
+      <Toast visible={showToast} />
+
+      {/* ── Métier Detail Modal ──────────────────────────────── */}
+      {showMetierModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowMetierModal(false)} />
+          <div className="relative bg-soren-card rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-soren-border flex-shrink-0">
+              <div>
+                <h2 className="text-base font-bold text-soren-text">Métiers clients</h2>
+                <p className="text-xs text-soren-subtle mt-0.5">Répartition par niche et métier</p>
+              </div>
+              <button onClick={() => setShowMetierModal(false)} className="w-8 h-8 rounded-full bg-soren-elevated flex items-center justify-center hover:bg-[#E5E7EB] transition-colors">
+                <X size={14} className="text-soren-muted" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+              {nicheBreakdown.length === 0 ? (
+                <div className="text-center py-8 text-sm text-soren-subtle">
+                  Aucun client avec métier/niche renseigné.<br />
+                  <span className="text-xs">Complète les fiches contacts.</span>
+                </div>
+              ) : nicheBreakdown.map(({ niche, metiers }) => (
+                <div key={niche} className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-soren-subtle">{niche}</span>
+                    <div className="flex-1 h-px bg-soren-border" />
+                  </div>
+                  {metiers.map(({ metier, count, contacts }) => (
+                    <div key={metier} className="bg-soren-elevated rounded-2xl p-4 flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-soren-text">{metier}</span>
+                        <span className="text-[11px] font-bold bg-[#FF4D00]/10 text-[#FF4D00] px-2 py-0.5 rounded-full">{count} client{count > 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {contacts.map((c, i) => (
+                          <div key={i} className="flex items-center gap-1.5 bg-soren-card border border-soren-border rounded-full px-2.5 py-1">
+                            <span className="text-[11px] font-semibold text-soren-text">{c.name}</span>
+                            {c.company && <span className="text-[10px] text-soren-subtle">· {c.company}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
