@@ -530,8 +530,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
           <div className="flex items-center gap-5">
             <div>
               <p className="text-xs text-soren-muted mt-1">
-                {totalCount} {showLost ? 'perdus' : 'opportunités'} ·{' '}
-                <span className="font-semibold text-soren-text">€{totalPipeline.toLocaleString('fr-FR')}</span>
+                {totalCount} {showLost ? 'perdus' : 'opportunités'}
               </p>
             </div>
             {initialPipelines.length > 1 && (
