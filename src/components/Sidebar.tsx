@@ -55,7 +55,6 @@ const ACQUISITION_POST: NavItem[] = [
 ]
 
 const BIBLIOTHEQUES: NavItem[] = [
-  { href: '/bibliotheque/projets',    icon: Library,     label: 'Projets'    },
   { href: '/bibliotheque/data',       icon: HardDrive,   label: 'Data'       },
   { href: '/bibliotheque/records',    icon: FolderOpen,  label: 'Records'    },
   { href: '/bibliotheque/process',    icon: ListChecks,  label: 'Process'    },
@@ -126,14 +125,11 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
 
 function BibliothequeNav({ pathname }: { pathname: string }) {
   const onBiblio = pathname.startsWith('/bibliotheque')
-  const projetsActive = onBiblio && !pathname.startsWith('/bibliotheque/data') && !pathname.startsWith('/bibliotheque/records') && !pathname.startsWith('/bibliotheque/process') && !pathname.startsWith('/bibliotheque/onboarding')
-  const dataActive    = pathname.startsWith('/bibliotheque/data')
+  const dataActive    = pathname.startsWith('/bibliotheque/data') || (onBiblio && !pathname.startsWith('/bibliotheque/records') && !pathname.startsWith('/bibliotheque/process'))
   const recordsActive = pathname.startsWith('/bibliotheque/records')
-
   const processActive  = pathname.startsWith('/bibliotheque/process')
 
   const SUBS = [
-    { href: '/bibliotheque/projets',    label: 'Projets',    active: projetsActive },
     { href: '/bibliotheque/data',       label: 'Data',       active: dataActive    },
     { href: '/bibliotheque/records',    label: 'Records',    active: recordsActive },
     { href: '/bibliotheque/process',    label: 'Process',    active: processActive },
@@ -142,7 +138,7 @@ function BibliothequeNav({ pathname }: { pathname: string }) {
   return (
     <>
       <Link
-        href="/bibliotheque/projets"
+        href="/bibliotheque/data"
         className={`
           flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-150
           ${onBiblio

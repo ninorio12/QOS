@@ -34,6 +34,8 @@ const PAGE_LABELS: Record<string, string> = {
   '/pipeline':           'Pipeline',
   '/pipeline/clients':   'Pipeline',
   '/contacts':           'Contacts',
+  '/onboarding':         'Onboarding',
+  '/paiement':           'Paiement',
   '/conversations':      'Conversations',
   '/calendrier':         'Calendrier',
   '/analyse':            'Analyse',

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { CreditCard, ArrowDownLeft, ArrowUpRight, ChevronRight, CalendarDays, X } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, CalendarDays, X, Search } from 'lucide-react'
 import { DateRangePicker, getPresetRange } from '@/components/shared/DateRangePicker'
 
 function fmt(n: number) { return `${Math.round(Math.abs(n)).toLocaleString('fr-FR')} €` }
@@ -37,10 +37,16 @@ export default function PaiementView() {
     document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h)
   }, [])
 
+  const [search, setSearch] = useState('')
   const data = useQuery(api.paiement.overview, { from: range.from, to: range.to }) as Overview | undefined
   const ov = data ?? { encaisse: 0, attente: 0, rembourse: 0, net: 0, transactions: [], clientsCount: 0, caTotal: 0, leadsCount: 0, conversions: { global: { clients: 0, total: 0, pct: 0 }, inbound: { clients: 0, total: 0, pct: 0 }, outbound: { clients: 0, total: 0, pct: 0 } } }
 
-  const txns = useMemo(() => filterContact ? ov.transactions.filter(t => t.contactId === filterContact) : ov.transactions, [ov.transactions, filterContact])
+  const txns = useMemo(() => {
+    let t = filterContact ? ov.transactions.filter(x => x.contactId === filterContact) : ov.transactions
+    const q = search.toLowerCase().trim()
+    if (q) t = t.filter(x => `${x.client} ${x.company}`.toLowerCase().includes(q))
+    return t
+  }, [ov.transactions, filterContact, search])
   const filtEncaisse = filterContact ? txns.filter(t => t.type === 'payment' && t.status === 'encaissé').reduce((s, t) => s + t.amount, 0) : ov.encaisse
   const filtAttente = filterContact ? txns.filter(t => t.type === 'payment' && t.status === 'attente').reduce((s, t) => s + t.amount, 0) : ov.attente
 
@@ -48,34 +54,31 @@ export default function PaiementView() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* Header + period */}
-      <div className="px-6 pt-5 pb-3 flex-shrink-0 flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-1.5 text-[11px] font-bold tracking-wide">
-            <CreditCard size={14} className="text-[#FF4D00]" />
-            <span className="text-soren-subtle">VIVIDFLOW</span>
-            <ChevronRight size={11} className="text-soren-subtle" />
-            <span className="text-soren-text">PAIEMENT</span>
-            {filterName && <><ChevronRight size={11} className="text-soren-subtle" /><span className="text-[#FF4D00]">{filterName}</span></>}
-          </div>
-          <p className="text-[11px] text-soren-subtle mt-1">Tour de contrôle — {range.label ?? `${range.from} → ${range.to}`}</p>
+      {/* Toolbar */}
+      <div className="px-6 pt-5 pb-3 flex-shrink-0 flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-md bg-soren-card border border-soren-border rounded-full px-3.5 py-2">
+          <Search size={13} className="text-soren-subtle flex-shrink-0" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un client…"
+            className="flex-1 bg-transparent text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none" />
         </div>
         <div className="flex items-center gap-2">
           {filterContact && (
             <a href="/paiement" className="flex items-center gap-1 text-[11px] font-semibold text-soren-muted hover:text-soren-text bg-soren-card border border-soren-border rounded-full px-3 py-1.5">
-              <X size={12} /> Tous les clients
+              <X size={12} /> {filterName ?? 'Tous'}
             </a>
           )}
           <div className="relative" ref={calRef}>
             <button onClick={() => setCalOpen(v => !v)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[12px] font-semibold transition-all ${calOpen ? 'bg-soren-sidebar text-white border-soren-sidebar' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>
-              <CalendarDays size={13} /> Période
+              <CalendarDays size={13} /> {range.label ?? 'Période'}
             </button>
             {calOpen && (
-              <DateRangePicker
-                onClose={() => setCalOpen(false)}
-                onApply={(start, end, label) => { setRange({ from: localDate(start), to: localDate(end), label }); setCalOpen(false) }}
-              />
+              <div className="absolute right-0 z-50">
+                <DateRangePicker
+                  onClose={() => setCalOpen(false)}
+                  onApply={(start, end, label) => { setRange({ from: localDate(start), to: localDate(end), label }); setCalOpen(false) }}
+                />
+              </div>
             )}
           </div>
         </div>
@@ -83,10 +86,10 @@ export default function PaiementView() {
 
       {/* KPI cards (same as dashboard) + conversions */}
       <div className="px-6 grid grid-cols-2 md:grid-cols-4 gap-3 flex-shrink-0">
-        <Card label="Montant encaissé" value={fmt(filtEncaisse)} bg="#DCFCE7" color="#16A34A" />
-        <Card label="Montant en attente" value={fmt(filtAttente)} bg="#FEF9C3" color="#CA8A04" />
-        <Card label="Remboursé" value={fmt(ov.rembourse)} bg="#FEF2F2" color="#DC2626" />
-        <Card label="Net encaissé" value={fmt(filterContact ? filtEncaisse - ov.rembourse : ov.net)} bg="#F3F4F6" color="#111111" />
+        <Card label="Montant encaissé" value={fmt(filtEncaisse)} bg="#F0FDF9" border="#A7F3D0" color="#059669" />
+        <Card label="Montant en attente" value={fmt(filtAttente)} bg="#FFFBEB" border="#FDE68A" color="#D97706" />
+        <Card label="Remboursé" value={fmt(ov.rembourse)} bg="#FEF5F5" border="#FECACA" color="#DC2626" />
+        <Card label="Net encaissé" value={fmt(filterContact ? filtEncaisse - ov.rembourse : ov.net)} bg="#F8FAFC" border="#E2E8F0" color="#0F172A" />
       </div>
 
       {!filterContact && (
@@ -151,9 +154,9 @@ export default function PaiementView() {
   )
 }
 
-function Card({ label, value, bg, color }: { label: string; value: string; bg: string; color: string }) {
+function Card({ label, value, bg, border, color }: { label: string; value: string; bg: string; border: string; color: string }) {
   return (
-    <div className="rounded-2xl p-4 shadow-sm" style={{ background: bg }}>
+    <div className="rounded-2xl p-4 shadow-sm border" style={{ background: bg, borderColor: border }}>
       <span className="text-[11px] font-medium" style={{ color }}>{label}</span>
       <p className="text-[24px] md:text-[26px] font-black tabular-nums leading-tight" style={{ color }}>{value}</p>
     </div>

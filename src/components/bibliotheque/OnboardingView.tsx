@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import {
-  Rocket, CheckCircle2, Circle, ChevronRight, ChevronDown, Eye, Download,
+  CheckCircle2, Circle, ChevronRight, ChevronDown, Eye, Download, Search,
   Upload, CalendarPlus, FileSignature, ClipboardList, Check, FileCheck2, CreditCard,
 } from 'lucide-react'
 
@@ -71,24 +71,28 @@ export default function OnboardingView() {
   }, [liveClients, targetContact])
 
   const current = clients.find(c => (c.ghl_contact_id ?? c.id) === selected) ?? null
+  const [search, setSearch] = useState('')
+  const visibleClients = useMemo(() => {
+    const q = search.toLowerCase().trim()
+    return q ? clients.filter(c => `${c.name} ${c.company}`.toLowerCase().includes(q)) : clients
+  }, [clients, search])
 
   return (
     <div className="h-full flex flex-col md:flex-row overflow-hidden">
       <div className="md:w-72 flex-shrink-0 border-r border-soren-border flex flex-col overflow-hidden">
-        <div className="px-5 pt-5 pb-3 flex-shrink-0">
-          <div className="flex items-center gap-1.5 text-[11px] font-bold tracking-wide">
-            <Rocket size={14} className="text-[#FF4D00]" />
-            <span className="text-soren-subtle">VIVIDFLOW</span>
-            <ChevronRight size={11} className="text-soren-subtle" />
-            <span className="text-soren-text">ONBOARDING</span>
+        <div className="px-4 pt-4 pb-3 flex-shrink-0 flex flex-col gap-2.5">
+          <p className="text-[11px] text-soren-subtle px-1">{clients.length} client{clients.length !== 1 ? 's' : ''} en cours</p>
+          <div className="flex items-center gap-2 bg-soren-elevated rounded-xl px-3 py-2">
+            <Search size={13} className="text-soren-subtle flex-shrink-0" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un client…"
+              className="flex-1 bg-transparent text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none" />
           </div>
-          <p className="text-[11px] text-soren-subtle mt-1">{clients.length} client{clients.length !== 1 ? 's' : ''} en cours</p>
         </div>
         <div className="flex-1 overflow-y-auto px-2 pb-3 flex flex-col gap-1">
           {clients.length === 0 && (
             <p className="text-[12px] text-soren-subtle px-3 py-4 text-center">Aucun client — convertis un lead en client pour démarrer son onboarding.</p>
           )}
-          {clients.map(c => {
+          {visibleClients.map(c => {
             const cid = c.ghl_contact_id ?? c.id
             const active = selected === cid
             return (
@@ -152,11 +156,6 @@ function ClientOnboarding({ client, contactId, router }: { client: ClientLite; c
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-[#FF4D00]">Semaine 1 — Lancement</span>
-        <div className="flex-1 h-px bg-soren-border" />
-      </div>
-
       <ContractStep
         done={!!tasks.contractSent}
         onToggle={v => setTask('contractSent', v)}
@@ -217,36 +216,36 @@ function PaymentPhase({ amounts, paidStatus, paidDates, onPay }: {
         <span className="flex items-center gap-2 text-[14px] font-bold text-soren-text flex-1"><CreditCard size={16} />Paiement</span>
       </div>
       <div className="pl-8 flex flex-col gap-3">
-        {/* mini cards dashboard-style */}
+        {/* cards — refined palette */}
         <div className="grid grid-cols-3 gap-2">
-          <div className="bg-soren-elevated rounded-xl p-3">
-            <span className="text-[10px] text-soren-muted">Total</span>
+          <div className="rounded-xl p-3 border border-soren-border bg-soren-card">
+            <span className="text-[10px] text-soren-subtle">Total</span>
             <p className="text-[18px] font-black text-soren-text tabular-nums">{fmt(total)}</p>
           </div>
-          <div className="rounded-xl p-3" style={{ background: '#DCFCE7' }}>
-            <span className="text-[10px]" style={{ color: '#16A34A' }}>Encaissé</span>
-            <p className="text-[18px] font-black tabular-nums" style={{ color: '#16A34A' }}>{fmt(encaisse)}</p>
+          <div className="rounded-xl p-3 border" style={{ background: '#F0FDF9', borderColor: '#A7F3D0' }}>
+            <span className="text-[10px]" style={{ color: '#059669' }}>Encaissé</span>
+            <p className="text-[18px] font-black tabular-nums" style={{ color: '#059669' }}>{fmt(encaisse)}</p>
           </div>
-          <div className="rounded-xl p-3" style={{ background: '#FEF9C3' }}>
-            <span className="text-[10px]" style={{ color: '#CA8A04' }}>En attente</span>
-            <p className="text-[18px] font-black tabular-nums" style={{ color: '#CA8A04' }}>{fmt(attente)}</p>
+          <div className="rounded-xl p-3 border" style={{ background: '#FFFBEB', borderColor: '#FDE68A' }}>
+            <span className="text-[10px]" style={{ color: '#D97706' }}>En attente</span>
+            <p className="text-[18px] font-black tabular-nums" style={{ color: '#D97706' }}>{fmt(attente)}</p>
           </div>
         </div>
-        {/* installments */}
-        <div className="flex flex-col gap-1.5">
+        {/* installments — table lines */}
+        <div className="border border-soren-border rounded-xl overflow-hidden">
           {amounts.map((a, i) => {
             const paid = !!paidStatus[i]
             return (
-              <div key={i} className="flex items-center gap-3 bg-soren-elevated rounded-xl px-3 py-2.5">
+              <div key={i} className="flex items-center gap-3 px-3 py-2.5 border-b border-soren-border/60 last:border-0 hover:bg-soren-elevated/50 transition-colors">
                 <button onClick={() => togglePaid(i)}>
-                  {paid ? <CheckCircle2 size={18} className="text-[#16A34A]" /> : <Circle size={18} className="text-soren-subtle" />}
+                  {paid ? <CheckCircle2 size={17} style={{ color: '#059669' }} /> : <Circle size={17} className="text-soren-subtle" />}
                 </button>
                 <span className="text-[12px] font-semibold text-soren-text flex-1">
                   {amounts.length > 1 ? `Échéance ${i + 1}/${amounts.length}` : 'Paiement'}
-                  {paid && paidDates[i] && <span className="text-[10px] text-soren-subtle font-normal ml-2">encaissé le {new Date(paidDates[i]).toLocaleDateString('fr-FR')}</span>}
+                  {paid && paidDates[i] && <span className="text-[10px] text-soren-subtle font-normal ml-2">le {new Date(paidDates[i]).toLocaleDateString('fr-FR')}</span>}
                 </span>
-                <span className="text-[13px] font-bold tabular-nums" style={{ color: paid ? '#16A34A' : '#374151' }}>{fmt(a)}</span>
-                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={paid ? { background: '#DCFCE7', color: '#16A34A' } : { background: '#FEF9C3', color: '#CA8A04' }}>
+                <span className="text-[13px] font-bold tabular-nums" style={{ color: paid ? '#059669' : '#374151' }}>{fmt(a)}</span>
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={paid ? { background: '#F0FDF9', color: '#059669' } : { background: '#FFFBEB', color: '#D97706' }}>
                   {paid ? 'encaissé' : 'à payer'}
                 </span>
               </div>
@@ -261,7 +260,7 @@ function PaymentPhase({ amounts, paidStatus, paidDates, onPay }: {
 function StepCard({ icon, title, done, onToggle, children, extra }: {
   icon: React.ReactNode; title: string; done: boolean; onToggle: (v: boolean) => void; children?: React.ReactNode; extra?: React.ReactNode
 }) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   return (
     <div className="bg-soren-card border border-soren-border rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
       <div className="flex items-center gap-3">

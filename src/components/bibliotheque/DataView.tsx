@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowLeft, ChevronRight, Plus, Upload, FileText, Image, Code, Pen } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Plus, Upload, FileText, Image, Code, Pen, GitFork } from 'lucide-react'
 
 type DataItem = { id: string; name: string; size?: string; date?: string }
 type DataFolder = {
@@ -65,6 +65,19 @@ const DATA_FOLDERS: DataFolder[] = [
     bg: '#F9FAFB',
     count: 0,
     items: [],
+  },
+  {
+    id: 'github',
+    name: 'Repositories Github',
+    ext: 'Git',
+    icon: <GitFork size={22} />,
+    color: '#374151',
+    bg: '#F3F4F6',
+    count: 2,
+    items: [
+      { id: 'g1', name: 'QOS — Service Execution OS' },
+      { id: 'g2', name: 'vividflow-ai — Agents IA' },
+    ],
   },
 ]
 
