@@ -169,9 +169,6 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
             {opps.length}
           </span>
         </div>
-        {total > 0 && (
-          <span className="text-[9px] text-soren-subtle font-medium">€{total.toLocaleString('fr-FR')}</span>
-        )}
       </div>
 
       <div
