@@ -591,7 +591,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
                 stage={stage}
                 opps={getColOpps(stage.id)}
                 isOver={!showLost && overId === stage.id}
-                onCardClick={opp => opp.contactId ? setSelectedOpp(opp) : null}
+                onCardClick={opp => setSelectedOpp(opp)}
                 wasDragged={wasDragged}
                 showLost={showLost}
                 isLostOver={overId === `${LOST_PREFIX}${stage.id}`}
