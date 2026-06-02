@@ -566,8 +566,8 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
             {!showLost && (
               <NewLeadWidget
                 compact
+                mode="leads"
                 onAddOpp={handleAddOpp}
-                pipelineInfo={pipeline ? { pipelineId: pipeline.id, pipelineName: pipeline.name, stageName: pipeline.stages[0]?.name ?? '' } : undefined}
               />
             )}
           </div>

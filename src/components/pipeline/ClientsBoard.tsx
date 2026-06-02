@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import dynamic from 'next/dynamic'
+const NewLeadWidget = dynamic(() => import('@/components/shared/NewLeadWidget'), { ssr: false })
 import {
   DndContext,
   DragOverlay,
@@ -23,7 +25,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus } from 'lucide-react'
+import { Plus } from 'lucide-react' // kept for potential future use
 import { getAvatarColor } from '@/components/contacts/types'
 import { useToast } from '@/hooks/useToast'
 import { Toaster } from '@/components/shared/Toaster'
@@ -282,26 +284,17 @@ export default function ClientsBoard() {
               {clients.length} clients · <span className="font-semibold text-soren-text">€{totalValue.toLocaleString('fr-FR')}</span>
             </p>
           </div>
-          <button
-            onClick={() => {
-              const name = prompt('Nom du client')
-              if (!name) return
-              const newClient: Client = {
-                id: `client-${Date.now()}`,
-                name,
-                company: '',
-                value: 0,
-                createdAt: new Date().toISOString().split('T')[0],
-                initials: name.trim().split(' ').map(w => w[0] ?? '').join('').slice(0, 2).toUpperCase(),
-                stageId: CLIENT_STAGES[0].id,
-              }
-              setClients(prev => [newClient, ...prev])
+          <NewLeadWidget
+            mode="clients"
+            onAdd={c => {
+              const name = c.contactName || `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim()
+              const initials = name.trim().split(' ').map(w => w[0] ?? '').join('').slice(0, 2).toUpperCase() || '?'
+              const existing = JSON.parse(localStorage.getItem('vividflow_clients') ?? '[]') as Client[]
+              const found = existing.find(cl => cl.id === c.id)
+              if (found) setClients(prev => [found, ...prev.filter(cl => cl.id !== c.id)])
+              else setClients(prev => [{ id: c.id, name, company: c.companyName ?? '', value: 0, createdAt: new Date().toISOString().split('T')[0], initials, stageId: CLIENT_STAGES[0].id }, ...prev])
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold bg-[#FF4D00] text-white hover:bg-[#e64500] transition-colors shadow-sm"
-          >
-            <Plus size={12} />
-            Nouveau client
-          </button>
+          />
         </div>
 
         {/* Board */}

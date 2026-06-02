@@ -176,14 +176,15 @@ interface Props {
   onAdd?:         (c: GHLContact) => void
   onSave?:        (c: GHLContact, canton?: string, statut?: 'lead' | 'client' | 'perdu') => void
   onAddOpp?:      (opp: Opportunity) => void
-  contact?:       GHLContact          // present = edit mode
+  contact?:       GHLContact
   pipelineInfo?:  ContactPipelineInfo
   initialCanton?: string
   initialStatut?: 'lead' | 'client' | 'perdu'
+  mode?:          'leads' | 'clients'   // locks pipeline + adapts form
 }
 
 // ─── Modal ────────────────────────────────────────────────────
-export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, contact, pipelineInfo, initialCanton, initialStatut }: Props) {
+export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, contact, pipelineInfo, initialCanton, initialStatut, mode }: Props) {
   const isEdit = !!contact
 
   const parsedPhone = useMemo(() => parsePhone(contact?.phone ?? null), [contact?.phone])
@@ -197,6 +198,8 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
   const [ghlLeadsPipeline,   setGhlLeadsPipeline]   = useState<GHLPipelineData | null>(null)
   const [selectedPipelineId, setSelectedPipelineId] = useState<'leads' | 'clients' | null>(null)
   const [selectedStageId,    setSelectedStageId]    = useState<string | null>(null)
+  const [inoutbound,         setInoutbound]         = useState<'inbound' | 'outbound'>('inbound')
+  const [clientValue,        setClientValue]        = useState('')
   const [tagInput,      setTagInput]      = useState('')
   const [tags,          setTags]          = useState<string[]>(contact?.tags ?? [])
 
@@ -328,14 +331,69 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
         // ── Create mode ────────────────────────────────────────
         const contactName = `${form.firstName} ${form.lastName}`.trim()
 
-        if (selectedPipelineId === 'leads' && selectedStageId && ghlLeadsPipeline) {
+        if (mode === 'leads' && ghlLeadsPipeline) {
+          // Fixed Leads pipeline → first stage
+          const firstStageId = ghlLeadsPipeline.stages[0]?.id ?? ''
           const res = await fetch('/api/opp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              contactName,
-              email:           form.email,
-              phone,
+              contactName, email: form.email, phone,
+              company:         form.companyName,
+              pipelineId:      ghlLeadsPipeline.id,
+              pipelineStageId: firstStageId,
+              monetaryValue:   0,
+              source:          '',
+            }),
+          })
+          const data = await res.json().catch(() => ({})) as { opp?: Opportunity; error?: string }
+          if (!res.ok || data.error) throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
+          try {
+            const m = JSON.parse(localStorage.getItem('vividflow_contact_source') ?? '{}') as Record<string, string>
+            m[data.opp!.contactId] = inoutbound
+            localStorage.setItem('vividflow_contact_source', JSON.stringify(m))
+          } catch {}
+          const newContact: GHLContact = {
+            id: data.opp!.contactId, contactName,
+            firstName: form.firstName || null, lastName: form.lastName || null,
+            email: form.email || null, phone: phone || null,
+            companyName: form.companyName || null,
+            dateAdded: new Date().toISOString(), dateUpdated: null, tags: [],
+          }
+          onAdd?.(newContact)
+          onAddOpp?.(data.opp!)
+
+        } else if (mode === 'clients') {
+          // Fixed Clients pipeline → create contact + add to localStorage clients
+          const res = await fetch('/api/contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ firstName: form.firstName, lastName: form.lastName, email: form.email, phone, companyName: form.companyName }),
+          })
+          const data = await res.json().catch(() => ({})) as { contact?: { id: string; dateAdded: string }; error?: string }
+          if (!res.ok || data.error) throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
+          const newId = data.contact!.id
+          const initials = contactName.trim().split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase() || '?'
+          try {
+            const existing = JSON.parse(localStorage.getItem('vividflow_clients') ?? '[]') as unknown[]
+            existing.unshift({ id: newId, name: contactName, company: form.companyName, value: parseFloat(clientValue.replace(',', '.')) || 0, createdAt: new Date().toISOString().split('T')[0], initials, stageId: 'nouveau-client' })
+            localStorage.setItem('vividflow_clients', JSON.stringify(existing))
+          } catch {}
+          const newContact: GHLContact = {
+            id: newId, contactName,
+            firstName: form.firstName || null, lastName: form.lastName || null,
+            email: form.email || null, phone: phone || null,
+            companyName: form.companyName || null,
+            dateAdded: data.contact!.dateAdded, dateUpdated: null, tags: [],
+          }
+          onAdd?.(newContact)
+
+        } else if (selectedPipelineId === 'leads' && selectedStageId && ghlLeadsPipeline) {
+          const res = await fetch('/api/opp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contactName, email: form.email, phone,
               company:         form.companyName,
               pipelineId:      ghlLeadsPipeline.id,
               pipelineStageId: selectedStageId,
@@ -345,21 +403,16 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           })
           const data = await res.json().catch(() => ({})) as { opp?: Opportunity; error?: string }
           if (!res.ok || data.error) throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
-
           const newContact: GHLContact = {
-            id:          data.opp!.contactId,
-            contactName,
-            firstName:   form.firstName   || null,
-            lastName:    form.lastName    || null,
-            email:       form.email       || null,
-            phone:       phone            || null,
+            id: data.opp!.contactId, contactName,
+            firstName: form.firstName || null, lastName: form.lastName || null,
+            email: form.email || null, phone: phone || null,
             companyName: form.companyName || null,
-            dateAdded:   new Date().toISOString(),
-            dateUpdated: null,
-            tags:        [],
+            dateAdded: new Date().toISOString(), dateUpdated: null, tags: [],
           }
           onAdd?.(newContact)
           onAddOpp?.(data.opp!)
+
         } else {
           const res = await fetch('/api/contact', {
             method: 'POST',
@@ -368,21 +421,15 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           })
           const data = await res.json().catch(() => ({})) as { contact?: { id: string; dateAdded: string }; error?: string }
           if (!res.ok || data.error) throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
-
           const newId = data.contact!.id
           if (canton) { try { const m = new Map(Object.entries(JSON.parse(localStorage.getItem('vividflow_contact_canton') ?? '{}')));m.set(newId, canton);localStorage.setItem('vividflow_contact_canton', JSON.stringify(Object.fromEntries(m))) } catch {} }
           if (statut !== 'lead') { try { const m = new Map(Object.entries(JSON.parse(localStorage.getItem('vividflow_contact_statut') ?? '{}')));m.set(newId, statut);localStorage.setItem('vividflow_contact_statut', JSON.stringify(Object.fromEntries(m))) } catch {} }
           const newContact: GHLContact = {
-            id:          newId,
-            contactName,
-            firstName:   form.firstName   || null,
-            lastName:    form.lastName    || null,
-            email:       form.email       || null,
-            phone:       phone            || null,
+            id: newId, contactName,
+            firstName: form.firstName || null, lastName: form.lastName || null,
+            email: form.email || null, phone: phone || null,
             companyName: form.companyName || null,
-            dateAdded:   data.contact!.dateAdded,
-            dateUpdated: null,
-            tags:        [],
+            dateAdded: data.contact!.dateAdded, dateUpdated: null, tags: [],
           }
           onAdd?.(newContact)
         }
@@ -405,7 +452,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
         <div className="flex items-center justify-between px-6 py-4 border-b border-soren-border flex-shrink-0">
           <div>
             <h2 className="text-base font-bold text-soren-text">
-              {isEdit ? 'Modifier le contact' : 'Nouveau lead'}
+              {isEdit ? 'Modifier le contact' : mode === 'clients' ? 'Nouveau client' : 'Nouveau lead'}
             </h2>
             <p className="text-xs text-soren-subtle mt-0.5">
               {isEdit ? 'Les modifications sont synchronisées avec le CRM.' : 'Contact + opportunité synchronisés automatiquement'}
@@ -568,69 +615,86 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           </div>
 
           {/* ── Pipeline ── */}
-          <div className="border-t border-soren-border pt-5 flex flex-col gap-3">
-            <Section title="Pipeline" />
-            <div className="flex gap-2">
-              {([
-                { id: null,       label: 'Aucun',   color: '#9CA3AF' },
-                { id: 'leads',    label: 'Leads',   color: '#3462EE' },
-                { id: 'clients',  label: 'Clients', color: '#10B981' },
-              ] as { id: 'leads' | 'clients' | null; label: string; color: string }[]).map(opt => {
-                const isSelected = selectedPipelineId === opt.id
-                return (
-                  <button
-                    key={String(opt.id)}
-                    type="button"
-                    onClick={() => { setSelectedPipelineId(opt.id); setSelectedStageId(null) }}
-                    className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all"
-                    style={{ borderColor: isSelected ? opt.color : '#E5E7EB', background: isSelected ? opt.color + '12' : '#F9F9F7' }}
-                  >
-                    <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
-                    <span className="text-[11px] font-bold text-soren-text">{opt.label}</span>
-                    {isSelected && <Check size={11} style={{ color: opt.color }} />}
-                  </button>
-                )
-              })}
-            </div>
-
-            {selectedPipelineId && (() => {
-              const stages = selectedPipelineId === 'clients'
-                ? CLIENT_STAGES
-                : (ghlLeadsPipeline?.stages ?? [])
-              if (!stages.length) return (
-                <div className="h-8 bg-soren-elevated rounded-xl animate-pulse" />
-              )
-              return (
-                <div className="flex flex-col gap-2">
-                  <p className="text-[10px] font-semibold text-soren-muted uppercase tracking-wide">Quelle colonne ?</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {stages.map(s => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => setSelectedStageId(s.id)}
-                        className="px-3 py-1.5 rounded-full text-[11px] font-semibold border-2 transition-all"
-                        style={{
-                          borderColor: selectedStageId === s.id ? '#111' : '#E5E7EB',
-                          background:  selectedStageId === s.id ? '#111' : '#fff',
-                          color:       selectedStageId === s.id ? '#fff' : '#374151',
-                        }}
-                      >
-                        {s.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )
-            })()}
-
-            {selectedPipelineId === 'leads' && selectedStageId && !isEdit && (
-              <div>
-                <label className={labelCls}>Valeur estimée (€)</label>
-                <input type="number" value={form.value} onChange={set('value')} placeholder="0" className={inputCls} />
+          {mode === 'leads' ? (
+            <div className="border-t border-soren-border pt-5 flex flex-col gap-3">
+              <Section title="Source" />
+              <div className="flex gap-2">
+                {(['inbound', 'outbound'] as const).map(opt => {
+                  const cfg = opt === 'inbound'
+                    ? { color: '#16A34A', bg: '#DCFCE7', label: 'Inbound' }
+                    : { color: '#CA8A04', bg: '#FEF9C3', label: 'Outbound' }
+                  const isSelected = inoutbound === opt
+                  return (
+                    <button key={opt} type="button"
+                      onClick={() => setInoutbound(opt)}
+                      className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all"
+                      style={{ borderColor: isSelected ? cfg.color : '#E5E7EB', background: isSelected ? cfg.bg : '#F9F9F7' }}
+                    >
+                      <span className="w-2 h-2 rounded-full" style={{ background: cfg.color }} />
+                      <span className="text-[11px] font-bold" style={{ color: isSelected ? cfg.color : '#374151' }}>{cfg.label}</span>
+                      {isSelected && <Check size={11} style={{ color: cfg.color }} />}
+                    </button>
+                  )
+                })}
               </div>
-            )}
-          </div>
+            </div>
+          ) : mode === 'clients' ? (
+            <div className="border-t border-soren-border pt-5 flex flex-col gap-3">
+              <Section title="Montant du deal" />
+              <div>
+                <label className={labelCls}>Valeur (€)</label>
+                <input type="number" value={clientValue} onChange={e => setClientValue(e.target.value)} placeholder="ex: 3500" className={inputCls} />
+              </div>
+            </div>
+          ) : !isEdit ? (
+            <div className="border-t border-soren-border pt-5 flex flex-col gap-3">
+              <Section title="Pipeline" />
+              <div className="flex gap-2">
+                {([
+                  { id: null,      label: 'Aucun',   color: '#9CA3AF' },
+                  { id: 'leads',   label: 'Leads',   color: '#3462EE' },
+                  { id: 'clients', label: 'Clients', color: '#10B981' },
+                ] as { id: 'leads' | 'clients' | null; label: string; color: string }[]).map(opt => {
+                  const isSelected = selectedPipelineId === opt.id
+                  return (
+                    <button key={String(opt.id)} type="button"
+                      onClick={() => { setSelectedPipelineId(opt.id); setSelectedStageId(null) }}
+                      className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all"
+                      style={{ borderColor: isSelected ? opt.color : '#E5E7EB', background: isSelected ? opt.color + '12' : '#F9F9F7' }}
+                    >
+                      <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
+                      <span className="text-[11px] font-bold text-soren-text">{opt.label}</span>
+                      {isSelected && <Check size={11} style={{ color: opt.color }} />}
+                    </button>
+                  )
+                })}
+              </div>
+              {selectedPipelineId && (() => {
+                const stages = selectedPipelineId === 'clients' ? CLIENT_STAGES : (ghlLeadsPipeline?.stages ?? [])
+                if (!stages.length) return <div className="h-8 bg-soren-elevated rounded-xl animate-pulse" />
+                return (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-[10px] font-semibold text-soren-muted uppercase tracking-wide">Quelle colonne ?</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {stages.map(s => (
+                        <button key={s.id} type="button" onClick={() => setSelectedStageId(s.id)}
+                          className="px-3 py-1.5 rounded-full text-[11px] font-semibold border-2 transition-all"
+                          style={{ borderColor: selectedStageId === s.id ? '#111' : '#E5E7EB', background: selectedStageId === s.id ? '#111' : '#fff', color: selectedStageId === s.id ? '#fff' : '#374151' }}>
+                          {s.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+              {selectedPipelineId === 'leads' && selectedStageId && (
+                <div>
+                  <label className={labelCls}>Valeur estimée (€)</label>
+                  <input type="number" value={form.value} onChange={set('value')} placeholder="0" className={inputCls} />
+                </div>
+              )}
+            </div>
+          ) : null}
 
           {error && (
             <p className="text-xs text-[#EF4444] bg-[#FEF2F2] rounded-xl px-3 py-2">{error}</p>
@@ -645,7 +709,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               className="flex-1 py-2.5 rounded-full bg-soren-sidebar hover:bg-[#2a2a2a] disabled:opacity-50 text-white text-sm font-semibold transition-colors">
               {saving
                 ? (isEdit ? 'Enregistrement…' : 'Création en cours…')
-                : (isEdit ? 'Enregistrer' : selectedPipelineId === 'leads' && selectedStageId ? 'Créer le lead' : 'Créer le contact')}
+                : (isEdit ? 'Enregistrer' : mode === 'leads' ? 'Créer le lead' : mode === 'clients' ? 'Créer le client' : selectedPipelineId === 'leads' && selectedStageId ? 'Créer le lead' : 'Créer le contact')}
             </button>
           </div>
         </form>

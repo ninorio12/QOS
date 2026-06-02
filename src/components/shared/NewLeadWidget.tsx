@@ -9,28 +9,33 @@ import { type ContactPipelineInfo } from '@/app/contacts/page'
 const NewContactModal = dynamic(() => import('@/components/contacts/NewContactModal'), { ssr: false })
 
 interface Props {
-  onAddOpp?:     (opp: Opportunity) => void
-  pipelineInfo?: ContactPipelineInfo
+  onAddOpp?:  (opp: Opportunity) => void
+  onAdd?:     (c: import('@/lib/ghl').GHLContact) => void
+  compact?:   boolean
+  label?:     string
+  mode?:      'leads' | 'clients'
 }
 
-export default function NewLeadWidget({ onAddOpp, pipelineInfo }: Props) {
+export default function NewLeadWidget({ onAddOpp, onAdd, compact, label, mode }: Props) {
   const [open, setOpen] = useState(false)
+  const text = label ?? (mode === 'clients' ? 'Nouveau client' : 'Nouveau lead')
 
   return (
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 bg-soren-sidebar hover:bg-[#2a2a2a] text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-sm transition-colors flex-shrink-0"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold bg-[#FF4D00] text-white hover:bg-[#e64500] transition-colors shadow-sm"
       >
-        <Plus size={14} />
-        Nouveau Lead
+        <Plus size={12} />
+        {text}
       </button>
 
       {open && (
         <NewContactModal
+          mode={mode}
           onClose={() => setOpen(false)}
+          onAdd={c => { onAdd?.(c); setOpen(false) }}
           onAddOpp={opp => { onAddOpp?.(opp); setOpen(false) }}
-          pipelineInfo={pipelineInfo}
         />
       )}
     </>
