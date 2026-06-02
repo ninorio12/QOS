@@ -25,7 +25,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Eye, EyeOff } from 'lucide-react'
 import { type GHLPipelineData, type GHLStage, type Opportunity, type Lead, SOURCE_COLORS } from './types'
 import { getAvatarColor } from '@/components/contacts/types'
 import dynamic from 'next/dynamic'
@@ -41,6 +41,8 @@ const dropAnimation: DropAnimation = {
   sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.4' } } }),
 }
 
+const LOST_PREFIX = 'lost-'
+
 // ─── Avatar ───────────────────────────────────────────────────
 function Avatar({ initials }: { initials: string }) {
   const color = getAvatarColor(initials)
@@ -55,16 +57,18 @@ function Avatar({ initials }: { initials: string }) {
 }
 
 // ─── Opportunity Card ─────────────────────────────────────────
-function OppCard({ opp, isDragging = false }: { opp: Opportunity; isDragging?: boolean }) {
+function OppCard({ opp, isDragging = false, muted = false }: { opp: Opportunity; isDragging?: boolean; muted?: boolean }) {
   const color = SOURCE_COLORS[opp.source] ?? '#3462EE'
   const date  = new Date(opp.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
 
   return (
     <div className={`
-      bg-soren-card border rounded-lg px-3 py-2 flex flex-col gap-1 select-none
-      ${isDragging
-        ? 'border-[#FF4D00] shadow-[0_0_0_1px_#FF4D00,0_4px_16px_rgba(200,241,53,0.15)] rotate-1 opacity-95 cursor-grabbing'
-        : 'border-soren-border hover:border-[#C8CBD0] hover:shadow-sm transition-all cursor-grab'
+      border rounded-lg px-3 py-2 flex flex-col gap-1 select-none transition-all
+      ${muted
+        ? 'bg-soren-card/50 border-soren-border/50 opacity-60 grayscale'
+        : isDragging
+          ? 'bg-soren-card border-[#FF4D00] shadow-[0_0_0_1px_#FF4D00,0_4px_16px_rgba(200,241,53,0.15)] rotate-1 opacity-95 cursor-grabbing'
+          : 'bg-soren-card border-soren-border hover:border-[#C8CBD0] hover:shadow-sm cursor-grab'
       }
     `}>
       <div className="flex items-start justify-between gap-2">
@@ -115,20 +119,55 @@ function SortableCard({ opp, onCardClick, wasDragged }: { opp: Opportunity; onCa
   )
 }
 
+// ─── Lost Zone ────────────────────────────────────────────────
+function LostZone({ stageId, isOver }: { stageId: string; isOver: boolean }) {
+  const { setNodeRef } = useDroppable({ id: `${LOST_PREFIX}${stageId}` })
+  return (
+    <div
+      ref={setNodeRef}
+      className={`
+        mt-1.5 flex items-center justify-center gap-1.5 rounded-lg transition-all duration-150 cursor-default select-none
+        ${isOver
+          ? 'bg-red-500/15 border-2 border-red-400 py-3 shadow-[0_0_0_2px_rgba(239,68,68,0.15)]'
+          : 'border border-dashed border-red-400/30 py-1.5 hover:border-red-400/50'
+        }
+      `}
+    >
+      <span className={`text-[10px] font-semibold transition-colors ${isOver ? 'text-red-500' : 'text-red-400/50'}`}>
+        {isOver ? '↓ Marquer perdu' : 'Zone perdu'}
+      </span>
+    </div>
+  )
+}
+
 // ─── Droppable Column ─────────────────────────────────────────
-function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged }: { stage: GHLStage; opps: Opportunity[]; isOver: boolean; onCardClick: (opp: Opportunity) => void; wasDragged: React.MutableRefObject<boolean> }) {
+interface KanbanColumnProps {
+  stage: GHLStage
+  opps: Opportunity[]
+  isOver: boolean
+  onCardClick: (opp: Opportunity) => void
+  wasDragged: React.MutableRefObject<boolean>
+  showLost: boolean
+  isLostOver: boolean
+  isLastStage?: boolean
+}
+
+function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, isLostOver, isLastStage }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id: stage.id })
   const total = opps.reduce((sum, o) => sum + o.value, 0)
 
   return (
     <div className="flex flex-col w-56 flex-shrink-0 h-full">
-      <div className="flex items-center justify-between mb-2 px-0.5">
+      <div className={`flex items-center justify-between mb-2 px-0.5 transition-opacity ${showLost ? 'opacity-50' : ''}`}>
         <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
-          <span className="text-[11px] font-semibold text-[#374151] truncate max-w-[120px]">{stage.name}</span>
+          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: isLastStage ? '#10B981' : stage.color }} />
+          <span className={`text-[11px] font-semibold truncate max-w-[120px] ${isLastStage ? 'text-[#10B981]' : 'text-[#374151]'}`}>{stage.name}</span>
           <span className="text-[9px] font-bold bg-soren-card border border-soren-border text-soren-muted px-1.5 py-0.5 rounded-full min-w-[16px] text-center shadow-sm">
             {opps.length}
           </span>
+          {isLastStage && !showLost && (
+            <span className="text-[9px] font-bold bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/30 px-1.5 py-0.5 rounded-full">→ Clients</span>
+          )}
         </div>
         {total > 0 && (
           <span className="text-[9px] text-soren-subtle font-medium">€{total.toLocaleString('fr-FR')}</span>
@@ -138,19 +177,41 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged }: { stage:
       <div
         ref={setNodeRef}
         className={`flex-1 flex flex-col rounded-xl p-2 transition-colors overflow-hidden ${
-          isOver ? 'bg-[#FF4D00]/10 ring-1 ring-[#FF4D00]/40' : 'bg-black/[0.04]'
+          showLost
+            ? 'bg-black/[0.02]'
+            : isLastStage
+              ? isOver ? 'bg-[#10B981]/20 ring-2 ring-[#10B981]/60' : 'bg-[#10B981]/8 ring-1 ring-[#10B981]/20'
+              : isOver ? 'bg-[#FF4D00]/10 ring-1 ring-[#FF4D00]/40' : 'bg-black/[0.04]'
         }`}
       >
-        <SortableContext items={opps.map(o => o.id)} strategy={verticalListSortingStrategy}>
-          <div className="flex-1 min-h-0 overflow-y-auto kanban-col flex flex-col gap-1.5">
-            {opps.map(opp => <SortableCard key={opp.id} opp={opp} onCardClick={() => onCardClick(opp)} wasDragged={wasDragged} />)}
-            {opps.length === 0 && (
+        {showLost ? (
+          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5">
+            {opps.length === 0 ? (
               <div className="h-full flex items-center justify-center">
-                <p className="text-[11px] text-soren-subtle">Déposer ici</p>
+                <p className="text-[11px] text-soren-subtle">Aucun perdu</p>
               </div>
+            ) : (
+              opps.map(opp => (
+                <div key={opp.id}>
+                  <OppCard opp={opp} muted />
+                </div>
+              ))
             )}
           </div>
-        </SortableContext>
+        ) : (
+          <SortableContext items={opps.map(o => o.id)} strategy={verticalListSortingStrategy}>
+            <div className="flex-1 min-h-0 overflow-y-auto kanban-col flex flex-col gap-1.5">
+              {opps.map(opp => <SortableCard key={opp.id} opp={opp} onCardClick={() => onCardClick(opp)} wasDragged={wasDragged} />)}
+              {opps.length === 0 && (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-[11px] text-soren-subtle">Déposer ici</p>
+                </div>
+              )}
+            </div>
+          </SortableContext>
+        )}
+
+        {!showLost && <LostZone stageId={stage.id} isOver={isLostOver} />}
       </div>
     </div>
   )
@@ -190,13 +251,14 @@ interface KanbanBoardProps {
 
 export default function KanbanBoard({ initialPipelines, initialOpportunities }: KanbanBoardProps) {
   const [opps,           setOpps]           = useState<Opportunity[]>(initialOpportunities)
+  const [lostOpps,       setLostOpps]       = useState<Opportunity[]>([])
+  const [showLost,       setShowLost]       = useState(false)
   const [selectedOpp,    setSelectedOpp]    = useState<Opportunity | null>(null)
   const router       = useRouter()
   const searchParams = useSearchParams()
   const wasDragged = useRef(false)
   const { toasts, toast, dismiss } = useToast()
 
-  // Sync temps réel depuis les fiches contact (BroadcastChannel)
   useEffect(() => {
     const bc = new BroadcastChannel('soren-opp-updates')
     bc.onmessage = (e: MessageEvent<Record<string, unknown>>) => {
@@ -229,11 +291,11 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
       })
       if (!res.ok) throw new Error('Erreur serveur')
     } catch {
-      // Rollback on failure
       setOpps(prev => prev.map(o => o.id === oppId ? { ...o, stageId: prevStageId } : o))
       toast('Erreur — déplacement annulé', 'error')
     }
   }, [toast])
+
   const [activeId,    setActiveId]    = useState<string | null>(null)
   const [overId,      setOverId]      = useState<string | null>(null)
   const [pipelineIdx, setPipelineIdx] = useState(() => {
@@ -242,7 +304,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     const idx = initialPipelines.findIndex(p => p.id === pid)
     return idx >= 0 ? idx : 0
   })
-  const [scrolled,    setScrolled]    = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const boardRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -266,7 +328,6 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
         const goingDown = e.deltaY > 0
         const atBottom  = col.scrollTop + col.clientHeight >= col.scrollHeight - 1
         const atTop     = col.scrollTop <= 0
-        // Still room to scroll vertically in that direction → let it scroll
         if ((goingDown && !atBottom) || (!goingDown && !atTop)) return
       }
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
@@ -288,11 +349,20 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
-  const pipeline    = initialPipelines[pipelineIdx] ?? initialPipelines[0]
-  const stages      = pipeline?.stages ?? []
-  const activeOpp   = opps.find(o => o.id === activeId) ?? null
-  const pipelineOpps  = opps.filter(o => o.pipelineId === pipeline?.id)
-  const totalPipeline = pipelineOpps.reduce((sum, o) => sum + o.value, 0)
+  const pipeline     = initialPipelines[pipelineIdx] ?? initialPipelines[0]
+  const stages       = pipeline?.stages ?? []
+  const activeOpp    = opps.find(o => o.id === activeId) ?? null
+  const pipelineOpps = opps.filter(o => o.pipelineId === pipeline?.id)
+  const totalPipeline = showLost
+    ? lostOpps.filter(o => o.pipelineId === pipeline?.id).reduce((sum, o) => sum + o.value, 0)
+    : pipelineOpps.reduce((sum, o) => sum + o.value, 0)
+
+  const getColOpps = useCallback((stageId: string) => {
+    if (showLost) {
+      return lostOpps.filter(o => o.stageId === stageId && o.pipelineId === pipeline?.id)
+    }
+    return pipelineOpps.filter(o => o.stageId === stageId)
+  }, [showLost, lostOpps, pipelineOpps, pipeline?.id])
 
   function handleDragStart({ active }: DragStartEvent) {
     setActiveId(active.id as string)
@@ -315,7 +385,6 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
       if (!res.ok) throw new Error()
       toast('Opportunité supprimée', 'success')
     } catch {
-      // Rollback — restaurer la carte à sa position
       if (snapshot) setOpps(prev => [snapshot, ...prev.filter(o => o.id !== oppId)])
       toast('Erreur — suppression échouée', 'error')
     }
@@ -338,6 +407,18 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
       return
     }
 
+    // Dropped on lost zone
+    if (overId.startsWith(LOST_PREFIX)) {
+      const targetStageId = overId.slice(LOST_PREFIX.length)
+      setOpps(prev => prev.filter(o => o.id !== activeId))
+      setLostOpps(prev => [
+        ...prev.filter(o => o.id !== activeId),
+        { ...activeOpp, stageId: targetStageId, status: 'lost' as const },
+      ])
+      toast('Lead marqué comme perdu', 'success')
+      return
+    }
+
     // Dropped on a column (stage)
     const targetStage = stages.find(s => s.id === overId)
     if (targetStage) {
@@ -355,10 +436,10 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
 
     if (activeOpp.stageId === overOpp.stageId) {
       setOpps(prev => {
-        const col   = prev.filter(o => o.stageId === activeOpp.stageId)
-        const rest  = prev.filter(o => o.stageId !== activeOpp.stageId)
-        const from  = col.findIndex(o => o.id === activeId)
-        const to    = col.findIndex(o => o.id === overId)
+        const col  = prev.filter(o => o.stageId === activeOpp.stageId)
+        const rest = prev.filter(o => o.stageId !== activeOpp.stageId)
+        const from = col.findIndex(o => o.id === activeId)
+        const to   = col.findIndex(o => o.id === overId)
         return [...rest, ...arrayMove(col, from, to)]
       })
     } else {
@@ -389,12 +470,17 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     setOpps(prev => [opp, ...prev])
   }
 
-  // Prioritise trash zone when pointer is directly over it
   const collisionDetection: CollisionDetection = useCallback((args) => {
     const overTrash = pointerWithin(args).find(c => c.id === TRASH_ID)
     if (overTrash) return [overTrash]
+    const overLost = pointerWithin(args).find(c => String(c.id).startsWith(LOST_PREFIX))
+    if (overLost) return [overLost]
     return closestCenter(args)
   }, [])
+
+  const totalCount = showLost
+    ? lostOpps.filter(o => o.pipelineId === pipeline?.id).length
+    : pipelineOpps.length
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -410,9 +496,9 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
         <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0">
           <div className="flex items-center gap-5">
             <div>
-              <h1 className="text-2xl font-black text-soren-text leading-none">Pipeline</h1>
               <p className="text-xs text-soren-muted mt-1">
-                {pipelineOpps.length} opportunités · <span className="font-semibold text-soren-text">€{totalPipeline.toLocaleString('fr-FR')}</span>
+                {totalCount} {showLost ? 'perdus' : 'opportunités'} ·{' '}
+                <span className="font-semibold text-soren-text">€{totalPipeline.toLocaleString('fr-FR')}</span>
               </p>
             </div>
             {initialPipelines.length > 1 && (
@@ -430,46 +516,60 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
             )}
           </div>
           <div className="flex items-center gap-2">
-            <NewLeadWidget
-              onAddOpp={handleAddOpp}
-              pipelineInfo={pipeline ? { pipelineId: pipeline.id, pipelineName: pipeline.name, stageName: pipeline.stages[0]?.name ?? '' } : undefined}
-            />
+            <button
+              onClick={() => setShowLost(s => !s)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all border ${
+                showLost
+                  ? 'bg-red-50 border-red-200 text-red-600'
+                  : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'
+              }`}
+            >
+              {showLost ? <Eye size={12} /> : <EyeOff size={12} />}
+              {showLost ? 'Voir actifs' : 'Voir perdus'}
+            </button>
+            {!showLost && (
+              <NewLeadWidget
+                compact
+                onAddOpp={handleAddOpp}
+                pipelineInfo={pipeline ? { pipelineId: pipeline.id, pipelineName: pipeline.name, stageName: pipeline.stages[0]?.name ?? '' } : undefined}
+              />
+            )}
           </div>
         </div>
 
         {/* Board */}
         <div className="relative flex-1 min-h-0">
-          {/* Masque gauche net */}
           <div
             className={`pointer-events-none absolute left-0 top-0 bottom-4 w-8 z-10 transition-opacity duration-200 ${scrolled ? 'opacity-100' : 'opacity-0'}`}
             style={{ background: 'linear-gradient(to right, var(--bg-app) 40%, transparent)' }}
           />
-          {/* Masque droit net */}
           <div
             className="pointer-events-none absolute right-0 top-0 bottom-4 w-8 z-10"
             style={{ background: 'linear-gradient(to left, var(--bg-app) 40%, transparent)' }}
           />
           <div ref={boardRef} className="flex gap-4 overflow-x-auto px-6 pb-4 kanban-scroll items-stretch h-full">
-            {stages.map(stage => (
+            {stages.map((stage, i) => (
               <KanbanColumn
                 key={stage.id}
                 stage={stage}
-                opps={pipelineOpps.filter(o => o.stageId === stage.id)}
-                isOver={overId === stage.id}
+                opps={getColOpps(stage.id)}
+                isOver={!showLost && overId === stage.id}
                 onCardClick={opp => opp.contactId ? setSelectedOpp(opp) : null}
                 wasDragged={wasDragged}
+                showLost={showLost}
+                isLostOver={overId === `${LOST_PREFIX}${stage.id}`}
+                isLastStage={i === stages.length - 1}
               />
             ))}
           </div>
         </div>
 
-        <TrashZone visible={!!activeId} isOver={overId === TRASH_ID} />
+        {!showLost && <TrashZone visible={!!activeId} isOver={overId === TRASH_ID} />}
 
         <DragOverlay dropAnimation={dropAnimation}>
           {activeOpp && <OppCard opp={activeOpp} isDragging />}
         </DragOverlay>
       </DndContext>
-
     </div>
   )
 }
