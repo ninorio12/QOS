@@ -6,9 +6,8 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const url = process.env.NEXT_PUBLIC_CONVEX_URL!
-  const c = new ConvexHttpClient(url)
-  const rawPipelines = await c.query(api.pipeline_config.list)
   const allLeads = await new ConvexHttpClient(url).query(api.crm_leads.list)
+  const rawPipelines = await new ConvexHttpClient(url).query(api.pipeline_config.list)
   return NextResponse.json({
     pipelineCount: (rawPipelines as unknown[]).length,
     pipelineIds: (rawPipelines as { _id: string }[]).map(p => p._id),
