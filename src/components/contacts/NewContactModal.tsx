@@ -385,7 +385,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
         await fetch('/api/crm/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contactId: contact.id }),
+          body: JSON.stringify({ contactId: contact.id, dealValue: statut === 'client' ? (parseFloat(clientValue.replace(',', '.')) || 0) : undefined }),
         }).catch(() => {})
 
         const updated: GHLContact = {
@@ -504,7 +504,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           const data = await res.json().catch(() => ({})) as { contact?: { id: string; _id: string }; error?: string }
           if (!res.ok || data.error) throw new Error(data.error ?? `Erreur ${res.status}`)
           const newId = data.contact!._id ?? data.contact!.id
-          await fetch('/api/crm/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contactId: newId }) }).catch(() => {})
+          await fetch('/api/crm/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contactId: newId, dealValue: statut === 'client' ? (parseFloat(clientValue.replace(',', '.')) || 0) : undefined }) }).catch(() => {})
           const newContact: GHLContact = {
             id: newId, contactName,
             firstName: form.firstName || null, lastName: form.lastName || null,
@@ -712,9 +712,17 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                 <p className="text-[10px] text-soren-subtle">
                   {statut === 'lead'   && 'Le contact apparaîtra dans le pipeline Leads.'}
                   {statut === 'client' && 'Le contact apparaîtra dans le pipeline Clients.'}
-                  {statut === 'perdu'  && 'Le contact ne sera dans aucun pipeline actif.'}
+                  {statut === 'perdu'  && 'Le contact apparaîtra dans les leads perdus.'}
                 </p>
               </div>
+
+              {/* Montant du deal (client only) */}
+              {statut === 'client' && (
+                <div className="flex flex-col gap-2">
+                  <Section title="Montant du deal" />
+                  <input type="number" value={clientValue} onChange={e => setClientValue(e.target.value)} placeholder="ex: 3500" className={inputCls} />
+                </div>
+              )}
 
               {/* Source */}
               <div className="flex flex-col gap-2">

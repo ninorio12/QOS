@@ -63,7 +63,7 @@ export const syncAllContacts = mutation({
 // statut 'lead'   → crm_leads (Leads pipeline, first stage if not already present)
 // statut 'client' → pipeline_clients (first stage if not already present)
 export const syncContactToPipeline = mutation({
-  args: { contactId: v.id("crm_contacts") },
+  args: { contactId: v.id("crm_contacts"), dealValue: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const contact = await ctx.db.get(args.contactId)
     if (!contact) return { ok: false, reason: 'contact not found' }
@@ -116,7 +116,13 @@ export const syncContactToPipeline = mutation({
         .query("pipeline_clients")
         .withIndex("by_ghl_contact", q => q.eq("ghl_contact_id", cid))
         .first()
-      if (existing) return { ok: true, action: 'client-exists', id: existing._id }
+      if (existing) {
+        // Update value if a deal value was provided
+        if (args.dealValue !== undefined && args.dealValue !== existing.value) {
+          await ctx.db.patch(existing._id, { value: args.dealValue })
+        }
+        return { ok: true, action: 'client-exists', id: existing._id }
+      }
 
       const clientId = await ctx.db.insert("pipeline_clients", {
         ghl_contact_id: cid,
@@ -124,12 +130,39 @@ export const syncContactToPipeline = mutation({
         company:   contact.companyName ?? undefined,
         email:     contact.email ?? undefined,
         phone:     contact.phone ?? undefined,
-        value:     0,
+        value:     args.dealValue ?? 0,
         stageId:   'nouveau-client',
         initials,
         createdAt: new Date().toISOString().split('T')[0],
       })
       return { ok: true, action: 'client-created', id: clientId }
+    }
+
+    // statut 'perdu' → lost lead in Leads pipeline
+    if (contact.statut === 'perdu') {
+      const leadsPipeline = await ctx.db
+        .query("pipeline_config")
+        .withIndex("by_type", q => q.eq("type", "leads"))
+        .first()
+      const existing = await ctx.db
+        .query("crm_leads")
+        .withIndex("by_contact", q => q.eq("contactId", args.contactId))
+        .first()
+      if (existing) {
+        if (existing.status !== 'lost') await ctx.db.patch(existing._id, { status: 'lost' })
+        return { ok: true, action: 'lead-lost', id: existing._id }
+      }
+      const firstStage = leadsPipeline ? [...leadsPipeline.stages].sort((a, b) => a.position - b.position)[0] : null
+      const leadId = await ctx.db.insert("crm_leads", {
+        contactId:  args.contactId, name,
+        email:      contact.email ?? undefined, phone: contact.phone ?? undefined,
+        company:    contact.companyName ?? undefined,
+        pipelineId: leadsPipeline?._id ?? 'leads',
+        stageId:    firstStage?.id ?? 'nouveau-lead',
+        value:      0, source: contact.source ?? 'inbound', status: 'lost', initials,
+        createdAt:  new Date().toISOString(),
+      })
+      return { ok: true, action: 'lead-lost-created', id: leadId }
     }
 
     return { ok: true, action: 'no-sync' }

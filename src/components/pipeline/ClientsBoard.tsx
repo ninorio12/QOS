@@ -167,11 +167,13 @@ export default function ClientsBoard() {
 
   const activeClient = clients.find(c => c.id === activeId) ?? null
 
-  // Load from Convex on mount
+  // Load from Convex on mount (map Convex _id → id)
   useEffect(() => {
     fetch('/api/pipeline/clients')
       .then(r => r.json())
-      .then((d: { clients?: Client[] }) => { if (d.clients) setClients(d.clients) })
+      .then((d: { clients?: (Client & { _id?: string })[] }) => {
+        if (d.clients) setClients(d.clients.map(c => ({ ...c, id: c._id ?? c.id })))
+      })
       .catch(() => {})
   }, [])
 

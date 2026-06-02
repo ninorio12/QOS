@@ -246,8 +246,8 @@ interface KanbanBoardProps {
 }
 
 export default function KanbanBoard({ initialPipelines, initialOpportunities }: KanbanBoardProps) {
-  const [opps,           setOpps]           = useState<Opportunity[]>(initialOpportunities)
-  const [lostOpps,       setLostOpps]       = useState<Opportunity[]>([])
+  const [opps,           setOpps]           = useState<Opportunity[]>(initialOpportunities.filter(o => o.status !== 'lost'))
+  const [lostOpps,       setLostOpps]       = useState<Opportunity[]>(initialOpportunities.filter(o => o.status === 'lost'))
   const [showLost,       setShowLost]       = useState(false)
   const [selectedOpp,    setSelectedOpp]    = useState<Opportunity | null>(null)
   const searchParams = useSearchParams()
