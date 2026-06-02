@@ -132,7 +132,7 @@ function ColFilterDropdown({ values, active, onSelect, onClose }: {
   )
 }
 
-const ALL_COLS = ['Téléphone', 'E-mail', "Nom de l'entreprise", 'Métier', 'Niche', 'Source', 'Statut', 'Canton', 'Créé', 'Dernière activité'] as const
+const ALL_COLS = ['Téléphone', 'E-mail', "Nom de l'entreprise", 'Métier', 'Niche', 'Source', 'Statut', 'Canton', 'Créé'] as const
 type ColName = typeof ALL_COLS[number]
 
 type ColFilter = Partial<Record<ColName | 'Nom de Contact', string>>
@@ -202,7 +202,6 @@ function ContactRow({
         )}
       </td>}
       {v('Créé') && <td className="px-4 py-3 min-w-[130px]"><span className="text-sm text-soren-muted">{formatDate(contact.dateAdded)}</span></td>}
-      {v('Dernière activité') && <td className="px-4 py-3 min-w-[150px]"><span className="text-sm text-soren-muted">{formatRelative(contact.dateUpdated ?? contact.dateAdded)}</span></td>}
     </tr>
   )
 }
@@ -220,7 +219,7 @@ function ColHeader({
   onFilter:     (col: string, val: string | null) => void
 }) {
   const [showFilter, setShowFilter] = useState(false)
-  const SORTABLE = ['Nom de Contact', 'Créé', 'Dernière activité', "Nom de l'entreprise"]
+  const SORTABLE = ['Nom de Contact', 'Créé', "Nom de l'entreprise"]
   const sortable = SORTABLE.includes(col)
   const active   = sortCol === col
   const filtered = !!activeFilter
