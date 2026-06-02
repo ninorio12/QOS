@@ -96,7 +96,7 @@ function CantonBadge({ value, onClick }: { value: string | null; onClick: (e: Re
     </span>
   )
   return (
-    <span onClick={onClick} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap cursor-pointer select-none hover:opacity-80 transition-opacity" style={{ background: '#EFF6FF', color: '#2563EB', border: '1px solid #BFDBFE' }}>
+    <span onClick={onClick} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap cursor-pointer select-none hover:opacity-80 transition-opacity bg-[#F3F4F6] text-[#6B7280]">
       {cantonName(value)}
     </span>
   )
@@ -179,20 +179,20 @@ function ContactRow({
       <td className="px-4 py-3 min-w-[180px]">
         <div className="flex items-center gap-2.5">
           <Avatar contact={contact} />
-          <span className="text-sm font-semibold text-soren-text truncate">{name}</span>
+          <span className="text-[12px] font-semibold text-soren-text truncate">{name}</span>
         </div>
       </td>
       {v('Téléphone') && <td className="px-4 py-3 min-w-[140px]">
-        {contact.phone ? <span className="text-sm text-[#374151]">{contact.phone}</span> : <span className="text-sm text-[#D1D5DB]">—</span>}
+        {contact.phone ? <span className="text-[12px] text-[#374151]">{contact.phone}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
       </td>}
       {v('E-mail') && <td className="px-4 py-3 min-w-[200px]">
-        {contact.email ? <span className="text-sm text-[#374151]">{contact.email}</span> : <span className="text-sm text-[#D1D5DB]">—</span>}
+        {contact.email ? <span className="text-[12px] text-[#374151]">{contact.email}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
       </td>}
       {v("Nom de l'entreprise") && <td className="px-4 py-3 min-w-[160px]">
-        {contact.companyName ? <span className="text-sm text-[#374151] truncate">{contact.companyName}</span> : <span className="text-sm text-[#D1D5DB]">—</span>}
+        {contact.companyName ? <span className="text-[12px] text-[#374151] truncate">{contact.companyName}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
       </td>}
       {v('Métier') && <td className="px-4 py-3 min-w-[140px]">
-        {contact.metier ? <span className="text-sm text-[#374151] truncate">{contact.metier}</span> : <span className="text-sm text-[#D1D5DB]">—</span>}
+        {contact.metier ? <span className="text-[12px] text-[#374151] truncate">{contact.metier}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
       </td>}
       {v('Niche') && <td className="px-4 py-3 min-w-[140px]">
         {contact.niche ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#F3F4F6] text-[#6B7280] whitespace-nowrap">{contact.niche}</span> : <span className="text-sm text-[#D1D5DB]">—</span>}
@@ -212,7 +212,7 @@ function ContactRow({
           />
         )}
       </td>}
-      {v('Créé') && <td className="px-4 py-3 min-w-[130px]"><span className="text-sm text-soren-muted">{formatDate(contact.dateAdded)}</span></td>}
+      {v('Créé') && <td className="px-4 py-3 min-w-[130px]"><span className="text-[12px] text-soren-muted">{formatDate(contact.dateAdded)}</span></td>}
     </tr>
   )
 }
