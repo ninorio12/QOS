@@ -276,7 +276,9 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
   const [ghlLeadsPipeline,   setGhlLeadsPipeline]   = useState<GHLPipelineData | null>(null)
   const [selectedPipelineId, setSelectedPipelineId] = useState<'leads' | 'clients' | null>(null)
   const [selectedStageId,    setSelectedStageId]    = useState<string | null>(null)
-  const [inoutbound,         setInoutbound]         = useState<'inbound' | 'outbound'>('inbound')
+  const [inoutbound,         setInoutbound]         = useState<'inbound' | 'outbound'>(
+    ((contact as (Record<string, unknown> & { source?: string }) | undefined)?.source === 'outbound') ? 'outbound' : 'inbound'
+  )
   const [clientValue,        setClientValue]        = useState('')
   const [tagInput,      setTagInput]      = useState('')
   const [tags,          setTags]          = useState<string[]>(contact?.tags ?? [])
@@ -368,6 +370,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             website:     form.website,
             canton:      canton || undefined,
             statut,
+            source:      inoutbound,
             metier:      metier || undefined,
             niche:       niche  || undefined,
             tags,
@@ -494,7 +497,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               firstName: form.firstName, lastName: form.lastName || undefined,
               email: form.email || undefined, phone: phone || undefined,
               companyName: form.companyName || undefined,
-              source: 'inbound', statut, canton: canton || undefined,
+              source: inoutbound, statut, canton: canton || undefined,
               metier: metier || undefined, niche: niche || undefined, tags: [],
             }),
           })
@@ -565,24 +568,12 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               <input value={form.companyName} onChange={set('companyName')} placeholder="Dupont Construction" className={inputCls} />
             </div>
 
-            <div className={`grid gap-3 ${mode ? 'grid-cols-1' : 'grid-cols-2'}`}>
-              <div>
-                <label className={labelCls}>Canton</label>
-                <select value={canton} onChange={e => setCanton(e.target.value)} className={inputCls}>
-                  <option value="">— Choisir —</option>
-                  {['AG','AI','AR','BE','BL','BS','FR','GE','GL','GR','JU','LU','NE','NW','OW','SG','SH','SO','SZ','TG','TI','UR','VD','VS','ZG','ZH'].map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              {!mode && (
-                <div>
-                  <label className={labelCls}>Statut</label>
-                  <select value={statut} onChange={e => setStatut(e.target.value as 'lead' | 'client' | 'perdu')} className={inputCls}>
-                    <option value="lead">Lead</option>
-                    <option value="client">Client</option>
-                    <option value="perdu">Perdu</option>
-                  </select>
-                </div>
-              )}
+            <div>
+              <label className={labelCls}>Canton</label>
+              <select value={canton} onChange={e => setCanton(e.target.value)} className={inputCls}>
+                <option value="">— Choisir —</option>
+                {['AG','AI','AR','BE','BL','BS','FR','GE','GL','GR','JU','LU','NE','NW','OW','SG','SH','SO','SZ','TG','TI','UR','VD','VS','ZG','ZH'].map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -732,55 +723,63 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                 <input type="number" value={clientValue} onChange={e => setClientValue(e.target.value)} placeholder="ex: 3500" className={inputCls} />
               </div>
             </div>
-          ) : !isEdit ? (
-            <div className="border-t border-soren-border pt-5 flex flex-col gap-3">
-              <Section title="Pipeline" />
-              <div className="flex gap-2">
-                {([
-                  { id: null,      label: 'Aucun',   color: '#9CA3AF' },
-                  { id: 'leads',   label: 'Leads',   color: '#3462EE' },
-                  { id: 'clients', label: 'Clients', color: '#10B981' },
-                ] as { id: 'leads' | 'clients' | null; label: string; color: string }[]).map(opt => {
-                  const isSelected = selectedPipelineId === opt.id
-                  return (
-                    <button key={String(opt.id)} type="button"
-                      onClick={() => { setSelectedPipelineId(opt.id); setSelectedStageId(null) }}
-                      className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all"
-                      style={{ borderColor: isSelected ? opt.color : '#E5E7EB', background: isSelected ? opt.color + '12' : '#F9F9F7' }}
-                    >
-                      <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
-                      <span className="text-[11px] font-bold text-soren-text">{opt.label}</span>
-                      {isSelected && <Check size={11} style={{ color: opt.color }} />}
-                    </button>
-                  )
-                })}
-              </div>
-              {selectedPipelineId && (() => {
-                const stages = selectedPipelineId === 'clients' ? CLIENT_STAGES : (ghlLeadsPipeline?.stages ?? [])
-                if (!stages.length) return <div className="h-8 bg-soren-elevated rounded-xl animate-pulse" />
-                return (
-                  <div className="flex flex-col gap-2">
-                    <p className="text-[10px] font-semibold text-soren-muted uppercase tracking-wide">Quelle colonne ?</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {stages.map(s => (
-                        <button key={s.id} type="button" onClick={() => setSelectedStageId(s.id)}
-                          className="px-3 py-1.5 rounded-full text-[11px] font-semibold border-2 transition-all"
-                          style={{ borderColor: selectedStageId === s.id ? '#111' : '#E5E7EB', background: selectedStageId === s.id ? '#111' : '#fff', color: selectedStageId === s.id ? '#fff' : '#374151' }}>
-                          {s.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })()}
-              {selectedPipelineId === 'leads' && selectedStageId && (
-                <div>
-                  <label className={labelCls}>Valeur estimée (€)</label>
-                  <input type="number" value={form.value} onChange={set('value')} placeholder="0" className={inputCls} />
+          ) : (
+            <div className="border-t border-soren-border pt-5 flex flex-col gap-4">
+              {/* Statut */}
+              <div className="flex flex-col gap-2">
+                <Section title="Statut" />
+                <div className="flex gap-2">
+                  {([
+                    { id: 'lead',   label: 'Lead',   color: '#374151' },
+                    { id: 'client', label: 'Client', color: '#10B981' },
+                    { id: 'perdu',  label: 'Perdu',  color: '#EF4444' },
+                  ] as { id: 'lead' | 'client' | 'perdu'; label: string; color: string }[]).map(opt => {
+                    const isSelected = statut === opt.id
+                    return (
+                      <button key={opt.id} type="button"
+                        onClick={() => setStatut(opt.id)}
+                        className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all"
+                        style={{ borderColor: isSelected ? opt.color : '#E5E7EB', background: isSelected ? opt.color + '14' : '#F9F9F7' }}
+                      >
+                        <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
+                        <span className="text-[11px] font-bold" style={{ color: isSelected ? opt.color : '#374151' }}>{opt.label}</span>
+                        {isSelected && <Check size={11} style={{ color: opt.color }} />}
+                      </button>
+                    )
+                  })}
                 </div>
-              )}
+                <p className="text-[10px] text-soren-subtle">
+                  {statut === 'lead'   && 'Le contact apparaîtra dans le pipeline Leads.'}
+                  {statut === 'client' && 'Le contact apparaîtra dans le pipeline Clients.'}
+                  {statut === 'perdu'  && 'Le contact ne sera dans aucun pipeline actif.'}
+                </p>
+              </div>
+
+              {/* Source */}
+              <div className="flex flex-col gap-2">
+                <Section title="Source" />
+                <div className="flex gap-2">
+                  {(['inbound', 'outbound'] as const).map(opt => {
+                    const cfg = opt === 'inbound'
+                      ? { color: '#16A34A', bg: '#DCFCE7', label: 'Inbound' }
+                      : { color: '#CA8A04', bg: '#FEF9C3', label: 'Outbound' }
+                    const isSelected = inoutbound === opt
+                    return (
+                      <button key={opt} type="button"
+                        onClick={() => setInoutbound(opt)}
+                        className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all"
+                        style={{ borderColor: isSelected ? cfg.color : '#E5E7EB', background: isSelected ? cfg.bg : '#F9F9F7' }}
+                      >
+                        <span className="w-2 h-2 rounded-full" style={{ background: cfg.color }} />
+                        <span className="text-[11px] font-bold" style={{ color: isSelected ? cfg.color : '#374151' }}>{cfg.label}</span>
+                        {isSelected && <Check size={11} style={{ color: cfg.color }} />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
-          ) : null}
+          )}
 
           {error && (
             <p className="text-xs text-[#EF4444] bg-[#FEF2F2] rounded-xl px-3 py-2">{error}</p>
@@ -795,7 +794,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               className="flex-1 py-2.5 rounded-full bg-soren-sidebar hover:bg-[#2a2a2a] disabled:opacity-50 text-white text-sm font-semibold transition-colors">
               {saving
                 ? (isEdit ? 'Enregistrement…' : 'Création en cours…')
-                : (isEdit ? 'Enregistrer' : mode === 'leads' ? 'Créer le lead' : mode === 'clients' ? 'Créer le client' : selectedPipelineId === 'leads' && selectedStageId ? 'Créer le lead' : 'Créer le contact')}
+                : (isEdit ? 'Enregistrer' : mode === 'leads' ? 'Créer le lead' : mode === 'clients' ? 'Créer le client' : 'Créer le contact')}
             </button>
           </div>
         </form>

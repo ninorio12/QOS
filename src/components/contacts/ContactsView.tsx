@@ -132,7 +132,7 @@ function ColFilterDropdown({ values, active, onSelect, onClose }: {
   )
 }
 
-const ALL_COLS = ['Téléphone', 'E-mail', "Nom de l'entreprise", 'Métier', 'Niche', 'Source', 'Statut', 'Canton', 'Créé', 'Dernière activité', 'Balises'] as const
+const ALL_COLS = ['Téléphone', 'E-mail', "Nom de l'entreprise", 'Métier', 'Niche', 'Source', 'Statut', 'Canton', 'Créé', 'Dernière activité'] as const
 type ColName = typeof ALL_COLS[number]
 
 type ColFilter = Partial<Record<ColName | 'Nom de Contact', string>>
@@ -203,9 +203,6 @@ function ContactRow({
       </td>}
       {v('Créé') && <td className="px-4 py-3 min-w-[130px]"><span className="text-sm text-soren-muted">{formatDate(contact.dateAdded)}</span></td>}
       {v('Dernière activité') && <td className="px-4 py-3 min-w-[150px]"><span className="text-sm text-soren-muted">{formatRelative(contact.dateUpdated ?? contact.dateAdded)}</span></td>}
-      {v('Balises') && <td className="px-4 py-3 min-w-[160px]">
-        <div className="flex items-center gap-1 flex-wrap">{contact.tags.map(t => <TagPill key={t} label={t} />)}</div>
-      </td>}
     </tr>
   )
 }
@@ -434,7 +431,6 @@ export default function ContactsView({
         if (col === "Nom de l'entreprise") return (c.companyName ?? '').toLowerCase().includes(val.toLowerCase())
         if (col === 'Métier')         return (c.metier ?? '') === val
         if (col === 'Niche')          return (c.niche ?? '') === val
-        if (col === 'Balises')        return c.tags.includes(val)
         return true
       })
     }
@@ -460,7 +456,6 @@ export default function ContactsView({
     'Canton':              SWISS_CANTONS.filter(c => contacts.some(ct => cantonMap.get(ct.id) === c)),
     'Métier':              [...new Set(contacts.map(c => c.metier).filter(Boolean) as string[])].sort(),
     'Niche':               [...new Set(contacts.map(c => c.niche).filter(Boolean) as string[])].sort(),
-    'Balises':             [...new Set(contacts.flatMap(c => c.tags))].sort(),
     "Nom de l'entreprise": [...new Set(contacts.map(c => c.companyName).filter(Boolean) as string[])].sort(),
     'Nom de Contact':      [] as string[],
     'Téléphone':           [] as string[],
