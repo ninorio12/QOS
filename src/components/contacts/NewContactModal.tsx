@@ -212,15 +212,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
   useEffect(() => {
     fetch('/api/pipelines').then(r => r.json()).then((d: { pipelines?: GHLPipelineData[] }) => {
       const all = d.pipelines ?? []
-      const typeOrder: (keyof typeof PIPELINE_KW)[] = ['acquisition', 'reactivation', 'reception']
-      const ordered: GHLPipelineData[] = []
-      for (const type of typeOrder) {
-        const found = all.find(p => classifyPipeline(p.name) === type)
-        if (found) ordered.push(found)
-      }
-      setPipelines(ordered.length ? ordered : all)
-      const first = ordered.find(p => classifyPipeline(p.name) !== 'reception') ?? ordered[0]
-      if (first) setPipelineId(first.id)
+      setPipelines(all.filter(p => classifyPipeline(p.name) !== 'reception'))
     }).catch(() => {})
   }, [isEdit])
 
