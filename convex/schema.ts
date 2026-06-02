@@ -185,6 +185,9 @@ export default defineSchema({
       installments: v.number(),             // 1, 2, 3...
       amounts:      v.array(v.number()),    // montant par échéance
     })),
+    paidStatus: v.optional(v.array(v.boolean())),  // parallèle à amounts: payé ou non
+    paidDates:  v.optional(v.array(v.string())),   // date d'encaissement par échéance
+    refunds:    v.optional(v.array(v.object({ amount: v.number(), date: v.string(), note: v.optional(v.string()) }))),
     signedContract: v.optional(v.object({   // contrat signé uploadé (Convex File Storage)
       fileName:   v.string(),
       storageId:  v.optional(v.string()),   // Convex storage id

@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import {
-  Rocket, CheckCircle2, Circle, ChevronRight, Eye, Download,
-  Upload, CalendarPlus, FileSignature, ClipboardList, Check, FileCheck2,
+  Rocket, CheckCircle2, Circle, ChevronRight, ChevronDown, Eye, Download,
+  Upload, CalendarPlus, FileSignature, ClipboardList, Check, FileCheck2, CreditCard,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -17,6 +17,9 @@ type OnboardingDoc = {
   contactId: string
   tasks?: Record<string, boolean>
   payment?: { installments: number; amounts: number[] }
+  paidStatus?: boolean[]
+  paidDates?: string[]
+  refunds?: { amount: number; date: string; note?: string }[]
   signedContract?: SignedContract
   form?: Record<string, { value?: string; status?: string }>
 }
@@ -67,11 +70,13 @@ export default function OnboardingView() {
     <div className="h-full flex flex-col md:flex-row overflow-hidden">
       <div className="md:w-72 flex-shrink-0 border-r border-soren-border flex flex-col overflow-hidden">
         <div className="px-5 pt-5 pb-3 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Rocket size={18} className="text-[#FF4D00]" />
-            <h1 className="text-lg font-black text-soren-text">Onboarding</h1>
+          <div className="flex items-center gap-1.5 text-[11px] font-bold tracking-wide">
+            <Rocket size={14} className="text-[#FF4D00]" />
+            <span className="text-soren-subtle">VIVIDFLOW</span>
+            <ChevronRight size={11} className="text-soren-subtle" />
+            <span className="text-soren-text">ONBOARDING</span>
           </div>
-          <p className="text-[11px] text-soren-subtle mt-0.5">{clients.length} client{clients.length !== 1 ? 's' : ''} en cours</p>
+          <p className="text-[11px] text-soren-subtle mt-1">{clients.length} client{clients.length !== 1 ? 's' : ''} en cours</p>
         </div>
         <div className="flex-1 overflow-y-auto px-2 pb-3 flex flex-col gap-1">
           {clients.length === 0 && (
@@ -171,6 +176,77 @@ function ClientOnboarding({ client, contactId, router }: { client: ClientLite; c
           <CalendarPlus size={14} /> Générer un rendez-vous
         </button>
       </StepCard>
+
+      <PaymentPhase
+        amounts={doc?.payment?.amounts ?? [client.value]}
+        paidStatus={doc?.paidStatus ?? []}
+        paidDates={doc?.paidDates ?? []}
+        onPay={(paidStatus, paidDates) => save({ paidStatus, paidDates })}
+      />
+    </div>
+  )
+}
+
+// ─── Payment phase (per client) — dashboard style ─────────────
+function PaymentPhase({ amounts, paidStatus, paidDates, onPay }: {
+  amounts: number[]; paidStatus: boolean[]; paidDates: string[]
+  onPay: (paidStatus: boolean[], paidDates: string[]) => void
+}) {
+  const total    = amounts.reduce((s, a) => s + a, 0)
+  const encaisse = amounts.reduce((s, a, i) => s + (paidStatus[i] ? a : 0), 0)
+  const attente  = total - encaisse
+  const allPaid  = amounts.length > 0 && amounts.every((_, i) => paidStatus[i])
+
+  function togglePaid(i: number) {
+    const ps = amounts.map((_, j) => j === i ? !paidStatus[j] : !!paidStatus[j])
+    const pd = amounts.map((_, j) => j === i ? (ps[j] ? new Date().toISOString().split('T')[0] : '') : (paidDates[j] ?? ''))
+    onPay(ps, pd)
+  }
+
+  return (
+    <div className="bg-soren-card border border-soren-border rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
+      <div className="flex items-center gap-3">
+        {allPaid ? <CheckCircle2 size={20} className="text-[#16A34A]" /> : <Circle size={20} className="text-soren-subtle" />}
+        <span className="flex items-center gap-2 text-[14px] font-bold text-soren-text flex-1"><CreditCard size={16} />Paiement</span>
+      </div>
+      <div className="pl-8 flex flex-col gap-3">
+        {/* mini cards dashboard-style */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-soren-elevated rounded-xl p-3">
+            <span className="text-[10px] text-soren-muted">Total</span>
+            <p className="text-[18px] font-black text-soren-text tabular-nums">{fmt(total)}</p>
+          </div>
+          <div className="rounded-xl p-3" style={{ background: '#DCFCE7' }}>
+            <span className="text-[10px]" style={{ color: '#16A34A' }}>Encaissé</span>
+            <p className="text-[18px] font-black tabular-nums" style={{ color: '#16A34A' }}>{fmt(encaisse)}</p>
+          </div>
+          <div className="rounded-xl p-3" style={{ background: '#FEF9C3' }}>
+            <span className="text-[10px]" style={{ color: '#CA8A04' }}>En attente</span>
+            <p className="text-[18px] font-black tabular-nums" style={{ color: '#CA8A04' }}>{fmt(attente)}</p>
+          </div>
+        </div>
+        {/* installments */}
+        <div className="flex flex-col gap-1.5">
+          {amounts.map((a, i) => {
+            const paid = !!paidStatus[i]
+            return (
+              <div key={i} className="flex items-center gap-3 bg-soren-elevated rounded-xl px-3 py-2.5">
+                <button onClick={() => togglePaid(i)}>
+                  {paid ? <CheckCircle2 size={18} className="text-[#16A34A]" /> : <Circle size={18} className="text-soren-subtle" />}
+                </button>
+                <span className="text-[12px] font-semibold text-soren-text flex-1">
+                  {amounts.length > 1 ? `Échéance ${i + 1}/${amounts.length}` : 'Paiement'}
+                  {paid && paidDates[i] && <span className="text-[10px] text-soren-subtle font-normal ml-2">encaissé le {new Date(paidDates[i]).toLocaleDateString('fr-FR')}</span>}
+                </span>
+                <span className="text-[13px] font-bold tabular-nums" style={{ color: paid ? '#16A34A' : '#374151' }}>{fmt(a)}</span>
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={paid ? { background: '#DCFCE7', color: '#16A34A' } : { background: '#FEF9C3', color: '#CA8A04' }}>
+                  {paid ? 'encaissé' : 'à payer'}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }
@@ -178,6 +254,7 @@ function ClientOnboarding({ client, contactId, router }: { client: ClientLite; c
 function StepCard({ icon, title, done, onToggle, children, extra }: {
   icon: React.ReactNode; title: string; done: boolean; onToggle: (v: boolean) => void; children?: React.ReactNode; extra?: React.ReactNode
 }) {
+  const [open, setOpen] = useState(true)
   return (
     <div className="bg-soren-card border border-soren-border rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
       <div className="flex items-center gap-3">
@@ -186,8 +263,15 @@ function StepCard({ icon, title, done, onToggle, children, extra }: {
         </button>
         <span className="flex items-center gap-2 text-[14px] font-bold text-soren-text flex-1">{icon}{title}</span>
         {extra}
+        <button onClick={() => setOpen(o => !o)} className="flex-shrink-0 w-6 h-6 rounded-lg hover:bg-soren-elevated flex items-center justify-center transition-colors">
+          <ChevronDown size={15} className="text-soren-subtle transition-transform duration-200" style={{ transform: open ? 'rotate(0deg)' : 'rotate(-90deg)' }} />
+        </button>
       </div>
-      {children && <div className="pl-8">{children}</div>}
+      {children && (
+        <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 240ms cubic-bezier(0.4,0,0.2,1)' }}>
+          <div style={{ overflow: 'hidden' }}><div className="pl-8">{children}</div></div>
+        </div>
+      )}
     </div>
   )
 }

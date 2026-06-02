@@ -17,6 +17,8 @@ const ClientTimelineChart   = dynamic(() => import('./ClientTimelineChart'),   {
 import type { WeeklyDay, MonthlyPoint, ClientTimelinePoint, MetierBreakdown, Payment } from '@/lib/dashboard'
 import { getAvatarColor } from '@/components/contacts/types'
 import { PieChart, Pie, Cell, Tooltip as PieTooltip, ResponsiveContainer } from 'recharts'
+import { useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
 
 const NewLeadWidget  = dynamic(() => import('@/components/shared/NewLeadWidget'),        { ssr: false })
 const RollingNumber  = dynamic(() => import('@/components/dashboard/RollingNumber'),     { ssr: false })
@@ -457,6 +459,7 @@ export default function DashboardClient({
   stageBreakdown = [], weeklyBreakdown = [],
 }: DashboardProps) {
   const router = useRouter()
+  const payOverview = useQuery(api.onboarding.paymentsOverview) as { encaisse: number; attente: number; transactions: { client: string; company: string; label: string; amount: number; date: string; type: string; status: string }[] } | undefined
   const [showModal,       setShowModal]       = useState(false)
   const [showToast,       setShowToast]       = useState(false)
   const [showMetierModal, setShowMetierModal] = useState(false)
@@ -725,11 +728,36 @@ export default function DashboardClient({
           className="md:col-span-2 bg-soren-card rounded-2xl md:rounded-3xl shadow-sm overflow-hidden flex flex-col"
           style={{ animation: 'fadeSlideUp 400ms ease-out 450ms both' }}
         >
-          <div className="flex items-center justify-between px-5 py-3 border-b border-soren-border/60 flex-shrink-0">
-            <span className="font-jakarta text-[12px] font-semibold text-soren-text">Paiements encaissés</span>
-            <span className="text-[10px] font-semibold text-[#FF4D00]/70">durant la période</span>
+          <Link href="/paiement" className="flex items-center justify-between px-5 py-3 border-b border-soren-border/60 flex-shrink-0 group">
+            <span className="font-jakarta text-[12px] font-semibold text-soren-text">Paiements</span>
+            <span className="flex items-center gap-1 text-[10px] font-semibold text-[#FF4D00]/70 group-hover:text-[#FF4D00]">Tour de contrôle <ArrowUpRight size={11} /></span>
+          </Link>
+          <div className="px-5 py-3 grid grid-cols-2 gap-2 flex-shrink-0">
+            <div className="rounded-xl p-3" style={{ background: '#DCFCE7' }}>
+              <span className="text-[10px]" style={{ color: '#16A34A' }}>Encaissé</span>
+              <p className="text-[20px] font-black tabular-nums" style={{ color: '#16A34A' }}>{fmt(payOverview?.encaisse ?? 0)}</p>
+            </div>
+            <div className="rounded-xl p-3" style={{ background: '#FEF9C3' }}>
+              <span className="text-[10px]" style={{ color: '#CA8A04' }}>En attente</span>
+              <p className="text-[20px] font-black tabular-nums" style={{ color: '#CA8A04' }}>{fmt(payOverview?.attente ?? 0)}</p>
+            </div>
           </div>
-          <div className="px-5 py-6 text-center text-[11px] text-soren-subtle">Connectez votre banque pour voir les paiements</div>
+          <div className="flex-1 overflow-y-auto max-h-[140px]">
+            {(payOverview?.transactions ?? []).slice(0, 5).map((t, i) => (
+              <div key={i} className="flex items-center justify-between px-5 py-1.5 hover:bg-soren-elevated/40">
+                <div className="min-w-0">
+                  <span className="text-[11px] font-semibold text-soren-text truncate">{t.client}</span>
+                  <span className="text-[10px] text-soren-subtle ml-2">{t.label}</span>
+                </div>
+                <span className="text-[11px] font-bold tabular-nums" style={{ color: t.type === 'refund' ? '#DC2626' : t.status === 'encaissé' ? '#16A34A' : '#CA8A04' }}>
+                  {t.type === 'refund' ? '−' : ''}{fmt(Math.abs(t.amount))}
+                </span>
+              </div>
+            ))}
+            {(!payOverview || payOverview.transactions.length === 0) && (
+              <div className="px-5 py-5 text-center text-[11px] text-soren-subtle">Aucun paiement encore</div>
+            )}
+          </div>
         </div>
 
         {/* Publicités investies */}
