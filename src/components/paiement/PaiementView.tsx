@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { ArrowDownLeft, ArrowUpRight, CalendarDays, X, Search } from 'lucide-react'
+import { CalendarDays, X, Search } from 'lucide-react'
 import { DateRangePicker, getPresetRange } from '@/components/shared/DateRangePicker'
 
 function fmt(n: number) { return `${Math.round(Math.abs(n)).toLocaleString('fr-FR')} €` }
@@ -21,7 +21,7 @@ type Overview = {
 function defaultRange() {
   const to = new Date(); to.setHours(0,0,0,0)
   const from = new Date(to); from.setDate(to.getDate() - 29)
-  return { from: localDate(from), to: localDate(to), label: '30 derniers jours' }
+  return { from: localDate(from), to: localDate(to), label: 'Période' }
 }
 
 export default function PaiementView() {
@@ -56,24 +56,14 @@ export default function PaiementView() {
     <div className="h-full flex flex-col overflow-hidden">
       {/* Toolbar */}
       <div className="px-6 pt-5 pb-3 flex-shrink-0 flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-md bg-soren-card border border-soren-border rounded-full px-3.5 py-2">
-          <Search size={13} className="text-soren-subtle flex-shrink-0" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un client…"
-            className="flex-1 bg-transparent text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none" />
-        </div>
         <div className="flex items-center gap-2">
-          {filterContact && (
-            <a href="/paiement" className="flex items-center gap-1 text-[11px] font-semibold text-soren-muted hover:text-soren-text bg-soren-card border border-soren-border rounded-full px-3 py-1.5">
-              <X size={12} /> {filterName ?? 'Tous'}
-            </a>
-          )}
           <div className="relative" ref={calRef}>
             <button onClick={() => setCalOpen(v => !v)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[12px] font-semibold transition-all ${calOpen ? 'bg-soren-sidebar text-white border-soren-sidebar' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>
               <CalendarDays size={13} /> {range.label ?? 'Période'}
             </button>
             {calOpen && (
-              <div className="absolute right-0 z-50">
+              <div className="absolute left-0 z-50">
                 <DateRangePicker
                   onClose={() => setCalOpen(false)}
                   onApply={(start, end, label) => { setRange({ from: localDate(start), to: localDate(end), label }); setCalOpen(false) }}
@@ -81,15 +71,25 @@ export default function PaiementView() {
               </div>
             )}
           </div>
+          {filterContact && (
+            <a href="/paiement" className="flex items-center gap-1 text-[11px] font-semibold text-soren-muted hover:text-soren-text bg-soren-card border border-soren-border rounded-full px-3 py-1.5">
+              <X size={12} /> {filterName ?? 'Tous'}
+            </a>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-md bg-soren-card border border-soren-border rounded-full px-3.5 py-2">
+          <Search size={13} className="text-soren-subtle flex-shrink-0" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un client…"
+            className="flex-1 bg-transparent text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none" />
         </div>
       </div>
 
-      {/* KPI cards (same as dashboard) + conversions */}
+      {/* KPI cards */}
       <div className="px-6 grid grid-cols-2 md:grid-cols-4 gap-3 flex-shrink-0">
-        <Card label="Montant encaissé" value={fmt(filtEncaisse)} bg="#F0FDF9" border="#A7F3D0" color="#059669" />
-        <Card label="Montant en attente" value={fmt(filtAttente)} bg="#FFFBEB" border="#FDE68A" color="#D97706" />
-        <Card label="Remboursé" value={fmt(ov.rembourse)} bg="#FEF5F5" border="#FECACA" color="#DC2626" />
-        <Card label="Net encaissé" value={fmt(filterContact ? filtEncaisse - ov.rembourse : ov.net)} bg="#F8FAFC" border="#E2E8F0" color="#0F172A" />
+        <Card label="Montant encaissé" value={fmt(filtEncaisse)} color="#10B981" />
+        <Card label="Montant en attente" value={fmt(filtAttente)} color="#F59E0B" />
+        <Card label="Remboursé" value={fmt(ov.rembourse)} color="#F43F5E" />
+        <Card label="Net encaissé" value={fmt(filterContact ? filtEncaisse - ov.rembourse : ov.net)} color="#0F172A" />
       </div>
 
       {/* Transactions */}
@@ -104,39 +104,42 @@ export default function PaiementView() {
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="border-b border-soren-border/60">
-                  {['', 'CLIENT', 'LIBELLÉ', 'DATE', 'MONTANT', 'STATUT'].map((h, i) => (
-                    <th key={i} className="px-4 py-2 text-left text-[9px] font-bold text-soren-subtle tracking-wider">{h}</th>
+                <tr>
+                  {['CLIENT', 'LIBELLÉ', 'DATE', 'MONTANT', 'STATUT'].map((h, i) => (
+                    <th key={i} className={`px-5 py-2.5 text-[9px] font-semibold text-soren-subtle tracking-wider uppercase ${h === 'MONTANT' ? 'text-right' : 'text-left'}`}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {txns.map((t, i) => (
-                  <tr key={i} className="border-b border-soren-border/40 hover:bg-soren-elevated/40 transition-colors">
-                    <td className="pl-4 py-2.5 w-8">
-                      {t.type === 'refund'
-                        ? <ArrowUpRight size={14} className="text-[#DC2626]" />
-                        : <ArrowDownLeft size={14} className={t.status === 'encaissé' ? 'text-[#16A34A]' : 'text-[#CA8A04]'} />}
+                {txns.map((t, i) => {
+                  const accent = t.type === 'refund' ? '#F43F5E' : (t.status === 'encaissé' ? '#10B981' : '#F59E0B')
+                  return (
+                  <tr key={i} className="group border-t border-soren-border/40 hover:bg-soren-elevated/40 transition-colors">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+                          style={{ background: `${accent}1A`, color: accent }}>
+                          {t.client?.trim().charAt(0).toUpperCase() || '?'}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[12px] font-semibold text-soren-text truncate">{t.client}</div>
+                          {t.company && <div className="text-[10px] text-soren-subtle truncate">{t.company}</div>}
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-4 py-2.5">
-                      <div className="text-[12px] font-semibold text-soren-text">{t.client}</div>
-                      {t.company && <div className="text-[10px] text-soren-subtle">{t.company}</div>}
-                    </td>
-                    <td className="px-4 py-2.5 text-[11px] text-soren-muted">{t.label}</td>
-                    <td className="px-4 py-2.5 text-[11px] text-soren-muted whitespace-nowrap">{t.date ? new Date(t.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</td>
-                    <td className="px-4 py-2.5 text-[12px] font-bold tabular-nums whitespace-nowrap" style={{ color: t.type === 'refund' ? '#DC2626' : (t.status === 'encaissé' ? '#16A34A' : '#374151') }}>
+                    <td className="px-5 py-3 text-[11px] text-soren-muted">{t.label}</td>
+                    <td className="px-5 py-3 text-[11px] text-soren-muted whitespace-nowrap">{t.date ? new Date(t.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</td>
+                    <td className="px-5 py-3 text-[12px] font-bold tabular-nums whitespace-nowrap text-right" style={{ color: t.type === 'refund' ? '#F43F5E' : (t.status === 'encaissé' ? '#10B981' : '#374151') }}>
                       {t.type === 'refund' ? '−' : ''}{fmt(t.amount)}
                     </td>
-                    <td className="px-4 py-2.5">
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={
-                        t.type === 'refund' ? { background: '#FEF2F2', color: '#DC2626' }
-                        : t.status === 'encaissé' ? { background: '#DCFCE7', color: '#16A34A' }
-                        : { background: '#FEF9C3', color: '#CA8A04' }}>
+                    <td className="px-5 py-3">
+                      <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full" style={{ background: `${accent}14`, color: accent }}>
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent }} />
                         {t.type === 'refund' ? 'remboursé' : t.status}
                       </span>
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           )}
@@ -146,11 +149,14 @@ export default function PaiementView() {
   )
 }
 
-function Card({ label, value, bg, border, color }: { label: string; value: string; bg: string; border: string; color: string }) {
+function Card({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="rounded-2xl p-4 shadow-sm border" style={{ background: bg, borderColor: border }}>
-      <span className="text-[11px] font-medium" style={{ color }}>{label}</span>
-      <p className="text-[24px] md:text-[26px] font-black tabular-nums leading-tight" style={{ color }}>{value}</p>
+    <div className="bg-soren-card rounded-2xl p-4 border border-soren-border shadow-sm">
+      <div className="flex items-center gap-1.5">
+        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
+        <span className="text-[11px] font-medium text-soren-muted">{label}</span>
+      </div>
+      <p className="mt-1.5 text-[24px] md:text-[26px] font-black tabular-nums leading-tight" style={{ color }}>{value}</p>
     </div>
   )
 }
