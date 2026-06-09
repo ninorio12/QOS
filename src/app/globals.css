@@ -15,16 +15,87 @@
 }
 
 html.dark {
-  --bg-app:     #1C1C1E;
-  --bg-card:    #2C2C2E;
-  --bg-sidebar: #000000;
-  --bg-elevated:#3A3A3C;
+  --bg-app:     #111114;
+  --bg-card:    #1B1B1F;
+  --bg-sidebar: #0A0A0C;
+  --bg-elevated:#26262B;
   --accent:     #FF4D00;
-  --text:       #FFFFFF;
-  --muted:      #8E8E93;
-  --subtle:     #636366;
-  --border:     #38383A;
+  --text:       #ECECEE;
+  --muted:      #9B9BA1;
+  --subtle:     #6E6E74;
+  --border:     #2C2C30;
 }
+
+/* ── Dark mode : neutralise les gris/blancs/bordures codés en dur (le mode clair reste 100% intact) ── */
+html.dark .bg-white { background-color: var(--bg-card) !important; }
+html.dark .bg-\[\#FFFFFF\], html.dark .bg-\[\#ffffff\], html.dark .bg-\[\#fff\] { background-color: var(--bg-card) !important; }
+html.dark .bg-\[\#EEF0EB\], html.dark .bg-\[\#f0f0eb\] { background-color: var(--bg-app) !important; }
+html.dark .bg-\[\#F9F9F7\], html.dark .bg-\[\#f9f9f7\], html.dark .bg-\[\#F3F4F6\], html.dark .bg-\[\#f3f4f6\],
+html.dark .bg-\[\#F9FAFB\], html.dark .bg-\[\#F5F5F3\], html.dark .bg-\[\#FAFAF8\], html.dark .bg-\[\#F0F0EE\],
+html.dark .bg-\[\#F5F5F0\], html.dark .bg-\[\#FAFAFA\], html.dark .bg-\[\#F9F9F9\], html.dark .bg-\[\#EFEFEC\],
+html.dark .bg-\[\#E9E9E5\], html.dark .bg-\[\#F5F5F5\], html.dark .bg-\[\#FAFAF9\], html.dark .bg-\[\#F0F0EC\] {
+  background-color: var(--bg-elevated) !important;
+}
+html.dark .border-\[\#F0F0EE\], html.dark .border-\[\#f0f0eb\], html.dark .border-\[\#F3F4F6\], html.dark .border-\[\#f3f4f6\],
+html.dark .border-\[\#E5E7EB\], html.dark .border-\[\#e5e7eb\], html.dark .border-\[\#D1D5DB\], html.dark .border-\[\#d1d5db\],
+html.dark .border-\[\#C8CBD0\], html.dark .border-\[\#E8E8E6\], html.dark .border-\[\#E8E8E4\], html.dark .border-\[\#F5F5F0\],
+html.dark .border-\[\#F0F0F0\], html.dark .border-\[\#EAEAE8\], html.dark .border-\[\#F0F0EC\], html.dark .border-\[\#EEEEEE\],
+html.dark .border-\[\#F5F5F3\], html.dark .border-\[\#F9F9F7\], html.dark .border-\[\#E5E5E0\],
+html.dark .border-\[\#EEE\], html.dark .border-\[\#EBEBEB\], html.dark .border-\[\#F9FAFB\], html.dark .border-\[\#F0F0EB\],
+html.dark .border-\[\#EBEBEA\], html.dark .border-\[\#E8E8E5\], html.dark .border-\[\#E5E5E5\], html.dark .border-\[\#F5F5F5\],
+html.dark .border-\[\#EEEEEC\], html.dark .border-\[\#ECECEC\], html.dark .border-\[\#E0E0E0\], html.dark .border-\[\#DDD\] {
+  border-color: var(--border) !important;
+}
+/* Opacité sur soren-border : le token est un var(--border) en hex, donc `border-soren-border/NN`
+   génère du CSS invalide → fallback currentColor (clair en sombre). color-mix corrige proprement. */
+.border-soren-border\/40 { border-color: color-mix(in srgb, var(--border) 40%, transparent) !important; }
+.border-soren-border\/50 { border-color: color-mix(in srgb, var(--border) 50%, transparent) !important; }
+.border-soren-border\/60 { border-color: color-mix(in srgb, var(--border) 60%, transparent) !important; }
+
+/* Même bug d'opacité sur le token bg-soren-elevated (champs libres prospection, etc.) :
+   `bg-soren-elevated/NN` génère du CSS invalide → fond clair en sombre. color-mix corrige. */
+.bg-soren-elevated\/40 { background-color: color-mix(in srgb, var(--bg-elevated) 40%, transparent) !important; }
+.bg-soren-elevated\/50 { background-color: color-mix(in srgb, var(--bg-elevated) 50%, transparent) !important; }
+.bg-soren-elevated\/70 { background-color: color-mix(in srgb, var(--bg-elevated) 70%, transparent) !important; }
+.hover\:bg-soren-elevated\/50:hover { background-color: color-mix(in srgb, var(--bg-elevated) 50%, transparent) !important; }
+.hover\:bg-soren-elevated\/70:hover { background-color: color-mix(in srgb, var(--bg-elevated) 70%, transparent) !important; }
+
+/* Contours d'avatar et autres bordures blanches : en sombre, une bordure blanche ressort comme un filet clair. */
+html.dark .border-white { border-color: var(--border) !important; }
+
+/* Gris clairs neutres restants en fond (cloche de notif #E4E6E1, gray-200/300, etc.).
+   Les teintes colorées (bleu/vert/rouge/ambre/violet) sont volontairement exclues. */
+html.dark .bg-\[\#E5E7EB\], html.dark .bg-\[\#e5e7eb\], html.dark .bg-\[\#E4E6E1\],
+html.dark .bg-\[\#D9DDD6\], html.dark .bg-\[\#D8DAD5\], html.dark .bg-\[\#D1D5DB\], html.dark .bg-\[\#d1d5db\],
+html.dark .bg-\[\#C4C8C0\], html.dark .bg-\[\#F8F8F6\], html.dark .bg-\[\#F6F6F8\], html.dark .bg-\[\#F0F0F2\],
+html.dark .bg-\[\#EFEFED\], html.dark .bg-\[\#EDEDEA\], html.dark .bg-\[\#ECECEE\], html.dark .bg-\[\#EBEDE8\],
+html.dark .bg-\[\#EAEBEC\] { background-color: var(--bg-elevated) !important; }
+
+/* Mêmes gris neutres en survol (le sélecteur :hover généré par Tailwind échappe aux règles ci-dessus). */
+html.dark .hover\:bg-\[\#F9F9F7\]:hover, html.dark .hover\:bg-\[\#f9f9f7\]:hover, html.dark .hover\:bg-\[\#F3F4F6\]:hover,
+html.dark .hover\:bg-\[\#FAFAF8\]:hover, html.dark .hover\:bg-\[\#F0F0EE\]:hover, html.dark .hover\:bg-\[\#F9FAFB\]:hover,
+html.dark .hover\:bg-\[\#f0f0eb\]:hover, html.dark .hover\:bg-\[\#E5E7EB\]:hover, html.dark .hover\:bg-\[\#e5e7eb\]:hover,
+html.dark .hover\:bg-\[\#D8DAD5\]:hover, html.dark .hover\:bg-\[\#F0F0F2\]:hover, html.dark .hover\:bg-\[\#EFEFED\]:hover,
+html.dark .hover\:bg-\[\#EDEDEA\]:hover, html.dark .hover\:bg-\[\#EBEDE8\]:hover, html.dark .hover\:bg-\[\#EAEBEC\]:hover {
+  background-color: var(--bg-elevated) !important;
+}
+
+/* Contours/bordures gris clairs restants (+ variantes survol) → bordure sombre. */
+html.dark .border-\[\#ECECEE\], html.dark .border-\[\#D6D6DA\], html.dark .border-\[\#9ca3af\],
+html.dark .hover\:border-\[\#C8CBD0\]:hover, html.dark .hover\:border-\[\#D1D5DB\]:hover,
+html.dark .hover\:border-\[\#d1d5db\]:hover, html.dark .hover\:border-\[\#9ca3af\]:hover {
+  border-color: var(--border) !important;
+}
+
+/* Séparateurs `divide-*` gris clairs (ex. liste de la cloche) → bordure sombre. */
+html.dark .divide-\[\#E5E7EB\] > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-\[\#F5F5F0\] > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-\[\#F3F4F6\] > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-\[\#F0F0EE\] > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border) !important;
+}
+
+html.dark .text-\[\#111111\], html.dark .text-\[\#111\], html.dark .text-\[\#374151\] { color: var(--text) !important; }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -117,6 +188,10 @@ html.dark .nav-island {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
 
+/* Sidebar nav : scroll fonctionnel mais barre invisible */
+.sidebar-nav { scrollbar-width: none; -ms-overflow-style: none; }
+.sidebar-nav::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
 .kanban-scroll { overflow-x: scroll; }
 .kanban-scroll::-webkit-scrollbar { height: 6px; }
 .kanban-scroll::-webkit-scrollbar-track { background: var(--bg-elevated); border-radius: 999px; }
@@ -129,6 +204,7 @@ html.dark .nav-island {
 
 /* Vertical scroll inside kanban columns — max-height bypasses broken flex chain */
 .kanban-col {
+  min-height: calc(100vh - 250px);
   max-height: calc(100vh - 210px);
   overflow-y: auto;
   scrollbar-width: thin;
@@ -181,6 +257,7 @@ select:focus {
 
 .page-fade-in {
   animation: page-fade-in 150ms ease-out;
+  will-change: transform, opacity;
 }
 
 /* Page transitions between modules */
@@ -191,12 +268,48 @@ select:focus {
 
 .page-enter {
   animation: page-enter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+}
+
+/* Panneau détail latéral (drawer) des modules agentiques */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Entrée des modules — cascade "stagger cartes" (rejouée à chaque navigation) */
+@keyframes vf-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes vf-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.vf-stagger-page { animation: vf-fade 200ms ease-out both; }
+/* Cascade plafonnée aux 10 premiers enfants : le reste apparaît sans animation
+   (évite le jank/reflow sur les longues listes : Activités, Second Brain, Skills…). */
+.vf-stagger-page [data-stagger] > *:nth-child(-n+10) {
+  animation: vf-rise 340ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+.vf-stagger-page [data-stagger] > *:nth-child(1) { animation-delay: 40ms; }
+.vf-stagger-page [data-stagger] > *:nth-child(2) { animation-delay: 80ms; }
+.vf-stagger-page [data-stagger] > *:nth-child(3) { animation-delay: 120ms; }
+.vf-stagger-page [data-stagger] > *:nth-child(4) { animation-delay: 160ms; }
+.vf-stagger-page [data-stagger] > *:nth-child(5) { animation-delay: 200ms; }
+.vf-stagger-page [data-stagger] > *:nth-child(6) { animation-delay: 240ms; }
+.vf-stagger-page [data-stagger] > *:nth-child(7) { animation-delay: 280ms; }
+.vf-stagger-page [data-stagger] > *:nth-child(8) { animation-delay: 320ms; }
+.vf-stagger-page [data-stagger] > *:nth-child(9) { animation-delay: 360ms; }
+.vf-stagger-page [data-stagger] > *:nth-child(10) { animation-delay: 400ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .vf-stagger-page,
+  .vf-stagger-page [data-stagger] > *:nth-child(-n+10) { animation: vf-fade 120ms ease-out both; }
 }
 
 /* VividFlow Agentic Runtime primitives */
+/* NB: no `scale` here — scaling a text container causes subpixel text shimmer. */
 @keyframes vf-page-enter {
-  from { opacity: 0; transform: translateY(14px) scale(0.992); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes vf-shimmer {
@@ -206,6 +319,7 @@ select:focus {
 
 .vf-page-enter {
   animation: vf-page-enter 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
 }
 
 .vf-hover {
@@ -231,4 +345,23 @@ select:focus {
 .vf-drop-zone-active {
   border-color: rgba(250, 80, 1, 0.55) !important;
   background: rgba(250, 80, 1, 0.08) !important;
+}
+
+/* Accessibility — honour the OS "reduce motion" setting for ALL CSS animations.
+   (framer-motion is handled separately via useReducedMotion.) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Drawer de navigation mobile */
+@keyframes slidein {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
 }

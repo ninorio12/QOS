@@ -13,7 +13,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { useDraggable } from '@dnd-kit/core'
-import { type Appointment, STATUS_META } from './types'
+import { type Appointment, type EventType, STATUS_META, TYPE_META } from './types'
 import { type GHLCalendar } from '@/lib/ghl'
 import dynamic from 'next/dynamic'
 
@@ -310,7 +310,7 @@ function WeekCard({
           {/* Top row: contact/title + Google dot */}
           <div className="flex items-start gap-1 min-w-0">
             <p
-              className="text-[11px] font-semibold leading-snug flex-1 truncate"
+              className="text-[10px] font-normal leading-snug flex-1 truncate"
               style={{ color }}
             >
               {name}
@@ -528,7 +528,7 @@ function WeekGrid({
       fetch(`/api/google-events/${googleId}`, {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ startTime: newStart.toISOString(), endTime: newEnd.toISOString() }),
+        body:    JSON.stringify({ startTime: newStart.toISOString(), endTime: newEnd.toISOString(), tz: Intl.DateTimeFormat().resolvedOptions().timeZone }),
       }).catch(console.error)
     } else {
       fetch(`/api/calendar-event/${appt.id}`, {
@@ -828,12 +828,17 @@ export default function CalendarView({
   appointments: initial,
   calendars,
   googleConfigured = false,
+  onRefresh,
+  onRangeChange,
 }: {
   appointments:     Appointment[]
   calendars:        GHLCalendar[]
   googleConfigured?: boolean
+  onRefresh?:       () => void | Promise<unknown>
+  onRangeChange?:   (from: string, to: string) => void
 }) {
   const router = useRouter()
+  void router
   const now = new Date()
   const [appointments, setAppointments] = useState<Appointment[]>(initial)
 
@@ -849,19 +854,35 @@ export default function CalendarView({
   const [selectedDay,  setSelectedDay]  = useState<Date | null>(null)
   const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null)
   const [showModal,    setShowModal]    = useState(false)
+  const [typeFilter,   setTypeFilter]   = useState<EventType | 'all'>('all')
+
+  const visibleAppointments = useMemo(
+    () => typeFilter === 'all' ? appointments : appointments.filter(a => a.type === typeFilter),
+    [appointments, typeFilter],
+  )
+
+  // Keep latest onRefresh in a ref so the interval/visibility listeners
+  // always call the current SWR mutate without re-subscribing.
+  const refreshRef = useRef(onRefresh)
+  useEffect(() => { refreshRef.current = onRefresh }, [onRefresh])
 
   async function handleRefresh() {
     setRefreshing(true)
-    router.refresh()
-    await new Promise(r => setTimeout(r, 1200))
-    setRefreshing(false)
+    try {
+      await refreshRef.current?.()
+    } finally {
+      // Keep spinner visible briefly for UX consistency
+      await new Promise(r => setTimeout(r, 600))
+      setRefreshing(false)
+    }
   }
 
   // Auto-sync: refresh when tab becomes visible + every 2 minutes
   useEffect(() => {
-    const onVisibility = () => { if (document.visibilityState === 'visible') handleRefresh() }
+    const run = () => { void refreshRef.current?.() }
+    const onVisibility = () => { if (document.visibilityState === 'visible') run() }
     document.addEventListener('visibilitychange', onVisibility)
-    const interval = setInterval(handleRefresh, 2 * 60 * 1000)
+    const interval = setInterval(run, 2 * 60 * 1000)
     return () => {
       document.removeEventListener('visibilitychange', onVisibility)
       clearInterval(interval)
@@ -880,6 +901,25 @@ export default function CalendarView({
     setYear(now.getFullYear()); setMonth(now.getMonth()); setWeekOffset(0)
   }
 
+  // Report the currently-displayed period bounds so the page can fetch that window.
+  useEffect(() => {
+    if (!onRangeChange) return
+    let start: Date
+    let end: Date
+    if (view === 'month') {
+      const grid = getMonthGrid(year, month)
+      start = grid[0]
+      end   = grid[grid.length - 1]
+    } else {
+      const days = getWeekDays(weekOffset)
+      start = days[0]
+      end   = days[days.length - 1]
+    }
+    const from = new Date(start); from.setHours(0, 0, 0, 0)
+    const to   = new Date(end);   to.setHours(23, 59, 59, 999)
+    onRangeChange(from.toISOString(), to.toISOString())
+  }, [view, year, month, weekOffset, onRangeChange])
+
   const periodLabel = useMemo(() => {
     if (view === 'month') return `${MONTHS_FR[month]} ${year}`
     const days  = getWeekDays(weekOffset)
@@ -891,10 +931,10 @@ export default function CalendarView({
 
   const upcomingOnDay = useMemo(() => {
     if (!selectedDay) return []
-    return appointments
+    return visibleAppointments
       .filter(a => { const d = new Date(a.startTime); d.setHours(0,0,0,0); return sameDay(d, selectedDay) })
       .sort((a,b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-  }, [selectedDay, appointments])
+  }, [selectedDay, visibleAppointments])
 
   // ── Update appointment times (after drag) ──────────────────
   function handleUpdateAppt(id: string, newStart: string, newEnd: string) {
@@ -926,7 +966,7 @@ export default function CalendarView({
     <div className="flex h-[calc(100vh-56px)] overflow-hidden">
 
       {/* ── Main area ── */}
-      <div className="flex-1 flex flex-col overflow-hidden p-5 gap-4">
+      <div className="flex-1 flex flex-col overflow-hidden p-3 gap-2">
 
         {/* Header */}
         <div className="flex items-center justify-between flex-shrink-0 gap-2 min-w-0">
@@ -935,7 +975,7 @@ export default function CalendarView({
             <div className="flex items-center gap-1">
               <button
                 onClick={goToday}
-                className="px-2.5 py-1 text-[11px] font-semibold rounded-full bg-soren-card border border-soren-border text-soren-muted hover:bg-soren-elevated hover:text-soren-text transition-colors whitespace-nowrap"
+                className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-soren-card border border-soren-border text-soren-muted hover:bg-soren-elevated hover:text-soren-text transition-colors whitespace-nowrap"
               >
                 Aujourd'hui
               </button>
@@ -951,7 +991,7 @@ export default function CalendarView({
               >
                 <ChevronRight size={12} />
               </button>
-              <span className="text-sm font-bold text-soren-text ml-1 whitespace-nowrap">{periodLabel}</span>
+              <span className="text-[13px] font-bold text-soren-text ml-1 whitespace-nowrap">{periodLabel}</span>
             </div>
           </div>
 
@@ -959,14 +999,14 @@ export default function CalendarView({
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Google badge */}
             {googleConfigured ? (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#34A853]/30 bg-[#34A853]/10 text-[11px] font-semibold text-[#34A853] whitespace-nowrap">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#34A853]/30 bg-[#34A853]/10 text-[11px] font-semibold text-[#34A853] whitespace-nowrap">
                 <span className="w-2 h-2 rounded-full bg-[#34A853] flex-shrink-0" />
                 Google Calendar
               </div>
             ) : (
               <a
                 href="/api/auth/google"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-soren-border text-[11px] font-semibold text-soren-muted hover:text-soren-text hover:border-[#111111] transition-colors whitespace-nowrap"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-soren-border text-[11px] font-semibold text-soren-muted hover:text-soren-text hover:border-[#111111] transition-colors whitespace-nowrap"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -982,7 +1022,7 @@ export default function CalendarView({
               onClick={handleRefresh}
               disabled={refreshing}
               title="Rafraîchir"
-              className="w-7 h-7 rounded-full bg-soren-card border border-soren-border flex items-center justify-center text-soren-muted hover:bg-soren-elevated disabled:opacity-50 transition-colors"
+              className="w-6 h-6 rounded-full bg-soren-card border border-soren-border flex items-center justify-center text-soren-muted hover:bg-soren-elevated disabled:opacity-50 transition-colors"
             >
               <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
             </button>
@@ -992,7 +1032,7 @@ export default function CalendarView({
                 <button
                   key={v}
                   onClick={() => setView(v)}
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                  className={`px-2 py-0.5 rounded-full text-[11px] font-semibold transition-colors ${
                     view === v ? 'bg-soren-sidebar text-white' : 'text-soren-muted hover:text-soren-text'
                   }`}
                 >
@@ -1003,12 +1043,34 @@ export default function CalendarView({
             {/* New button */}
             <button
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-1.5 bg-soren-sidebar hover:bg-[#2a2a2a] text-white text-[13px] font-semibold px-3.5 py-2 rounded-full transition-colors whitespace-nowrap"
+              className="flex items-center gap-1.5 bg-soren-sidebar hover:bg-[#2a2a2a] text-white text-[12px] font-semibold px-3 py-1 rounded-full transition-colors whitespace-nowrap"
             >
               <Plus size={12} />
               Nouveau RDV
             </button>
           </div>
+        </div>
+
+        {/* Type filters */}
+        <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap">
+          {([['all', 'Tous'], ['r1', TYPE_META.r1.label], ['r2', TYPE_META.r2.label], ['follow_up', TYPE_META.follow_up.label], ['interne', TYPE_META.interne.label], ['client', TYPE_META.client.label]] as [EventType | 'all', string][]).map(([key, label]) => {
+            const active = typeFilter === key
+            const color  = key === 'all' ? '#111111' : TYPE_META[key as EventType].color
+            return (
+              <button
+                key={key}
+                onClick={() => setTypeFilter(key)}
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-colors border ${
+                  active
+                    ? (key === 'all' ? 'bg-[#111111] border-[#111111] text-white dark:bg-soren-elevated dark:border-soren-border dark:text-soren-text' : '')
+                    : 'bg-transparent border-[#E8E8E4] text-[#6B6B66] hover:bg-soren-elevated dark:bg-soren-elevated dark:border-soren-border dark:text-soren-muted dark:hover:brightness-125'
+                }`}
+                style={active && key !== 'all' ? { backgroundColor: color, borderColor: color, color: '#fff' } : undefined}
+              >
+                {label}
+              </button>
+            )
+          })}
         </div>
 
         {/* Grid */}
@@ -1017,7 +1079,7 @@ export default function CalendarView({
             <MonthGrid
               year={year}
               month={month}
-              appointments={appointments}
+              appointments={visibleAppointments}
               selectedDay={selectedDay}
               onDayClick={d => { setSelectedDay(d); setSelectedAppt(null) }}
               onApptClick={a => { setSelectedAppt(a); setSelectedDay(null) }}
@@ -1025,7 +1087,7 @@ export default function CalendarView({
           ) : (
             <WeekGrid
               weekOffset={weekOffset}
-              appointments={appointments}
+              appointments={visibleAppointments}
               onApptClick={a => { setSelectedAppt(a); setSelectedDay(null) }}
               onUpdateAppt={handleUpdateAppt}
               onDeleteAppt={handleDelete}
@@ -1035,7 +1097,7 @@ export default function CalendarView({
       </div>
 
       {/* ── Right sidebar ── */}
-      <div className="w-[260px] flex-shrink-0 flex flex-col gap-4 p-4 overflow-y-auto border-l border-soren-border bg-soren-app">
+      <div className="hidden lg:flex w-[260px] flex-shrink-0 flex flex-col gap-4 p-4 overflow-y-auto border-l border-soren-border bg-soren-app">
 
         {/* Mini calendar */}
         <MiniCal
@@ -1088,7 +1150,7 @@ export default function CalendarView({
         {!selectedDay && !selectedAppt && (
           <div className="bg-soren-card border border-soren-border rounded-2xl overflow-hidden">
             <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-wider px-4 pt-3 pb-2">À venir</p>
-            {appointments
+            {visibleAppointments
               .filter(a => new Date(a.startTime) >= new Date())
               .sort((a,b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
               .slice(0, 6)
@@ -1107,7 +1169,7 @@ export default function CalendarView({
                   </div>
                 </button>
               ))}
-            {appointments.filter(a => new Date(a.startTime) >= new Date()).length === 0 && (
+            {visibleAppointments.filter(a => new Date(a.startTime) >= new Date()).length === 0 && (
               <p className="text-xs text-soren-subtle text-center py-4">Aucun rendez-vous à venir</p>
             )}
           </div>

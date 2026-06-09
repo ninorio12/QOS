@@ -7,7 +7,7 @@ import { api } from '../../../convex/_generated/api'
 import { CalendarDays, X, Search } from 'lucide-react'
 import { DateRangePicker, getPresetRange } from '@/components/shared/DateRangePicker'
 
-function fmt(n: number) { return `${Math.round(Math.abs(n)).toLocaleString('fr-FR')} €` }
+function fmt(n: number) { return `${Math.round(Math.abs(n)).toLocaleString('fr-FR')} CHF` }
 function localDate(d: Date) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
 
 type Txn = { contactId: string; client: string; company: string; label: string; amount: number; date: string; type: 'payment' | 'refund'; status: 'encaissé' | 'attente' }
@@ -38,15 +38,19 @@ export default function PaiementView() {
   }, [])
 
   const [search, setSearch] = useState('')
-  const data = useQuery(api.paiement.overview, { from: range.from, to: range.to }) as Overview | undefined
+  const tzOffset = new Date().getTimezoneOffset()
+  const data = useQuery(api.paiement.overview, { from: range.from, to: range.to, tzOffset }) as Overview | undefined
   const ov = data ?? { encaisse: 0, attente: 0, rembourse: 0, net: 0, transactions: [], clientsCount: 0, caTotal: 0, leadsCount: 0, conversions: { global: { clients: 0, total: 0, pct: 0 }, inbound: { clients: 0, total: 0, pct: 0 }, outbound: { clients: 0, total: 0, pct: 0 } } }
 
   const txns = useMemo(() => {
     let t = filterContact ? ov.transactions.filter(x => x.contactId === filterContact) : ov.transactions
+    // Mouvements réels de la période uniquement : on ne garde que les transactions
+    // datées comprises dans [from, to] (retire les "en attente" sans date qui polluaient hors période).
+    t = t.filter(x => x.date && x.date.slice(0, 10) >= range.from && x.date.slice(0, 10) <= range.to)
     const q = search.toLowerCase().trim()
     if (q) t = t.filter(x => `${x.client} ${x.company}`.toLowerCase().includes(q))
     return t
-  }, [ov.transactions, filterContact, search])
+  }, [ov.transactions, filterContact, search, range.from, range.to])
   const filtEncaisse = filterContact ? txns.filter(t => t.type === 'payment' && t.status === 'encaissé').reduce((s, t) => s + t.amount, 0) : ov.encaisse
   const filtAttente = filterContact ? txns.filter(t => t.type === 'payment' && t.status === 'attente').reduce((s, t) => s + t.amount, 0) : ov.attente
 
@@ -77,7 +81,7 @@ export default function PaiementView() {
             </a>
           )}
         </div>
-        <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-md bg-soren-card border border-soren-border rounded-full px-3.5 py-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0 md:min-w-[200px] max-w-md bg-soren-card border border-soren-border rounded-full px-3.5 py-2">
           <Search size={13} className="text-soren-subtle flex-shrink-0" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un client…"
             className="flex-1 bg-transparent text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none" />
@@ -86,14 +90,14 @@ export default function PaiementView() {
 
       {/* KPI cards */}
       <div className="px-6 grid grid-cols-2 md:grid-cols-4 gap-3 flex-shrink-0">
-        <Card label="Montant encaissé" value={fmt(filtEncaisse)} color="#10B981" />
-        <Card label="Montant en attente" value={fmt(filtAttente)} color="#F59E0B" />
-        <Card label="Remboursé" value={fmt(ov.rembourse)} color="#F43F5E" />
-        <Card label="Net encaissé" value={fmt(filterContact ? filtEncaisse - ov.rembourse : ov.net)} color="#0F172A" />
+        <Card label="Montant encaissé" value={fmt(filtEncaisse)} variant="orange" />
+        <Card label="Montant en attente" value={fmt(filtAttente)} variant="black" />
+        <Card label="Remboursé" value={fmt(ov.rembourse)} variant="orange" />
+        <Card label="Net encaissé" value={fmt(filterContact ? filtEncaisse - ov.rembourse : ov.net)} variant="white" />
       </div>
 
       {/* Transactions */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4">
         <div className="bg-soren-card border border-soren-border rounded-2xl overflow-hidden shadow-sm">
           <div className="px-5 py-3 border-b border-soren-border flex items-center justify-between">
             <span className="text-[12px] font-bold text-soren-text">Transactions</span>
@@ -102,7 +106,7 @@ export default function PaiementView() {
           {txns.length === 0 ? (
             <div className="px-5 py-10 text-center text-[12px] text-soren-subtle">Aucune transaction sur la période.</div>
           ) : (
-            <table className="w-full">
+            <div className="overflow-x-auto"><table className="w-full min-w-[480px]">
               <thead>
                 <tr>
                   {['CLIENT', 'LIBELLÉ', 'DATE', 'MONTANT', 'STATUT'].map((h, i) => (
@@ -141,7 +145,7 @@ export default function PaiementView() {
                   </tr>
                 )})}
               </tbody>
-            </table>
+            </table></div>
           )}
         </div>
       </div>
@@ -149,14 +153,21 @@ export default function PaiementView() {
   )
 }
 
-function Card({ label, value, color }: { label: string; value: string; color: string }) {
+const CARD_VARIANTS = {
+  orange: { bg: '#FF4D00', text: '#FFFFFF', label: 'rgba(255,255,255,0.85)', border: '#FF4D00' },
+  black:  { bg: '#111111', text: '#FFFFFF', label: 'rgba(255,255,255,0.70)', border: '#111111' },
+  white:  { bg: 'var(--bg-card)', text: '#FF4D00', label: 'var(--subtle)',    border: 'var(--border)' },
+} as const
+
+function Card({ label, value, variant }: { label: string; value: string; variant: keyof typeof CARD_VARIANTS }) {
+  const v = CARD_VARIANTS[variant]
   return (
-    <div className="bg-soren-card rounded-2xl p-4 border border-soren-border shadow-sm">
+    <div className="rounded-2xl p-4 border shadow-sm" style={{ background: v.bg, borderColor: v.border }}>
       <div className="flex items-center gap-1.5">
-        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
-        <span className="text-[11px] font-medium text-soren-muted">{label}</span>
+        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: v.text }} />
+        <span className="text-[11px] font-medium" style={{ color: v.label }}>{label}</span>
       </div>
-      <p className="mt-1.5 text-[24px] md:text-[26px] font-black tabular-nums leading-tight" style={{ color }}>{value}</p>
+      <p className="mt-1.5 text-[24px] md:text-[26px] font-black tabular-nums leading-tight" style={{ color: v.text }}>{value}</p>
     </div>
   )
 }
