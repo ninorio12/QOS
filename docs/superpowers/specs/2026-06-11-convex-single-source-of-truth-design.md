@@ -8,7 +8,7 @@ Le Data OS (QOS) s'appuie aujourd'hui sur **trois sources de données simultané
 
 **Fait déterminant : le Data OS n'a jamais été utilisé en production — aucune donnée réelle nulle part.** Donc : aucune migration de données, liberté totale pour supprimer Supabase + GHL, et risque minimal.
 
-**Objectif :** faire de **Convex l'unique source de vérité**, supprimer Supabase et GHL entièrement, et garantir que **chaque lien logique entre données est valide** (aucun orphelin) et que **chaque bouton/route est cliquable** (aucun élément mort). La cohérence des liens + boutons cliquables est le **test de réception** du projet.
+**Objectif :** faire de **Convex l'unique source de vérité**, supprimer Supabase et GHL entièrement, et garantir que **chaque lien logique entre données est valide** — c'est-à-dire (a) aucun **orphelin** (relié à rien) et (b) aucune **désynchronisation** (relié mais faux, ex. une card pipeline qui reste « inbound » alors que le contact est « outbound ») — et que **chaque bouton/route est cliquable** (aucun élément mort). Ces garanties sont le **test de réception** du projet.
 
 **Approche retenue : hybride C → A.** D'abord un **vérificateur réutilisable** (C) qui rend l'audit répétable et produit la liste de courses exacte ; ensuite une migration **module par module** (A), le vérificateur servant de test de réception après chaque vague.
 
@@ -29,21 +29,32 @@ Tout ce projet se fait au scalpel, jamais à la hache.
 
 Trois pièces.
 
-### 2.a La carte des liens (le pivot)
-Un fichier unique (`scripts/integrity/link-map.ts`) qui déclare **quel champ référence quelle table**. C'est la source de vérité de la cohérence : ajouter un lien dans le SaaS = l'ajouter dans la carte. Seedé par les liens cassés que l'audit a identifiés. Exemples :
+### 2.a La carte des INVARIANTS (le pivot)
+Un fichier unique (`scripts/integrity/invariant-map.ts`) qui déclare **les règles que les données doivent toujours respecter**. C'est la source de vérité de la cohérence : ajouter un lien/une dérivation dans le SaaS = ajouter sa règle dans la carte. Deux types de règles :
 
-| Champ source | Doit pointer vers | Note (audit) |
-|---|---|---|
-| `paiements.contactId` | `crm_contacts._id` | |
-| `os_tasks.assigneeId` (type=agent) | registre d'agents (`os_agents`) | assignee mock |
-| `os_tasks.linkedClientId` | `crm_contacts` / `pipeline_clients` | |
-| `os_activities.entityId` (selon `entityType`) | table polymorphe | non résolu |
-| `pipeline_clients.ghl_contact_id` | `crm_contacts` | **relique GHL — fiche 404** |
-| `crm_leads.contactId` | `crm_contacts` | désync (Yasmine R2 vs contact perdu) |
-| `osProspection.contactId` / `leadId` | `crm_contacts` / `crm_leads` | |
+| Type | Règle | Exemple | Attrape |
+|---|---|---|---|
+| **Référentiel** | le lien pointe vers une cible existante | `paiement.contactId` existe dans `crm_contacts` | les **orphelins** (relié à rien) |
+| **Cohérence / dérivation** | la valeur dérivée = sa source | `pipeline_card.source` = `contact.source` | les **désync** (relié mais faux) |
 
-### 2.b Scanner d'intégrité données (orphelins)
-Une fonction Convex (`convex/integrity.ts`, query/action) qui parcourt chaque entrée de la carte et vérifie que chaque valeur pointe vers une cible existante. Sortie structurée : `{ table, id, champ, valeur, raison }`. Lançable à la demande (`npx convex run integrity:scan`).
+**Insight central : la fiche contact est le hub.** Un contact (client / lead / perdu) porte des champs — `statut`, `source` (inbound/outbound), `canton`, `métier`, `niche` — qui doivent se propager **identiquement partout** où ils s'affichent : card pipeline, fiche, compteurs dashboard, prospection, performance. **La même règle se répète sur des dizaines d'endroits** → on la déclare **une fois** (« tout affichage de la source d'un contact = `contact.source` »), le scanner l'applique **partout**. C'est pour ça qu'il n'y a pas des milliers de règles à écrire : il y a quelques dizaines de relations, chacune s'appliquant à des milliers de lignes/écrans.
+
+Exemples de règles (seedées par l'audit) :
+
+| Champ / affichage | Règle | Type | Note (audit) |
+|---|---|---|---|
+| `pipeline_card.source` | = `contact.source` | cohérence | **stocké en localStorage, divergé → reste inbound** |
+| `paiements.contactId` | existe dans `crm_contacts` | référentiel | |
+| `os_tasks.assigneeId` (type=agent) | existe dans `os_agents` | référentiel | assignee mock |
+| `os_activities.entityId` (selon `entityType`) | existe dans la table cible | référentiel | non résolu |
+| `pipeline_clients.ghl_contact_id` | = un `crm_contacts._id` | référentiel | **relique GHL — fiche 404** |
+| `crm_leads.statut` / colonne pipeline | cohérent avec `contact.statut` | cohérence | Yasmine en R2 alors que contact « perdu » |
+| `osProspection.contactId` / `leadId` | existent | référentiel | |
+
+### 2.b Scanner d'intégrité données (orphelins + désync)
+Une fonction Convex (`convex/integrity.ts`, query/action) qui parcourt chaque règle de la carte et, pour chaque ligne concernée, vérifie soit que la cible existe (référentiel), soit que la valeur dérivée est conforme à sa source (cohérence). Sortie structurée : `{ règle, table, id, champ, attendu, observé, raison }`. Lançable à la demande (`npx convex run integrity:scan`).
+
+> **Correctif chirurgical privilégié pour les désync : dériver au lieu de dupliquer.** Quand une valeur peut être lue en direct depuis sa source (ex. la card pipeline lit `contact.source` au lieu d'en garder une copie localStorage), l'invariant **ne peut plus casser par construction**. Le scanner ne sert alors que de filet pour les cas non dérivables.
 
 ### 2.c Scanner d'UI morte (boutons/routes)
 Un script node (`scripts/integrity/scan-ui.ts`) qui balaie `src/` et remonte les cas francs :
@@ -76,7 +87,10 @@ Dashboard, Contacts + **fiche client**, Pipeline + Clients, Prospection, Perform
 
 Chaque vague se termine par un passage du vérificateur (vert = plus d'orphelin / bouton mort / dépendance Supabase-GHL sur le périmètre).
 
-- **Vague 0 — Vérificateur.** Carte des liens + 2 scanners + corpus d'audit versionné.
+- **Vague 0 — Vérificateur.** Découpée en trois étapes :
+  - **0.0 — Cartographie exhaustive des liens** (on ne peut pas vérifier ce qu'on n'a pas listé). Deux passes : (1) **extraction automatique** — un script lit le schéma Convex (tous les champs référence) + grep le code UI (tout champ affiché qui correspond à un champ d'une entité liée → invariant candidat) ; (2) **passe de découverte** (audit ciblé « relations entre données », possiblement multi-agents comme l'audit de 7h) qui valide/complète, surtout les **dérivations sémantiques** que l'auto rate (inbound/outbound, où les noms diffèrent). Résultat = la carte des invariants complète. Rappel de cadrage : quelques **dizaines de règles** (borné), chacune appliquée à des milliers de lignes — on découvre les règles, la machine trouve les violations.
+  - **0.1 — Les 2 scanners** (référentiel + cohérence, §2.b ; UI morte, §2.c) qui consomment la carte.
+  - **0.2 — Calibration.** Le scanner doit retrouver **tout** ce que l'audit de 7h avait trouvé (corpus versionné, §7). S'il en rate, la carte est incomplète → on l'enrichit.
 - **Vague 1 — Couper le mort.** Suppression des modules legacy Soren + Supabase ci-dessus + routes API associées. Une grosse partie des orphelins/boutons morts disparaît d'un coup. Risque quasi nul.
 - **Vague 2 — Cœur sur Convex.** Fiche client/Contacts (finir GHL), badge source pipeline → Convex, `/formulaire` → Convex, purge des `ghl_contact_id`, correction des maths dashboard (R1/R2 période, CA 14 984 vs 16 000). **Fin de toute trace GHL & Supabase.**
 - **Vague 3 — Vraies intégrations.** Google Agenda → Calendrier (read sync d'abord), puis **Revolut Pro → Paiement** (intégration la plus lourde, faite en dernier).
@@ -89,7 +103,7 @@ Chaque vague se termine par un passage du vérificateur (vert = plus d'orphelin 
 
 **Arracher GHL :** chaque `fetch` GHL → query/mutation Convex (la fiche client est le modèle déjà fait) ; `ghl_contact_id: string` → `contactId: v.id("crm_contacts")` (lien **typé** validé par Convex → orphelin impossible par construction) ; suppression de `src/lib/ghl.ts`, `mock-data.ts`, env `GHL_*`.
 
-**Nettoyage du modèle :** partout où c'est possible, `string` → `v.id("table")` typé. Le polymorphe non typable (ex. `os_activities.entityId`) reste couvert par la carte des liens. Règle : **aucun lien sans filet** — soit Convex le garantit, soit le scanner le surveille.
+**Nettoyage du modèle :** partout où c'est possible, `string` → `v.id("table")` typé (orphelin impossible), et **dériver au lieu de dupliquer** pour les valeurs qui ont une source unique (désync impossible). Ce qui ne peut être ni typé ni dérivé (ex. `os_activities.entityId` polymorphe) reste couvert par la carte des invariants. Règle : **aucun lien sans filet** — soit Convex le garantit, soit la dérivation l'empêche, soit le scanner le surveille.
 
 ## 6. Intégrations externes
 
@@ -106,11 +120,12 @@ Le résultat de l'audit du 2026-06-10 (109 findings + verdicts du tribunal + pas
 ## 8. Critères de réception
 
 Le projet est « fini » quand :
-1. `npx convex run integrity:scan` renvoie **0 orphelin** sur tous les liens de la carte.
-2. Le scanner d'UI renvoie **0 bouton/route mort** sur les modules cœur.
-3. **Aucune** occurrence de GHL (`src/lib/ghl.ts`, `GHL_*`, `ghl_contact_id`) ni de Supabase (`@supabase/*`, `getAuthContext`) dans le code.
-4. Les modules cœur lisent/écrivent **exclusivement Convex** (sauf intégrations externes Google/Revolut, serveur-only).
-5. La pollution de test est purgée.
+1. `npx convex run integrity:scan` renvoie **0 orphelin** (référentiel) **et 0 désync** (cohérence/dérivation) sur toutes les règles de la carte des invariants.
+2. La carte des invariants est jugée **exhaustive** (étape 0.0 complétée : extraction auto + passe de découverte) et **calibrée** (retrouve tout le corpus d'audit du 2026-06-10).
+3. Le scanner d'UI renvoie **0 bouton/route mort** sur les modules cœur.
+4. **Aucune** occurrence de GHL (`src/lib/ghl.ts`, `GHL_*`, `ghl_contact_id`) ni de Supabase (`@supabase/*`, `getAuthContext`) dans le code.
+5. Les modules cœur lisent/écrivent **exclusivement Convex** (sauf intégrations externes Google/Revolut, serveur-only).
+6. La pollution de test est purgée.
 
 ## 9. Notes de mise en œuvre
 
