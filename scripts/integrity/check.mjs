@@ -19,3 +19,20 @@ export function checkReferential(rows, targetIds, rule) {
   }
   return out
 }
+
+// Cohérence : pour chaque enfant, on résout son parent via rule.via, puis on
+// vérifie rule.ok(enfant, parent). Un parent absent est ignoré (c'est le rôle
+// d'une règle référentielle), pas une désync.
+export function checkConsistency(rows, parentById, rule) {
+  const out = []
+  for (const row of rows) {
+    const pid = row[rule.via]
+    if (pid == null) continue
+    const parent = parentById.get(pid)
+    if (!parent) continue
+    if (!rule.ok(row, parent)) {
+      out.push({ rule: rule.id, kind: 'consistency', table: rule.table, id: idOf(row), reason: rule.describe(row, parent) })
+    }
+  }
+  return out
+}

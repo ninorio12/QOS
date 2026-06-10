@@ -25,3 +25,29 @@ test('checkReferential : required=true signale aussi les valeurs nulles', () => 
   assert.equal(out.length, 1)
   assert.match(out[0].reason, /manquant/)
 })
+
+import { checkConsistency } from './check.mjs'
+
+test('checkConsistency : signale un enfant dont la valeur dérivée diverge du parent', () => {
+  // Cas Yasmine : lead en stage actif "r2" mais contact "perdu".
+  const leads = [
+    { _id: 'l1', contactId: 'c1', stageId: 'r2' },   // contact perdu → incohérent
+    { _id: 'l2', contactId: 'c2', stageId: 'r2' },   // contact actif → ok
+    { _id: 'l3', contactId: 'cX', stageId: 'r2' },   // parent absent → ignoré ici (job du référentiel)
+  ]
+  const parentById = new Map([
+    ['c1', { _id: 'c1', statut: 'perdu' }],
+    ['c2', { _id: 'c2', statut: 'client' }],
+  ])
+  const rule = {
+    id: 'crm_leads.stage↔contact.statut', kind: 'consistency', table: 'crm_leads', via: 'contactId',
+    parentTable: 'crm_contacts',
+    ok: (lead, contact) => !(contact.statut === 'perdu' && lead.stageId !== 'perdu'),
+    describe: (lead, contact) => `lead en stage "${lead.stageId}" mais contact statut "${contact.statut}"`,
+  }
+  const out = checkConsistency(leads, parentById, rule)
+  assert.equal(out.length, 1)
+  assert.equal(out[0].id, 'l1')
+  assert.equal(out[0].kind, 'consistency')
+  assert.match(out[0].reason, /perdu/)
+})
