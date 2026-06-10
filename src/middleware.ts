@@ -1,77 +1,72 @@
-import { NextResponse, type NextRequest } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
 
-const PUBLIC_PATHS = ['/formulaire', '/signer', '/login']
-const PUBLIC_API_PREFIXES = [
-  '/api/leads/capture',
-  '/api/chatbot',
-  '/api/webhooks',
-]
+// Pages publiques (pas de login requis).
+const isPublic = createRouteMatcher([
+  '/login(.*)',
+  '/inscription(.*)',
+  '/formulaire(.*)',
+  '/signer(.*)',
+])
 
-const SIGNED_API_PATHS = [
-  '/api/admin',
-  '/api/agent-executor',
-  '/api/telegram/hermes',
-  '/api/telegram/webhook',
-]
+// Routes /api/* qui exposent / modifient des données métier (CRM, dashboard,
+// pipeline, contacts, agenda, etc.). Elles doivent exiger soit une session Clerk
+// humaine (cookie navigateur), soit le secret de service HERMES_API_SECRET pour
+// les appelants serveur-à-serveur (MCP/agents). Les webhooks signés, les agents,
+// les formulaires publics (leads/capture, onboarding/intake, devis/signature) et
+// les routes qui gèrent déjà leur propre auth ne sont PAS listés ici.
+const isProtectedApi = createRouteMatcher([
+  '/api/contact(.*)',
+  '/api/contacts/search',
+  '/api/crm/(.*)',
+  '/api/dashboard',
+  '/api/pipeline-opps',
+  '/api/pipeline/(.*)',
+  '/api/pipelines',
+  '/api/opp(.*)',
+  '/api/budget',
+  '/api/calendrier',
+  '/api/calendar-event(.*)',
+  '/api/google-events(.*)',
+  '/api/tasks',
+  '/api/feed',
+  '/api/agent-logs',
+  '/api/conversation(.*)',
+  '/api/settings/(.*)',
+  '/api/knowledge/(.*)',
+  '/api/integrations',
+  '/api/tldv/(.*)',
+])
 
-function isPublicPath(pathname: string) {
-  return PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(`${p}/`))
+// Appelant serveur-à-serveur légitime (MCP/agents) porteur du secret partagé.
+function hasServiceSecret(req: Request): boolean {
+  const secret = process.env.HERMES_API_SECRET
+  if (!secret) return false
+  const provided =
+    req.headers.get('authorization')?.replace('Bearer ', '') ??
+    req.headers.get('x-hermes-secret') ??
+    ''
+  return provided.length > 0 && provided === secret
 }
 
-function isPublicApi(pathname: string) {
-  return PUBLIC_API_PREFIXES.some(p => pathname === p || pathname.startsWith(`${p}/`))
-}
-
-function isSignedApi(pathname: string) {
-  return SIGNED_API_PATHS.some(p => pathname === p || pathname.startsWith(`${p}/`))
-}
-
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
-
-  if (isPublicPath(pathname) || isPublicApi(pathname) || isSignedApi(pathname)) {
-    return NextResponse.next()
-  }
-
-  // Auth bypassed temporarily
-  return NextResponse.next()
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    if (process.env.NODE_ENV === 'development') return NextResponse.next()
-    return NextResponse.json({ error: 'Auth configuration missing' }, { status: 500 })
-  }
-
-  let response = NextResponse.next({ request })
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll()
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-        response = NextResponse.next({ request })
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
-      },
-    },
-  })
-
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+export default clerkMiddleware(async (auth, req) => {
+  const { pathname } = req.nextUrl
+  if (pathname.startsWith('/api/')) {
+    // Données métier : session Clerk OU secret de service requis, sinon 401.
+    if (isProtectedApi(req) && !hasServiceSecret(req)) {
+      const { userId } = await auth()
+      if (!userId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
     }
-    // Auth bypassed temporarily
-    return NextResponse.next()
+    return
   }
-
-  return response
-}
+  if (!isPublic(req)) {
+    await auth.protect()
+  }
+})
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  // Exclut les assets statiques ; inclut les pages.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json|webmanifest|txt|xml|js)$).*)'],
 }
