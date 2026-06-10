@@ -4,21 +4,20 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useSWRConfig } from 'swr'
+import { useClerk } from '@clerk/nextjs'
 import {
   LayoutDashboard, GitMerge, Users, MessageSquare, CalendarDays,
   TrendingUp, BotMessageSquare, CheckSquare,
   ScrollText, Database, Wallet, Settings, LogOut, GitBranch, FileText,
-  Radio, ChevronDown, Library, FolderOpen, HardDrive, ListChecks, Users2, CreditCard, Rocket,
+  Radio, ChevronDown, Library, FolderOpen, HardDrive, ListChecks, Users2, CreditCard, Rocket, Plug, PhoneCall,
 } from 'lucide-react'
 import Image from 'next/image'
-import { logout } from '@/app/login/actions'
-import { createClient } from '@/lib/supabase/client'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 type NavItem = { href: string; icon: React.ElementType; label: string; also?: string[] }
 
 const PREFETCH_MAP: Record<string, string> = {
   '/dashboard':     '/api/dashboard',
-  '/conversations': '/api/conversations/list',
   '/calendrier':    '/api/calendrier',
   '/devis':         '/api/devis/list',
 }
@@ -48,10 +47,11 @@ const ACQUISITION_PRE: NavItem[] = [
 
 const ACQUISITION_POST: NavItem[] = [
   { href: '/contacts',      icon: Users,           label: 'Contacts' },
+  { href: '/prospection',   icon: PhoneCall,       label: 'Prospection' },
+  { href: '/performance',   icon: TrendingUp,      label: 'Performance' },
   { href: '/onboarding',    icon: Rocket,          label: 'Onboarding' },
   { href: '/paiement',      icon: CreditCard,      label: 'Paiement' },
   { href: '/calendrier',    icon: CalendarDays,    label: 'Calendrier' },
-  { href: '/analyse',       icon: TrendingUp,      label: 'Analyse', also: ['/growth'] },
 ]
 
 const BIBLIOTHEQUES: NavItem[] = [
@@ -68,9 +68,8 @@ const AGENTIQUE: NavItem[] = [
 ]
 
 const CONFIGURATION: NavItem[] = [
-  { href: '/workflows', icon: GitBranch, label: 'Automatisation' },
   { href: '/budget',    icon: Wallet,    label: 'Budget' },
-  { href: '/parametres', icon: Settings, label: 'Paramètres' },
+  { href: '/integrations', icon: Plug,   label: 'Intégrations' },
 ]
 
 function SectionLabel({ label }: { label: string }) {
@@ -118,7 +117,7 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
       `}
     >
       <Icon size={13} strokeWidth={active ? 2.5 : 1.8} className="flex-shrink-0" />
-      <span className={`text-[12px] truncate ${active ? 'font-semibold' : 'font-medium'}`}>{label}</span>
+      <span className="text-[12px] truncate font-medium">{label}</span>
     </Link>
   )
 }
@@ -148,7 +147,7 @@ function BibliothequeNav({ pathname }: { pathname: string }) {
         `}
       >
         <Library size={13} strokeWidth={onBiblio ? 2.5 : 1.8} className="flex-shrink-0" />
-        <span className={`text-[12px] truncate flex-1 ${onBiblio ? 'font-semibold' : 'font-medium'}`}>Bibliothèque</span>
+        <span className="text-[12px] truncate flex-1 font-medium">Bibliothèque</span>
         {onBiblio && <ChevronDown size={10} className="flex-shrink-0 text-white/60" />}
       </Link>
 
@@ -156,7 +155,7 @@ function BibliothequeNav({ pathname }: { pathname: string }) {
         <div className="ml-4 flex flex-col gap-0.5 mt-0.5">
           {SUBS.map(({ href, label, active }) => (
             <Link key={href} href={href} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] transition-all duration-150 ${
-              active ? 'bg-white/10 text-white font-semibold' : 'text-white/40 font-medium hover:text-white/70 hover:bg-white/5'
+              active ? 'bg-white/10 text-white font-medium' : 'text-white/40 font-medium hover:text-white/70 hover:bg-white/5'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors ${active ? 'bg-[#FF4D00]' : 'bg-white/20'}`} />
               {label}
@@ -188,7 +187,7 @@ function PipelineNav({ pathname }: { pathname: string }) {
         }`}
       >
         <GitMerge size={13} strokeWidth={onPipeline ? 2.5 : 1.8} className="flex-shrink-0" />
-        <span className={`text-[12px] truncate flex-1 text-left ${onPipeline ? 'font-semibold' : 'font-medium'}`}>Pipeline</span>
+        <span className="text-[12px] truncate flex-1 text-left font-medium">Pipeline</span>
         <ChevronDown
           size={10}
           className="flex-shrink-0 transition-transform duration-300"
@@ -204,28 +203,26 @@ function PipelineNav({ pathname }: { pathname: string }) {
         }}
       >
         <div style={{ overflow: 'hidden' }}>
-        <div className="ml-4 flex flex-col gap-0.5 mt-0.5 pb-0.5">
+        <div className="flex flex-col gap-0.5 mt-0.5 pb-0.5">
           <Link
             href="/pipeline"
-            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] transition-all duration-150 ${
+            className={`flex items-center px-3 py-1.5 rounded-xl text-[11px] transition-all duration-150 ${
               leadsActive
-                ? 'bg-white/10 text-white font-semibold'
+                ? 'bg-white/10 text-white font-medium'
                 : 'text-white/40 font-medium hover:text-white/70 hover:bg-white/5'
             }`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors ${leadsActive ? 'bg-[#FF4D00]' : 'bg-white/20'}`} />
-            Leads
+            <span className="pl-[23px]">Leads</span>
           </Link>
           <Link
             href="/pipeline/clients"
-            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] transition-all duration-150 ${
+            className={`flex items-center px-3 py-1.5 rounded-xl text-[11px] transition-all duration-150 ${
               clientsActive
-                ? 'bg-white/10 text-white font-semibold'
+                ? 'bg-white/10 text-white font-medium'
                 : 'text-white/40 font-medium hover:text-white/70 hover:bg-white/5'
             }`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors ${clientsActive ? 'bg-[#FF4D00]' : 'bg-white/20'}`} />
-            Clients
+            <span className="pl-[23px]">Clients</span>
           </Link>
         </div>
         </div>
@@ -237,69 +234,25 @@ function PipelineNav({ pathname }: { pathname: string }) {
 export default function Sidebar() {
   const pathname = usePathname()
   const navRef = useRef<HTMLElement>(null)
+  const { me, isAdmin, isLoaded } = useCurrentUser()
+  const { signOut } = useClerk()
 
-  useEffect(() => {
-    const nav = navRef.current
-    if (!nav) return
-    const saved = sessionStorage.getItem('sidebar_scroll')
-    if (saved) nav.scrollTop = parseInt(saved, 10)
-  }, [])
+  const displayName = me?.name || 'Utilisateur'
+  const avatarUrl = me?.avatarUrl
+  const canSee = (href: string) => isAdmin || (me?.allowedModules ?? []).includes(href)
+  const visible = (items: NavItem[]) => items.filter(i => canSee(i.href))
 
-  useEffect(() => {
-    const nav = navRef.current
-    if (!nav) return
-    const save = () => sessionStorage.setItem('sidebar_scroll', String(nav.scrollTop))
-    nav.addEventListener('scroll', save, { passive: true })
-    return () => nav.removeEventListener('scroll', save)
-  }, [])
-  const [profilePhoto, setProfilePhoto] = useState('')
-  const [prenom, setPrenom] = useState('')
-  const [role, setRole] = useState<'superadmin' | 'client' | null>(null)
+  const acquisitionPre = visible(ACQUISITION_PRE)
+  const acquisitionPost = visible(ACQUISITION_POST)
+  const bibliotheques = visible(BIBLIOTHEQUES)
+  const agentique = visible(AGENTIQUE)
+  const configuration = visible(CONFIGURATION)
+  const showAcquisition = acquisitionPre.length > 0 || acquisitionPost.length > 0 || canSee('/pipeline')
 
-  useEffect(() => {
-    function load() {
-      try {
-        const p = localStorage.getItem('vividflow_profile_photo')
-        setProfilePhoto(p ?? '')
-      } catch {}
-      try {
-        const compte = JSON.parse(localStorage.getItem('vividflow_compte') ?? '{}')
-        setPrenom(compte.prenom ?? '')
-      } catch {}
-    }
-    load()
-    window.addEventListener('profile-photo-updated', load)
-    window.addEventListener('company-settings-updated', load)
-    return () => {
-      window.removeEventListener('profile-photo-updated', load)
-      window.removeEventListener('company-settings-updated', load)
-    }
-  }, [])
-
-  useEffect(() => {
-    const hasSupabaseEnv = Boolean(
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    )
-
-    if (!hasSupabaseEnv) {
-      setRole('superadmin')
-      return
-    }
-
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return
-      supabase
-        .from('user_profiles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single()
-        .then(({ data }) => setRole((data?.role as 'superadmin' | 'client') ?? 'client'))
-    })
-  }, [])
-
-  const isSuperAdmin = role === 'superadmin' || role === null
+  // Avoid flicker: render nothing until user data is loaded
+  if (!isLoaded) return (
+    <aside className="fixed left-3 top-3 bottom-3 w-56 bg-soren-sidebar rounded-2xl flex flex-col z-50 overflow-hidden shadow-xl" />
+  )
 
   return (
     <aside className="fixed left-3 top-3 bottom-3 w-56 bg-soren-sidebar rounded-2xl flex flex-col z-50 overflow-hidden shadow-xl">
@@ -313,40 +266,43 @@ export default function Sidebar() {
           priority
           className="object-contain rounded-xl flex-shrink-0 shadow-md"
         />
-        <span className="text-white font-black text-[15px] tracking-tight">VividFlow</span>
+        <span className="text-white font-sans font-bold text-[16px] tracking-[-0.01em]">VividFlow</span>
       </Link>
 
       <div className="mx-3 h-px bg-soren-card/8 flex-shrink-0" />
 
       {/* Nav */}
-      <nav ref={navRef} className="flex flex-col flex-1 px-2 py-1 overflow-y-auto">
-        <SectionLabel label="Acquisition" />
-        {ACQUISITION_PRE.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
-        <PipelineNav pathname={pathname} />
-        {ACQUISITION_POST.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
+      <nav ref={navRef} className="flex flex-col flex-1 px-2 pt-1 pb-10 overflow-y-auto sidebar-nav">
+        {showAcquisition && <SectionLabel label="Acquisition" />}
+        {acquisitionPre.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
+        {canSee('/pipeline') && <PipelineNav pathname={pathname} />}
+        {acquisitionPost.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
 
-        <SectionLabel label="Bibliothèques" />
-        {BIBLIOTHEQUES.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
+        {bibliotheques.length > 0 && <>
+          <SectionLabel label="Bibliothèques" />
+          {bibliotheques.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
+        </>}
 
-        {isSuperAdmin && (
+        {isAdmin && agentique.length > 0 && (
           <>
             <SectionLabel label="Agentique" />
-            {AGENTIQUE.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
+            {agentique.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
           </>
         )}
 
-        {!isSuperAdmin && (
+        {!isAdmin && canSee('/taches') && (
           <>
             <SectionLabel label="Agents" />
             <NavLink item={{ href: '/taches', icon: CheckSquare, label: 'Tâches' }} pathname={pathname} />
           </>
         )}
 
-        <SectionLabel label="Configuration" />
-        {isSuperAdmin
-          ? CONFIGURATION.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)
-          : <NavLink item={{ href: '/parametres', icon: Settings, label: 'Paramètres' }} pathname={pathname} />
-        }
+        {isAdmin && configuration.length > 0 && (
+          <>
+            <SectionLabel label="Configuration" />
+            {configuration.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
+          </>
+        )}
       </nav>
 
       {/* Bottom fade */}
@@ -359,24 +315,24 @@ export default function Sidebar() {
       <div className="mx-3 h-px bg-soren-card/8 flex-shrink-0" />
       <div className="px-3 py-2.5 flex-shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center bg-[#FF4D00]">
-            {profilePhoto
-              ? <img src={profilePhoto} alt="profil" className="w-full h-full object-cover" />
-              : <span className="text-[11px] font-bold text-[#111111]">{prenom ? prenom[0].toUpperCase() : 'T'}</span>
-            }
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-white text-[12px] font-semibold truncate">{prenom || 'Utilisateur'}</p>
-            <p className="text-white/40 text-[10px]">Admin · Pro</p>
-          </div>
-          <form action={logout}>
-            <button
-              type="submit"
-              className="w-6 h-6 flex items-center justify-center rounded-lg text-white/30 hover:text-white/70 hover:bg-soren-card/8 transition-colors"
-            >
-              <LogOut size={12} />
-            </button>
-          </form>
+          <Link href="/parametres" className="flex items-center gap-2.5 min-w-0 flex-1 group">
+            <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center bg-[#FF4D00]">
+              {avatarUrl
+                ? <img src={avatarUrl} alt="profil" className="w-full h-full object-cover" />
+                : <span className="text-[11px] font-bold text-[#111111]">{displayName[0]?.toUpperCase() ?? 'U'}</span>
+              }
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-white text-[12px] font-semibold truncate group-hover:text-white/90 transition-colors">{displayName}</p>
+              <p className="text-white/40 text-[10px] capitalize truncate">{me?.role ?? '—'}</p>
+            </div>
+          </Link>
+          <button
+            onClick={() => { void signOut().finally(() => { window.location.href = '/login' }) }}
+            className="w-6 h-6 flex items-center justify-center rounded-lg text-white/30 hover:text-white/70 hover:bg-soren-card/8 transition-colors flex-shrink-0"
+          >
+            <LogOut size={12} />
+          </button>
         </div>
       </div>
     </aside>

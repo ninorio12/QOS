@@ -31,7 +31,6 @@ const isProtectedApi = createRouteMatcher([
   '/api/tasks',
   '/api/feed',
   '/api/agent-logs',
-  '/api/conversation(.*)',
   '/api/settings/(.*)',
   '/api/knowledge/(.*)',
   '/api/integrations',

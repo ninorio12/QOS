@@ -27,8 +27,6 @@ const safeFetcher = async (url: string) => {
 
 const CRITICAL_ENDPOINTS = [
   '/api/dashboard',
-  '/api/conversations/list', 
-  '/api/devis/list',
 ]
 
 export default function DataPrefetcher() {
