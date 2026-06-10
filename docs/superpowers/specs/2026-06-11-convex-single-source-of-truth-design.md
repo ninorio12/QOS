@@ -15,6 +15,16 @@ Le Data OS (QOS) s'appuie aujourd'hui sur **trois sources de données simultané
 ### Ancrage sur l'audit du 2026-06-10
 Un audit multi-agents de ~7h (8 agents + 3 juges « tribunal » + passe interactive) a déjà produit **109 findings** (9 critiques, 42 majeurs). Cet audit est de fait **la première exécution manuelle du vérificateur** : ses findings seedent la carte des liens, la liste d'UI morte, et l'ordre de priorité. Le vérificateur doit au minimum **reproduire** tout ce que l'audit a trouvé (jeu de calibration). Le corpus d'audit est sauvegardé comme worklist versionnée (voir §7).
 
+## 1bis. Principe d'exécution : CHIRURGICAL (non négociable)
+
+Tout ce projet se fait au scalpel, jamais à la hache.
+
+- **Une modification = une intention.** Aucun refactoring non lié, aucune « amélioration » opportuniste hors périmètre. Ce qui marche reste tel quel.
+- **On ne supprime rien sans prouver que c'est mort.** Avant de couper un module : grep des références entrantes depuis les modules gardés (0), aucune route live qui en dépend (0), aucune donnée réelle (0). Pas de suppression à l'aveugle. _(Rappel : le tribunal a averti que `/signer` semblait vivant en prod — donc on vérifie chaque module, on n'assume pas. Le verdict « legacy Soren » du user oriente, mais le grep confirme.)_
+- **Petits commits atomiques**, un module / une vague à la fois. Le vérificateur passe **au vert** sur le périmètre avant de passer au suivant.
+- **Diff minimal, branche + preview, validation avant prod.** Rien sur le backend Convex partagé (avec Jonathan) sans confirmation explicite.
+- **Réversibilité.** Chaque vague est un point de retour propre ; on peut s'arrêter entre deux sans laisser l'app à moitié cassée.
+
 ## 2. Le vérificateur (Vague 0 — livrable « C »)
 
 Trois pièces.
