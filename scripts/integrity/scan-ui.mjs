@@ -16,8 +16,8 @@ export function findDeadUi(file, text, knownRoutes) {
     }
     for (const m of line.matchAll(/(?:router\.push|href\s*=\s*)\(?["'](\/[A-Za-z0-9/_-]*)["']/g)) {
       const route = m[1].split('?')[0]
-      // ignore les racines dynamiques évidentes
-      if (route === '/' || route.includes('[')) continue
+      // ignore les racines dynamiques évidentes + les endpoints API (route handlers, pas des pages)
+      if (route === '/' || route.includes('[') || route.startsWith('/api/')) continue
       if (!knownRoutes.has(route)) {
         out.push({ kind: 'ui', file, line: ln, reason: `route inexistante: ${route}` })
       }
