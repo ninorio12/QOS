@@ -28,11 +28,12 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Trash2, Eye, EyeOff } from 'lucide-react'
+import { Trash2, Eye, EyeOff, ChevronLeft, ChevronRight } from 'lucide-react'
 import { type GHLPipelineData, type GHLStage, type Opportunity, type Lead } from './types'
 import { getAvatarColor } from '@/components/contacts/types'
 import dynamic from 'next/dynamic'
 import { useToast } from '@/hooks/useToast'
+import { useCoarsePointer } from '@/hooks/useCoarsePointer'
 import { Toaster } from '@/components/shared/Toaster'
 import ContactSlideOver from './ContactSlideOver'
 
@@ -81,19 +82,19 @@ function OppCard({ opp, isDragging = false, muted = false, hideValue = false }: 
       }
     `}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-semibold text-soren-text leading-tight truncate">{opp.name}</p>
+        <p className="text-[11px] font-normal text-soren-text leading-tight truncate">{opp.name}</p>
         <span className="text-[10px] text-soren-subtle shrink-0">{date}</span>
       </div>
       <div className="flex items-center justify-between gap-1 min-w-0">
         <div className="flex items-center gap-1 min-w-0 overflow-hidden">
           {!hideValue && (
             <span className="text-xs font-bold text-soren-text shrink-0">
-              {opp.value > 0 ? `€${opp.value.toLocaleString('fr-FR')}` : '—'}
+              {opp.value > 0 ? `${opp.value.toLocaleString('fr-FR')} CHF` : '—'}
             </span>
           )}
           {sourceType === 'inbound'
-            ? <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#DCFCE7', color: '#16A34A' }}>inbound</span>
-            : <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#FEF9C3', color: '#CA8A04' }}>outbound</span>
+            ? <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-[#DCFCE7] text-[#16A34A] dark:bg-emerald-500/15 dark:text-emerald-400">inbound</span>
+            : <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-[#FEF9C3] text-[#CA8A04] dark:bg-amber-500/15 dark:text-amber-400">outbound</span>
           }
         </div>
         <Avatar initials={opp.initials} />
@@ -103,24 +104,42 @@ function OppCard({ opp, isDragging = false, muted = false, hideValue = false }: 
 }
 
 // ─── Sortable Card ────────────────────────────────────────────
-function SortableCard({ opp, onCardClick, wasDragged }: { opp: Opportunity; onCardClick: () => void; wasDragged: React.MutableRefObject<boolean>; }) {
+function SortableCard({ opp, onCardClick, wasDragged, onMove, canPrev = false, canNext = false }: { opp: Opportunity; onCardClick: () => void; wasDragged: React.MutableRefObject<boolean>; onMove?: (opp: Opportunity, dir: number) => void; canPrev?: boolean; canNext?: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging, transform, transition } = useSortable({
     id: opp.id,
     transition: { duration: 200, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' },
   })
+  const coarse = useCoarsePointer()  // tactile → pas de drag (scroll fluide), on déplace via les flèches
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation()
   return (
     <div
       ref={setNodeRef}
-      {...listeners}
       {...attributes}
-      onClick={() => { if (!wasDragged.current) onCardClick() }}
       style={{
         opacity:    isDragging ? 0.3 : 1,
         transform:  CSS.Transform.toString(transform),
         transition,
       }}
     >
-      <OppCard opp={opp} hideValue />
+      {/* corps — drag (desktop) / tap pour ouvrir */}
+      <div {...(coarse ? {} : listeners)} onClick={() => { if (!wasDragged.current) onCardClick() }} className="md:cursor-grab">
+        <OppCard opp={opp} hideValue />
+      </div>
+      {/* déplacer entre étapes — mobile (au doigt, sans drag) */}
+      {onMove && (
+        <div className="md:hidden flex items-center gap-1.5 mt-1">
+          <button
+            type="button" disabled={!canPrev}
+            onPointerDown={stop} onClick={e => { stop(e); onMove(opp, -1) }}
+            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-soren-card border border-soren-border text-[11px] font-semibold text-soren-muted disabled:opacity-30"
+          ><ChevronLeft size={13} /> Étape</button>
+          <button
+            type="button" disabled={!canNext}
+            onPointerDown={stop} onClick={e => { stop(e); onMove(opp, 1) }}
+            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-soren-card border border-soren-border text-[11px] font-semibold text-soren-muted disabled:opacity-30"
+          >Étape <ChevronRight size={13} /></button>
+        </div>
+      )}
     </div>
   )
 }
@@ -157,17 +176,21 @@ interface KanbanColumnProps {
   isLostOver: boolean
   isLastStage?: boolean
   onReopen?: (opp: Opportunity) => void
+  mobileActive?: boolean
+  stageIndex?: number
+  stageCount?: number
+  onMove?: (opp: Opportunity, dir: number) => void
 }
 
-function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, isLostOver, isLastStage, onReopen }: KanbanColumnProps) {
+function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, isLostOver, isLastStage, onReopen, mobileActive = true, stageIndex = 0, stageCount = 1, onMove }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id: stage.id })
 
   return (
-    <div className="flex flex-col w-56 flex-shrink-0 h-full">
+    <div className={`${mobileActive ? 'flex w-full' : 'hidden md:flex'} flex-col md:w-56 flex-shrink-0 h-full`}>
       <div className={`flex items-center justify-between mb-2 px-0.5 transition-opacity ${showLost ? 'opacity-50' : ''}`}>
         <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: isLastStage ? '#10B981' : stage.color }} />
-          <span className={`text-[11px] font-semibold truncate max-w-[120px] ${isLastStage ? 'text-[#10B981]' : 'text-[#374151]'}`}>{stage.name}</span>
+          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: isLastStage ? '#22C55E' : stage.color }} />
+          <span className={`text-[11px] font-semibold truncate max-w-[120px] ${isLastStage ? 'text-[#16A34A]' : 'text-[#374151]'}`}>{stage.name}</span>
           <span className="text-[9px] font-bold bg-soren-card border border-soren-border text-soren-muted px-1.5 py-0.5 rounded-full min-w-[16px] text-center shadow-sm">
             {opps.length}
           </span>
@@ -180,7 +203,7 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
           showLost
             ? 'bg-black/[0.02]'
             : isLastStage
-              ? isOver ? 'bg-[#84cc16]/40 ring-2 ring-[#65a30d]' : 'bg-[#84cc16]/20 ring-1 ring-[#84cc16]/60'
+              ? isOver ? 'bg-[#22C55E]/40 ring-2 ring-[#16A34A]' : 'bg-[#22C55E]/20 ring-1 ring-[#22C55E]/60'
               : isOver ? 'bg-[#FF4D00]/10 ring-1 ring-[#FF4D00]/40' : 'bg-black/[0.04]'
         }`}
       >
@@ -208,7 +231,7 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
         ) : (
           <SortableContext items={opps.map(o => o.id)} strategy={verticalListSortingStrategy}>
             <div className="flex-1 min-h-0 overflow-y-auto kanban-col flex flex-col gap-1.5">
-              {opps.map(opp => <SortableCard key={opp.id} opp={opp} onCardClick={() => onCardClick(opp)} wasDragged={wasDragged} />)}
+              {opps.map(opp => <SortableCard key={opp.id} opp={opp} onCardClick={() => onCardClick(opp)} wasDragged={wasDragged} onMove={onMove} canPrev={stageIndex > 0} canNext={stageIndex < stageCount - 1} />)}
               {opps.length === 0 && (
                 <div className="h-full flex items-center justify-center">
                   <p className="text-[11px] text-soren-subtle">Déposer ici</p>
@@ -219,6 +242,12 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
         )}
 
         {!showLost && !isLastStage && <LostZone stageId={stage.id} isOver={isLostOver} />}
+        {/* Last stage has no lost zone — reserve the same space so its column matches the others */}
+        {!showLost && isLastStage && (
+          <div aria-hidden className="mt-1.5 flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-transparent py-1.5 pointer-events-none select-none">
+            <span className="text-[10px] font-semibold opacity-0">·</span>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -345,40 +374,52 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   useEffect(() => {
     const el = boardRef.current
     if (!el) return
-    let target = el.scrollLeft
-    let raf: number | null = null
+    const clampH = (v: number) => Math.max(0, Math.min(el.scrollWidth - el.clientWidth, v))
+    let hTarget = el.scrollLeft
+    let hRaf: number | null = null
+    let vCol: HTMLElement | null = null
+    let vTarget = 0
+    let vRaf: number | null = null
 
-    function animate() {
+    function hAnimate() {
       if (!el) return
-      const diff = target - el.scrollLeft
-      if (Math.abs(diff) < 0.5) { el.scrollLeft = target; raf = null; return }
-      el.scrollLeft += diff * 0.12
-      raf = requestAnimationFrame(animate)
+      const diff = hTarget - el.scrollLeft
+      if (Math.abs(diff) < 0.5) { el.scrollLeft = hTarget; hRaf = null; return }
+      el.scrollLeft += diff * 0.16
+      hRaf = requestAnimationFrame(hAnimate)
+    }
+    function vAnimate() {
+      if (!vCol) { vRaf = null; return }
+      const diff = vTarget - vCol.scrollTop
+      if (Math.abs(diff) < 0.5) { vCol.scrollTop = vTarget; vRaf = null; return }
+      vCol.scrollTop += diff * 0.2
+      vRaf = requestAnimationFrame(vAnimate)
     }
 
     const onWheel = (e: WheelEvent) => {
-      e.preventDefault()
-      // Trackpad horizontal pan → scroll board left/right
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-        target = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, target + e.deltaX))
-        if (!raf) raf = requestAnimationFrame(animate)
+      // Intentional horizontal: trackpad pan or Shift+wheel → scroll board left/right
+      if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        e.preventDefault()
+        hTarget = clampH(hTarget + (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY))
+        if (!hRaf) hRaf = requestAnimationFrame(hAnimate)
         return
       }
-      // Cursor over a scrollable column (anywhere in the column area) → scroll it vertically
+      // Cursor over a column → scroll THAT column vertically (smooth). Never spill to horizontal.
       const col = document.elementsFromPoint(e.clientX, e.clientY)
-        .find(el => el.classList.contains('kanban-col')) as HTMLElement | undefined
-      if (col && col.scrollHeight > col.clientHeight) {
-        const goingDown = e.deltaY > 0
-        const atBottom  = col.scrollTop + col.clientHeight >= col.scrollHeight - 1
-        const atTop     = col.scrollTop <= 0
-        if ((goingDown && !atBottom) || (!goingDown && !atTop)) {
-          col.scrollTop += e.deltaY
-          return
+        .find(c => c.classList.contains('kanban-col')) as HTMLElement | undefined
+      if (col) {
+        e.preventDefault()
+        if (col.scrollHeight > col.clientHeight) {
+          if (vCol !== col) { vCol = col; vTarget = col.scrollTop }
+          vTarget = Math.max(0, Math.min(col.scrollHeight - col.clientHeight, vTarget + e.deltaY))
+          if (!vRaf) vRaf = requestAnimationFrame(vAnimate)
         }
+        return
       }
-      // Outside column or column not scrollable → scroll board horizontally
-      target = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, target + e.deltaY))
-      if (!raf) raf = requestAnimationFrame(animate)
+      // Not over any column (gaps / empty board area) → scroll board horizontally
+      e.preventDefault()
+      hTarget = clampH(hTarget + e.deltaY)
+      if (!hRaf) hRaf = requestAnimationFrame(hAnimate)
     }
 
     const onScroll = () => setScrolled(el.scrollLeft > 10)
@@ -388,14 +429,27 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     return () => {
       el.removeEventListener('wheel', onWheel)
       el.removeEventListener('scroll', onScroll)
-      if (raf) cancelAnimationFrame(raf)
+      if (hRaf) cancelAnimationFrame(hRaf)
+      if (vRaf) cancelAnimationFrame(vRaf)
     }
   }, [])
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 10 } }))
 
   const pipeline     = initialPipelines[pipelineIdx] ?? initialPipelines[0]
   const stages       = pipeline?.stages ?? []
+  // Étape affichée sur mobile (sélecteur d'étapes — une colonne à la fois)
+  const [mobileStageId, setMobileStageId] = useState<string | null>(null)
+  const activeMobileStage = mobileStageId && stages.some(s => s.id === mobileStageId) ? mobileStageId : stages[0]?.id
+  // Déplacer une carte d'une étape (sans drag) — mobile
+  const moveOppStage = (opp: Opportunity, dir: number) => {
+    const idx = stages.findIndex(s => s.id === opp.stageId)
+    const target = stages[idx + dir]
+    if (!target) return
+    setOpps(prev => prev.map(o => o.id === opp.id ? { ...o, stageId: target.id } : o))
+    void persistStageMove(opp.id, target.id, opp.stageId)
+    setMobileStageId(target.id)
+  }
   const activeOpp    = opps.find(o => o.id === activeId) ?? null
   const pipelineOpps = opps.filter(o => o.pipelineId === pipeline?.id)
   const getColOpps = useCallback((stageId: string) => {
@@ -635,6 +689,25 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
           </div>
         </div>
 
+        {/* Sélecteur d'étapes — mobile (une colonne à la fois) */}
+        {stages.length > 0 && (
+          <div className="md:hidden flex gap-1.5 overflow-x-auto px-3 pb-2.5 kanban-scroll">
+            {stages.map((stage) => {
+              const on = stage.id === activeMobileStage
+              return (
+                <button
+                  key={stage.id}
+                  onClick={() => setMobileStageId(stage.id)}
+                  className={`flex-none flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border transition-colors ${on ? 'bg-[#FF4D00] border-[#FF4D00]' : 'bg-soren-card border-soren-border'}`}
+                >
+                  <span className={`text-[11px] font-semibold whitespace-nowrap ${on ? 'text-white' : 'text-soren-muted'}`}>{stage.name}</span>
+                  <span className={`text-[10px] font-bold leading-none px-1.5 py-0.5 rounded-full ${on ? 'bg-white/25 text-white' : 'bg-soren-elevated text-soren-subtle'}`}>{getColOpps(stage.id).length}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         {/* Board */}
         <div className="relative flex-1 min-h-0">
           <div
@@ -645,7 +718,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
             className="pointer-events-none absolute right-0 top-0 bottom-4 w-8 z-10"
             style={{ background: 'linear-gradient(to left, var(--bg-app) 40%, transparent)' }}
           />
-          <div ref={boardRef} className="flex gap-4 overflow-x-auto px-6 pb-4 kanban-scroll kanban-board-row">
+          <div ref={boardRef} className="flex gap-4 overflow-x-auto px-3 md:px-6 pb-4 snap-x snap-mandatory md:snap-none kanban-scroll kanban-board-row">
             {stages.map((stage, i) => (
               <KanbanColumn
                 key={stage.id}
@@ -658,6 +731,10 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
                 isLostOver={overId === `${LOST_PREFIX}${stage.id}`}
                 isLastStage={i === stages.length - 1}
                 onReopen={reopenLead}
+                mobileActive={stage.id === activeMobileStage}
+                stageIndex={i}
+                stageCount={stages.length}
+                onMove={moveOppStage}
               />
             ))}
           </div>
@@ -682,7 +759,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
               </p>
             </div>
             <div className="w-full">
-              <label className="block text-xs font-semibold text-[#374151] mb-2 text-left">Montant du deal (€)</label>
+              <label className="block text-xs font-semibold text-[#374151] mb-2 text-left">Montant du deal (CHF)</label>
               <input
                 autoFocus
                 type="number"

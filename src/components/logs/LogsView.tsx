@@ -1,340 +1,297 @@
 'use client'
 
-import { useState, useMemo, useEffect, useRef } from 'react'
-import { Search, Radio } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
+import {
+  CheckSquare, Bot, ShieldCheck, Brain, AlertTriangle, Scale, Play,
+  Radio, User, Cpu, ScrollText, X, ArrowUpRight, type LucideIcon,
+} from 'lucide-react'
+import { activityMeta, sourceMeta, type ActivityKind } from '@/components/agentic/doctrine'
+import { AGENT_PROFILES } from '@/components/agentic/agentProfiles'
+import { Pill, DetailPanel, KV } from '@/components/agentic/ui'
 
-// ─── Types ────────────────────────────────────────────────────
-type AgentId  = 'vividflow' | 'kai' | 'mia'
-type LogLevel = 'info' | 'success' | 'error' | 'warning'
-
-type LogEntry = {
-  id: string
-  time: string
-  agent: AgentId
-  level: LogLevel
-  message: string
-  detail?: string
-  tool_used?: string | null
-  created_at?: string
+type Activity = {
+  id: string; actorType: string; actorId: string; eventType: string
+  entityType?: string; entityId?: string; summary: string; source?: string
+  createdAt: string
 }
 
-// ─── Meta ─────────────────────────────────────────────────────
-const AGENT_META: Record<AgentId, { label: string; color: string; bg: string }> = {
-  vividflow:  { label: 'VividFlow',  color: '#4A91A8', bg: '#4A91A815' },
-  kai:    { label: 'Kai',    color: '#1A5C38', bg: '#1A5C3815' },
-  mia:    { label: 'Mia',    color: '#E8836A', bg: '#E8836A15' },
+// Icône selon le type d'événement (kind doctrine).
+const kindIcon: Record<ActivityKind, LucideIcon> = {
+  run: Play,
+  task: CheckSquare,
+  decision: Scale,
+  memory: Brain,
+  validation: ShieldCheck,
+  error: AlertTriangle,
 }
 
-const LEVEL_META: Record<LogLevel, { label: string; color: string; bg: string }> = {
-  info:    { label: 'INFO',    color: '#8896AB', bg: '#8896AB15' },
-  success: { label: 'SUCCESS', color: '#8B5CF6', bg: '#8B5CF615' },
-  error:   { label: 'ERROR',   color: '#EF4444', bg: '#EF444415' },
-  warning: { label: 'WARNING', color: '#E8836A', bg: '#E8836A15' },
+// Icône selon l'acteur.
+const actorIcon = (t: string): LucideIcon => (t === 'agent' ? Bot : t === 'system' ? Cpu : User)
+
+const STATUS_COLOR: Record<string, string> = {
+  success: '#16A34A',
+  attention: '#D97706',
+  error: '#DC2626',
+}
+const STATUS_LABEL: Record<string, string> = {
+  success: 'Succès',
+  attention: 'Attention',
+  error: 'Erreur',
 }
 
-// ─── Seed logs ────────────────────────────────────────────────
-function now() { return new Date().toLocaleTimeString('fr-FR') }
+const dateFR = (s: string) =>
+  new Date(s).toLocaleString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
-const SEED_LOGS: LogEntry[] = [
-  { id: 'l01', time: now(), agent: 'vividflow', level: 'info',    message: 'Heartbeat exécuté — 3 leads analysés',                   detail: 'Pipeline ACQUISITION · leads actifs : Martin Dupont, Xavier Lambert, Inès Duprez' },
-  { id: 'l02', time: now(), agent: 'kai',   level: 'success', message: 'Lead Martin Dupont qualifié — stage mis à jour',          detail: 'Opportunité #opp-447 → stage "Qualifié" · valeur €4,500' },
-  { id: 'l03', time: now(), agent: 'kai',   level: 'info',    message: 'Message WhatsApp envoyé à +33612345001',                  detail: 'Contact : Martin Dupont · template : confirmation_rdv' },
-  { id: 'l04', time: now(), agent: 'mia',   level: 'success', message: 'Devis généré — Rénovation façade €8,900',                 detail: 'Document PDF créé · envoi planifié demain 09h00 · BN Bâtiment' },
-  { id: 'l05', time: now(), agent: 'vividflow', level: 'info',    message: 'Directive envoyée à Kai : relancer Xavier Lambert',       detail: 'Priorité haute · délai : 24h · canal : WhatsApp' },
-  { id: 'l06', time: now(), agent: 'kai',   level: 'error',   message: 'Échec appel Vapi — Martin Dupont non joignable',          detail: 'Erreur Vapi : timeout 30s · tentative 2/3 · prochain essai dans 2h' },
-  { id: 'l07', time: now(), agent: 'kai',   level: 'warning', message: 'Lead sans réponse depuis 48h — intervention recommandée', detail: 'Contact : Xavier Lambert · dernière interaction : 4 avril' },
-  { id: 'l08', time: now(), agent: 'mia',   level: 'info',    message: 'Base de connaissance mise à jour',                        detail: 'Fichier MEMORY.md · 3 entrées ajoutées' },
-  { id: 'l09', time: now(), agent: 'vividflow', level: 'success', message: 'Analyse pipeline terminée — rapport généré',              detail: 'Pipeline ACQUISITION · 12 opportunités · valeur totale €74,600' },
-  { id: 'l10', time: now(), agent: 'kai',   level: 'info',    message: 'Nouveau lead détecté — Didier Fabre',                     detail: 'Source : formulaire web · score qualification : 72/100' },
-  { id: 'l11', time: now(), agent: 'mia',   level: 'success', message: 'Document créé : Fiche client Xavier Lambert',             detail: 'Type : fiche_contact · ID : doc-0219 · taille : 2.4 Ko' },
-  { id: 'l12', time: now(), agent: 'vividflow', level: 'info',    message: 'Connexion CRM vérifiée — 12 opportunités actives',        detail: 'Token valide · quota API : 847/1000 requêtes restantes' },
-  { id: 'l13', time: now(), agent: 'kai',   level: 'success', message: 'RDV planifié — Inès Duprez 7 avril 14h',                  detail: 'Calendrier mis à jour · confirmation envoyée par email' },
-  { id: 'l14', time: now(), agent: 'mia',   level: 'warning', message: 'Devis en attente de validation depuis 24h',               detail: 'Devis #dv-0114 — Plomberie chauffage · contact : Marie Colin' },
-  { id: 'l15', time: now(), agent: 'vividflow', level: 'info',    message: 'Démarrage orchestrateur — agents actifs : 3/3',           detail: 'VividFlow v1.0 · Kai v1.0 · Mia v1.0 · modèle : claude-haiku-4-5' },
+// Filtres = Tous · un par agent (par nom) · Erreurs.
+const FILTERS: { id: string; label: string }[] = [
+  { id: 'all', label: 'Tous' },
+  ...AGENT_PROFILES.map(a => ({ id: a.name, label: a.name })),
+  { id: 'errors', label: 'Erreurs' },
 ]
 
-// ─── Live log generators ──────────────────────────────────────
-let liveCounter = 100
-
-const LIVE_TEMPLATES: { agent: AgentId; level: LogLevel; message: string; detail?: string }[] = [
-  { agent: 'kai',   level: 'info',    message: 'Scan conversations entrantes — {n} nouvelles',           detail: 'Source : webhook · traitement en cours' },
-  { agent: 'vividflow', level: 'info',    message: 'Heartbeat — pipeline actif · {n} opportunités ouvertes', detail: 'Délai prochain cycle : 3h00' },
-  { agent: 'mia',   level: 'success', message: 'Synchronisation KB terminée — {n} documents',            detail: 'Fichiers mis à jour : MEMORY.md, kai.md' },
-  { agent: 'kai',   level: 'success', message: 'Relance WhatsApp envoyée → Xavier Lambert',              detail: 'Template : relance_48h · score urgence : 87/100' },
-  { agent: 'vividflow', level: 'success', message: 'Rapport digest Telegram envoyé',                         detail: 'Pipeline €74,6k · 12 leads actifs · 1 RDV cette semaine' },
-  { agent: 'mia',   level: 'info',    message: 'Template devis chargé — {n} variantes disponibles',      detail: 'Secteur : rénovation façade · gamme : standard/premium' },
-  { agent: 'kai',   level: 'info',    message: 'Score qualification calculé — lead {name} : {s}/100',    detail: 'Critères : budget, délai, décideur, besoin défini' },
-  { agent: 'vividflow', level: 'warning', message: 'Lead inactif depuis 72h — escalade recommandée',         detail: 'Contact : Marie Colin · valeur estimée : €12,000' },
-  { agent: 'kai',   level: 'success', message: 'Opportunité mise à jour → stade avancé',                 detail: 'Pipeline ACQUISITION · valeur : €45,000 · tag : prioritaire' },
-  { agent: 'mia',   level: 'info',    message: 'Archivage mensuel — {n} fiches clients traitées',        detail: 'Mois : mars 2026 · statuts : won/lost/abandoned archivés' },
-]
-
-const NAMES = ['Martin Dupont', 'Sophie Renard', 'Didier Fabre', 'Inès Duprez', 'Xavier Lambert']
-
-function generateLiveLog(): LogEntry {
-  const tpl = LIVE_TEMPLATES[Math.floor(Math.random() * LIVE_TEMPLATES.length)]
-  liveCounter++
-  return {
-    id: `live-${liveCounter}`,
-    time: now(),
-    agent: tpl.agent,
-    level: tpl.level,
-    message: tpl.message
-      .replace('{n}', String(Math.floor(Math.random() * 8) + 1))
-      .replace('{name}', NAMES[Math.floor(Math.random() * NAMES.length)])
-      .replace('{s}', String(Math.floor(Math.random() * 25) + 65)),
-    detail: tpl.detail,
-  }
-}
-
-// ─── Filters ──────────────────────────────────────────────────
-type AgentFilter = AgentId | 'all'
-type LevelFilter = LogLevel | 'all'
-
-const AGENT_OPTIONS: { id: AgentFilter; label: string }[] = [
-  { id: 'all',    label: 'Tous' },
-  { id: 'vividflow',  label: 'VividFlow' },
-  { id: 'kai',    label: 'Kai' },
-  { id: 'mia',    label: 'Mia' },
-]
-const LEVEL_OPTIONS: { id: LevelFilter; label: string }[] = [
-  { id: 'all', label: 'Tous' }, { id: 'info', label: 'Info' }, { id: 'success', label: 'Succès' },
-  { id: 'error', label: 'Erreur' }, { id: 'warning', label: 'Warning' },
-]
-
-// ─── Log row ──────────────────────────────────────────────────
-function LogRow({ entry, isNew }: { entry: LogEntry; isNew?: boolean }) {
-  const [open, setOpen] = useState(false)
-  const agent = AGENT_META[entry.agent]
-  const level = LEVEL_META[entry.level]
-
+// Petit bouton lien sobre (router.push) — affiché seulement quand la cible est connue.
+function LinkButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <div
-      className={`relative border-b border-[#F3F4F6] last:border-0 transition-colors duration-500 ${isNew ? 'bg-soren-elevated' : 'hover:bg-[#FAFAFA]'}`}
-      onClick={() => entry.detail && setOpen(o => !o)}
-      style={{ cursor: entry.detail ? 'pointer' : 'default' }}
+    <button
+      onClick={onClick}
+      className="inline-flex items-center gap-1 text-[12px] font-semibold text-soren-sidebar hover:underline"
     >
-      {/* Left accent bar */}
-      <div
-        className="absolute left-0 top-0 bottom-0 w-[2.5px] rounded-r-full transition-opacity"
-        style={{ background: level.color, opacity: open ? 1 : 0.5 }}
-      />
-
-      {/* Main row */}
-      <div className="flex items-center gap-3 pl-5 pr-4 py-2.5">
-        {/* Time */}
-        <span className="text-[10px] font-mono text-[#C8CBD0] flex-shrink-0 w-14 tabular-nums">
-          {entry.time}
-        </span>
-
-        {/* Message — dominant element */}
-        <span className="text-[12.5px] text-soren-muted font-medium flex-1 truncate">
-          {entry.message}
-        </span>
-
-        {/* Agent chip — right side */}
-        <span
-          className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-          style={{ color: agent.color, background: agent.bg }}
-        >
-          {agent.label}
-        </span>
-      </div>
-
-      {/* Detail — slides in below */}
-      {open && entry.detail && (
-        <div className="pl-5 pr-4 pb-2.5 -mt-0.5">
-          <p className="text-[11px] font-mono text-soren-muted leading-relaxed pl-[calc(0.25rem+3.5rem)]">
-            {entry.detail}
-          </p>
-        </div>
-      )}
-    </div>
+      {label} <ArrowUpRight size={11} />
+    </button>
   )
 }
 
-// ─── Main view ────────────────────────────────────────────────
 export default function LogsView() {
-  const [agentFilter, setAgentFilter] = useState<AgentFilter>('all')
-  const [levelFilter, setLevelFilter] = useState<LevelFilter>('all')
-  const [query,       setQuery]       = useState('')
-  const [liveMode,    setLiveMode]    = useState(true)
-  const [logs,        setLogs]        = useState<LogEntry[]>(SEED_LOGS)
-  const [realLoaded,  setRealLoaded]  = useState(false)
-  const [newIds,      setNewIds]      = useState<Set<string>>(new Set())
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
+  const activities = (useQuery(api.osActivities.list, { limit: 300 }) ?? []) as Activity[]
+  const [filter, setFilter] = useState('all')
+
+  // Deep-link entrant (lu sans useSearchParams, en useEffect au montage).
+  const [actorParam, setActorParam] = useState<string | null>(null)
+  const [taskParam, setTaskParam] = useState<string | null>(null)
+  const [qParam, setQParam] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!liveMode || realLoaded) return
-    let timeout: ReturnType<typeof setTimeout>
-    function schedule() {
-      const delay = 15000 + Math.random() * 10000
-      timeout = setTimeout(() => {
-        const newLog = generateLiveLog()
-        setLogs(prev => [newLog, ...prev.slice(0, 99)])
-        setNewIds(prev => { const s = new Set(Array.from(prev)); s.add(newLog.id); return s })
-        setTimeout(() => setNewIds(prev => { const s = new Set(Array.from(prev)); s.delete(newLog.id); return s }), 1500)
-        schedule()
-      }, delay)
-    }
-    schedule()
-    return () => clearTimeout(timeout)
-  }, [liveMode, realLoaded])
+    const params = new URLSearchParams(window.location.search)
+    setActorParam(params.get('actor'))
+    setTaskParam(params.get('task'))
+    setQParam(params.get('q'))
+  }, [])
 
-  // Charger les vrais logs Supabase
-  useEffect(() => {
-    async function fetchLogs() {
-      try {
-        const res  = await fetch('/api/agent-logs?limit=100')
-        const data = await res.json() as { logs: { id: string; agent: string; level: string; message: string; tool_used?: string | null; created_at: string }[] }
-        if (data.logs && data.logs.length > 0) {
-          const mapped: LogEntry[] = data.logs.map(l => ({
-            id:       l.id,
-            time:     new Date(l.created_at).toLocaleTimeString('fr-FR'),
-            agent:    (l.agent as AgentId) in AGENT_META ? (l.agent as AgentId) : 'kai',
-            level:    (['info', 'success', 'warning', 'error'].includes(l.level) ? l.level : 'info') as LogLevel,
-            message:  l.message,
-            detail:   l.tool_used ?? undefined,
-            tool_used: l.tool_used,
-            created_at: l.created_at,
-          }))
-          setLogs(mapped)
-          setRealLoaded(true)
-        }
-      } catch { /* fallback sur SEED_LOGS */ }
-    }
-    void fetchLogs()
-    // Polling toutes les 10s si liveMode
-    const interval = setInterval(() => { if (liveMode) void fetchLogs() }, 10000)
-    return () => clearInterval(interval)
-  }, [liveMode])
+  // Activité ouverte dans le panneau détail.
+  const [selected, setSelected] = useState<Activity | null>(null)
 
-  const filtered = useMemo(() => {
-    let l = logs
-    if (agentFilter !== 'all') l = l.filter(x => x.agent === agentFilter)
-    if (levelFilter !== 'all') l = l.filter(x => x.level === levelFilter)
-    if (query) {
-      const q = query.toLowerCase()
-      l = l.filter(x => x.message.toLowerCase().includes(q))
-    }
-    return l
-  }, [logs, agentFilter, levelFilter, query])
+  const shown = useMemo(() => {
+    let list = activities
+    if (filter === 'errors') list = list.filter(a => a.eventType === 'error' || a.eventType === 'blocker')
+    else if (filter !== 'all') { const v = filter.toLowerCase(); list = list.filter(a => a.actorId.toLowerCase().includes(v)) }
 
-  const successCount = logs.filter(l => l.level === 'success').length
-  const warningCount = logs.filter(l => l.level === 'warning').length
-  const errorCount   = logs.filter(l => l.level === 'error').length
+    if (actorParam) {
+      const v = actorParam.toLowerCase()
+      list = list.filter(a => a.actorId.toLowerCase().includes(v))
+    }
+    if (taskParam) {
+      list = list.filter(a =>
+        a.eventType.startsWith('task') || a.entityId === taskParam || a.summary.includes(taskParam),
+      )
+    }
+    if (qParam) {
+      const v = qParam.toLowerCase()
+      list = list.filter(a => a.summary.toLowerCase().includes(v))
+    }
+    return list
+  }, [activities, filter, actorParam, taskParam, qParam])
+
+  const deepChips: { key: string; label: string; clear: () => void }[] = [
+    ...(actorParam ? [{ key: 'actor', label: `acteur : ${actorParam}`, clear: () => setActorParam(null) }] : []),
+    ...(taskParam ? [{ key: 'task', label: `tâche : ${taskParam}`, clear: () => setTaskParam(null) }] : []),
+    ...(qParam ? [{ key: 'q', label: `recherche : ${qParam}`, clear: () => setQParam(null) }] : []),
+  ]
 
   return (
-    <div className="flex flex-col h-[calc(100vh-56px)] bg-soren-app">
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Filtres */}
+      <div className="px-6 pt-5 pb-3 flex-shrink-0 flex items-center gap-1.5 flex-wrap">
+        {FILTERS.map(f => (
+          <button
+            key={f.id}
+            onClick={() => setFilter(f.id)}
+            className={`text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-all ${
+              filter === f.id
+                ? 'bg-soren-sidebar text-white border-soren-sidebar'
+                : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+        <span className="ml-auto text-[11px] text-soren-subtle flex items-center gap-1.5">
+          <Radio size={11} className="text-[#16A34A]" /> {shown.length} événements
+        </span>
+      </div>
 
-      {/* Header */}
-      <div className="px-6 pt-5 pb-4 flex-shrink-0 bg-soren-card border-b border-[#F0F0EE]">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-xs text-soren-subtle mt-1">Activité des agents en temps réel</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* KPI chips */}
-            <div className="flex items-center gap-1.5">
-              <span className="flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full"
-                style={{ color: LEVEL_META.success.color, background: LEVEL_META.success.bg }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: LEVEL_META.success.color }} />
-                {successCount} OK
-              </span>
-              <span className="flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full"
-                style={{ color: LEVEL_META.warning.color, background: LEVEL_META.warning.bg }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: LEVEL_META.warning.color }} />
-                {warningCount} WARN
-              </span>
-              <span className="flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full"
-                style={{ color: LEVEL_META.error.color, background: LEVEL_META.error.bg }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: LEVEL_META.error.color }} />
-                {errorCount} ERR
-              </span>
-            </div>
-
-            {/* Live toggle */}
+      {/* Chips de filtre actif (deep-link) — cliquer pour retirer, en mémoire. */}
+      {deepChips.length > 0 && (
+        <div className="px-6 pb-2 flex-shrink-0 flex items-center gap-1.5 flex-wrap">
+          {deepChips.map(c => (
             <button
-              onClick={() => setLiveMode(l => !l)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all border ${
-                liveMode
-                  ? 'bg-[#84CC16]/10 text-[#4D7C0F] border-[#84CC16]/30'
-                  : 'bg-soren-elevated text-soren-subtle border-soren-border'
-              }`}
+              key={c.key}
+              onClick={c.clear}
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-soren-border bg-soren-elevated text-soren-muted hover:text-soren-text transition-colors"
             >
-              <Radio size={10} className={liveMode ? 'animate-pulse' : ''} />
-              {liveMode ? 'LIVE' : 'Pausé'}
+              filtre actif : {c.label}
+              <X size={11} />
             </button>
-          </div>
+          ))}
         </div>
+      )}
 
-        {/* Filters */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 bg-soren-elevated border border-soren-border rounded-lg px-3 py-1.5 w-48">
-            <Search size={11} className="text-soren-subtle flex-shrink-0" />
-            <input
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="Rechercher…"
-              className="flex-1 bg-transparent text-xs text-soren-text placeholder-[#9CA3AF] outline-none"
-            />
+      {/* Timeline */}
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
+        {shown.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-soren-elevated flex items-center justify-center">
+              <ScrollText size={20} className="text-soren-muted" />
+            </div>
+            <p className="text-[12px] text-soren-subtle max-w-xs">
+              Aucune activité. Le journal se remplit dès qu&apos;une tâche, un agent ou une mémoire est mis à jour.
+            </p>
           </div>
-
-          {/* Agent filter */}
-          <div className="flex gap-1 bg-black/5 rounded-xl p-1">
-            {AGENT_OPTIONS.map(o => (
-              <button key={o.id} onClick={() => setAgentFilter(o.id)}
-                className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
-                  agentFilter === o.id ? 'bg-soren-card text-soren-text shadow-sm' : 'text-soren-muted hover:text-soren-text'
-                }`}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Level filter */}
-          <div className="flex gap-1 bg-black/5 rounded-xl p-1">
-            {LEVEL_OPTIONS.map(o => {
-              const active = levelFilter === o.id
-              const meta   = o.id !== 'all' ? LEVEL_META[o.id as LogLevel] : null
+        ) : (
+          <div className="relative flex flex-col" data-stagger>
+            {shown.map((a, i) => {
+              const m = activityMeta(a.eventType)
+              const KIcon = kindIcon[m.kind]
+              const AIcon = actorIcon(a.actorType)
+              const statusColor = STATUS_COLOR[m.status]
+              const isError = m.status === 'error' || a.eventType === 'error' || a.eventType === 'blocker'
               return (
-                <button key={o.id} onClick={() => setLevelFilter(o.id)}
-                  className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all ${
-                    active && !meta ? 'bg-soren-card text-soren-text shadow-sm' : !active ? 'text-soren-muted hover:text-soren-text' : ''
-                  }`}
-                  style={active && meta ? { background: meta.bg, color: meta.color } : {}}
-                >
-                  {o.label}
-                </button>
+                <div key={a.id} className="flex gap-3 w-full">
+                  {/* Noeud + ligne */}
+                  <div className="flex flex-col items-center flex-shrink-0">
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center"
+                      style={{ background: m.color + '1A' }}
+                    >
+                      <KIcon size={13} style={{ color: m.color }} />
+                    </div>
+                    {i < shown.length - 1 && <div className="w-px flex-1 bg-soren-border my-1" />}
+                  </div>
+
+                  {/* Contenu — ligne cliquable ouvrant le panneau détail. */}
+                  <button
+                    onClick={() => setSelected(a)}
+                    className="flex-1 pb-4 min-w-0 text-left rounded-lg -mx-2 px-2 py-1 hover:bg-soren-elevated transition-colors"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Pill color={m.color}>{m.label}</Pill>
+                      {isError && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-[#DC2626]">
+                          <span className="w-2 h-2 rounded-full" style={{ background: '#DC2626' }} /> Erreur
+                        </span>
+                      )}
+                      <span className="text-[12px] font-semibold text-soren-text">{a.summary}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1.5 text-[10px] text-soren-subtle flex-wrap">
+                      <span>{dateFR(a.createdAt)}</span>
+                      <span className="inline-flex items-center gap-1">· <AIcon size={10} /> {a.actorId}</span>
+                      <span>· {sourceMeta(a.source).label}</span>
+                      <span className="inline-flex items-center gap-1">
+                        · <span className="w-2 h-2 rounded-full" style={{ background: statusColor }} />
+                        {STATUS_LABEL[m.status]}
+                      </span>
+                    </div>
+                  </button>
+                </div>
               )
             })}
           </div>
-        </div>
-      </div>
-
-      {/* Log list */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto bg-soren-card">
-        {filtered.length === 0 ? (
-          <div className="flex items-center justify-center h-40">
-            <p className="text-sm text-soren-subtle">Aucun log trouvé</p>
-          </div>
-        ) : (
-          filtered.map(entry => <LogRow key={entry.id} entry={entry} isNew={newIds.has(entry.id)} />)
         )}
       </div>
 
-      {/* Footer */}
-      <div className="px-6 py-2 border-t border-[#F0F0EE] bg-soren-card flex items-center justify-between flex-shrink-0">
-        <p className="text-[10px] text-soren-subtle">{filtered.length} entrée{filtered.length !== 1 ? 's' : ''}</p>
-        {liveMode && (
-          <p className="text-[10px] text-[#4D7C0F] flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#84CC16] animate-pulse inline-block" />
-            Streaming en direct
-          </p>
-        )}
-      </div>
+      {/* Panneau détail */}
+      {selected && (() => {
+        const m = activityMeta(selected.eventType)
+        const PanelIcon = kindIcon[m.kind]
+        const isAgent = selected.actorType === 'agent'
+        const linkedTask = selected.eventType.startsWith('task') && selected.entityId
+        return (
+          <DetailPanel
+            open={!!selected}
+            onClose={() => setSelected(null)}
+            accent={m.color}
+            title={m.label}
+            subtitle={dateFR(selected.createdAt)}
+            icon={PanelIcon}
+          >
+            <KV label="Acteur">
+              <span className="flex items-center gap-1.5">
+                {selected.actorType} — {selected.actorId}
+              </span>
+              {isAgent && (
+                <div className="mt-1">
+                  <LinkButton
+                    label="Voir l'agent"
+                    onClick={() => router.push(`/equipe?agent=${encodeURIComponent(selected.actorId)}`)}
+                  />
+                </div>
+              )}
+            </KV>
+
+            <KV label="Source">{sourceMeta(selected.source).label}</KV>
+
+            <KV label="Action">{selected.summary}</KV>
+
+            <KV label="Résultat">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full" style={{ background: STATUS_COLOR[m.status] }} />
+                {STATUS_LABEL[m.status]}
+              </span>
+            </KV>
+
+            <KV label="Tâche liée">
+              {linkedTask ? (
+                <LinkButton
+                  label={`Voir la tâche ${selected.entityId}`}
+                  onClick={() => router.push(`/taches?task=${encodeURIComponent(selected.entityId!)}`)}
+                />
+              ) : (
+                <span className="text-soren-subtle">non lié</span>
+              )}
+            </KV>
+
+            <KV label="Agent lié">
+              {isAgent ? (
+                <LinkButton
+                  label={selected.actorId}
+                  onClick={() => router.push(`/equipe?agent=${encodeURIComponent(selected.actorId)}`)}
+                />
+              ) : (
+                <span className="text-soren-subtle">—</span>
+              )}
+            </KV>
+
+            <KV label="Preuve">
+              <span className="text-soren-subtle">non branché</span>
+            </KV>
+
+            <KV label="Mémoire impactée">
+              {m.memoryUpdated ? (
+                <LinkButton label="Voir Mémoire" onClick={() => router.push('/knowledge?tab=memory')} />
+              ) : (
+                <span className="text-soren-subtle">—</span>
+              )}
+            </KV>
+
+            <p className="text-[11px] leading-relaxed text-soren-subtle border-t border-soren-border pt-3">
+              Les liens non branchés sont affichés honnêtement « non lié » / « non branché ».
+            </p>
+          </DetailPanel>
+        )
+      })()}
     </div>
   )
 }

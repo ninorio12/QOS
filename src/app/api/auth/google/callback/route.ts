@@ -1,5 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
+import { ConvexHttpClient } from 'convex/browser'
 import { getOAuth2Client, saveGoogleRefreshToken } from '@/lib/google'
+import { api } from '../../../../../../convex/_generated/api'
+
+// Email du compte Google depuis l'id_token (sans appel réseau supplémentaire).
+function emailFromIdToken(idToken?: string | null): string | undefined {
+  if (!idToken) return undefined
+  try {
+    const payload = JSON.parse(Buffer.from(idToken.split('.')[1], 'base64').toString('utf8'))
+    return typeof payload.email === 'string' ? payload.email : undefined
+  } catch { return undefined }
+}
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code')
@@ -13,6 +25,18 @@ export async function GET(req: NextRequest) {
 
   if (tokens.refresh_token) {
     try {
+      // 1) Connexion PAR PROFIL — liée à l'utilisateur Clerk connecté.
+      const { userId } = await auth()
+      const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+      if (userId && convexUrl) {
+        const convex = new ConvexHttpClient(convexUrl)
+        await convex.mutation(api.googleAccounts.connect, {
+          clerkUserId:  userId,
+          refreshToken: tokens.refresh_token,
+          email:        emailFromIdToken(tokens.id_token),
+        })
+      }
+      // 2) Compat : on garde aussi le token "global" tant que le calendrier ne lit pas encore par profil.
       await saveGoogleRefreshToken(tokens.refresh_token)
       saved = true
     } catch (e) {

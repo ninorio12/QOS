@@ -8,9 +8,12 @@ import DashboardLoading from './loading'
 export type DashData = {
   clientsCount:       number
   caEncaisse:         number
+  caACollecter:       number
   leadsCount:         number
   r1Count:            number
   r2Count:            number
+  metiersCount:       number
+  nichesCount:        number
   clientTimeline:     { date: string; value: number; ca: number }[]
   metierBreakdown:    { label: string; niche: string; count: number; pct: number; color: string; contacts: { name: string; company: string }[] }[]
   nicheBreakdown:     { niche: string; metiers: { metier: string; count: number; contacts: { name: string; company: string }[] }[] }[]
@@ -28,14 +31,16 @@ function defaultRange() {
 }
 
 const EMPTY: DashData = {
-  clientsCount: 0, caEncaisse: 0, leadsCount: 0, r1Count: 0, r2Count: 0,
+  clientsCount: 0, caEncaisse: 0, caACollecter: 0, leadsCount: 0, r1Count: 0, r2Count: 0,
+  metiersCount: 0, nichesCount: 0,
   clientTimeline: [], metierBreakdown: [], nicheBreakdown: [], recentLeads: [], totalContactsCount: 0,
 }
 
 export default function DashboardPage() {
   const [range, setRange] = useState(defaultRange)
 
-  const key = `/api/dashboard?from=${range.from}&to=${range.to}`
+  const tzOffset = new Date().getTimezoneOffset()
+  const key = `/api/dashboard?from=${range.from}&to=${range.to}&tzOffset=${tzOffset}`
   const { data, isLoading } = useSWR<DashData>(key, async (url: string) => {
     const res  = await fetch(url)
     const json = await res.json() as Partial<DashData>
@@ -51,13 +56,16 @@ export default function DashboardPage() {
   const d = data ?? EMPTY
 
   return (
-    <div className="md:h-full flex flex-col px-3 py-3 md:p-5 md:overflow-auto page-fade-in">
+    <div className="md:h-full flex flex-col px-3 py-3 md:p-5 md:overflow-auto">
       <DashboardClient
         clientsCount={d.clientsCount}
         caEncaisse={d.caEncaisse}
+        caACollecter={d.caACollecter}
         leadsCount={d.leadsCount}
         r1Count={d.r1Count}
         r2Count={d.r2Count}
+        metiersCount={d.metiersCount}
+        nichesCount={d.nichesCount}
         clientTimeline={d.clientTimeline}
         metierBreakdown={d.metierBreakdown}
         nicheBreakdown={d.nicheBreakdown}

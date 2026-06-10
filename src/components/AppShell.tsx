@@ -1,16 +1,20 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import MobileNav from '@/components/MobileNav'
 import MobileHeader from '@/components/MobileHeader'
+import ThemeSync from '@/components/ThemeSync'
+import ModuleGuard from '@/components/ModuleGuard'
+import PageTransition from '@/components/PageTransition'
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-
   return (
     <div className="min-h-screen bg-soren-app">
+      {/* Cross-cutting client effects (render null) */}
+      <ThemeSync />
+      <ModuleGuard />
+
       {/* Sidebar — desktop only */}
       <div className="hidden md:block">
         <Sidebar />
@@ -29,9 +33,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main content */}
       <main className="md:ml-60 md:pt-14 pt-14 pb-28 md:pb-0 md:h-screen md:overflow-y-auto">
-        <div key={pathname} className="page-enter h-full">
-          {children}
-        </div>
+        <PageTransition>{children}</PageTransition>
       </main>
     </div>
   )

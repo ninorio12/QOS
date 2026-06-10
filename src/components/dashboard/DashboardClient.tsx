@@ -10,15 +10,19 @@ import {
   ArrowUpRight, Plus, X, Check,
   CheckSquare, FileText, ScrollText, Database, Wallet, Cpu,
   Circle, ChevronLeft, ChevronRight,
+  Clock, UserPlus, CalendarCheck,
 } from 'lucide-react'
 const WeeklyBarChart        = dynamic(() => import('./WeeklyBarChart'),        { ssr: false })
 const MonthlyAreaChart      = dynamic(() => import('./MonthlyAreaChart'),      { ssr: false })
 const ClientTimelineChart   = dynamic(() => import('./ClientTimelineChart'),   { ssr: false })
 import type { WeeklyDay, MonthlyPoint, ClientTimelinePoint, MetierBreakdown, Payment } from '@/lib/dashboard'
 import { getAvatarColor } from '@/components/contacts/types'
+import ConversionRates from '@/components/analyse/ConversionRates'
+import Select from '@/components/ui/Select'
 import { PieChart, Pie, Cell, Tooltip as PieTooltip, ResponsiveContainer } from 'recharts'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
+import { MotionFade } from '@/components/ui/Motion'
 
 const NewLeadWidget  = dynamic(() => import('@/components/shared/NewLeadWidget'),        { ssr: false })
 const RollingNumber  = dynamic(() => import('@/components/dashboard/RollingNumber'),     { ssr: false })
@@ -48,9 +52,12 @@ interface DashboardProps {
   // New Convex-based props
   clientsCount:       number
   caEncaisse:         number
+  caACollecter:       number
   leadsCount:         number
   r1Count:            number
   r2Count:            number
+  metiersCount:       number
+  nichesCount:        number
   clientTimeline:     { date: string; value: number; ca: number }[]
   metierBreakdown:    { label: string; niche: string; count: number; pct: number; color: string; contacts: { name: string; company: string }[] }[]
   nicheBreakdown:     { niche: string; metiers: { metier: string; count: number; contacts: { name: string; company: string }[] }[] }[]
@@ -74,8 +81,8 @@ interface DashboardProps {
 
 // ─── Helpers ──────────────────────────────────────────────────
 function fmt(value: number): string {
-  if (value >= 1_000_000) return `€${(value / 1_000_000).toFixed(1)}M`
-  return `€${Math.round(value).toLocaleString('fr-FR')}`
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M CHF`
+  return `${Math.round(value).toLocaleString('fr-FR')} CHF`
 }
 
 function useCountUp(target: number, duration = 800): number {
@@ -142,13 +149,17 @@ function NewLeadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
             className="w-full bg-soren-elevated border-0 rounded-2xl px-4 py-3 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#3462EE]/40" />
           <input type="tel" placeholder="Téléphone" value={phone} onChange={e => setPhone(e.target.value)}
             className="w-full bg-soren-elevated border-0 rounded-2xl px-4 py-3 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#3462EE]/40" />
-          <select value={pipeline} onChange={e => setPipeline(e.target.value)}
-            className="w-full bg-soren-elevated border-0 rounded-2xl px-4 py-3 text-sm text-soren-text outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none cursor-pointer">
-            <option value="ACQUISITION">ACQUISITION</option>
-            <option value="RÉACTIVATION">RÉACTIVATION</option>
-            <option value="RÉCEPTION">RÉCEPTION</option>
-          </select>
-          <input type="number" placeholder="Valeur estimée (€)" value={value} onChange={e => setValue(e.target.value)}
+          <Select
+            value={pipeline}
+            onChange={setPipeline}
+            options={[
+              { value: 'ACQUISITION', label: 'ACQUISITION' },
+              { value: 'RÉACTIVATION', label: 'RÉACTIVATION' },
+              { value: 'RÉCEPTION', label: 'RÉCEPTION' },
+            ]}
+            className="w-full"
+          />
+          <input type="number" placeholder="Valeur estimée (CHF)" value={value} onChange={e => setValue(e.target.value)}
             className="w-full bg-soren-elevated border-0 rounded-2xl px-4 py-3 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#3462EE]/40" />
           <button type="submit" disabled={loading || !name.trim()}
             className="w-full bg-soren-sidebar hover:bg-[#2a2a2a] disabled:opacity-50 text-white font-semibold rounded-full py-3 text-sm transition-colors mt-1">
@@ -192,7 +203,7 @@ function getPresetRange(key: string): { start: Date; end: Date } {
 
 function fmtDateInput(d: Date | null): string {
   if (!d) return ''
-  return d.toISOString().slice(0,10)
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 
 function MonthGrid({
@@ -312,7 +323,7 @@ function DateRangePicker({ onClose, onApply }: { onClose: () => void; onApply: (
   return (
     <div
       className="absolute top-full mt-2 left-0 z-50 flex rounded-2xl shadow-2xl border border-[#E5E7EB] overflow-hidden"
-      style={{ animation: 'fadeSlideUp 180ms ease-out both', minWidth: 640 }}
+      style={{ animation: 'fadeSlideUp 180ms ease-out both', minWidth: 'min(640px, calc(100vw - 1.5rem))' }}
       onMouseLeave={() => setHover(null)}
     >
       {/* Left — Presets */}
@@ -452,14 +463,16 @@ interface AgentLog {
 
 // ─── Main export ──────────────────────────────────────────────
 export default function DashboardClient({
-  clientsCount = 0, caEncaisse = 0, leadsCount = 0, r1Count = 0, r2Count = 0,
+  clientsCount = 0, caEncaisse = 0, caACollecter = 0, leadsCount = 0, r1Count = 0, r2Count = 0,
+  metiersCount = 0, nichesCount = 0,
   clientTimeline = [], metierBreakdown = [], nicheBreakdown = [], recentLeads = [],
   totalContactsCount = 0, rangeFrom, rangeTo, onRangeChange,
   // legacy
   stageBreakdown = [], weeklyBreakdown = [],
 }: DashboardProps) {
   const router = useRouter()
-  const payOverview = useQuery(api.onboarding.paymentsOverview) as { encaisse: number; attente: number; transactions: { client: string; company: string; label: string; amount: number; date: string; type: string; status: string }[] } | undefined
+  const payTzOffset = useMemo(() => new Date().getTimezoneOffset(), [])
+  const payOverview = useQuery(api.paiement.overview, { from: rangeFrom, to: rangeTo, tzOffset: payTzOffset }) as { encaisse: number; attente: number; transactions: { client: string; company: string; label: string; amount: number; date: string; type: string; status: string }[] } | undefined
   const [showModal,       setShowModal]       = useState(false)
   const [showToast,       setShowToast]       = useState(false)
   const [showMetierModal, setShowMetierModal] = useState(false)
@@ -554,9 +567,7 @@ export default function DashboardClient({
   const ALL_MODULES = [
     { href: '/pipeline',      Icon: GitMerge,         label: 'Pipeline' },
     { href: '/contacts',      Icon: Users,            label: 'Contacts' },
-    { href: '/conversations', Icon: MessageSquare,    label: 'Conversations' },
     { href: '/calendrier',    Icon: CalendarDays,     label: 'Calendrier' },
-    { href: '/analyse',       Icon: TrendingUp,       label: 'Analyse' },
     { href: '/equipe',        Icon: BotMessageSquare, label: 'Équipe IA' },
     { href: '/taches',        Icon: CheckSquare,      label: 'Tâches' },
     { href: '/logs',          Icon: ScrollText,       label: 'Logs' },
@@ -620,33 +631,41 @@ export default function DashboardClient({
       </div>
 
       {/* ── 6 KPI Cards ── */}
-      <div
-        className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-3"
-        style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}
+      <MotionFade
+        delay={0}
+        className="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-3"
       >
         {[
-          { label: 'Clients',        value: String(clientsCount), sub: 'durant la période' },
-          { label: 'CA encaissé',    value: fmt(caEncaisse),      sub: 'durant la période' },
-          { label: 'CA à collecter', value: '—',                  sub: 'en attente'        },
-          { label: 'Leads',          value: String(leadsCount),   sub: 'durant la période' },
-          { label: 'R1',             value: String(r1Count),      sub: 'durant la période' },
-          { label: 'R2',             value: String(r2Count),      sub: 'durant la période' },
-        ].map(({ label, value, sub }) => (
+          { label: 'Clients',        value: String(clientsCount), sub: 'durant la période', Icon: Users,         color: '#3462EE' },
+          { label: 'CA encaissé',    value: fmt(caEncaisse),      sub: 'durant la période', Icon: Wallet,        color: '#16A34A' },
+          { label: 'CA à collecter', value: fmt(caACollecter),    sub: 'en attente',         Icon: Clock,         color: '#D97706' },
+          { label: 'Leads',          value: String(leadsCount),   sub: 'durant la période', Icon: UserPlus,      color: '#0EA5E9' },
+          { label: 'R1',             value: String(r1Count),      sub: 'durant la période', Icon: CalendarCheck, color: '#FF4D00' },
+          { label: 'R2',             value: String(r2Count),      sub: 'durant la période', Icon: CalendarDays,  color: '#8B5CF6' },
+        ].map(({ label, value, sub, Icon, color }) => (
           <div key={label} className="bg-soren-card rounded-2xl p-3 md:p-4 flex flex-col gap-1.5 shadow-sm border border-soren-border/60">
-            <span className="text-[11px] font-medium text-soren-muted leading-none">{label}</span>
-            <RollingNumber value={value} className="text-[26px] md:text-[30px] font-black text-soren-text leading-none tabular-nums" />
-            <span className="text-[10px] font-semibold text-[#FF4D00]/70">{sub}</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-medium text-soren-muted leading-none">{label}</span>
+              <span className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: color + '18', color }}><Icon size={13} /></span>
+            </div>
+            <RollingNumber value={value} className="text-[16px] md:text-[18px] font-bold text-soren-text leading-none tabular-nums" />
+            <span className="text-[9px] font-semibold text-[#FF4D00]/70">{sub}</span>
           </div>
         ))}
-      </div>
+      </MotionFade>
+
+      {/* ── Taux de conversion (globale / inbound / outbound) ── */}
+      <MotionFade delay={0.05} className="mt-3 md:mt-4">
+        <ConversionRates showHeader={false} variant="plain" from={rangeFrom} to={rangeTo} />
+      </MotionFade>
 
       {/* ── Clients sur la période + Métiers clients ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mt-3 md:mt-4">
 
         {/* Clients sur la période */}
-        <div
+        <MotionFade
+          delay={0.1}
           className="md:col-span-2 bg-soren-card rounded-2xl md:rounded-3xl shadow-sm overflow-hidden flex flex-col"
-          style={{ animation: 'fadeSlideUp 400ms ease-out 350ms both' }}
         >
           <div className="flex items-center justify-between px-6 pt-5 pb-2 flex-shrink-0">
             <div>
@@ -662,12 +681,12 @@ export default function DashboardClient({
           <div className="h-[180px] md:h-[200px] px-2 pb-4">
             <ClientTimelineChart data={clientTimeline} />
           </div>
-        </div>
+        </MotionFade>
 
         {/* Métiers clients */}
-        <div
+        <MotionFade
+          delay={0.14}
           className="bg-soren-card rounded-2xl md:rounded-3xl p-5 shadow-sm flex flex-col gap-4"
-          style={{ animation: 'fadeSlideUp 400ms ease-out 400ms both' }}
         >
           <button className="flex items-center justify-between w-full" onClick={() => setShowMetierModal(true)}>
             <span className="font-jakarta text-[13px] font-semibold text-soren-text">Métiers clients</span>
@@ -702,7 +721,7 @@ export default function DashboardClient({
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-[22px] font-black text-soren-text">{clientsCount}</span>
+                  <span className="text-[18px] font-bold text-soren-text">{metiersCount}</span>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
@@ -717,16 +736,16 @@ export default function DashboardClient({
               </div>
             </>
           )}
-        </div>
+        </MotionFade>
       </div>
 
       {/* ── Paiements encaissés + Publicités ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mt-3 md:mt-4">
 
         {/* Paiements encaissés — col-span-2 */}
-        <div
+        <MotionFade
+          delay={0.18}
           className="md:col-span-2 bg-soren-card rounded-2xl md:rounded-3xl shadow-sm overflow-hidden flex flex-col"
-          style={{ animation: 'fadeSlideUp 400ms ease-out 450ms both' }}
         >
           <Link href="/paiement" className="flex items-center justify-between px-5 py-3 border-b border-soren-border/60 flex-shrink-0 group">
             <span className="font-jakarta text-[12px] font-semibold text-soren-text">Paiements encaissés</span>
@@ -752,7 +771,7 @@ export default function DashboardClient({
                       <td className="px-4 py-2 text-[11px] text-soren-muted whitespace-nowrap truncate max-w-[120px]">{t.company || '—'}</td>
                       <td className="px-4 py-2 text-[12px] font-bold tabular-nums whitespace-nowrap" style={{ color: t.type === 'refund' ? '#DC2626' : t.status === 'encaissé' ? '#059669' : '#374151' }}>{t.type === 'refund' ? '−' : ''}{fmt(Math.abs(t.amount))}</td>
                       <td className="px-4 py-2">
-                        <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={t.type === 'refund' ? { background: '#FEF2F2', color: '#DC2626' } : t.status === 'encaissé' ? { background: '#F0FDF9', color: '#059669' } : { background: '#FFFBEB', color: '#D97706' }}>{t.type === 'refund' ? 'remboursé' : t.status}</span>
+                        <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${t.type === 'refund' ? 'bg-[#FEF2F2] text-[#DC2626] dark:bg-rose-500/15 dark:text-rose-400' : t.status === 'encaissé' ? 'bg-[#F0FDF9] text-[#059669] dark:bg-emerald-500/15 dark:text-emerald-400' : 'bg-[#FFFBEB] text-[#D97706] dark:bg-amber-500/15 dark:text-amber-400'}`}>{t.type === 'refund' ? 'remboursé' : t.status}</span>
                       </td>
                     </tr>
                   ))}
@@ -760,12 +779,12 @@ export default function DashboardClient({
               </table>
             )}
           </div>
-        </div>
+        </MotionFade>
 
         {/* Publicités investies */}
-        <div
+        <MotionFade
+          delay={0.22}
           className="bg-soren-card rounded-2xl md:rounded-3xl shadow-sm flex flex-col p-5 gap-3"
-          style={{ animation: 'fadeSlideUp 400ms ease-out 480ms both' }}
         >
           <div className="flex items-center justify-between">
             <span className="font-jakarta text-[13px] font-semibold text-soren-text">Publicités investies</span>
@@ -773,18 +792,18 @@ export default function DashboardClient({
           </div>
           <div className="flex-1 flex flex-col items-center justify-center gap-2 py-4">
             <div className="w-10 h-10 rounded-2xl bg-soren-elevated flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 291 191" xmlns="http://www.w3.org/2000/svg">
+              <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-label="Meta">
                 <defs>
-                  <linearGradient id="mg1" x1="61" y1="117" x2="259" y2="127" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#0064e1" offset="0"/><stop stopColor="#0082fb" offset="1"/>
+                  <linearGradient id="metaGrad" x1="0" y1="12" x2="24" y2="12" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stopColor="#0064E1"/><stop offset="1" stopColor="#19AFFF"/>
                   </linearGradient>
                 </defs>
-                <path fill="#0081fb" d="m31.06,125.96c0,10.98 2.41,19.41 5.56,24.51 4.13,6.68 10.29,9.51 16.57,9.51 8.1,0 15.51-2.01 29.79-21.76 11.44-15.83 24.92-38.05 33.99-51.98l15.36-23.6c10.67-16.39 23.02-34.61 37.18-46.96 11.56-10.08 24.03-15.68 36.58-15.68 21.07,0 41.14,12.21 56.5,35.11 16.81,25.08 24.97,56.67 24.97,89.27 0,19.38-3.82,33.62-10.32,44.87-6.28,10.88-18.52,21.75-39.11,21.75l0-31.02c17.63,0 22.03-16.2 22.03-34.74 0-26.42-6.16-55.74-19.73-76.69-9.63-14.86-22.11-23.94-35.84-23.94-14.85,0-26.8,11.2-40.23,31.17-7.14,10.61-14.47,23.54-22.7,38.13l-9.06,16.05c-18.2,32.27-22.81,39.62-31.91,51.75-15.95,21.24-29.57,29.29-47.5,29.29-21.27,0-34.72-9.21-43.05-23.09-6.8-11.31-10.14-26.15-10.14-43.06z"/>
+                <path fill="url(#metaGrad)" d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.158-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.084-.281z"/>
               </svg>
             </div>
             <p className="text-[12px] text-soren-subtle text-center leading-snug">Connexion Meta Ads<br />à venir</p>
           </div>
-        </div>
+        </MotionFade>
       </div>
 
       {showModal && (
@@ -800,7 +819,7 @@ export default function DashboardClient({
             <div className="flex items-center justify-between px-6 py-4 border-b border-soren-border flex-shrink-0">
               <div>
                 <h2 className="text-base font-bold text-soren-text">Métiers clients</h2>
-                <p className="text-xs text-soren-subtle mt-0.5">Répartition par niche et métier</p>
+                <p className="text-xs text-soren-subtle mt-0.5">Répartition par niche et métier · {nichesCount} niche{nichesCount !== 1 ? 's' : ''} · {metiersCount} métier{metiersCount !== 1 ? 's' : ''}</p>
               </div>
               <button onClick={() => setShowMetierModal(false)} className="w-8 h-8 rounded-full bg-soren-elevated flex items-center justify-center hover:bg-[#E5E7EB] transition-colors">
                 <X size={14} className="text-soren-muted" />
@@ -821,7 +840,7 @@ export default function DashboardClient({
                   {metiers.map(({ metier, count, contacts }) => (
                     <div key={metier} className="bg-soren-elevated rounded-2xl p-4 flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-soren-text">{metier}</span>
+                        <span className="text-[13px] font-normal text-soren-text">{metier}</span>
                         <span className="text-[11px] font-bold bg-[#FF4D00]/10 text-[#FF4D00] px-2 py-0.5 rounded-full">{count} client{count > 1 ? 's' : ''}</span>
                       </div>
                       <div className="flex flex-wrap gap-2">

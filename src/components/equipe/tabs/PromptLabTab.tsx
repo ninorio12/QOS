@@ -103,7 +103,7 @@ export function PromptLabTab({ agentId, currentSoul }: PromptLabTabProps) {
             value={testMsg}
             onChange={e => { setTestMsg(e.target.value); setTested(false) }}
             onKeyDown={e => e.key === 'Enter' && handleTest()}
-            placeholder="Ex: Nouveau lead façade 35k€, pas de réponse depuis 3h"
+            placeholder="Ex: Nouveau lead façade 35kCHF, pas de réponse depuis 3h"
             className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-white/30"
           />
           <button

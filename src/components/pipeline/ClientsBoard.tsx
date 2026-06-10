@@ -83,12 +83,12 @@ function ClientCard({ client, isDragging = false }: { client: Client; isDragging
       }
     `}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-semibold text-soren-text leading-tight truncate">{client.name}</p>
+        <p className="text-[11px] font-normal text-soren-text leading-tight truncate">{client.name}</p>
         <span className="text-[10px] text-soren-subtle shrink-0">{date}</span>
       </div>
       <div className="flex items-center justify-between gap-1">
         <span className="text-xs font-bold text-soren-text">
-          {client.value > 0 ? `€${client.value.toLocaleString('fr-FR')}` : '—'}
+          {client.value > 0 ? `${client.value.toLocaleString('fr-FR')} CHF` : '—'}
         </span>
         <Avatar initials={client.initials} />
       </div>
@@ -114,18 +114,19 @@ function SortableClientCard({ client, wasDragged, onCardClick }: { client: Clien
   )
 }
 
-function ClientColumn({ stage, clients, isOver, wasDragged, onCardClick }: {
+function ClientColumn({ stage, clients, isOver, wasDragged, onCardClick, mobileActive = true }: {
   stage: ClientStage
   clients: Client[]
   isOver: boolean
   wasDragged: React.MutableRefObject<boolean>
   onCardClick: (c: Client) => void
+  mobileActive?: boolean
 }) {
   const { setNodeRef } = useDroppable({ id: stage.id })
   const total = clients.reduce((sum, c) => sum + c.value, 0)
 
   return (
-    <div className="flex flex-col w-56 flex-shrink-0 h-full">
+    <div className={`${mobileActive ? 'flex w-full' : 'hidden md:flex'} flex-col md:w-56 flex-shrink-0 h-full`}>
       <div className="flex items-center justify-between mb-2 px-0.5">
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
@@ -135,7 +136,7 @@ function ClientColumn({ stage, clients, isOver, wasDragged, onCardClick }: {
           </span>
         </div>
         {total > 0 && (
-          <span className="text-[9px] text-soren-subtle font-medium">€{total.toLocaleString('fr-FR')}</span>
+          <span className="text-[9px] text-soren-subtle font-medium">{total.toLocaleString('fr-FR')} CHF</span>
         )}
       </div>
 
@@ -166,6 +167,7 @@ export default function ClientsBoard() {
   const [clients, setClients] = useState<Client[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [overId,   setOverId]   = useState<string | null>(null)
+  const [mobileStageId, setMobileStageId] = useState<string>(CLIENT_STAGES[0].id)
   const [scrolled, setScrolled] = useState(false)
   const [editContact, setEditContact] = useState<Record<string, unknown> | null>(null)
   const boardRef   = useRef<HTMLDivElement>(null)
@@ -189,43 +191,58 @@ export default function ClientsBoard() {
   const draggingRef = useRef(false)
   useEffect(() => {
     if (!liveClients || draggingRef.current) return
-    setClients((liveClients as (Client & { _id: string })[]).map(c => ({ ...c, id: c._id, ghl_contact_id: c.ghl_contact_id })))
+    setClients((liveClients as (Omit<Client, 'id'> & { _id: string })[]).map(c => ({ ...c, id: c._id, ghl_contact_id: c.ghl_contact_id })))
   }, [liveClients])
 
   useEffect(() => {
     const el = boardRef.current
     if (!el) return
-    let target = el.scrollLeft
-    let raf: number | null = null
+    const clampH = (v: number) => Math.max(0, Math.min(el.scrollWidth - el.clientWidth, v))
+    let hTarget = el.scrollLeft
+    let hRaf: number | null = null
+    let vCol: HTMLElement | null = null
+    let vTarget = 0
+    let vRaf: number | null = null
 
-    function animate() {
+    function hAnimate() {
       if (!el) return
-      const diff = target - el.scrollLeft
-      if (Math.abs(diff) < 0.5) { el.scrollLeft = target; raf = null; return }
-      el.scrollLeft += diff * 0.12
-      raf = requestAnimationFrame(animate)
+      const diff = hTarget - el.scrollLeft
+      if (Math.abs(diff) < 0.5) { el.scrollLeft = hTarget; hRaf = null; return }
+      el.scrollLeft += diff * 0.16
+      hRaf = requestAnimationFrame(hAnimate)
+    }
+    function vAnimate() {
+      if (!vCol) { vRaf = null; return }
+      const diff = vTarget - vCol.scrollTop
+      if (Math.abs(diff) < 0.5) { vCol.scrollTop = vTarget; vRaf = null; return }
+      vCol.scrollTop += diff * 0.2
+      vRaf = requestAnimationFrame(vAnimate)
     }
 
     const onWheel = (e: WheelEvent) => {
-      e.preventDefault()
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-        target = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, target + e.deltaX))
-        if (!raf) raf = requestAnimationFrame(animate)
+      // Intentional horizontal: trackpad pan or Shift+wheel → scroll board left/right
+      if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        e.preventDefault()
+        hTarget = clampH(hTarget + (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY))
+        if (!hRaf) hRaf = requestAnimationFrame(hAnimate)
         return
       }
+      // Cursor over a column → scroll THAT column vertically (smooth). Never spill to horizontal.
       const col = document.elementsFromPoint(e.clientX, e.clientY)
-        .find(el => el.classList.contains('kanban-col')) as HTMLElement | undefined
-      if (col && col.scrollHeight > col.clientHeight) {
-        const goingDown = e.deltaY > 0
-        const atBottom  = col.scrollTop + col.clientHeight >= col.scrollHeight - 1
-        const atTop     = col.scrollTop <= 0
-        if ((goingDown && !atBottom) || (!goingDown && !atTop)) {
-          col.scrollTop += e.deltaY
-          return
+        .find(c => c.classList.contains('kanban-col')) as HTMLElement | undefined
+      if (col) {
+        e.preventDefault()
+        if (col.scrollHeight > col.clientHeight) {
+          if (vCol !== col) { vCol = col; vTarget = col.scrollTop }
+          vTarget = Math.max(0, Math.min(col.scrollHeight - col.clientHeight, vTarget + e.deltaY))
+          if (!vRaf) vRaf = requestAnimationFrame(vAnimate)
         }
+        return
       }
-      target = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, target + e.deltaY))
-      if (!raf) raf = requestAnimationFrame(animate)
+      // Not over any column (gaps / empty board area) → scroll board horizontally
+      e.preventDefault()
+      hTarget = clampH(hTarget + e.deltaY)
+      if (!hRaf) hRaf = requestAnimationFrame(hAnimate)
     }
 
     const onScroll = () => setScrolled(el.scrollLeft > 10)
@@ -234,7 +251,8 @@ export default function ClientsBoard() {
     return () => {
       el.removeEventListener('wheel', onWheel)
       el.removeEventListener('scroll', onScroll)
-      if (raf) cancelAnimationFrame(raf)
+      if (hRaf) cancelAnimationFrame(hRaf)
+      if (vRaf) cancelAnimationFrame(vRaf)
     }
   }, [])
 
@@ -320,7 +338,7 @@ export default function ClientsBoard() {
         <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0">
           <div>
             <p className="text-xs text-soren-muted mt-1">
-              {clients.length} clients · <span className="font-semibold text-soren-text">€{totalValue.toLocaleString('fr-FR')}</span>
+              {clients.length} clients · <span className="font-semibold text-soren-text">{totalValue.toLocaleString('fr-FR')} CHF</span>
             </p>
           </div>
           {/* Modal creates contact + client server-side; reactive query shows it instantly */}
@@ -337,7 +355,19 @@ export default function ClientsBoard() {
             className="pointer-events-none absolute right-0 top-0 bottom-4 w-8 z-10"
             style={{ background: 'linear-gradient(to left, var(--bg-app) 40%, transparent)' }}
           />
-          <div ref={boardRef} className="flex gap-4 overflow-x-auto px-6 pb-4 kanban-scroll kanban-board-row">
+          <div className="md:hidden flex gap-2 overflow-x-auto px-3 pb-3 kanban-scroll">
+            {CLIENT_STAGES.map(stage => {
+              const on = stage.id === mobileStageId
+              return (
+                <button key={stage.id} onClick={() => setMobileStageId(stage.id)}
+                  className={`flex-none flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border transition-colors ${on ? 'bg-[#FF4D00] border-[#FF4D00]' : 'bg-soren-card border-soren-border'}`}>
+                  <span className={`text-[11px] font-semibold whitespace-nowrap ${on ? 'text-white' : 'text-soren-muted'}`}>{stage.name}</span>
+                  <span className={`text-[10px] font-bold leading-none px-1.5 py-0.5 rounded-full ${on ? 'bg-white/25 text-white' : 'bg-soren-elevated text-soren-subtle'}`}>{clients.filter(c => c.stageId === stage.id).length}</span>
+                </button>
+              )
+            })}
+          </div>
+          <div ref={boardRef} className="flex gap-4 overflow-x-auto px-3 md:px-6 pb-4 kanban-scroll kanban-board-row">
             {CLIENT_STAGES.map(stage => (
               <ClientColumn
                 key={stage.id}
@@ -346,6 +376,7 @@ export default function ClientsBoard() {
                 isOver={overId === stage.id}
                 wasDragged={wasDragged}
                 onCardClick={openClientEdit}
+                mobileActive={stage.id === mobileStageId}
               />
             ))}
           </div>

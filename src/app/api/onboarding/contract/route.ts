@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server'
 import { generatePdfBuffer } from '@/lib/pdf'
+import { VIVIDFLOW_LOGO_DATA_URI } from '@/lib/contract-logo'
+import { JONATHAN_SIGNATURE_DATA_URI } from '@/lib/contract-signature'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -26,7 +28,7 @@ function paymentRows(d: ContractData) {
 function buildContractHtml(d: ContractData) {
   const header = (page: number) => `
     <div class="topbar">
-      <div class="brand"><span class="logo">◆</span> VividFlow</div>
+      <div class="brand"><img class="logo-img" src="${VIVIDFLOW_LOGO_DATA_URI}" alt="VividFlow" /><span>VividFlow</span></div>
       <div class="topmeta">INFRASTRUCTURE IA · AUDIT · WORKFLOWS</div>
       <div class="topmeta">CONTACT<br/><b>HEY@VIVIDFLOW.CH</b></div>
       <div class="topmeta">WEB<br/><b>VIVIDFLOW.CH</b></div>
@@ -43,8 +45,8 @@ function buildContractHtml(d: ContractData) {
   .page:last-child { page-break-after: auto; }
 
   .topbar { display: flex; align-items: flex-start; gap: 34px; padding-bottom: 22px; border-bottom: 1px solid #ECECEC; margin-bottom: 30px; }
-  .brand { font-weight: 800; font-size: 15px; letter-spacing: -.2px; flex: 0 0 auto; }
-  .brand .logo { color: #FF4D00; }
+  .brand { font-weight: 800; font-size: 15px; letter-spacing: -.2px; flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+  .brand .logo-img { width: 22px; height: 22px; border-radius: 5px; display: block; }
   .topmeta { font-size: 6.6px; letter-spacing: .8px; color: #9AA0A6; line-height: 1.5; text-transform: uppercase; }
   .topmeta b { color: #16181d; font-weight: 700; }
   .topbar .topmeta:nth-child(2) { flex: 1; }
@@ -85,10 +87,12 @@ function buildContractHtml(d: ContractData) {
   .signwrap { margin-top: 30px; padding-top: 22px; border-top: 1px solid #ECECEC; }
   .signdate { font-size: 9px; color: #6B7178; margin-bottom: 26px; }
   .signs { display: grid; grid-template-columns: 1fr 1fr; gap: 46px; }
-  .sign .role { font-size: 6.4px; letter-spacing: 1px; color: #B0B5BB; text-transform: uppercase; margin-bottom: 30px; }
+  .sign .role { font-size: 6.4px; letter-spacing: 1px; color: #B0B5BB; text-transform: uppercase; margin-bottom: 6px; }
   .sign .who { font-size: 10px; font-weight: 700; }
   .sign .org { font-size: 8.4px; color: #8A9097; }
   .sign .line { border-top: 1px solid #16181d; margin: 8px 0 5px; }
+  .sign .sigimg { width: 165px; height: auto; display: block; margin: 0 0 -6px 4px; }
+  .sign .sigspace { height: 74px; }
 
   .footer { position: absolute; bottom: 24px; left: 40px; right: 40px; font-size: 6.6px; letter-spacing: 1px; color: #B0B5BB; text-transform: uppercase; border-top: 1px solid #F0F0F0; padding-top: 8px; }
   </style></head><body>
@@ -192,8 +196,8 @@ function buildContractHtml(d: ContractData) {
           <div style="font-size:6.4px; letter-spacing:1px; color:#B0B5BB; text-transform:uppercase; margin-bottom:10px;">— Signatures</div>
           <div class="signdate">Fait le ${d.date}, en deux exemplaires originaux. Chaque partie reconnaît avoir lu et accepté l'intégralité des dispositions du présent contrat.</div>
           <div class="signs">
-            <div class="sign"><div class="role">Pour le Prestataire</div><div class="line"></div><div class="who">Jonathan Zekhe</div><div class="org">VividFlow LTD</div></div>
-            <div class="sign"><div class="role">Pour le Client</div><div class="line"></div><div class="who">${d.representant || d.clientName}</div><div class="org">${d.company || d.clientName}</div></div>
+            <div class="sign"><div class="role">Pour le Prestataire</div><img class="sigimg" src="${JONATHAN_SIGNATURE_DATA_URI}" alt="Signature Jonathan Zekhe" /><div class="line"></div><div class="who">Jonathan Zekhe</div><div class="org">VividFlow LTD</div></div>
+            <div class="sign"><div class="role">Pour le Client</div><div class="sigspace"></div><div class="line"></div><div class="who">${d.representant || d.clientName}</div><div class="org">${d.company || d.clientName}</div></div>
           </div>
         </div>
       </div>

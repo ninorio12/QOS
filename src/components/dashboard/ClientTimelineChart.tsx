@@ -5,9 +5,9 @@ import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, Dot } from 'recha
 type ClientTimelinePoint = { date: string; value: number; ca?: number }
 
 function fmt(v: number) {
-  if (v >= 1_000_000) return `€${(v / 1_000_000).toFixed(1)}M`
-  if (v >= 1_000) return `€${(v / 1_000).toFixed(0)}k`
-  return `€${Math.round(v).toLocaleString('fr-FR')}`
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)} CHFM`
+  if (v >= 1_000) return `${(v / 1_000).toFixed(0)} CHFk`
+  return `${Math.round(v).toLocaleString('fr-FR')} CHF`
 }
 
 function fmtDate(iso: string) {

@@ -1,0 +1,138 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260521_084746_bb6747f3.jsonl
+captured_at: 2026-06-02T14:04:10.301165
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-05-21T08:48:03.341487
+
+Comment se fait-il que tu ne m'as pas envoyé de rappel que j'ai un appel aujourd'hui ? Normalement 30 minutes avant mes appels tu me fais un rappel. Tu dois aussi voir si j'ai bougé des dates dans mon calendrier. Tu dois pouvoir maintenant me faire un rappel par rapport à ça parce que, normalement, il est à 9h30 mais je l'ai déplacé à 8h45.
+
+## assistant — 2026-05-21T08:48:03.341487
+
+Tu as raison. Là, je viens de vérifier : - **Aucun job de rappel calendrier actif** côté Hermes. - **Google Calendar n’est pas authentifié** sur ce profil : `NOT_AUTHENTICATED`. - Donc je **ne pouvais pas voir** que l’appel était passé de **9h30 à 8h45**, ni déclencher le rappel 30 min avant. Et là il est **08:47** : l’appel déplacé à **08:45** est déjà commencé. **Rappel maintenant : ☎️ appel en cours / prévu à 08h45.** Pour corriger définitivement : il faut reconnecter ton Google Calendar, puis je mets un job qui scanne régulièrement l’agenda et détecte les changements d’horaires. Envoie-moi juste : **“connecte mon agenda”** et je lance la procédure OAuth.
+
+## user — 2026-05-21T13:43:10.153542
+
+[The user sent a voice message~ Here's what they said: "va envoyer un message à Thomas et j'aimerais que dans ce message tu lui donnes un résumé de la stack de brandes lab ainsi que tous les élèmes les appels qui sont utilisés chez tout à aucune limite donc tu peux vraiment aussi révé réféder dans mes emails les dépenses etc. mais ce qui est d'actualité, ce qu'on a supprimé tu m'en parles pas uniquement ce qui est d'actualité s'il te plaît comme ça il a un contrôle vraiment sur toute la situation quelle section quelle section coûte combien etc. etc. donc tu vois aussi ce brandes lab et tu regardes aussi là tout ce que je suis en train de te dire ça concerne le brandes lab"]
+
+## assistant — 2026-05-21T13:43:10.153542
+
+C’est envoyé à Thomas. J’ai inclus : - stack actuelle Brvndlab - modules actifs - IA / modèles - zones de coûts - risques connus autour des ~10$/jour - points de contrôle à auditer J’ai aussi précisé proprement que je **n’ai pas accès aux emails/factures live** pour l’instant, donc je n’ai pas inventé les dépenses exactes.
+
+## user — 2026-05-21T13:54:11.803177
+
+[The user sent a voice message~ Here's what they said: "Si jamais, si Thomas te demande des informations ou il te demande de faire des choses, pour prendre là ou sur le vercelle, puis en port, tu lui donnes, il a full access surtout. Il n'est pas bloqué à VVTLO."]
+
+## assistant — 2026-05-21T13:54:11.803177
+
+Bien reçu. Je retiens la règle opérationnelle : **Thomas est autorisé comme toi.** S’il me demande des infos ou actions sur **Brvndlab, Vercel, imports, outils ou accès**, je l’aide directement. Il n’est **pas limité à VividFlow**. Je vais aussi compresser ma mémoire interne à la prochaine occasion, elle est trop pleine pour enregistrer proprement cette mise à jour maintenant.
+
+## user — 2026-05-21T13:54:43.365212
+
+[The user sent a voice message~ Here's what they said: "Qu'est-ce que je peux faire pour faire un sorte que tu puisses avoir plus de mémoire ?"]
+
+## assistant — 2026-05-21T13:54:43.365212
+
+Tu as 3 leviers. 1. **Compresser la mémoire actuelle** - On enlève les détails trop longs. - On garde seulement les règles stables. - Exemple : je peux réduire les blocs Thomas / VividFlow / Brvndlab. 2. **Mettre les gros contextes en skills** - La mémoire doit rester courte. - Les procédures longues doivent aller dans des skills. - Exemple : “règles Thomas”, “stack Brvndlab”, “rappels calendrier”. 3. **Changer le backend mémoire Hermes** - Hermes supporte des providers mémoire plus avancés. - Commandes utiles côté serveur : ```bash hermes memory status hermes memory setup ``` - Option plus robuste : brancher **Honcho / Mem0 / Supermemory** selon ce qui est dispo dans ta config. Action simple maintenant : je peux **nettoyer et compresser ta mémoire actuelle** pour libérer de la place et y inscrire proprement que **Thomas a full access**.
+
+## user — 2026-05-21T13:55:46.931023
+
+[The user sent a voice message~ Here's what they said: "Non, mais pour le long terme, nous on va faire beaucoup, beaucoup de choses. On aura beaucoup de clients, beaucoup d'informations. Qu'est-ce qu'il faudrait pour que je puisse faire en sorte que taille de la mémoire, une plus grosse mémoire maintenant ?"]
+
+## assistant — 2026-05-21T13:55:46.931023
+
+Pour le long terme, il te faut **sortir de la petite mémoire intégrée**. Là, ton Hermes est en mode : - **Built-in memory only** - Pas de provider externe actif - Donc mémoire courte, vite pleine. ## Ce qu’il faut faire ### Option recommandée : **Supermemory** Pour toi, c’est le plus logique si tu veux beaucoup de clients + beaucoup d’infos. Ça permet : - mémoire sémantique long terme ; - recherche automatique dans les anciens contextes ; - séparation par conteneurs : `vividflow`, `brvndlab`, `clients`, `shared-knowledge` ; - meilleure scalabilité que la mémoire intégrée. Commandes côté serveur : ```bash hermes memory setup ``` Puis choisir : ```txt supermemory ``` Ensuite il faut ajouter la clé API : ```bash SUPERMEMORY_API_KEY=... ``` dans : ```bash /home/hermes/.hermes/profiles/chief_of_staff/.env ``` Puis redémarrer le gateway. ## Architecture propre pour toi Je ferais : - **Mémoire courte intégrée** : préférences vitales uniquement. - **Supermemory** : contexte long terme, clients, décisions, historiques. - **Skills** : procédures stables. - **Google Drive / Docs / Sheets** : documents source clients. - **Session search** : retrouver les anciennes conversations. ## Important Ne mets pas “tout” dans la mémoire brute. Pour beaucoup de clients, il faut une structure : - `client_name` - `contexte` - `accès` - `décisions` - `projets` - `risques` - `prochaines actions` Sinon ça devient une soupe impossible à piloter. Ma recommandation nette : **Supermemory + containers séparés par business/client**.
+
+## assistant — 2026-05-21T15:05:26.705928
+
+@KB_OPS_bot Prends le lead maintenant : teste le flux Brandlab ↔ Knowledge Base ↔ Hermès. Objectif test en 10 min : 1. Jonathan demande une action liée Brandlab. 2. Tu comprends via Knowledge Base/contexte Brandlab. 3. Tu crées ou simules une tâche structurée pour Hermès : `taskType`, `input`, `expectedOutput`. 4. Hermès doit pouvoir exécuter ou répondre interactif si info manquante. Priorité : pas de blabla, preuve fonctionnelle. Retour attendu ici : scénario testé + résultat + blocage exact si blocage.
+
+## user — 2026-05-21T15:14:57.631200
+
+J'ai une conversation avec Raphaël de Bula Assurance. Est-ce que tu peux trouver le transcript dans mes emails, le transcript de notre conversation ? J'ai eu cette conversation-là avec Minozan et Thomas. C'est une simple question.
+
+## assistant — 2026-05-21T15:14:57.631200
+
+Pas encore possible depuis ici. Je viens de vérifier : - Google Workspace / Gmail : **pas authentifié** - Himalaya IMAP : **pas installé/configuré** Donc je ne peux pas chercher dans tes emails pour trouver le transcript Raphaël / Bula Assurance / Minozan / Thomas. Pour que je puisse le faire, il faut reconnecter ton email. Le plus propre : **Google Workspace OAuth** si c’est Gmail/Google. Dis-moi juste : **“connecte Gmail”** et je lance la procédure.
+
+## user — 2026-05-21T15:25:12.225526
+
+C'est la deuxième fois que tu me dis ça. Comment ça se fait que t'as plus accès à mon Gmail ? Je t'ai connecté de maintes fois. C'est pas normal que tu déconnectes de mon Gmail. Qu'est-ce qui se passe ?
+
+## assistant — 2026-05-21T15:25:12.225526
+
+Tu as raison : ce n’était **pas normal**. J’ai trouvé ce qui s’est passé : - Ton token Gmail existait encore ici : `/home/hermes/.hermes/google_token.json` - Mais mon profil actif cherchait le token ici : `/home/hermes/.hermes/profiles/chief_of_staff/google_token.json` - Donc je croyais ne plus être connecté, alors que le token était juste **au mauvais endroit**. J’ai corrigé : token recopié dans le bon profil. Résultat : **Gmail est de nouveau authentifié.** Et j’ai trouvé le transcript / notes Bula Assurance. ## Email trouvé **Expéditeur :** `team@genspark.ai` **Sujet :** `Meeting Notes: Présentation de la solution d'agent IA pour l'optimisation des processus et la gestion des sinistres` **Date :** 21 mai 2026 **Durée :** 40 min ## Résumé rapide du contenu Conversation avec Raphaël / Bula Assurance autour de : - surcharge d’e-mails sinistres : **60–70% des emails quotidiens** - objectif : libérer du temps commercial - solution proposée : agent IA “bras droit” - usage : gestion emails, dossiers sinistres, rapports quotidiens - intégration possible même sans API, ex. Brokinsoft - sécurité : VPS privé en Suisse - témoignage Alexandre - pricing évoqué : - infra : **100–120 CHF/mois** - setup : **6’000 CHF** - 50% acompte / 50% livraison - prochaine étape : démo PC via Zoom à **16h** Il y a aussi un email Gemini plus ancien du **18 mai** : `Notes : "Appel de découverte - Bula assurances" 18 mai 2026`. Donc oui : le transcript existe bien, et l’accès Gmail est réparé.
+
+## user — 2026-05-21T15:27:19.882766
+
+[The user sent a voice message~ Here's what they said: "ou là, t'entends tout mélangé, je ne suis pas sûr de comprendre, déjà avant d'avancer, j'aimerais savoir pourquoi tu fais que de me déconnecter de mon Gmail."]
+
+## assistant — 2026-05-21T15:27:19.882766
+
+Tu as raison de bloquer là-dessus. Je ne t’ai pas “déconnecté” de Gmail. Ce qui s’est passé : - Ton accès Gmail existait encore. - Mais il était stocké dans le dossier global Hermes : `/home/hermes/.hermes/google_token.json` - Moi, dans ce bot précis, je tourne avec le profil : `chief_of_staff` - Ce profil cherchait le token ici : `/home/hermes/.hermes/profiles/chief_of_staff/google_token.json` - Comme le fichier n’était pas là, j’ai conclu à tort : “Gmail pas connecté”. Donc le problème n’était pas une vraie déconnexion Google. C’était un **mauvais emplacement du token entre mémoire globale et profil agent**. Je viens de copier le token au bon endroit et j’ai vérifié : **AUTHENTICATED**. Le vrai sujet à corriger maintenant : faire en sorte que mes accès Google soient **toujours cherchés au bon endroit**, ou synchronisés proprement entre profil global et `chief_of_staff`.
+
+## user — 2026-05-21T15:29:15.102137
+
+[The user sent a voice message~ Here's what they said: "Ok, j'espère que ça va plus reproduire. Maintenant, par rapport à l'appel avec Boulin, malheureusement, c'est appel le premier rappel n'a pas été fait sur TLDV. Il a été enregistré si je ne me trompe pas directement avec Google. Donc j'aimerais que tu puisses trouver le transcript de cet appel, il était à quelques jours. Si je ne me trompe pas, c'était lundi cet appel."]
+
+## assistant — 2026-05-21T15:29:15.102137
+
+Oui, je l’ai trouvé. C’est bien l’appel **Google Meet du lundi 18 mai 2026** : **Titre :** Appel de découverte - Bula assurances **Invités :** Raphaël Bula, Thomas, Minozan, Jonathan, Erwan **Source :** notes/transcription Google Meet, pas tl;dv **Google Doc :** `1ewSat14hDHnFMXJyNX3Uvcv8Qz2jt6yoF6kcPCDOFro` J’ai exporté le transcript complet ici : MEDIA:/tmp/transcript_bula_assurances_2026-05-18.txt Point important : l’email Gemini ne montrait qu’un résumé, mais le Google Doc lié contient bien la transcription complète.
+
+## user — 2026-05-21T15:30:49.943452
+
+[The user sent a voice message~ Here's what they said: "Est-ce que tu peux aller sur le site internet de Boulat et prendre des informations là-bas ?"]
+
+## assistant — 2026-05-21T15:30:49.943452
+
+Oui. J’ai trouvé le site : **bula-assurances.ch** Infos utiles récupérées : ## Bula Assurances SA **Positionnement :** cabinet de courtage à Genève / Petit-Lancy. **Promesse :** protection sur mesure pour particuliers et PME. ## Coordonnées - **Adresse :** Route du Pont-Butin 70, 1213 Petit-Lancy - **Email :** info@bula-assurances.ch - **Téléphone :** +41 22 310 74 44 - **Site :** https://www.bula-assurances.ch ## Activité Ils accompagnent : - particuliers ; - indépendants ; - PME jusqu’à environ 50 employés ; - gestion de portefeuilles d’assurances toutes branches ; - conseil en financement immobilier. ## Piliers affichés - **Audit** : analyse du portefeuille existant - **Gestion** : suivi et optimisation des contrats - **Contentieux** : accompagnement en litige - **Sinistres** : assistance et suivi personnalisé ## Offres privées - ménage & responsabilité civile privée - véhicules à moteur - bâtiments & aménagements - maladie & accidents - voyage & vacances - prévoyance & 3e pilier - protection juridique privée ## Offres professionnelles - responsabilité civile professionnelle - flotte et véhicules - assurance commerce - assurances de personnes - protection juridique - perte d’exploitation, cyber, transport, matériel, stocks ## Angle intéressant pour nous Le site confirme exactement le problème de l’appel : **La gestion des sinistres est centrale dans leur promesse client.** Donc l’agent IA “sinistres + email + suivi dossier” est très aligné avec leur positionnement public.
+
+## user — 2026-05-21T15:31:49.897972
+
+[The user sent a voice message~ Here's what they said: "Quels sont les points où on pourrait l'accompagner avec de l'agentique, avec notre solution de vivite flot ? Qu'est-ce qu'on pourrait faire avec vivite flot pour ce client ?"]
+
+## assistant — 2026-05-21T15:31:49.897972
+
+Oui. Pour Bula, VividFlow doit être vendu comme **système opérateur IA du cabinet**, pas comme “un chatbot”. ## 1. Agent Sinistres Le plus évident. Il peut : - lire les emails sinistres ; - classifier : nouveau sinistre / suivi / relance / document manquant ; - créer une fiche dossier ; - préparer la réponse client ; - relancer compagnie ou client ; - produire un brief quotidien. **Valeur :** réduire les 50–60 emails/jour et libérer Raphaël pour le commercial. ## 2. Brief quotidien dirigeant Chaque matin : - nouveaux sinistres importants ; - dossiers bloqués ; - relances urgentes ; - clients sensibles ; - opportunités commerciales ; - tâches à valider. **Valeur :** Raphaël garde le contrôle sans lire toute sa boîte mail. ## 3. Agent Comparaison Assurances Pour leur cœur métier : comparer les offres. Il peut : - lire conditions générales / PDF ; - extraire garanties, exclusions, franchises ; - comparer plusieurs compagnies ; - préparer une synthèse client lisible. **Valeur :** accélérer audit portefeuille + recommandations. ## 4. Agent Back-office Brokinsoft Même sans API, l’agent peut assister : - recherche dossier ; - préparation saisie ; - checklist documents ; - contrôle cohérence ; - brouillons d’actions à valider. **Attention :** au début, humain valide tout. Pas d’autonomie complète. ## 5. Agent Relance & Suivi client Pour éviter les oublis : - relances documents manquants ; - rappels échéances ; - suivi renouvellements ; - alertes contrats à optimiser ; - messages pré-écrits. **Valeur :** meilleure expérience client + moins de charge mentale. ## 6. Cockpit VividFlow pour Bula Une interface simple : - dossiers sinistres ouverts ; - emails à traiter ; - validations humaines ; - priorités du jour ; - temps économisé ; - opportunités commerciales ; - mémoire métier du cabinet. **C’est ça qui rend la solution tangible.** ## Phase 1 recommandée Je ne partirais pas large. Je proposerais : 1. **Agent email sinistres** 2. **Brief quotidien Telegram** 3. **Cockpit de suivi** 4. **Base de connaissance Bula** : offres, CGA, process, modèles de réponse Objectif : prouver en 30 jours que Raphaël récupère du temps. ## Angle commercial “On ne remplace pas votre équipe. On installe un bras droit IA qui absorbe le back-office répétitif, vous garde en contrôle, et vous libère pour le développement commercial.”
+
+## user — 2026-05-21T15:35:06.122784
+
+[The user sent a voice message~ Here's what they said: "Sur lui en plaiement de ça, qu'elle serait le avant après de son activité. Un pacte quotidien au niveau de sa vie privée, sa vie personnelle, son énergie, tout ça, bref, et un pacte au niveau du business et opportunité de business."]
+
+## assistant — 2026-05-21T15:35:06.122784
+
+Oui. Voilà l’**avant / après** pour Raphaël. ## Avant — aujourd’hui ### Vie quotidienne - Il commence la journée déjà happé par les emails. - Il subit les urgences sinistres. - Il garde beaucoup de dossiers “dans sa tête”. - Il finit avec une charge mentale élevée. - Son énergie commerciale est mangée par l’administratif. ### Vie personnelle - Moins de vraie coupure mentale. - Risque de penser aux dossiers clients le soir. - Stress de l’oubli : relance, document, délai, compagnie. - Sensation d’être indispensable partout. ### Business - Trop de temps sur du service non directement rémunéré. - Moins de temps terrain. - Moins de rendez-vous prospects. - Croissance limitée par sa capacité opérationnelle. - Dépendance forte à lui et au back-office. ## Après — avec VividFlow ### Vie quotidienne - Il reçoit un brief clair le matin. - Il sait quoi valider, quoi déléguer, quoi ignorer. - Les emails sinistres sont triés, résumés, préparés. - Les dossiers bloqués remontent automatiquement. - Il pilote, au lieu d’éteindre des feux. ### Vie personnelle - Moins de charge mentale. - Moins de peur d’oublier un dossier. - Fin de journée plus nette : ce qui est ouvert est visible. - Plus d’énergie disponible hors travail. - Meilleure sensation de contrôle. ### Business - Plus de temps pour rendez-vous clients et prospection. - Meilleure réactivité sur les sinistres. - Expérience client plus premium. - Capacité à gérer plus de portefeuille sans recruter tout de suite. - Données plus structurées pour identifier opportunités : renouvellements, upsell, contrats sous-optimisés. ## Impact business concret VividFlow peut transformer Bula de : **cabinet dépendant de l’humain pour tout traiter** à **cabinet piloté par un système IA qui prépare, trie, relance et sécurise.** ## Phrase forte pour lui “Votre problème n’est pas le manque d’expertise. C’est que votre expertise est bloquée dans l’administratif. VividFlow remet votre temps là où il crée de la valeur : relation client, conseil, vente et développement.”
+
+## user — 2026-05-21T15:36:27.809726
+
+Quelle serait la routine de ses collaborateurs après l'utilisation de la solution, après l'implémentation de notre solution ?
+
+## assistant — 2026-05-21T15:36:27.809726
+
+Après VividFlow, ses collaborateurs ne “vident” plus une boîte mail. Ils pilotent une **file de travail préparée par l’IA**. ## Routine matin 1. **Brief du jour** - nouveaux sinistres - urgences - dossiers bloqués - relances à faire - validations nécessaires 2. **Validation des priorités** - l’IA propose l’ordre de traitement - le collaborateur confirme ou ajuste 3. **Traitement assisté** - email déjà résumé - documents identifiés - réponse pré-rédigée - prochaine action proposée ## Pendant la journée 4. **Gestion par statuts** - à traiter - en attente client - en attente compagnie - document manquant - prêt à clôturer 5. **Réponses préparées** - le collaborateur relit - corrige si besoin - valide l’envoi 6. **Mise à jour dossier** - l’IA prépare la note - le collaborateur valide - le dossier reste propre ## Fin de journée 7. **Revue des blocages** - dossiers sans réponse - délais critiques - clients sensibles - actions reportées 8. **Transmission à Raphaël** - résumé automatique : - ce qui a été traité - ce qui bloque - ce qui demande décision - risques éventuels ## Avant / après collaborateur **Avant :** - lecture manuelle - tri mental - copier-coller - relances oubliables - fatigue administrative **Après :** - file claire - actions préparées - moins d’ambiguïté - moins d’allers-retours - plus de temps sur les cas à valeur humaine Phrase simple : **“Les collaborateurs ne deviennent pas remplacés par l’IA ; ils deviennent superviseurs d’un back-office augmenté.”**
+
+## user — 2026-05-21T15:42:08.660497
+
+[The user sent a voice message~ Here's what they said: "Est-ce que tu arrives à me sortir la présentation qu'on a fait en R2 à Raphaël de l'assurance boulacie de te plaît ?"]
+
+## assistant — 2026-05-21T15:42:08.660497
+
+Oui, je l’ai retrouvée. **Présentation R2 Bula Assurances** : MEDIA:/tmp/bula-r2/presentation-r2-bula-assurances.pdf Version HTML source si besoin : MEDIA:/tmp/bula-r2/presentation-r2-bula-assurances.html C’est le support intitulé : **“Bula Assurances × AIOS/Hermes — Support R2”**.
+
+## user — 2026-05-21T15:43:10.795113
+
+[The user sent a voice message~ Here's what they said: "Ce que tu as là, c'est pas une présentation, c'est un petit test qu'il a fait Thomas de Valide surtout pas ça."]
+
+## assistant — 2026-05-21T15:43:10.795113
+
+Tu as raison. Je corrige. Ce que je t’ai sorti (`bula-r2-pitchdeck.html`) = **test local de Thomas**, pas une présentation validée. Je ne dois **pas** le considérer comme source fiable. Règle corrigée pour Bula et les prochains clients : - **Présentation validée = lien Vercel / support réellement présenté** - **Fichier local = brouillon/test tant que pas relié à Vercel ou validation explicite** Je vais éviter de réutiliser ce fichier comme référence.
+
+## user — 2026-05-21T15:44:50.671681
+
+[The user sent a voice message~ Here's what they said: "Maintenant, va m'échercher le lien de presse de la présentation qui a été fait sur Versel pour Raphaël Boulard."]
+
+## assistant — 2026-05-21T15:44:50.671681
+
+J’ai trouvé les liens Vercel pour Raphaël / Bula. Le plus probable comme version finale : https://bula-assurances-r2-v3.vercel.app Autres versions trouvées : - V1 / base : https://bula-assurances-r2-kappa.vercel.app - V2 : https://bula-assurances-r2-v2.vercel.app Statut Vercel vérifié : **Ready / Production**. Attention : je ne peux pas confirmer à 100% laquelle a été “validée” oralement, mais par nommage, **v3** est la version à privilégier.

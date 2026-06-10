@@ -1,21 +1,22 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useClickOutside } from '@/hooks/useClickOutside'
-import { Search, Download, SlidersHorizontal, ArrowUpDown, Settings2, Check, ChevronDown, FileSpreadsheet, Trash2, RefreshCw, Filter } from 'lucide-react'
+import { Search, Download, SlidersHorizontal, ArrowUpDown, Settings2, Check, ChevronDown, ChevronRight, FileSpreadsheet, Trash2, RefreshCw, Filter } from 'lucide-react'
 import { type GHLContact } from '@/lib/ghl'
 import { fetchJSON } from '@/lib/fetchJSON'
 import { getAvatarColor, formatDate, formatRelative, type ContactAttribution } from './types'
 import dynamic from 'next/dynamic'
 import { useToast } from '@/hooks/useToast'
 import { Toaster } from '@/components/shared/Toaster'
+import { MotionStagger, MotionItem } from '@/components/ui/Motion'
 
 const NewLeadWidget   = dynamic(() => import('@/components/shared/NewLeadWidget'), { ssr: false })
 const ImportModal     = dynamic(() => import('./ImportModal'),     { ssr: false })
 const NewContactModal = dynamic(() => import('./NewContactModal'), { ssr: false })
 
-const COL_HEADER = 'px-4 py-3 text-left text-[11px] font-semibold text-soren-muted uppercase tracking-wide whitespace-nowrap'
+const COL_HEADER = 'px-3 py-2 text-left text-[11px] font-semibold text-soren-muted uppercase tracking-wide whitespace-nowrap'
 
 const SWISS_CANTONS = [
   'AG','AI','AR','BE','BL','BS','FR','GE','GL','GR',
@@ -39,7 +40,7 @@ function Avatar({ contact }: { contact: GHLContact }) {
   const initials = (name.split(' ').map((w: string) => w[0]).join('').slice(0, 2) || '?').toUpperCase()
   const color    = getAvatarColor(initials)
   return (
-    <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0" style={{ background: color + '22', color }}>
+    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{ background: color + '22', color }}>
       {initials}
     </div>
   )
@@ -64,12 +65,12 @@ function TagPill({ label }: { label: string }) {
 type SourceVal = 'inbound' | 'outbound' | 'recommandation'
 function SourceBadge({ value, onClick }: { value: SourceVal; onClick: (e: React.MouseEvent) => void }) {
   const cfg = value === 'inbound'
-    ? { bg: '#DCFCE7', color: '#16A34A', border: '#BBF7D0', label: 'inbound'  }
+    ? { cls: 'bg-[#DCFCE7] text-[#16A34A] border-[#BBF7D0] dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20', label: 'inbound'  }
     : value === 'outbound'
-      ? { bg: '#FEF9C3', color: '#CA8A04', border: '#FDE68A', label: 'outbound' }
-      : { bg: '#EDE9FE', color: '#7C3AED', border: '#DDD6FE', label: 'recommandation' }
+      ? { cls: 'bg-[#FEF9C3] text-[#CA8A04] border-[#FDE68A] dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/20', label: 'outbound' }
+      : { cls: 'bg-[#EDE9FE] text-[#7C3AED] border-[#DDD6FE] dark:bg-violet-500/15 dark:text-violet-400 dark:border-violet-500/20', label: 'recommandation' }
   return (
-    <span onClick={onClick} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap cursor-pointer select-none hover:opacity-80 transition-opacity" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
+    <span onClick={onClick} className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap cursor-pointer select-none hover:opacity-80 transition-opacity border ${cfg.cls}`}>
       {cfg.label}
     </span>
   )
@@ -78,11 +79,11 @@ function SourceBadge({ value, onClick }: { value: SourceVal; onClick: (e: React.
 // ─── Statut badge ─────────────────────────────────────────────
 function StatutBadge({ value, onClick }: { value: 'lead' | 'client' | 'perdu'; onClick: (e: React.MouseEvent) => void }) {
   const cfg =
-    value === 'client' ? { bg: '#EFF6FF', color: '#2563EB', border: '#BFDBFE', label: 'client'  } :
-    value === 'perdu'  ? { bg: '#FEF2F2', color: '#DC2626', border: '#FECACA', label: 'perdu'   } :
-                         { bg: '#F3F4F6', color: '#374151', border: '#E5E7EB', label: 'lead'    }
+    value === 'client' ? { cls: 'bg-[#EFF6FF] text-[#2563EB] border-[#BFDBFE] dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/20', label: 'client'  } :
+    value === 'perdu'  ? { cls: 'bg-[#FEF2F2] text-[#DC2626] border-[#FECACA] dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/20', label: 'perdu'   } :
+                         { cls: 'bg-[#F3F4F6] text-[#374151] border-[#E5E7EB] dark:bg-white/10 dark:text-zinc-300 dark:border-white/10', label: 'lead'    }
   return (
-    <span onClick={onClick} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap cursor-pointer select-none hover:opacity-80 transition-opacity" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
+    <span onClick={onClick} className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap cursor-pointer select-none hover:opacity-80 transition-opacity border ${cfg.cls}`}>
       {cfg.label}
     </span>
   )
@@ -96,7 +97,7 @@ function CantonBadge({ value, onClick }: { value: string | null; onClick: (e: Re
     </span>
   )
   return (
-    <span onClick={onClick} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap cursor-pointer select-none hover:opacity-80 transition-opacity bg-[#F3F4F6] text-[#6B7280]">
+    <span onClick={onClick} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap cursor-pointer select-none hover:opacity-80 transition-opacity bg-[#F3F4F6] text-[#6B7280] dark:bg-white/10 dark:text-zinc-300">
       {cantonName(value)}
     </span>
   )
@@ -173,37 +174,37 @@ function ContactRow({
 
   return (
     <tr className="border-b border-[#F0F0EE] hover:bg-[#FAFAF8] transition-colors group cursor-pointer" onClick={onClick}>
-      <td className="pl-4 pr-2 py-3 w-10" onClick={e => e.stopPropagation()}>
+      <td className="pl-4 pr-2 py-2 w-10" onClick={e => e.stopPropagation()}>
         <input type="checkbox" checked={checked} onChange={() => onCheck(contact.id)} className="w-4 h-4 rounded border-[#D1D5DB] accent-[#111111] cursor-pointer" />
       </td>
-      <td className="px-4 py-3 min-w-[180px]">
+      <td className="px-3 py-2 min-w-[180px]">
         <div className="flex items-center gap-2.5">
           <Avatar contact={contact} />
           <span className="text-[12px] font-semibold text-soren-text truncate">{name}</span>
         </div>
       </td>
-      {v('Téléphone') && <td className="px-4 py-3 min-w-[140px]">
+      {v('Téléphone') && <td className="px-3 py-2 min-w-[140px]">
         {contact.phone ? <span className="text-[12px] text-[#374151]">{contact.phone}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
       </td>}
-      {v('E-mail') && <td className="px-4 py-3 min-w-[200px]">
+      {v('E-mail') && <td className="px-3 py-2 min-w-[200px]">
         {contact.email ? <span className="text-[12px] text-[#374151]">{contact.email}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
       </td>}
-      {v("Nom de l'entreprise") && <td className="px-4 py-3 min-w-[160px]">
+      {v("Nom de l'entreprise") && <td className="px-3 py-2 min-w-[160px]">
         {contact.companyName ? <span className="text-[12px] text-[#374151] truncate">{contact.companyName}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
       </td>}
-      {v('Métier') && <td className="px-4 py-3 min-w-[140px]">
+      {v('Métier') && <td className="px-3 py-2 min-w-[140px]">
         {contact.metier ? <span className="text-[12px] text-[#374151] truncate">{contact.metier}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
       </td>}
-      {v('Niche') && <td className="px-4 py-3 min-w-[140px]">
-        {contact.niche ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#F3F4F6] text-[#6B7280] whitespace-nowrap">{contact.niche}</span> : <span className="text-sm text-[#D1D5DB]">—</span>}
+      {v('Niche') && <td className="px-3 py-2 min-w-[140px]">
+        {contact.niche ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#F3F4F6] text-[#6B7280] dark:bg-white/10 dark:text-zinc-300 whitespace-nowrap">{contact.niche}</span> : <span className="text-sm text-[#D1D5DB]">—</span>}
       </td>}
-      {v('Source') && <td className="px-4 py-3 min-w-[110px]" onClick={e => e.stopPropagation()}>
+      {v('Source') && <td className="px-3 py-2 min-w-[110px]" onClick={e => e.stopPropagation()}>
         <SourceBadge value={source} onClick={e => onSourceToggle(contact.id, e)} />
       </td>}
-      {v('Statut') && <td className="px-4 py-3 min-w-[100px]" onClick={e => e.stopPropagation()}>
+      {v('Statut') && <td className="px-3 py-2 min-w-[100px]" onClick={e => e.stopPropagation()}>
         <StatutBadge value={statut} onClick={e => onStatutToggle(contact.id, e)} />
       </td>}
-      {v('Canton') && <td className="px-4 py-3 min-w-[100px] relative" onClick={e => e.stopPropagation()}>
+      {v('Canton') && <td className="px-3 py-2 min-w-[100px] relative" onClick={e => e.stopPropagation()}>
         <CantonBadge value={canton} onClick={e => { e.stopPropagation(); setShowCantonPicker(v => !v) }} />
         {showCantonPicker && (
           <CantonPicker
@@ -212,7 +213,7 @@ function ContactRow({
           />
         )}
       </td>}
-      {v('Créé') && <td className="px-4 py-3 min-w-[130px]"><span className="text-[12px] text-soren-muted">{formatDate(contact.dateAdded)}</span></td>}
+      {v('Créé') && <td className="px-3 py-2 min-w-[130px]"><span className="text-[12px] text-soren-muted">{formatDate(contact.dateAdded)}</span></td>}
     </tr>
   )
 }
@@ -509,6 +510,15 @@ export default function ContactsView({
   const [refreshing,       setRefreshing]       = useState(false)
   const [selectedContact,  setSelectedContact]  = useState<GHLContact | null>(null)
 
+  // Ouverture directe d'une fiche via ?c=<id> (depuis la recherche globale).
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    const cid = searchParams.get('c')
+    if (!cid) return
+    const found = contacts.find(c => c.id === cid)
+    if (found) setSelectedContact(found)
+  }, [searchParams, contacts])
+
   async function refreshContacts() {
     setRefreshing(true)
     try {
@@ -558,41 +568,41 @@ export default function ContactsView({
   const activeFilterCount = Object.keys(colFilters).length
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-soren-app">
+    <MotionStagger className="h-full flex flex-col overflow-hidden bg-soren-app">
       <Toaster toasts={toasts} dismiss={dismiss} />
 
       {/* ── Header ─────────────────────────────────────────── */}
-      <div className="px-6 pt-6 pb-3 flex-shrink-0 flex items-center justify-between gap-4" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
+      <MotionItem className="px-4 pt-5 pb-3 flex-shrink-0 flex items-center justify-between gap-3 flex-wrap gap-y-2">
         <div className="flex items-center gap-3">
-          <span className="self-end mb-1 bg-[#FF4D00] text-white text-xs font-bold px-2.5 py-1 rounded-full">
+          <span className="bg-[#FF4D00] text-white text-xs font-bold px-2.5 py-1 rounded-full">
             {contacts.length} contacts
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           {checked.size > 0 && (
             <button onClick={handleDeleteSelected} disabled={deleting} className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-xs font-semibold px-3.5 py-2 rounded-full transition-colors">
               <Trash2 size={12} />
               {deleting ? 'Suppression…' : `Supprimer (${checked.size})`}
             </button>
           )}
-          <button onClick={refreshContacts} disabled={refreshing} className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-xs font-semibold px-3.5 py-2 rounded-full hover:bg-soren-elevated disabled:opacity-50 transition-colors">
+          <button onClick={refreshContacts} disabled={refreshing} className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-[11px] font-semibold px-2.5 py-1 rounded-full hover:bg-soren-elevated disabled:opacity-50 transition-colors">
             <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
-            Actualiser
+            <span className="hidden sm:inline">Actualiser</span>
           </button>
-          <button onClick={exportExcel} className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-xs font-semibold px-3.5 py-2 rounded-full hover:bg-soren-elevated transition-colors">
+          <button onClick={exportExcel} className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-[11px] font-semibold px-2.5 py-1 rounded-full hover:bg-soren-elevated transition-colors">
             <FileSpreadsheet size={12} />
-            Exporter
+            <span className="hidden sm:inline">Exporter</span>
           </button>
-          <button onClick={() => setShowImport(true)} className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-xs font-semibold px-3.5 py-2 rounded-full hover:bg-soren-elevated transition-colors">
+          <button onClick={() => setShowImport(true)} className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-[11px] font-semibold px-2.5 py-1 rounded-full hover:bg-soren-elevated transition-colors">
             <Download size={12} />
-            Importer
+            <span className="hidden sm:inline">Importer</span>
           </button>
           <NewLeadWidget onAddOpp={() => void refreshContacts()} label="Nouveau contact" />
         </div>
-      </div>
+      </MotionItem>
 
       {/* ── Filter bar ─────────────────────────────────────── */}
-      <div className="relative z-10 px-6 pb-3 flex-shrink-0 flex items-center justify-between gap-4" style={{ animation: 'fadeSlideUp 400ms ease-out 70ms both' }}>
+      <MotionItem className="relative z-10 px-4 pb-3 flex-shrink-0 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           {activeFilterCount > 0 && (
             <button onClick={() => setColFilters({})} className="flex items-center gap-1.5 text-xs font-semibold bg-[#FF4D00] text-white px-3 py-1.5 rounded-full transition-colors">
@@ -608,19 +618,19 @@ export default function ContactsView({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-soren-card border border-soren-border rounded-full px-3 py-1.5">
-            <Search size={12} className="text-soren-subtle flex-shrink-0" />
+          <div className="flex items-center gap-1.5 bg-soren-elevated/70 rounded-full px-2.5 py-1">
+            <Search size={11} className="text-soren-subtle flex-shrink-0" />
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Rechercher contacts..."
-              className="bg-transparent text-sm text-soren-text placeholder-[#9CA3AF] outline-none w-44"
+              placeholder="Rechercher..."
+              className="bg-transparent text-[12px] text-soren-text placeholder-[#B7B7B2] outline-none w-36"
             />
           </div>
           <div className="relative" ref={fieldsMenuRef}>
             <button
               onClick={() => setShowFieldsMenu(v => !v)}
-              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${showFieldsMenu ? 'bg-soren-sidebar text-white border-[#111111]' : 'bg-soren-card text-soren-muted border-soren-border hover:bg-soren-elevated'}`}
+              className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${showFieldsMenu ? 'bg-soren-sidebar text-white border-[#111111]' : 'bg-soren-card text-soren-muted border-soren-border hover:bg-soren-elevated'}`}
             >
               <Settings2 size={11} />
               Gérer les champs
@@ -640,14 +650,45 @@ export default function ContactsView({
             )}
           </div>
         </div>
+      </MotionItem>
+
+      {/* ── Liste cartes (mobile) ─────────────────────────────── */}
+      <div className="md:hidden flex-1 overflow-y-auto px-3 pb-4 space-y-2">
+        {filtered.length === 0 ? (
+          <div className="px-4 py-16 text-center text-sm text-soren-subtle">Aucun contact trouvé</div>
+        ) : (
+          paginated.map(contact => {
+            const rawName = contact.contactName || `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim() || '—'
+            const name = rawName === '—' ? '—' : rawName.split(' ').map((w: string) => w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : '').join(' ')
+            const sub = contact.companyName || contact.phone || contact.email || '—'
+            return (
+              <button
+                key={contact.id}
+                onClick={() => setSelectedContact(contact)}
+                className="w-full text-left bg-soren-card rounded-2xl border border-soren-border shadow-sm p-3 flex items-center gap-3 active:bg-[#FAFAF8] transition-colors"
+              >
+                <Avatar contact={contact} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold text-soren-text truncate">{name}</p>
+                  <p className="text-[11px] text-soren-muted truncate">{sub}</p>
+                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap" onClick={e => e.stopPropagation()}>
+                    <StatutBadge value={statutMap.get(contact.id) ?? 'lead'} onClick={e => handleStatutToggle(contact.id, e)} />
+                    <SourceBadge value={sourceMap.get(contact.id) ?? 'inbound'} onClick={e => handleSourceToggle(contact.id, e)} />
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-soren-subtle flex-shrink-0" />
+              </button>
+            )
+          })
+        )}
       </div>
 
-      {/* ── Table ──────────────────────────────────────────── */}
-      <div ref={tableRef} className="flex-1 overflow-auto mx-6 mb-6 bg-soren-card rounded-2xl border border-soren-border shadow-sm" style={{ animation: 'fadeSlideUp 400ms ease-out 140ms both' }}>
+      {/* ── Table (desktop) ───────────────────────────────────── */}
+      <MotionItem ref={tableRef} className="hidden md:block flex-1 overflow-auto mx-4 mb-4 bg-soren-card rounded-2xl border border-soren-border shadow-sm">
         <table className="w-full border-collapse">
           <thead className="sticky top-0 bg-soren-card z-10 border-b border-soren-border">
             <tr>
-              <th className="pl-4 pr-2 py-3 w-10">
+              <th className="pl-4 pr-2 py-2 w-10">
                 <input type="checkbox" checked={allChecked} onChange={toggleAll} className="w-4 h-4 rounded border-[#D1D5DB] accent-[#111111] cursor-pointer" />
               </th>
               <ColHeader
@@ -696,19 +737,19 @@ export default function ContactsView({
             )}
           </tbody>
         </table>
-      </div>
+      </MotionItem>
 
       {/* ── Pagination footer ── */}
       {filtered.length > 0 && (
-        <div className="flex items-center justify-between px-6 py-3 flex-shrink-0 border-t border-soren-border">
-          <span className="text-[12px] text-soren-muted">
+        <div className="flex items-center justify-between px-6 py-1.5 flex-shrink-0 border-t border-soren-border">
+          <span className="text-[11px] text-soren-muted">
             {(safePage - 1) * PER_PAGE + 1}–{Math.min(safePage * PER_PAGE, filtered.length)} sur {filtered.length}
           </span>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={safePage <= 1}
-              className="px-3 py-1.5 rounded-lg text-[12px] font-semibold border border-soren-border text-soren-muted hover:bg-soren-elevated disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-soren-border text-soren-muted hover:bg-soren-elevated disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Précédent
             </button>
@@ -716,10 +757,10 @@ export default function ContactsView({
               .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
               .map((p, idx, arr) => (
                 <span key={p} className="flex items-center">
-                  {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1 text-soren-subtle text-[12px]">…</span>}
+                  {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1 text-soren-subtle text-[11px]">…</span>}
                   <button
                     onClick={() => setPage(p)}
-                    className={`min-w-[32px] px-2 py-1.5 rounded-lg text-[12px] font-semibold transition-colors ${
+                    className={`min-w-[26px] px-1.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
                       p === safePage ? 'bg-soren-sidebar text-white' : 'text-soren-muted hover:bg-soren-elevated border border-soren-border'
                     }`}
                   >
@@ -730,7 +771,7 @@ export default function ContactsView({
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={safePage >= totalPages}
-              className="px-3 py-1.5 rounded-lg text-[12px] font-semibold border border-soren-border text-soren-muted hover:bg-soren-elevated disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-soren-border text-soren-muted hover:bg-soren-elevated disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Suivant
             </button>
@@ -763,6 +804,6 @@ export default function ContactsView({
           }}
         />
       )}
-    </div>
+    </MotionStagger>
   )
 }

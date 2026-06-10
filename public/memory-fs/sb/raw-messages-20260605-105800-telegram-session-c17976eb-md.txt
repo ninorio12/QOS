@@ -1,0 +1,22 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260605_070341_219f848a.jsonl
+captured_at: 2026-06-05T10:58:00.678300
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-06-05T10:31:59.077151
+
+[The user sent a voice message~ Here's what they said: "Juste une petite question, le verser du premierinaire, il y a un codeau sur convex, c'est les surroles."] [Thomas]
+
+## assistant — 2026-06-05T10:31:59.077151
+
+Oui, normalement **Convex doit gérer les rôles** si on veut que l’onboarding soit propre. Minimum à prévoir : - **Client owner** : peut remplir/envoyer l’onboarding. - **Client member** : peut compléter certaines infos/documents. - **VividFlow admin** : voit tout, modifie, valide. - **Thomas / Tech lead** : voit surtout accès, outils, blocages, installation. - **Read-only** : utile plus tard pour un associé/client qui doit juste relire. Mais pour la V1, ne complexifiez pas. Je ferais simple : ```text role: "client" | "vividflow_admin" | "tech_lead" ``` Et côté onboarding, chaque réponse doit avoir : ```text status: "not_started" | "done" | "blocked" | "to_do_with_thomas" ``` Donc oui : **Convex = source de vérité**, avec rôles + statuts + réponses structurées. Pas besoin d’un système RBAC complet dès maintenant.
+
+## user — 2026-06-05T10:33:16.328721
+
+[The user sent a voice message~ Here's what they said: "Non, mais actuellement, l'inverselle du formulaire et des arbres codés au."] [Thomas]
+
+## assistant — 2026-06-05T10:33:16.328721
+
+Oui, pour la V1 c’est OK si **l’interface du formulaire et l’arborescence sont codées en dur**. Mais je garderais cette séparation : - **Front codé en dur** : étapes, textes, layout, vidéos, liens d’aide. - **Convex** : réponses client, statuts, fichiers, accès transmis, blocages. - **Plus tard** : rendre les étapes configurables depuis Convex si vous voulez plusieurs formulaires selon client/secteur. Donc pas besoin de tout rendre dynamique maintenant. Le bon modèle V1 : ```text /formulaire/onboarding → étapes hardcodées côté app → réponses stockées dans Convex → statut par étape → admin VividFlow lit et prépare l’installation ``` À éviter maintenant : - builder de formulaire complexe - rôles trop fins - logique configurable partout Priorité : **un parcours stable, clair, qui récupère les bonnes infos et les bons accès.**

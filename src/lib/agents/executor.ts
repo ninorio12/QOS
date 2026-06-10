@@ -52,7 +52,7 @@ Règles :
 Exemples de commandes de Thomas :
 "Crée une tâche pour ops : vérifier les leads non contactés"
 "Montre-moi les tâches en cours"
-"Met à jour la KB 'tarifs' avec : tarif peinture = 35€/m2"
+"Met à jour la KB 'tarifs' avec : tarif peinture = 35CHF/m2"
 "Combien d'opportunités ouvertes ?"
 "Trigger le workflow Relance-7j pour le contact ID abc123"`
 

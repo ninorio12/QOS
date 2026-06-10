@@ -13,7 +13,9 @@ export async function GET() {
     })
     if (!res.ok) throw new Error(`tldv ${res.status}`)
     const data = await res.json()
-    return NextResponse.json({ meetings: data.meetings ?? data ?? [] })
+    // tl;dv paginates: { page, pageSize, pages, total, results: [...] }
+    const meetings = data.results ?? data.meetings?.results ?? data.meetings ?? (Array.isArray(data) ? data : [])
+    return NextResponse.json({ meetings })
   } catch (err) {
     console.error('[tldv]', err)
     return NextResponse.json({ meetings: [], error: String(err) })

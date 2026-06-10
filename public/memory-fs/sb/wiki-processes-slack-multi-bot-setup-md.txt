@@ -1,0 +1,66 @@
+---
+type: process
+status: active
+updated: 2026-06-04
+tags: [vividflow, hermes, slack, setup, troubleshooting]
+source: raw/messages
+---
+
+# Process — Setup multi-bots Slack Hermes
+
+## Règle principale
+
+```text
+1 profil Hermes = 1 fichier .env = 1 bot Slack
+```
+
+## Profils
+
+- `chief_of_staff` = COO, Telegram + Slack.
+- `cmo_executor` = Slack-only.
+- `csm_executor` = Slack-only.
+- `operations_executor` = Slack-only.
+- `rd_executor` = Slack-only, visible comme Data Analyst Executor.
+
+## Variables executor
+
+```text
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_APP_TOKEN=xapp-...
+SLACK_ALLOWED_USERS=U0B7FK89Z5G,U0B7G67LM1T
+SLACK_ALLOW_BOTS=mentions
+```
+
+## Variables Telegram interdites sur executors
+
+```text
+TELEGRAM_BOT_TOKEN
+TELEGRAM_ALLOWED_USERS
+TELEGRAM_HOME_CHANNEL
+TELEGRAM_HOME_CHANNEL_NAME
+TELEGRAM_FALLBACK_IPS
+TELEGRAM_WEBHOOK_URL
+TELEGRAM_WEBHOOK_PORT
+TELEGRAM_WEBHOOK_SECRET
+```
+
+## Troubleshooting
+
+- `No LLM provider configured` → configurer/copier l'auth LLM du profil COO.
+- `Telegram bot token already in use` → l'executor a hérité de Telegram, le rendre Slack-only.
+- Mention non cliquable → utiliser `<@U...>`.
+- Bot-to-bot ignoré → ajouter `SLACK_ALLOW_BOTS=mentions`.
+- `Unauthorized user: U0B7G67LM1T` → ajouter le COO dans `SLACK_ALLOWED_USERS`.
+
+## Sources récentes
+
+- `raw/messages/20260602-140411_telegram-session_a5b4977a.md`
+- `raw/messages/20260602-140411_telegram-session_ad6e5677.md`
+- `raw/messages/20260602-140411_telegram-session_b2f270f4.md`
+- `raw/messages/20260602-140411_telegram-session_b7d7ad20.md`
+- `raw/messages/20260602-140411_telegram-session_e2900bae.md`
+- `raw/messages/20260602-140411_telegram-session_eea41557.md`
+- `raw/messages/20260602-140411_telegram-session_f31b4c21.md`
+- `raw/messages/20260602-140411_telegram-session_f890a9aa.md`
+- `raw/messages/20260602-140411_telegram-session_f9fd42dd.md`
+- `raw/messages/20260602-140411_telegram-session_fb74449a.md`

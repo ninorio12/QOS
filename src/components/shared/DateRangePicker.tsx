@@ -34,7 +34,7 @@ export function getPresetRange(key: string): { start: Date; end: Date } {
 
 function fmtDateInput(d: Date | null): string {
   if (!d) return ''
-  return d.toISOString().slice(0,10)
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 
 function MonthGrid({
@@ -154,7 +154,7 @@ export function DateRangePicker({ onClose, onApply }: { onClose: () => void; onA
   return (
     <div
       className="absolute top-full mt-2 left-0 z-50 flex rounded-2xl shadow-2xl border border-[#E5E7EB] overflow-hidden"
-      style={{ animation: 'fadeSlideUp 180ms ease-out both', minWidth: 640 }}
+      style={{ animation: 'fadeSlideUp 180ms ease-out both', minWidth: 'min(640px, calc(100vw - 1.5rem))' }}
       onMouseLeave={() => setHover(null)}
     >
       {/* Left — Presets */}

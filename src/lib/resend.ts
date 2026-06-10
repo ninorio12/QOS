@@ -21,7 +21,7 @@ export interface SendDevisEmailParams {
 }
 
 function fmtEUR(n: number): string {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'CHF' }).format(n)
 }
 
 function buildEmailHtml(p: SendDevisEmailParams): string {

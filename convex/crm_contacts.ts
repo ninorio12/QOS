@@ -1,5 +1,9 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
+import { findDuplicateContact } from "./contactDedup"
+
+const digits = (s?: string | null) => (s || "").replace(/\D/g, "")
+const norm = (s?: string | null) => (s || "").toLowerCase().trim()
 
 export const list = query({
   handler: async (ctx) => {
@@ -35,6 +39,8 @@ export const create = mutation({
     website:     v.optional(v.string()),
     source:      v.optional(v.string()),
     statut:      v.optional(v.string()),
+    leadStatus:  v.optional(v.string()),
+    linkedinUrl: v.optional(v.string()),
     canton:      v.optional(v.string()),
     metier:      v.optional(v.string()),
     niche:       v.optional(v.string()),
@@ -42,6 +48,20 @@ export const create = mutation({
     notes:       v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // ── Dédup forte : ne JAMAIS créer un doublon si un contact existe déjà
+    //    avec le même téléphone / email / LinkedIn → on lie au contact existant.
+    const dupId = await findDuplicateContact(ctx, { phone: args.phone, email: args.email, linkedinUrl: args.linkedinUrl })
+    if (dupId) {
+      const match = (await ctx.db.get(dupId))!
+      // Compléter uniquement les champs manquants (Contacts reste source de vérité)
+      const patch: Record<string, unknown> = { updatedAt: new Date().toISOString() }
+      if (args.email && !match.email) patch.email = args.email
+      if (args.phone && !match.phone) patch.phone = args.phone
+      if (args.linkedinUrl && !match.linkedinUrl) patch.linkedinUrl = args.linkedinUrl
+      if (args.companyName && !match.companyName) patch.companyName = args.companyName
+      await ctx.db.patch(match._id, patch)
+      return match._id
+    }
     return await ctx.db.insert("crm_contacts", {
       ...args,
       tags:      args.tags ?? [],
@@ -64,6 +84,8 @@ export const update = mutation({
     website:     v.optional(v.string()),
     source:      v.optional(v.string()),
     statut:      v.optional(v.string()),
+    leadStatus:  v.optional(v.string()),
+    linkedinUrl: v.optional(v.string()),
     canton:      v.optional(v.string()),
     metier:      v.optional(v.string()),
     niche:       v.optional(v.string()),

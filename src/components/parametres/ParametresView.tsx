@@ -75,7 +75,7 @@ function CompteTab() {
 
   return (
     <div className="max-w-xl space-y-5">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Prénom"    value={prenom}    onChange={setPrenom}    placeholder="Thomas" />
         <Field label="Nom"       value={nom}       onChange={setNom}       placeholder="Dupont" />
       </div>
@@ -87,7 +87,7 @@ function CompteTab() {
         <p className="text-xs font-bold text-soren-subtle uppercase tracking-wider mb-4">Coordonnées</p>
         <div className="space-y-4">
           <Field label="Rue" value={adresseRue} onChange={setAdresseRue} placeholder="215, avenue Clément Ader" />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Code postal" value={adresseCP}   onChange={setAdresseCP}   placeholder="34173" />
             <Field label="Ville"       value={adresseCity} onChange={setAdresseCity} placeholder="Castelnau-Le-Lez" />
           </div>
@@ -170,7 +170,7 @@ function CompteTab() {
       <div className="border-t border-soren-border pt-5 mt-1">
         <p className="text-xs font-bold text-soren-subtle uppercase tracking-wider mb-4">Mentions légales (pied de devis)</p>
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Capital social" value={capital} onChange={setCapital} placeholder="50 000 euros" />
             <Field label="SIRET"          value={siret}   onChange={setSiret}   placeholder="500 123 321 00012" />
           </div>
@@ -318,27 +318,27 @@ function IntegrationsTab() {
 // ─── Paiement tab ─────────────────────────────────────────────
 const PLANS = [
   {
-    name: 'Free',      price: '€0',  period: '/mois', current: false,
+    name: 'Free',      price: 'CHF0',  period: '/mois', current: false,
     features: ['1 pipeline', '50 contacts', 'IA basique'],
   },
   {
-    name: 'Starter',   price: '€49', period: '/mois', current: false,
+    name: 'Starter',   price: 'CHF49', period: '/mois', current: false,
     features: ['3 pipelines', '500 contacts', '1 agent IA'],
   },
   {
-    name: 'Pro',       price: '€149', period: '/mois', current: true,
+    name: 'Pro',       price: 'CHF149', period: '/mois', current: true,
     features: ['Pipelines illimités', 'Contacts illimités', '3 agents IA', 'Analytics avancés'],
   },
   {
-    name: 'Agency',    price: '€399', period: '/mois', current: false,
+    name: 'Agency',    price: 'CHF399', period: '/mois', current: false,
     features: ['Multi-comptes', 'White-label', 'SLA 99.9%', 'Support dédié'],
   },
 ]
 
 const BILLING = [
-  { date: '01 mars 2026',    amount: '€149.00', status: 'Payé' },
-  { date: '01 fév. 2026',    amount: '€149.00', status: 'Payé' },
-  { date: '01 jan. 2026',    amount: '€149.00', status: 'Payé' },
+  { date: '01 mars 2026',    amount: 'CHF149.00', status: 'Payé' },
+  { date: '01 fév. 2026',    amount: 'CHF149.00', status: 'Payé' },
+  { date: '01 jan. 2026',    amount: 'CHF149.00', status: 'Payé' },
 ]
 
 function PaiementTab() {

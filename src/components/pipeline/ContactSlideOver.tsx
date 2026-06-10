@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, Phone, Mail, Tag, ExternalLink, Loader2, MessageSquare, Building2, Euro, Calendar, MapPin, Globe } from 'lucide-react'
+import { X, Phone, Mail, Tag, ExternalLink, Loader2, Building2, Euro, Calendar, MapPin, Globe } from 'lucide-react'
 import { getAvatarColor } from '@/components/contacts/types'
 import Link from 'next/link'
 import { type Opportunity } from './types'
@@ -105,8 +105,8 @@ export default function ContactModal({ opp, stage, onClose }: Props) {
                     <span className="text-[11px] text-soren-muted">{contact.companyName}</span>
                   )}
                   {stage && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#3462EE]/10 text-[#3462EE]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#3462EE]" />
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#3462EE]/10 text-[#3462EE] dark:bg-blue-500/15 dark:text-blue-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#3462EE] dark:bg-blue-400" />
                       {stage}
                     </span>
                   )}
@@ -125,7 +125,7 @@ export default function ContactModal({ opp, stage, onClose }: Props) {
           {opp && (
             <div className="px-6 py-3 bg-[#FAFAF9] border-b border-[#F0F0EE] flex items-center flex-shrink-0">
               {[
-                { label: 'Valeur',   value: opp.value > 0 ? `€${opp.value.toLocaleString('fr-FR')}` : '—', large: true },
+                { label: 'Valeur',   value: opp.value > 0 ? `${opp.value.toLocaleString('fr-FR')} CHF` : '—', large: true },
                 { label: 'Statut',   value: opp.status ?? '—' },
                 { label: 'Source',   value: opp.source ?? '—' },
                 { label: 'Créé le',  value: new Date(opp.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) },
@@ -177,7 +177,7 @@ export default function ContactModal({ opp, stage, onClose }: Props) {
                     <p className="text-[10px] text-soren-subtle font-medium mb-2">Tags</p>
                     <div className="flex flex-wrap gap-1.5">
                       {contact.tags.map(tag => (
-                        <span key={tag} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#F3F4F6] text-soren-muted">
+                        <span key={tag} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#F3F4F6] text-soren-muted dark:bg-white/10 dark:text-zinc-300">
                           {tag}
                         </span>
                       ))}
@@ -196,14 +196,6 @@ export default function ContactModal({ opp, stage, onClose }: Props) {
             >
               <ExternalLink size={13} />
               Fiche complète
-            </Link>
-            <Link
-              href={`/conversations?contact=${opp?.contactId ?? ''}`}
-              className="flex items-center justify-center gap-2 h-10 px-4 rounded-xl text-black text-[12px] font-semibold transition-colors hover:opacity-90"
-              style={{ background: '#FF4D00' }}
-            >
-              <MessageSquare size={13} />
-              Messages
             </Link>
           </div>
 

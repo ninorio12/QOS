@@ -46,7 +46,7 @@ export function AgentDrawer({ agent, events, status, onClose }: AgentDrawerProps
     <>
       <div className="fixed inset-0 bg-black/30 z-40 backdrop-blur-[2px]" onClick={onClose} />
 
-      <div className="fixed right-0 top-0 bottom-0 w-[480px] bg-[#0D1117] border-l border-white/10 z-50 flex flex-col shadow-2xl">
+      <div className="fixed right-0 top-0 bottom-0 w-[min(100vw,480px)] bg-[#0D1117] border-l border-white/10 z-50 flex flex-col shadow-2xl">
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10" style={{ borderTopColor: agent.accentColor, borderTopWidth: 3 }}>
           <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: agent.accentColor + '18', border: `1px solid ${agent.accentColor}35` }}>

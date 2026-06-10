@@ -2,12 +2,13 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { X, ChevronDown, Search, Check, Plus, ClipboardList, CreditCard, FileText } from 'lucide-react'
+import { X, ChevronDown, Search, Check, Plus, ClipboardList, CreditCard, FileText, Workflow, ArrowUpRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type GHLContact } from '@/lib/ghl'
 import { type GHLPipelineData, type Opportunity } from '@/components/pipeline/types'
 import { type ContactPipelineInfo } from '@/app/contacts/page'
 import { fetchJSON } from '@/lib/fetchJSON'
+import Select from '@/components/ui/Select'
 
 const inputCls = 'w-full bg-soren-elevated border-0 rounded-xl px-3 py-2 text-[12px] text-soren-text placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all'
 const labelCls = 'block text-[11px] font-medium text-soren-muted mb-1'
@@ -265,11 +266,12 @@ interface Props {
   pipelineInfo?:  ContactPipelineInfo
   initialCanton?: string
   initialStatut?: 'lead' | 'client' | 'perdu'
+  initialSource?: 'inbound' | 'outbound' | 'recommandation'   // défaut source à la création
   mode?:          'leads' | 'clients'   // locks pipeline + adapts form
 }
 
 // ─── Modal ────────────────────────────────────────────────────
-export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, contact, pipelineInfo, initialCanton, initialStatut, mode }: Props) {
+export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, contact, pipelineInfo, initialCanton, initialStatut, initialSource, mode }: Props) {
   const isEdit = !!contact
   const router = useRouter()
 
@@ -319,7 +321,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
   const [ghlLeadsPipeline,   setGhlLeadsPipeline]   = useState<GHLPipelineData | null>(null)
   const [selectedPipelineId, setSelectedPipelineId] = useState<'leads' | 'clients' | null>(null)
   const [selectedStageId,    setSelectedStageId]    = useState<string | null>(null)
-  const [inoutbound, setInoutbound] = useState<'inbound' | 'outbound' | 'recommandation'>(((contact as (Record<string,unknown> & {source?:string}) | undefined)?.source as 'inbound'|'outbound'|'recommandation') ?? 'inbound')
+  const [inoutbound, setInoutbound] = useState<'inbound' | 'outbound' | 'recommandation'>(((contact as (Record<string,unknown> & {source?:string}) | undefined)?.source as 'inbound'|'outbound'|'recommandation') ?? initialSource ?? 'inbound')
   const [clientValue,        setClientValue]        = useState('')
   const [tagInput,      setTagInput]      = useState('')
   const [tags,          setTags]          = useState<string[]>(contact?.tags ?? [])
@@ -539,10 +541,13 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
 
             <div>
               <label className={labelCls}>Canton</label>
-              <select value={canton} onChange={e => setCanton(e.target.value)} className={inputCls}>
-                <option value="">— Choisir —</option>
-                {Object.entries({AG:'Argovie',AI:'Appenzell Rh.-Int.',AR:'Appenzell Rh.-Ext.',BE:'Berne',BL:'Bâle-Campagne',BS:'Bâle-Ville',FR:'Fribourg',GE:'Genève',GL:'Glaris',GR:'Grisons',JU:'Jura',LU:'Lucerne',NE:'Neuchâtel',NW:'Nidwald',OW:'Obwald',SG:'Saint-Gall',SH:'Schaffhouse',SO:'Soleure',SZ:'Schwytz',TG:'Thurgovie',TI:'Tessin',UR:'Uri',VD:'Vaud',VS:'Valais',ZG:'Zoug',ZH:'Zurich'}).map(([code, name]) => <option key={code} value={code}>{name}</option>)}
-              </select>
+              <Select
+                value={canton}
+                onChange={setCanton}
+                placeholder="— Choisir —"
+                options={Object.entries({AG:'Argovie',AI:'Appenzell Rh.-Int.',AR:'Appenzell Rh.-Ext.',BE:'Berne',BL:'Bâle-Campagne',BS:'Bâle-Ville',FR:'Fribourg',GE:'Genève',GL:'Glaris',GR:'Grisons',JU:'Jura',LU:'Lucerne',NE:'Neuchâtel',NW:'Nidwald',OW:'Obwald',SG:'Saint-Gall',SH:'Schaffhouse',SO:'Soleure',SZ:'Schwytz',TG:'Thurgovie',TI:'Tessin',UR:'Uri',VD:'Vaud',VS:'Valais',ZG:'Zoug',ZH:'Zurich'}).map(([code, name]) => ({ value: code, label: name }))}
+                className="w-full"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -617,7 +622,18 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
 
             <div>
               <label className={labelCls}>Site web</label>
-              <input type="url" value={form.website} onChange={set('website')} placeholder="https://exemple.fr" className={inputCls} />
+              <div className="relative">
+                <input type="url" value={form.website} onChange={set('website')} placeholder="https://exemple.fr" className={inputCls + ' pr-9'} />
+                {form.website.trim() && (
+                  <a
+                    href={/^https?:\/\//i.test(form.website.trim()) ? form.website.trim() : `https://${form.website.trim()}`}
+                    target="_blank" rel="noopener noreferrer" title="Ouvrir le site web"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg flex items-center justify-center text-soren-muted hover:text-[#3462EE] hover:bg-soren-elevated transition-colors"
+                  >
+                    <ArrowUpRight size={14} />
+                  </a>
+                )}
+              </div>
             </div>
           </div>
 
@@ -668,11 +684,12 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             {statut === 'client' && isEdit && contact?.id && (
               <div className="flex flex-col gap-2">
                 <Section title="Suivi client" />
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   {[
                     { label: 'Onboarding', Icon: ClipboardList, color: '#3462EE', action: () => goToModule('/onboarding') },
                     { label: 'Paiement',   Icon: CreditCard,   color: '#10B981', action: () => goToModule('/paiement') },
                     { label: 'Contrat',    Icon: FileText,     color: '#F97316', action: openContract },
+                    { label: 'Process',    Icon: Workflow,     color: '#8B5CF6', action: () => goToModule('/bibliotheque/process') },
                   ].map(({ label, Icon, color, action }) => (
                     <button key={label} type="button" onClick={action}
                       className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 border-soren-border hover:border-[#C8CBD0] transition-all"

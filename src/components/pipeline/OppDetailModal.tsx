@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { X, CheckCircle2 } from 'lucide-react'
 import { type Opportunity, type GHLPipelineData } from './types'
 import { fetchJSON } from '@/lib/fetchJSON'
+import Select from '@/components/ui/Select'
 
 // ─── Props ────────────────────────────────────────────────────
 interface EditProps {
@@ -228,13 +229,12 @@ export default function OppDetailModal(props: Props) {
                       <div>
                         <label className="block text-xs text-soren-muted mb-1.5 font-medium">Pipeline</label>
                         {isCreate ? (
-                          <select
+                          <Select
                             value={pipelineId}
-                            onChange={e => handlePipelineChange(e.target.value)}
-                            className="w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none"
-                          >
-                            {props.pipelines.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                          </select>
+                            onChange={handlePipelineChange}
+                            options={props.pipelines.map(p => ({ value: p.id, label: p.name }))}
+                            className="w-full"
+                          />
                         ) : (
                           <div className="bg-soren-elevated rounded-xl px-3 py-2.5 text-sm text-soren-muted">
                             {pipeline?.name ?? '—'}
@@ -245,32 +245,28 @@ export default function OppDetailModal(props: Props) {
                       {/* Stage */}
                       <div>
                         <label className="block text-xs text-soren-muted mb-1.5 font-medium">Étape</label>
-                        <select
+                        <Select
                           value={stageId}
-                          onChange={e => setStageId(e.target.value)}
-                          className="w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none"
-                        >
-                          {stages.map(s => <option key={s.id} value={s.id}>{stripEmoji(s.name)}</option>)}
-                        </select>
+                          onChange={setStageId}
+                          options={stages.map(s => ({ value: s.id, label: stripEmoji(s.name) }))}
+                          className="w-full"
+                        />
                       </div>
 
                       {/* Status */}
                       <div>
                         <label className="block text-xs text-soren-muted mb-1.5 font-medium">Statut</label>
-                        <select
+                        <Select
                           value={status}
-                          onChange={e => setStatus(e.target.value as Opportunity['status'])}
-                          className="w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none"
-                        >
-                          {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                            <option key={k} value={k}>{v}</option>
-                          ))}
-                        </select>
+                          onChange={v => setStatus(v as Opportunity['status'])}
+                          options={Object.entries(STATUS_LABELS).map(([k, v]) => ({ value: k, label: v }))}
+                          className="w-full"
+                        />
                       </div>
 
                       {/* Value */}
                       <div>
-                        <label className="block text-xs text-soren-muted mb-1.5 font-medium">Valeur (€)</label>
+                        <label className="block text-xs text-soren-muted mb-1.5 font-medium">Valeur (CHF)</label>
                         <input
                           type="number"
                           value={value}
@@ -283,15 +279,12 @@ export default function OppDetailModal(props: Props) {
                       {isCreate && (
                         <div>
                           <label className="block text-xs text-soren-muted mb-1.5 font-medium">Source</label>
-                          <select
+                          <Select
                             value={source}
-                            onChange={e => setSource(e.target.value)}
-                            className="w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none"
-                          >
-                            {SOURCES.map(s => (
-                              <option key={s} value={s}>{s || 'Direct'}</option>
-                            ))}
-                          </select>
+                            onChange={setSource}
+                            options={SOURCES.map(s => ({ value: s, label: s || 'Direct' }))}
+                            className="w-full"
+                          />
                         </div>
                       )}
                     </div>

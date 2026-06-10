@@ -25,11 +25,12 @@ export async function GET(req: NextRequest) {
     const params = req.nextUrl.searchParams
     const from = params.get('from') || defaultPeriod().from
     const to   = params.get('to')   || defaultPeriod().to
+    const tzOffset = Number(params.get('tzOffset') ?? 0)
 
-    const data = await convex().query(api.dashboard.getMetrics, { from, to })
+    const data = await convex().query(api.dashboard.getMetrics, { from, to, tzOffset })
     return NextResponse.json(data)
   } catch (err) {
     console.error('[Dashboard API]', err)
-    return NextResponse.json({ clientsCount: 0, caEncaisse: 0, leadsCount: 0, r1Count: 0, r2Count: 0, clientTimeline: [], metierBreakdown: [], nicheBreakdown: [], recentLeads: [], totalContactsCount: 0 }, { status: 500 })
+    return NextResponse.json({ clientsCount: 0, caEncaisse: 0, caACollecter: 0, leadsCount: 0, r1Count: 0, r2Count: 0, metiersCount: 0, nichesCount: 0, clientTimeline: [], metierBreakdown: [], nicheBreakdown: [], recentLeads: [], totalContactsCount: 0 }, { status: 500 })
   }
 }

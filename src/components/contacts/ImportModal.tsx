@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { X, Upload, FileText, Users, GitMerge, Building2, Check, AlertCircle, ChevronRight, Layers } from 'lucide-react'
 import { type Contact, getAvatarColor, getInitials } from './types'
 import { type GHLPipelineData } from '@/components/pipeline/types'
+import Select from '@/components/ui/Select'
 
 const PIPELINE_KW: Record<'acquisition' | 'reactivation', string[]> = {
   acquisition:  ['acquisition'],
@@ -368,15 +369,12 @@ export default function ImportModal({
                           </span>
                         </td>
                         <td className="px-4 py-2.5">
-                          <select
+                          <Select
                             value={mapping[h] ?? '_ignore'}
-                            onChange={e => setMapping(m => ({ ...m, [h]: e.target.value }))}
-                            className="w-full bg-soren-elevated border-0 rounded-lg px-2.5 py-1.5 text-xs text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none"
-                          >
-                            {GHL_FIELDS.map(f => (
-                              <option key={f.key} value={f.key}>{f.label}</option>
-                            ))}
-                          </select>
+                            onChange={v => setMapping(m => ({ ...m, [h]: v }))}
+                            options={GHL_FIELDS.map(f => ({ value: f.key, label: f.label }))}
+                            className="w-full"
+                          />
                         </td>
                       </tr>
                     ))}

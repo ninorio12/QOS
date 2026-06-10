@@ -5,15 +5,17 @@ export async function POST(req: NextRequest) {
   const locationId = process.env.GHL_LOCATION_ID!
   const baseUrl    = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'
 
-  const { calendarId, title, startTime, endTime, contactId, notes } =
-    await req.json() as {
-      calendarId: string
-      title:      string
-      startTime:  string  // ISO
-      endTime:    string  // ISO
-      contactId?: string
-      notes?:     string
-    }
+  const body = await req.json() as {
+    calendarId: string
+    title:      string
+    startTime:  string  // ISO
+    endTime:    string  // ISO
+    contactId?: string
+    notes?:     string
+    tz?:        string
+  }
+  const { calendarId, title, startTime, endTime, contactId, notes } = body
+  const tz = body.tz || 'Europe/Paris'
 
   const res = await fetch(`${baseUrl}/calendars/events/appointments`, {
     method: 'POST',
@@ -30,7 +32,7 @@ export async function POST(req: NextRequest) {
       startTime:        new Date(startTime).toISOString(),
       endTime:          new Date(endTime).toISOString(),
       notes:            notes || undefined,
-      selectedTimezone: 'Europe/Paris',
+      selectedTimezone: tz,
       ignoreDateRange:  true,
     }),
     cache: 'no-store',

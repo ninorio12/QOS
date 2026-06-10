@@ -67,7 +67,7 @@ function FileCard({ item, isVercel, isGithub }: { item: FileItem; isVercel: bool
           {isVercel ? <Globe size={16} className="text-white" /> : <GitFork size={16} className="text-white" />}
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-soren-text truncate">{item.name}</p>
+          <p className="text-[13px] font-normal text-soren-text truncate">{item.name}</p>
           {item.description && <p className="text-[11px] text-soren-subtle truncate">{item.description}</p>}
         </div>
       </div>
@@ -106,7 +106,7 @@ export default function ProjetsView() {
       <div className="flex-1 overflow-y-auto px-6 pb-6">
         {!openFolder ? (
           /* Root folder grid */
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6" data-stagger>
             {ROOT_FOLDERS.map(folder => (
               <button
                 key={folder.id}
@@ -135,7 +135,7 @@ export default function ProjetsView() {
           </div>
         ) : (
           /* Folder contents */
-          <div className="flex flex-col gap-2 max-w-2xl">
+          <div className="flex flex-col gap-2 max-w-2xl" data-stagger>
             {(openFolder.items ?? []).map(item => (
               <FileCard
                 key={item.id}

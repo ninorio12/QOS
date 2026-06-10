@@ -1,0 +1,26 @@
+'use client'
+
+import { ThemeProvider } from 'next-themes'
+import { ClerkProvider, useAuth } from '@clerk/nextjs'
+import { ConvexReactClient } from 'convex/react'
+import { ConvexProviderWithClerk } from 'convex/react-clerk'
+
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+const convex = convexUrl ? new ConvexReactClient(convexUrl) : null
+
+export default function Providers({ children }: { children: React.ReactNode }) {
+  const themed = (
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
+      {children}
+    </ThemeProvider>
+  )
+  // Sans URL Convex (build sans env), on rend quand même l'UI sous Clerk.
+  const inner = convex
+    ? <ConvexProviderWithClerk client={convex} useAuth={useAuth}>{themed}</ConvexProviderWithClerk>
+    : themed
+  return (
+    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
+      {inner}
+    </ClerkProvider>
+  )
+}

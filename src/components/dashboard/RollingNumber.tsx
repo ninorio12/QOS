@@ -19,7 +19,9 @@ function formatLike(template: string, num: number): string {
   if (!parsed) return template
   const rounded = Math.round(num)
   const formatted = rounded.toLocaleString('fr-FR')
-  return parsed.prefix + formatted + parsed.suffix
+  // Préserver l'espace entre le nombre et un suffixe texte (ex. « 0 CHF »), pas pour « 32% ».
+  const sep = parsed.suffix && /[0-9]\s+\D/.test(template) ? ' ' : ''
+  return parsed.prefix + formatted + sep + parsed.suffix
 }
 
 interface Props {

@@ -1,13 +1,16 @@
 import { v } from "convex/values"
 import { query } from "./_generated/server"
+import { localDay } from "./timeLib"
 
 // Period-aware payment overview + conversion rates
 export const overview = query({
-  args: { from: v.string(), to: v.string() },
+  args: { from: v.string(), to: v.string(), tzOffset: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const { from, to } = args
-    const dOf = (s: string) => s.split('T')[0]
+    const dOf = (s: string) => localDay(s, args.tzOffset)
     const inWin = (s: string) => { const d = dOf(s); return d >= from && d <= to }
+    // User-entered date-only fields (paidDates, refund.date) have no time component → compare as-is.
+    const inWinDate = (s: string) => { const d = s.slice(0, 10); return d >= from && d <= to }
 
     const obs      = await ctx.db.query("onboarding").collect()
     const clients  = await ctx.db.query("pipeline_clients").collect()
@@ -33,14 +36,14 @@ export const overview = query({
         const isPaid = paid[i] === true
         const pdate = dates[i] || ''
         if (isPaid) {
-          if (pdate && inWin(pdate)) { encaisse += amt; transactions.push({ contactId: ob.contactId, client: name, company, label: amounts.length > 1 ? `Échéance ${i + 1}/${amounts.length}` : 'Paiement', amount: amt, date: pdate, type: 'payment', status: 'encaissé' }) }
+          if (pdate && inWinDate(pdate)) { encaisse += amt; transactions.push({ contactId: ob.contactId, client: name, company, label: amounts.length > 1 ? `Échéance ${i + 1}/${amounts.length}` : 'Paiement', amount: amt, date: pdate, type: 'payment', status: 'encaissé' }) }
         } else {
           attente += amt
           transactions.push({ contactId: ob.contactId, client: name, company, label: amounts.length > 1 ? `Échéance ${i + 1}/${amounts.length}` : 'Paiement', amount: amt, date: '', type: 'payment', status: 'attente' })
         }
       })
       for (const r of ob.refunds ?? []) {
-        if (inWin(r.date)) { rembourse += r.amount; transactions.push({ contactId: ob.contactId, client: name, company, label: r.note || 'Remboursement', amount: -r.amount, date: r.date, type: 'refund', status: 'encaissé' }) }
+        if (inWinDate(r.date)) { rembourse += r.amount; transactions.push({ contactId: ob.contactId, client: name, company, label: r.note || 'Remboursement', amount: -r.amount, date: r.date, type: 'refund', status: 'encaissé' }) }
       }
     }
     // Clients without onboarding doc → fully pending

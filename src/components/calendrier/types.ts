@@ -1,4 +1,5 @@
 export type AppointmentStatus = 'confirmed' | 'pending' | 'cancelled'
+export type EventType = 'r1' | 'r2' | 'follow_up' | 'interne' | 'client' | 'autre'
 
 export type Appointment = {
   id: string
@@ -8,6 +9,7 @@ export type Appointment = {
   startTime: string // ISO
   endTime: string   // ISO
   status: AppointmentStatus
+  type?: EventType
   calendarName: string
   notes: string | null
   color: string
@@ -15,9 +17,18 @@ export type Appointment = {
   meetLink?: string | null
 }
 
+export const TYPE_META: Record<EventType, { label: string; color: string }> = {
+  r1:        { label: 'R1',        color: '#16A34A' },
+  r2:        { label: 'R2',        color: '#3462EE' },
+  follow_up: { label: 'Follow-up', color: '#D97706' },
+  interne:   { label: 'Interne',   color: '#8B5CF6' },
+  client:    { label: 'Client',    color: '#FF4D00' },
+  autre:     { label: 'Autre',     color: '#6B7280' },
+}
+
 export const STATUS_META: Record<AppointmentStatus, { label: string; color: string; bg: string }> = {
   confirmed: { label: 'Confirmé',  color: '#FF4D00', bg: '#FF4D00' + '18' },
-  pending:   { label: 'En attente', color: '#EFE347', bg: '#EFE347' + '18' },
+  pending:   { label: 'En attente', color: '#D97706', bg: '#D97706' + '18' },
   cancelled: { label: 'Annulé',    color: '#EF4444', bg: '#EF444418' },
 }
 
@@ -40,7 +51,7 @@ export function getMockAppointments(): Appointment[] {
       endTime:   day(0, 10, 30),
       status: 'confirmed',
       calendarName: 'ACQUISITION',
-      notes: 'Premier contact — opportunité €20k',
+      notes: 'Premier contact — opportunité CHF20k',
       color: '#3462EE',
     },
     {
@@ -53,7 +64,7 @@ export function getMockAppointments(): Appointment[] {
       status: 'pending',
       calendarName: 'ACQUISITION',
       notes: 'En conversation — relance pipeline',
-      color: '#EFE347',
+      color: '#D97706',
     },
     {
       id: 'mock-3',
@@ -64,7 +75,7 @@ export function getMockAppointments(): Appointment[] {
       endTime:   day(1, 11, 30),
       status: 'confirmed',
       calendarName: 'ACQUISITION',
-      notes: 'Qualifié — opportunité €80k',
+      notes: 'Qualifié — opportunité CHF80k',
       color: '#FF4D00',
     },
     {

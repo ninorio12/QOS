@@ -44,7 +44,7 @@ function ServiceCard({ s }: { s: Service }) {
 
 export default function BudgetView() {
   return (
-    <MotionStagger className="flex flex-col h-[calc(100vh-56px)] p-4 gap-3">
+    <MotionStagger className="flex flex-col md:h-[calc(100vh-56px)] p-4 pb-24 md:pb-4 gap-3">
       <MotionItem className="flex-shrink-0">
         <p className="text-xs text-soren-subtle">Abonnements & outils du Data OS — coût mensuel (CHF)</p>
       </MotionItem>
@@ -64,7 +64,7 @@ export default function BudgetView() {
       </MotionItem>
 
       {/* Services — 2 colonnes */}
-      <MotionItem className="flex-1 grid grid-cols-2 gap-4 min-h-0">
+      <MotionItem className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 min-h-0">
         <div className="flex flex-col gap-2">
           <p className="text-[11px] font-bold uppercase tracking-widest text-soren-subtle">Payant</p>
           <div className="flex flex-col gap-2 flex-1">

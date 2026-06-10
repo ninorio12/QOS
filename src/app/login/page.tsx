@@ -1,236 +1,163 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { useEffect } from 'react'
+import { SignIn } from '@clerk/nextjs'
 import Image from 'next/image'
-import { Eye, EyeOff } from 'lucide-react'
+
+// La page login est TOUJOURS en clair, quel que soit le thème choisi (next-themes).
+// Script bloquant (chargement SSR) + effet (nav SPA) ; on restaure le thème en quittant.
+const FORCE_LIGHT = `(function(){try{var d=document.documentElement;d.classList.remove('dark');d.classList.add('light');d.style.colorScheme='light';}catch(e){}})()`
+
+/**
+ * Login — layout 2 panneaux (réf. BrightNest) adapté VividFlow.
+ * Gauche : carte dégradé orange (logo + tagline). Droite : formulaire Clerk stylé.
+ * Grande carte blanche arrondie centrée sur fond gris.
+ */
+const appearance = {
+  layout: {
+    logoPlacement: 'none' as const,
+    socialButtonsPlacement: 'bottom' as const,
+    socialButtonsVariant: 'iconButton' as const,
+    showOptionalFields: false,
+  },
+  variables: {
+    colorPrimary: '#0A0A0A',
+    colorText: '#1C1C1E',
+    colorTextSecondary: '#9A9AA0',
+    colorBackground: '#FFFFFF',
+    colorInputBackground: '#FFFFFF',
+    colorInputText: '#1C1C1E',
+    colorDanger: '#FF3B30',
+    borderRadius: '10px',
+    fontSize: '13px',
+    spacingUnit: '0.78rem',
+    fontFamily: 'var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  },
+  elements: {
+    rootBox: 'w-full',
+    cardBox: 'w-full shadow-none !overflow-visible',
+    card: 'bg-transparent shadow-none border-0 p-0 gap-4 !mx-0',
+    header: 'hidden',
+    logoBox: 'hidden',
+    form: 'gap-3',
+    formFieldRow: 'gap-1.5',
+    formFieldLabelRow: 'mb-1',
+    formFieldLabel: 'text-[#3C3C41] text-[12px] font-semibold pl-1.5',
+    formFieldInput:
+      'h-10 rounded-[11px] bg-[#F6F6F8] border border-[#ECECEE] px-3.5 text-[13.5px] text-[#1C1C1E] ' +
+      'placeholder:text-[#B8B8BD] focus:bg-white focus:border-[#D6D6DA] focus:ring-4 focus:ring-[#0A0A0A]/[0.035] transition',
+    formFieldInputShowPasswordButton: 'text-[#9A9AA0] hover:text-[#1C1C1E]',
+    formButtonPrimary:
+      'h-10 rounded-[11px] bg-[#0A0A0A] hover:bg-[#1C1C1E] text-white text-[14px] font-semibold ' +
+      'normal-case tracking-[-0.01em] shadow-[0_6px_16px_-8px_rgba(0,0,0,0.35)] transition-colors',
+    buttonArrowIcon: 'hidden',
+    dividerRow: 'my-1',
+    dividerLine: 'bg-[#ECECEE]',
+    dividerText: 'text-[#9A9AA0] text-[12px]',
+    socialButtons: 'gap-2.5',
+    socialButtonsIconButton:
+      'h-10 flex-1 rounded-[11px] border border-[#ECECEE] bg-[#F6F6F8] hover:bg-[#F0F0F2] transition-colors',
+    footerAction: 'hidden', // invitation uniquement (via les paramètres) → pas d'inscription publique
+    footerActionText: 'text-[#9A9AA0]',
+    footerActionLink: 'text-[#FF4D00] font-semibold hover:text-[#FF4D00]/80',
+    footer: 'mt-1',
+  },
+}
+
+const GRADIENT =
+  'radial-gradient(120% 120% at 78% 88%, #FF5A1F 0%, rgba(255,90,31,0) 56%),' +
+  'radial-gradient(95% 95% at 52% 60%, #FF8A4C 0%, rgba(255,138,76,0) 62%),' +
+  'radial-gradient(80% 80% at 28% 26%, #FFE0C6 0%, rgba(255,224,198,0) 72%),' +
+  'linear-gradient(135deg, #FFF7F0 0%, #FFE2CB 100%)'
+
+// Footer Clerk présenté en chip refined : pastille blanche, ombre douce, texte gris unifié
+// (rayure + orange "Development mode" neutralisés). Le badge dev disparaît en Production.
+const FOOTER_SOFT = `
+.cl-footer{
+  display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:10px!important;flex-wrap:wrap!important;
+  width:100%!important;margin:18px 0 0!important;padding:13px 18px!important;
+  background:#FFFFFF!important;background-image:none!important;border:1px solid #EAEAEC!important;border-radius:11px!important;
+  box-shadow:0 1px 2px rgba(20,20,40,.04),0 6px 16px -10px rgba(20,20,40,.12)!important;opacity:1!important;
+}
+.cl-footer::before,.cl-footer::after{display:none!important;content:none!important}
+.cl-footer *{
+  font-size:12px!important;font-weight:500!important;letter-spacing:.01em!important;line-height:1.4!important;
+  background:transparent!important;background-image:none!important;color:#A0A0A6!important;
+  border:0!important;box-shadow:none!important;
+}
+.cl-footer svg,.cl-footer img{opacity:.7!important}
+/* Connexion e-mail + mot de passe uniquement (social masqué : GitHub retiré, Google non configuré en prod). */
+.cl-socialButtons,.cl-dividerRow{display:none!important}
+`
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setError('Email ou mot de passe incorrect')
-      setLoading(false)
-      return
+  useEffect(() => {
+    const html = document.documentElement
+    const force = () => {
+      if (html.classList.contains('dark')) { html.classList.remove('dark'); html.classList.add('light') }
+      html.style.colorScheme = 'light'
     }
-    router.push('/dashboard')
-    router.refresh()
-  }
+    force()
+    const obs = new MutationObserver(force)
+    obs.observe(html, { attributes: true, attributeFilter: ['class'] })
+    return () => {
+      obs.disconnect()
+      html.style.colorScheme = ''
+      let t: string | null = null
+      try { t = localStorage.getItem('theme') } catch { /* noop */ }
+      if (t === 'dark') { html.classList.add('dark'); html.classList.remove('light') }
+    }
+  }, [])
 
   return (
-    <div className="min-h-screen bg-[#111111]">
+    <div className="min-h-[100dvh] w-full bg-[#E7E7E5] flex items-center justify-center p-4 sm:p-6">
+      <script dangerouslySetInnerHTML={{ __html: FORCE_LIGHT }} />
+      <style dangerouslySetInnerHTML={{ __html: FOOTER_SOFT }} />
+      <div className="w-full max-w-[840px] rounded-[24px] bg-white border border-black/[0.04] shadow-[0_2px_4px_rgba(0,0,0,0.04),0_30px_70px_-30px_rgba(0,0,0,0.22)] p-2.5 grid md:grid-cols-2 gap-0 overflow-hidden">
 
-      {/* ── MOBILE layout (< md) ── */}
-      <div className="flex md:hidden flex-col min-h-screen">
+        {/* —— Panneau gauche : dégradé + marque + tagline —— */}
+        <div
+          className="relative hidden md:flex flex-col justify-between rounded-[16px] p-6 min-h-[460px] overflow-hidden"
+          style={{ background: GRADIENT }}
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="rounded-[9px] overflow-hidden ring-1 ring-black/[0.06] shadow-sm">
+              <Image src="/vividflow-logo.png" alt="VividFlow" width={26} height={26} priority />
+            </span>
+            <span className="text-[#1C1C1E] text-[14px] font-semibold tracking-[-0.02em]">VividFlow</span>
+          </div>
 
-        {/* Top dark zone — branding */}
-        <div className="relative flex-1 flex flex-col items-center justify-center pt-16 pb-8 overflow-hidden">
-          {/* Blobs décoratifs */}
-          <div
-            className="absolute top-[-20%] right-[-20%] w-72 h-72 rounded-full opacity-20 pointer-events-none"
-            style={{ background: 'radial-gradient(circle, #FF4D00 0%, transparent 65%)' }}
-          />
-          <div
-            className="absolute bottom-[-10%] left-[-10%] w-48 h-48 rounded-full opacity-10 pointer-events-none"
-            style={{ background: 'radial-gradient(circle, #FF4D00 0%, transparent 65%)' }}
-          />
-          {/* Grille */}
-          <div
-            className="absolute inset-0 pointer-events-none opacity-60"
-            style={{
-              backgroundImage: 'linear-gradient(rgba(226,255,141,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(226,255,141,0.04) 1px, transparent 1px)',
-              backgroundSize: '40px 40px',
-            }}
-          />
-
-          <div className="relative flex flex-col items-center text-center px-6">
-            <div className="w-16 h-16 rounded-2xl bg-[#FF4D00] flex items-center justify-center mb-5 shadow-xl">
-              <Image src="/soren-logo.png" alt="VividFlow" width={36} height={36} className="object-contain" />
-            </div>
-            <h1 className="text-white font-bold text-[22px] leading-tight mb-2">
-              Bon retour 👋
-            </h1>
-            <p className="text-white/40 text-[13px]">
-              Connectez-vous à votre espace VividFlow
-            </p>
+          <div className="max-w-[362px]">
+            <p className="text-[#7A4A2E] text-[12px] font-medium mb-2">Votre Data OS</p>
+            <h2 className="text-[#1C1C1E] text-[19.5px] leading-[1.3] font-semibold tracking-[-0.025em] whitespace-nowrap">
+              Votre activité devient lisible,<br />vos actions deviennent simples.
+            </h2>
           </div>
         </div>
 
-        {/* Bottom white card — formulaire */}
-        <div className="bg-white rounded-t-[32px] px-6 pt-8 pb-10 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              placeholder="Adresse email"
-              className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3.5 text-[#111111] text-[14px] placeholder-[#111111]/30 focus:outline-none focus:border-[#FF4D00] transition-colors"
-            />
-
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                placeholder="Mot de passe"
-                className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3.5 pr-12 text-[#111111] text-[14px] placeholder-[#111111]/30 focus:outline-none focus:border-[#FF4D00] transition-colors"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(v => !v)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#111111]/30 hover:text-[#111111]/60 transition-colors"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+        {/* —— Panneau droit : formulaire —— */}
+        <div className="flex items-center justify-center px-6 py-8 sm:px-8">
+          <div className="w-full max-w-[326px]">
+            <div className="flex items-center gap-2.5">
+              <span className="md:hidden rounded-[9px] overflow-hidden ring-1 ring-black/[0.06] shadow-sm flex-shrink-0">
+                <Image src="/vividflow-logo.png" alt="VividFlow" width={34} height={34} priority />
+              </span>
+              <h1 className="text-[#1C1C1E] text-[22px] font-semibold tracking-[-0.03em]">Bon retour</h1>
             </div>
-
-            {error && (
-              <p className="text-red-500 text-[12px] bg-red-50 border border-red-100 rounded-xl px-3 py-2">
-                {error}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#111111] hover:bg-[#222222] disabled:opacity-40 text-[#FF4D00] font-semibold text-[14px] py-3.5 rounded-2xl transition-colors mt-1"
-            >
-              {loading ? 'Connexion…' : 'Se connecter →'}
-            </button>
-          </form>
-
-          <p className="text-center text-[#111111]/20 text-[11px] mt-6">
-            VividFlow — Propulsé par Qorpo
-          </p>
-        </div>
-      </div>
-
-      {/* ── DESKTOP layout (≥ md) — identique à l'original ── */}
-      <div className="hidden md:flex min-h-screen items-center justify-center bg-[#EEF0EB] p-8">
-        <div className="flex w-full max-w-[860px] rounded-[28px] overflow-hidden shadow-2xl" style={{ height: '560px' }}>
-
-          {/* Gauche : formulaire */}
-          <div className="w-[420px] flex-shrink-0 flex flex-col justify-between px-10 py-9 bg-white">
-            <div className="flex items-center gap-3">
-              <Image src="/soren-logo.png" alt="VividFlow" width={64} height={64} className="object-contain rounded-xl" style={{ width: 64, height: 64 }} />
-              <span className="text-[#111111] font-bold text-[17px] tracking-tight">VividFlow</span>
-            </div>
-
-            <div>
-              <h1 className="text-[#111111] font-bold text-[28px] leading-snug mb-2">
-                Bon retour 👋
-              </h1>
-              <p className="text-[#9CA3AF] text-[13px] mb-7">
-                Connectez-vous à votre espace VividFlow
-              </p>
-
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                  placeholder="Adresse email"
-                  className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3 text-[#111111] text-[13px] placeholder-[#111111]/25 focus:outline-none focus:border-[#FF4D00] transition-colors"
-                />
-
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    required
-                    autoComplete="current-password"
-                    placeholder="Mot de passe"
-                    className="w-full bg-[#F5F5F3] border border-transparent rounded-2xl px-4 py-3 pr-11 text-[#111111] text-[13px] placeholder-[#111111]/25 focus:outline-none focus:border-[#FF4D00] transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(v => !v)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#111111]/25 hover:text-[#111111]/50 transition-colors"
-                  >
-                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-
-                {error && (
-                  <p className="text-red-500 text-[12px] bg-red-50 border border-red-100 rounded-xl px-3 py-2">
-                    {error}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-[#111111] hover:bg-[#222222] disabled:opacity-40 text-[#FF4D00] font-semibold text-[13px] py-3 rounded-2xl transition-colors"
-                >
-                  {loading ? 'Connexion…' : 'Se connecter →'}
-                </button>
-              </form>
-            </div>
-
-            <p className="text-[#111111]/20 text-[11px]">
-              VividFlow — Propulsé par Qorpo
+            <p className="mt-1 mb-6 text-[#9A9AA0] text-[13px] leading-[1.5]">
+              Connectez-vous pour accéder à votre espace VividFlow.
             </p>
-          </div>
 
-          {/* Droite : visuel */}
-          <div className="flex-1 relative bg-[#111111] overflow-hidden">
-            <div
-              className="absolute top-[-30%] right-[-20%] w-[500px] h-[500px] rounded-full opacity-25"
-              style={{ background: 'radial-gradient(circle, #FF4D00 0%, transparent 65%)' }}
+            <SignIn
+              appearance={appearance}
+              routing="hash"
+              signUpUrl="/login"
+              fallbackRedirectUrl="/dashboard"
+              forceRedirectUrl="/dashboard"
             />
-            <div
-              className="absolute bottom-[-20%] left-[-10%] w-[350px] h-[350px] rounded-full opacity-15"
-              style={{ background: 'radial-gradient(circle, #FF4D00 0%, transparent 65%)' }}
-            />
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                backgroundImage: 'linear-gradient(rgba(226,255,141,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(226,255,141,0.05) 1px, transparent 1px)',
-                backgroundSize: '40px 40px',
-              }}
-            />
-            <div className="absolute inset-0 flex flex-col items-center justify-center px-10 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-[#FF4D00] flex items-center justify-center mb-6 shadow-lg">
-                <Image src="/soren-logo.png" alt="VividFlow" width={30} height={30} className="object-contain" />
-              </div>
-              <h2 className="text-white font-bold text-[20px] leading-tight mb-3">
-                Votre infrastructure<br />agentique opérationnelle
-              </h2>
-              <p className="text-white/35 text-[12.5px] max-w-[220px] leading-relaxed">
-                Leads, suivis, agents IA — tout au même endroit.
-              </p>
-              <div className="flex gap-6 mt-10">
-                {[['∞', 'Leads qualifiés'], ['24/7', 'Agents actifs'], ['0', 'Tâches perdues']].map(([val, label]) => (
-                  <div key={label} className="text-center">
-                    <p className="text-[#FF4D00] font-bold text-[24px]">{val}</p>
-                    <p className="text-white/30 text-[10px] mt-0.5">{label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
       </div>
-
     </div>
   )
 }

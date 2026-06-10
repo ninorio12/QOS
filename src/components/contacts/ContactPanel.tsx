@@ -193,14 +193,14 @@ export default function ContactPanel({
             <div key={lead.id}
               className="flex items-center justify-between bg-soren-app rounded-xl px-3 py-2.5 border border-soren-border hover:border-[#3D4F6B] transition-colors cursor-pointer">
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-soren-text truncate">{lead.title}</p>
+                <p className="text-[13px] font-normal text-soren-text truncate">{lead.title}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: lead.color }} />
                   <span className="text-[10px] text-soren-muted">{lead.status} · {lead.date}</span>
                 </div>
               </div>
               <span className="text-xs font-bold text-soren-text ml-2">
-                €{lead.value.toLocaleString('fr-FR')}
+                {lead.value.toLocaleString('fr-FR')} CHF
               </span>
             </div>
           ))}
@@ -216,7 +216,7 @@ export default function ContactPanel({
           </div>
           <div className="bg-soren-app border border-soren-border rounded-xl p-3 text-center">
             <p className="text-sm font-bold" style={{ color: '#FF4D00' }}>
-              €{MOCK_LEADS.reduce((s, l) => s + l.value, 0).toLocaleString('fr-FR')}
+              {MOCK_LEADS.reduce((s, l) => s + l.value, 0).toLocaleString('fr-FR')} CHF
             </p>
             <p className="text-[10px] text-soren-muted">Pipeline</p>
           </div>

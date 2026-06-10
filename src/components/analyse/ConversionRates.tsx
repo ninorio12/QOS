@@ -17,7 +17,7 @@ function defaultRange() {
   return { from: localDate(from), to: localDate(to), label: '30 derniers jours' }
 }
 
-export default function ConversionRates() {
+export default function ConversionRates({ showHeader = true, variant = 'filled', from, to }: { showHeader?: boolean; variant?: 'filled' | 'plain'; from?: string; to?: string }) {
   const [range, setRange] = useState(defaultRange)
   const [calOpen, setCalOpen] = useState(false)
   const calRef = useRef<HTMLDivElement>(null)
@@ -26,48 +26,64 @@ export default function ConversionRates() {
     document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h)
   }, [])
 
-  const data = useQuery(api.paiement.overview, { from: range.from, to: range.to }) as Overview | undefined
+  // Si un range externe est fourni (ex: calendrier Période du dashboard), il pilote les données.
+  const queryFrom = from ?? range.from
+  const queryTo = to ?? range.to
+  const data = useQuery(api.paiement.overview, { from: queryFrom, to: queryTo }) as Overview | undefined
   const c = data?.conversions ?? { global: { clients: 0, total: 0, pct: 0 }, inbound: { clients: 0, total: 0, pct: 0 }, outbound: { clients: 0, total: 0, pct: 0 } }
-
-  const best = c.inbound.pct === c.outbound.pct ? null : (c.inbound.pct > c.outbound.pct ? 'inbound' : 'outbound')
 
   return (
     <div className="mb-4">
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <h2 className="text-[14px] font-black text-soren-text">Taux de conversion</h2>
-          <p className="text-[11px] text-soren-subtle">Clients convertis par rapport aux leads — {range.label}</p>
+      {showHeader && (
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h2 className="text-[14px] font-black text-soren-text">Taux de conversion</h2>
+            <p className="text-[11px] text-soren-subtle">Clients convertis par rapport aux leads — {range.label}</p>
+          </div>
+          <div className="relative" ref={calRef}>
+            <button onClick={() => setCalOpen(v => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[12px] font-semibold transition-all ${calOpen ? 'bg-soren-sidebar text-white border-soren-sidebar' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>
+              <CalendarDays size={13} /> {range.label ?? 'Période'}
+            </button>
+            {calOpen && (
+              <div className="absolute right-0 z-50">
+                <DateRangePicker onClose={() => setCalOpen(false)} onApply={(s, e, label) => { setRange({ from: localDate(s), to: localDate(e), label }); setCalOpen(false) }} />
+              </div>
+            )}
+          </div>
         </div>
-        <div className="relative" ref={calRef}>
-          <button onClick={() => setCalOpen(v => !v)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[12px] font-semibold transition-all ${calOpen ? 'bg-soren-sidebar text-white border-soren-sidebar' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>
-            <CalendarDays size={13} /> {range.label ?? 'Période'}
-          </button>
-          {calOpen && (
-            <div className="absolute right-0 z-50">
-              <DateRangePicker onClose={() => setCalOpen(false)} onApply={(s, e, label) => { setRange({ from: localDate(s), to: localDate(e), label }); setCalOpen(false) }} />
-            </div>
-          )}
-        </div>
-      </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <ConvCard label="Conversion globale" conv={c.global} color="#FF4D00" sub="clients / contacts" />
-        <ConvCard label="Conversion Inbound" conv={c.inbound} color="#059669" sub={best === 'inbound' ? '★ meilleure source' : 'inbound'} highlight={best === 'inbound'} />
-        <ConvCard label="Conversion Outbound" conv={c.outbound} color="#D97706" sub={best === 'outbound' ? '★ meilleure source' : 'outbound'} highlight={best === 'outbound'} />
+        <ConvCard variant={variant} label="Conversion globale"  conv={c.global}   sub="clients / contacts" bg="#FF4D00" text="#fff" muted="rgba(255,255,255,0.65)" />
+        <ConvCard variant={variant} label="Conversion Inbound"  conv={c.inbound}  sub="clients inbound / contacts inbound" bg="#1C1C1E" text="#fff" muted="#888" />
+        <ConvCard variant={variant} label="Conversion Outbound" conv={c.outbound} sub="clients outbound / contacts outbound" bg="#FF4D00" text="#fff" muted="rgba(255,255,255,0.65)" />
       </div>
     </div>
   )
 }
 
-function ConvCard({ label, conv, color, sub, highlight }: { label: string; conv: Conv; color: string; sub: string; highlight?: boolean }) {
-  return (
-    <div className="bg-soren-card border rounded-2xl p-4 shadow-sm flex flex-col gap-1" style={{ borderColor: highlight ? color : 'var(--border)' }}>
-      <span className="text-[11px] font-medium text-soren-muted">{label}</span>
-      <div className="flex items-baseline gap-2">
-        <p className="text-[28px] font-black tabular-nums leading-none" style={{ color }}>{conv.pct}%</p>
-        <span className="text-[11px] text-soren-subtle">{conv.clients}/{conv.total}</span>
+function ConvCard({ label, conv, sub, bg, text, muted, variant }: { label: string; conv: Conv; sub: string; bg: string; text: string; muted: string; variant: 'filled' | 'plain' }) {
+  // Variante "plain" : même harmonie que les cartes KPI du tableau de bord (carte claire, libellé muted, valeur sombre)
+  if (variant === 'plain') {
+    return (
+      <div className="bg-soren-card rounded-2xl p-3 md:p-4 flex flex-col gap-1.5 shadow-sm border border-soren-border/60">
+        <span className="text-[11px] font-medium text-soren-muted leading-none">{label}</span>
+        <div className="flex items-baseline gap-2">
+          <p className="text-[20px] md:text-[22px] font-bold text-soren-text leading-none tabular-nums">{conv.pct}%</p>
+          <span className="text-[11px] text-soren-subtle">{conv.clients}/{conv.total}</span>
+        </div>
+        <span className="text-[10px] font-semibold text-[#FF4D00]/70">{sub}</span>
       </div>
-      <span className="text-[10px] font-semibold" style={{ color: highlight ? color : '#9CA3AF' }}>{sub}</span>
+    )
+  }
+  return (
+    <div className="rounded-2xl p-4 flex flex-col gap-1" style={{ background: bg, boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.08)' }}>
+      <span className="text-[11px] font-medium" style={{ color: muted }}>{label}</span>
+      <div className="flex items-baseline gap-2">
+        <p className="text-[20px] font-bold tabular-nums leading-none" style={{ color: text }}>{conv.pct}%</p>
+        <span className="text-[11px]" style={{ color: muted }}>{conv.clients}/{conv.total}</span>
+      </div>
+      <span className="text-[10px] font-semibold" style={{ color: muted }}>{sub}</span>
     </div>
   )
 }

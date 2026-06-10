@@ -106,7 +106,25 @@ export default function PaiementView() {
           {txns.length === 0 ? (
             <div className="px-5 py-10 text-center text-[12px] text-soren-subtle">Aucune transaction sur la période.</div>
           ) : (
-            <div className="overflow-x-auto"><table className="w-full min-w-[480px]">
+            <><div className="md:hidden divide-y divide-soren-border/40">
+              {txns.map((t, i) => {
+                const accent = t.type === 'refund' ? '#F43F5E' : (t.status === 'encaissé' ? '#10B981' : '#F59E0B')
+                return (
+                  <div key={i} className="flex items-center gap-3 px-4 py-3">
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0" style={{ background: `${accent}1A`, color: accent }}>{t.client?.trim().charAt(0).toUpperCase() || '?'}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[12.5px] font-semibold text-soren-text truncate">{t.client}</div>
+                      <div className="text-[10.5px] text-soren-subtle truncate">{t.label}{t.date ? ` · ${new Date(t.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}` : ''}</div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-[13px] font-bold tabular-nums" style={{ color: t.type === 'refund' ? '#F43F5E' : (t.status === 'encaissé' ? '#10B981' : '#374151') }}>{t.type === 'refund' ? '−' : ''}{fmt(t.amount)}</div>
+                      <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full mt-0.5" style={{ background: `${accent}14`, color: accent }}>{t.type === 'refund' ? 'remboursé' : t.status}</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="hidden md:block overflow-x-auto"><table className="w-full min-w-[480px]">
               <thead>
                 <tr>
                   {['CLIENT', 'LIBELLÉ', 'DATE', 'MONTANT', 'STATUT'].map((h, i) => (
@@ -145,7 +163,7 @@ export default function PaiementView() {
                   </tr>
                 )})}
               </tbody>
-            </table></div>
+            </table></div></>
           )}
         </div>
       </div>

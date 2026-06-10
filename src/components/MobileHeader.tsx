@@ -2,29 +2,31 @@
 
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
-import { Settings, LogOut } from 'lucide-react'
+import { Settings, LogOut, LayoutGrid, Sun, Moon } from 'lucide-react'
 import Link from 'next/link'
-import Image from 'next/image'
-import { createClient } from '@/lib/supabase/client'
-import { logout } from '@/app/login/actions'
+import { useTheme } from 'next-themes'
+import { useClerk } from '@clerk/nextjs'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 
+// Doit rester aligné avec la nav web (Sidebar) et le registre @/components/nav/modules.
 const PAGE_LABELS: Record<string, string> = {
+  '/modules':       'Tout',
   '/dashboard':     'Tableau de bord',
   '/pipeline':      'Pipeline',
   '/contacts':      'Contacts',
-  '/conversations': 'Conversations',
+  '/prospection':   'Prospection',
+  '/performance':   'Performance',
+  '/onboarding':    'Onboarding',
+  '/paiement':      'Paiement',
   '/calendrier':    'Calendrier',
-  '/analyse':       'Analyse',
+  '/bibliotheque':  'Bibliothèque',
   '/equipe':        'Équipe IA',
   '/taches':        'Tâches',
-  '/logs':          'Logs',
-  '/knowledge':     'Connaissance',
+  '/logs':          'Activités',
+  '/knowledge':     'Base de connaissance',
   '/budget':        'Budget',
-  '/conversion':    'Conversion',
-  '/growth':        'Growth & ROI',
+  '/integrations':  'Intégrations',
   '/parametres':    'Paramètres',
-  '/devis':         'Devis',
-  '/workflows':     'Automatisation',
 }
 
 export default function MobileHeader() {
@@ -32,38 +34,22 @@ export default function MobileHeader() {
   const base  = '/' + (pathname.split('/')[1] ?? '')
   const label = PAGE_LABELS[base] ?? 'VividFlow'
 
+  const { me, clerkUser } = useCurrentUser()
+  const { signOut } = useClerk()
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
   const [showProfile, setShowProfile] = useState(false)
-  const [profilePhoto, setProfilePhoto] = useState('')
-  const [prenom, setPrenom] = useState('')
-  const [user, setUser] = useState<{ name: string; email: string; avatar: string | null } | null>(null)
   const popupRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) return
-      const meta = data.user.user_metadata ?? {}
-      const name = meta.full_name ?? meta.name ?? data.user.email?.split('@')[0] ?? 'Utilisateur'
-      setUser({ name, email: data.user.email ?? '', avatar: meta.avatar_url ?? null })
-    })
-  }, [])
+  function toggleTheme() {
+    setTheme(theme === 'dark' ? 'light' : 'dark')
+  }
+  void clerkUser
 
-  useEffect(() => {
-    function load() {
-      try { setProfilePhoto(localStorage.getItem('vividflow_profile_photo') ?? '') } catch {}
-      try {
-        const compte = JSON.parse(localStorage.getItem('vividflow_compte') ?? '{}')
-        setPrenom(compte.prenom ?? '')
-      } catch {}
-    }
-    load()
-    window.addEventListener('profile-photo-updated', load)
-    window.addEventListener('company-settings-updated', load)
-    return () => {
-      window.removeEventListener('profile-photo-updated', load)
-      window.removeEventListener('company-settings-updated', load)
-    }
-  }, [])
+  const displayName = me?.name || 'Utilisateur'
+  const avatarUrl = me?.avatarUrl
+  const initiale = displayName[0]?.toUpperCase() ?? 'U'
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -75,30 +61,41 @@ export default function MobileHeader() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  const initiale = prenom ? prenom[0].toUpperCase() : (user?.name?.[0]?.toUpperCase() ?? 'U')
-
   return (
     <header className="flex md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-soren-app border-b border-soren-border items-center justify-between px-4">
-      <span className="text-[15px] font-bold text-soren-text">{label}</span>
+      <div className="flex items-center gap-2 min-w-0">
+        <Link href="/modules" aria-label="Tous les modules" className="w-9 h-9 -ml-1 flex items-center justify-center rounded-full text-soren-text active:bg-soren-elevated transition-colors">
+          <LayoutGrid size={19} />
+        </Link>
+        <span className="text-[15px] font-bold text-soren-text truncate">{label}</span>
+      </div>
 
-      <div className="relative flex-shrink-0" ref={popupRef}>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Bascule thème clair / sombre */}
+        <button
+          onClick={toggleTheme}
+          aria-label="Basculer le thème"
+          className="w-8 h-8 flex items-center justify-center rounded-full text-soren-muted active:bg-soren-elevated transition-colors"
+        >
+          {mounted && theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+
+        <div className="relative" ref={popupRef}>
         <button
           onClick={() => setShowProfile(v => !v)}
           className="w-8 h-8 rounded-full bg-[#FF4D00] flex items-center justify-center text-[11px] font-bold text-white overflow-hidden"
         >
-          {profilePhoto
-            ? <img src={profilePhoto} alt="avatar" className="object-cover w-full h-full" />
-            : user?.avatar
-              ? <Image src={user.avatar} alt="avatar" width={32} height={32} className="object-cover w-full h-full" />
-              : initiale
+          {avatarUrl
+            ? <img src={avatarUrl} alt="avatar" className="object-cover w-full h-full" />
+            : initiale
           }
         </button>
 
         {showProfile && (
           <div className="absolute right-0 top-10 bg-soren-card border border-soren-border rounded-2xl shadow-xl z-50 w-52 max-w-[calc(100vw-2rem)] overflow-hidden">
             <div className="px-4 py-3 border-b border-soren-border">
-              <p className="text-[13px] font-semibold text-soren-text capitalize">{prenom || user?.name || '—'}</p>
-              <p className="text-[10px] text-soren-subtle">{user?.email ?? '—'}</p>
+              <p className="text-[13px] font-semibold text-soren-text capitalize">{displayName}</p>
+              <p className="text-[10px] text-soren-subtle truncate">{me?.email ?? '—'}</p>
             </div>
             <div className="py-1">
               <Link
@@ -108,17 +105,16 @@ export default function MobileHeader() {
               >
                 <Settings size={13} /> Paramètres
               </Link>
-              <form action={logout}>
-                <button
-                  type="submit"
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-[12px] text-red-500 hover:bg-red-500/10 transition-colors"
-                >
-                  <LogOut size={13} /> Se déconnecter
-                </button>
-              </form>
+              <button
+                onClick={() => { void signOut().finally(() => { window.location.href = '/login' }) }}
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-[12px] text-red-500 hover:bg-red-500/10 transition-colors"
+              >
+                <LogOut size={13} /> Se déconnecter
+              </button>
             </div>
           </div>
         )}
+        </div>
       </div>
     </header>
   )

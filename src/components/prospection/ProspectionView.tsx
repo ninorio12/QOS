@@ -151,7 +151,7 @@ function TrackerRow({ r, onOpen, onComment, onPhase, onR1, onPerdu }: {
       <PhasePill value={r.phase1Status} onChange={v => onPhase('phase1', v)} />
       <PhasePill value={r.phase2Status} onChange={v => onPhase('phase2', v)} />
       <PhasePill value={r.phase3Status} onChange={v => onPhase('phase3', v)} />
-      <button onClick={onR1} className="flex items-center justify-center gap-1 text-[11px] font-bold text-[#16A34A] border border-[#16A34A]/35 rounded-full py-1.5 hover:bg-[#16A34A]/10 transition-colors dark:bg-[#16A34A] dark:text-white dark:border-[#16A34A] dark:hover:bg-[#15803D]">
+      <button onClick={onR1} className="flex items-center justify-center gap-1 text-[11px] font-bold text-white bg-[#16A34A] border border-[#16A34A] rounded-full py-1.5 hover:bg-[#15803D] transition-colors">
         <CalendarPlus size={11} /> R1
       </button>
       <button onClick={onPerdu} className="flex items-center justify-center gap-1 text-[11px] font-bold text-[#DC2626] border border-[#FECACA] rounded-full py-1.5 hover:bg-[#FEF2F2] transition-colors dark:bg-[#DC2626] dark:text-white dark:border-[#DC2626] dark:hover:bg-[#B91C1C]">
@@ -223,9 +223,41 @@ export default function ProspectionView() {
         <button onClick={() => setCreating(true)} className="flex items-center gap-1.5 bg-[#FF4D00] text-white text-[11px] font-semibold px-3 py-1.5 rounded-full hover:bg-[#e64500] transition-colors"><Plus size={12} /> Nouveau lead</button>
       </div>
 
-      {/* Tableau central — pleine largeur */}
-      <div className="flex-1 min-h-0 px-5 pb-5">
-        <div className="h-full flex flex-col bg-soren-card border border-soren-border rounded-2xl overflow-hidden">
+      {/* ── Fiches d'appel (mobile) ── */}
+      <div className="md:hidden flex-1 min-h-0 overflow-y-auto px-3 pb-3 flex flex-col gap-2">
+        {active.length === 0 && <p className="text-[12px] text-soren-subtle text-center py-12">Aucun lead à traiter</p>}
+        {active.map(r => {
+          const tel = r.contact.phone?.replace(/[^+0-9]/g, '')
+          const ini = (r.contact.fullName?.split(' ').map(w => w[0]).join('').slice(0, 2) || '?').toUpperCase()
+          return (
+            <div key={r.id} className="bg-soren-card border border-soren-border rounded-xl p-2.5 shadow-sm">
+              <button onClick={() => setContactId(r.contactId)} className="flex items-center gap-2.5 w-full text-left">
+                <span className="w-7 h-7 rounded-full bg-soren-elevated text-soren-subtle flex items-center justify-center text-[10px] font-bold flex-shrink-0">{ini}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[12.5px] font-semibold text-soren-text truncate leading-tight">{r.contact.fullName}</p>
+                  {r.contact.companyName && <p className="text-[10.5px] text-soren-subtle truncate">{r.contact.companyName}</p>}
+                </div>
+              </button>
+              <div className="grid grid-cols-3 gap-1.5 mt-2">
+                <div><p className="text-[8px] font-bold uppercase tracking-wider text-soren-subtle mb-0.5 text-center">NRP 1</p><PhasePill value={r.phase1Status} onChange={v => setPhase({ id: r.id as never, phase: 'phase1', value: v })} /></div>
+                <div><p className="text-[8px] font-bold uppercase tracking-wider text-soren-subtle mb-0.5 text-center">NRP 2</p><PhasePill value={r.phase2Status} onChange={v => setPhase({ id: r.id as never, phase: 'phase2', value: v })} /></div>
+                <div><p className="text-[8px] font-bold uppercase tracking-wider text-soren-subtle mb-0.5 text-center">NRP 3</p><PhasePill value={r.phase3Status} onChange={v => setPhase({ id: r.id as never, phase: 'phase3', value: v })} /></div>
+              </div>
+              <div className="flex gap-1.5 mt-2">
+                {tel
+                  ? <a href={`tel:${tel}`} className="flex-1 flex items-center justify-center gap-1.5 text-[11px] font-bold text-white bg-soren-sidebar rounded-lg py-2"><Phone size={12} /> Appeler</a>
+                  : <span className="flex-1 flex items-center justify-center gap-1.5 text-[11px] font-bold text-soren-subtle bg-soren-elevated rounded-lg py-2 opacity-60"><Phone size={12} /> Appeler</span>}
+                <button onClick={() => setR1For(r)} className="flex-1 flex items-center justify-center gap-1.5 text-[11px] font-bold text-white bg-[#16A34A] hover:bg-[#15803D] rounded-lg py-2"><CalendarPlus size={12} /> R1</button>
+                <button onClick={() => setPerduFor(r)} aria-label="Perdu" className="w-10 flex items-center justify-center text-[#DC2626] bg-[#DC2626]/10 rounded-lg"><Ban size={13} /></button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Tableau central — desktop */}
+      <div className="hidden md:flex flex-1 min-h-0 px-5 pb-5">
+        <div className="h-full w-full flex flex-col bg-soren-card border border-soren-border rounded-2xl overflow-hidden">
           <div className="flex-1 overflow-auto">
             <div className="min-w-[1000px]">
               {/* Header + filtres Excel */}

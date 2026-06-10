@@ -1,0 +1,22 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260520_204242_1b4a2e.jsonl
+captured_at: 2026-06-02T14:04:10.194103
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-05-20T20:46:54.141499
+
+ok tu peux checker le soul des différents agents et permettre leur fonctionnement correct, je veux que chaque agent puisse répondre dans son topic avce le role de son coeur de métier, la coordinatrice puisse suivre en silence tous les topics et lancer des tâches dans le groupe par exemple @vision architecte fait tel tache et lui répond c'est noté je fais la tache. Dans le groupe général, si je dis tout le monde, tous les agents alors tout le monde me répond si je dit que salut alors que la coordinatrice intervient tu vois le fonctionnement ?
+
+## user — 2026-05-20T20:46:54.141499
+
+J’ai ca dans les echanges c’est pas normal [System note: Your previous turn in this session was interrupted by a gateway shutdown. The conversation history below is intact. If it contains unfinished tool result(s), process them first and summarize what was accomplished, then address the user's new message below.]
+
+## user — 2026-05-20T20:46:54.141499
+
+[Your active task list was preserved across context compression] - [>] trace. Identifier d’où vient la note système visible après shutdown (in_progress) - [ ] fix. Corriger le comportement pour éviter que ça réapparaisse côté échange (pending) - [ ] verify. Vérifier gateway et redémarrage propre (pending)
+
+## assistant — 2026-05-20T20:46:54.141499
+
+Oui, tu as raison : **ce message n’aurait pas dû être visible**. J’ai trouvé la cause : après un shutdown/restart, Hermes injectait cette note comme **message utilisateur** au lieu d’une instruction interne. Donc elle pouvait apparaître dans l’échange. J’ai corrigé : - la note est maintenant passée en `system_message` interne ; - elle ne sera plus ajoutée au texte visible côté Telegram ; - tests ciblés OK : `tests/gateway/test_restart_resume_pending.py` passe ; - gateways actuellement actives ; - redémarrage propre programmé dans ~90s pour appliquer le patch sans couper cette réponse. À surveiller après redémarrage : si tu vois encore un `[System note: ...]`, c’est qu’un autre profil utilise une autre copie du code.

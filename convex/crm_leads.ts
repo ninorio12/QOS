@@ -1,5 +1,6 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
+import { moveStage, markLost } from "./leadSync"
 
 export const list = query({
   handler: async (ctx) => {
@@ -52,14 +53,19 @@ export const create = mutation({
 export const updateStage = mutation({
   args: { id: v.id("crm_leads"), stageId: v.string(), stageName: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, { stageId: args.stageId })
-    // Record stage move in history
-    await ctx.db.insert("lead_stage_history", {
-      leadId:    args.id,
-      stageId:   args.stageId,
-      stageName: args.stageName ?? args.stageId,
-      enteredAt: new Date().toISOString().split('T')[0],
-    })
+    const lead = await ctx.db.get(args.id)
+    // Évite une ligne d'historique dupliquée sur un déplacement no-op (même colonne)
+    if (lead && lead.stageId !== args.stageId) {
+      await ctx.db.patch(args.id, { stageId: args.stageId })
+      await ctx.db.insert("lead_stage_history", {
+        leadId:    args.id,
+        stageId:   args.stageId,
+        stageName: args.stageName ?? args.stageId,
+        enteredAt: new Date().toISOString().split('T')[0],
+      })
+    }
+    // Reverse sync Pipeline → Prospection : miroir de la colonne / record (idempotent)
+    if (lead?.contactId) await moveStage(ctx, lead.contactId, args.stageId)
   },
 })
 
@@ -67,6 +73,30 @@ export const updateStatus = mutation({
   args: { id: v.id("crm_leads"), status: v.string() },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.id, { status: args.status })
+    // Reverse sync : perte depuis le Pipeline → propage à la Prospection/Contact
+    if (args.status === "lost") {
+      const lead = await ctx.db.get(args.id)
+      if (lead?.contactId) await markLost(ctx, lead.contactId, { reason: "autre" })
+    }
+  },
+})
+
+export const get = query({
+  args: { id: v.id("crm_leads") },
+  handler: async (ctx, { id }) => await ctx.db.get(id),
+})
+
+export const update = mutation({
+  args: {
+    id: v.id("crm_leads"),
+    name: v.optional(v.string()), email: v.optional(v.string()), phone: v.optional(v.string()),
+    company: v.optional(v.string()), value: v.optional(v.number()), source: v.optional(v.string()),
+    stageId: v.optional(v.string()), status: v.optional(v.string()),
+  },
+  handler: async (ctx, { id, ...fields }) => {
+    const patch: Record<string, unknown> = {}
+    for (const [k, val] of Object.entries(fields)) if (val !== undefined) patch[k] = val
+    await ctx.db.patch(id, patch)
   },
 })
 

@@ -19,7 +19,6 @@ type NavItem = { href: string; icon: React.ElementType; label: string; also?: st
 const PREFETCH_MAP: Record<string, string> = {
   '/dashboard':     '/api/dashboard',
   '/calendrier':    '/api/calendrier',
-  '/devis':         '/api/devis/list',
 }
 
 const prefetchFetcher = async (url: string) => {

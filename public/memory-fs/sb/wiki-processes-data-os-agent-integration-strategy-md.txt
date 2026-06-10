@@ -1,0 +1,176 @@
+---
+title: Data OS agent integration strategy
+updated: 2026-06-02
+source: Thomas Telegram
+---
+# Data OS agent integration strategy
+
+Anchor product: https://vividflow-service-execution-os.vercel.app/
+
+## Principe
+
+Le Data OS est la source de vérité visible. Slack est l’espace d’exécution. Telegram reste le cockpit privé. GBrain est la mémoire durable invisible.
+
+Les agents ne doivent pas seulement parler dans Slack. Ils doivent transformer les signaux en objets structurés dans le Data OS.
+
+## Boucle de base
+
+1. Un signal arrive dans Slack, Telegram, email, meeting ou document.
+2. COO qualifie le signal : tâche, décision, client, risque, process, connaissance ou bruit.
+3. Le signal brut est conservé avec sa source.
+4. Le Data OS reçoit un objet structuré.
+5. Si action requise, un agent reçoit une mission.
+6. L’agent produit ou propose.
+7. COO valide, corrige ou demande une itération.
+8. Le Data OS est mis à jour.
+9. GBrain garde le pattern durable si utile.
+
+## Objets Data OS minimum
+
+- Signal
+- Tâche
+- Décision
+- Risque
+- Client ou lead
+- Projet
+- Livrable
+- Agent run
+- Approval
+- Audit log
+- Knowledge note
+
+## Rôles agents
+
+### COO
+
+Responsabilité : qualifier, router, filtrer, valider, synthétiser.
+
+Écrit dans le Data OS :
+
+- décisions validées ;
+- tâches finales ;
+- blocages ;
+- validations ;
+- synthèses cross-agent.
+
+Ne fait pas : copier-coller brut des agents.
+
+### CMO
+
+Canal : cmo-visuel.
+
+Responsabilité : visuels, contenus, angles, assets.
+
+Écrit dans le Data OS :
+
+- livrables créés ;
+- direction validée ;
+- prompts finaux ;
+- variantes rejetées si utile ;
+- statut validation COO.
+
+### Service Client
+
+Canal : service-client.
+
+Responsabilité : leads, clients, relances, satisfaction, risques relationnels.
+
+Écrit dans le Data OS :
+
+- client update ;
+- lead status ;
+- risque ;
+- relance proposée ;
+- prochain contact.
+
+### Ops Système
+
+Canal : ops-systeme.
+
+Responsabilité : process, tâches, QA, exécution.
+
+Écrit dans le Data OS :
+
+- task ;
+- SOP ;
+- owner ;
+- deadline ;
+- critères de validation ;
+- QA status.
+
+### Data Analyst
+
+Canal : data-analyst.
+
+Responsabilité : signaux, veille, métriques, preuves.
+
+Écrit dans le Data OS :
+
+- signal ;
+- source ;
+- hypothèse ;
+- niveau de confiance ;
+- recommandation test / ignore.
+
+## Règle de capture
+
+Tout ne va pas dans le Data OS.
+
+À capturer :
+
+- décision ;
+- tâche ;
+- risque ;
+- livrable ;
+- signal utile ;
+- client update ;
+- process durable.
+
+À ignorer :
+
+- blabla ;
+- test technique ;
+- brouillon faible ;
+- message de politesse ;
+- erreur corrigée sans impact durable.
+
+## Premier slice à construire
+
+Ne pas commencer par tout automatiser.
+
+Slice 1 : Slack vers Data OS.
+
+Action simple dans Slack :
+
+- réaction ou commande `capture` ;
+- COO ou agent transforme en objet ;
+- Data OS crée une entrée Inbox ;
+- COO valide type et owner ;
+- Data OS crée task / decision / risk / deliverable ;
+- audit log automatique.
+
+## Pattern attendu côté UI
+
+Chaque record doit montrer :
+
+- source ;
+- canal Slack ;
+- auteur ;
+- agent impliqué ;
+- statut ;
+- validation COO ;
+- dernier update ;
+- lien vers message ou fichier ;
+- historique.
+
+## Standard qualité
+
+Un agent ne doit jamais écrire une vérité floue dans le Data OS.
+
+Chaque écriture doit avoir :
+
+- source ;
+- raison ;
+- statut ;
+- niveau de validation ;
+- prochaine action si applicable.

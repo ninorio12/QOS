@@ -1,0 +1,22 @@
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+
+// Pages publiques (pas de login requis). Les routes /api/* gardent leur propre auth
+// (HERMES_API_SECRET côté MCP/agents, webhooks signés, etc.) → on ne les protège pas ici.
+const isPublic = createRouteMatcher([
+  '/login(.*)',
+  '/formulaire(.*)',
+  '/signer(.*)',
+])
+
+export default clerkMiddleware(async (auth, req) => {
+  const { pathname } = req.nextUrl
+  if (pathname.startsWith('/api/')) return
+  if (!isPublic(req)) {
+    await auth.protect()
+  }
+})
+
+export const config = {
+  // Exclut les assets statiques ; inclut les pages.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)'],
+}

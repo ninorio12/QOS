@@ -14,7 +14,7 @@ Collecte ces informations progressivement, sans bombarder le contact :
 - Délai souhaité pour démarrer
 
 ### 2. Proposer un rendez-vous
-Dès que le projet est suffisamment défini (budget > 5 000€, projet concret, délai < 6 mois) :
+Dès que le projet est suffisamment défini (budget > 5 000CHF, projet concret, délai < 6 mois) :
 → Propose un RDV téléphonique ou sur chantier avec un expert de l'équipe.
 → Demande ses disponibilités (jour et créneau horaire).
 → Confirme le RDV de manière claire.

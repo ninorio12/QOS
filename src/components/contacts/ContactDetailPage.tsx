@@ -221,7 +221,7 @@ function PipelineCard({ opp, pipelines, editing }: { opp: GHLOpportunity; pipeli
     <div className="border border-[#F0F0EE] rounded-2xl p-4 space-y-4">
       {saving && <p className="text-[10px] text-soren-subtle text-right">Sauvegarde…</p>}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Pipeline */}
         <div>
           <label className={labelCls}>Pipeline</label>
@@ -280,7 +280,7 @@ function PipelineCard({ opp, pipelines, editing }: { opp: GHLOpportunity; pipeli
           <label className={labelCls}>Valeur de l&apos;opportunité</label>
           {editing ? (
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-soren-subtle text-sm">€</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-soren-subtle text-sm">CHF</span>
               <input
                 type="number"
                 min={0}
@@ -292,7 +292,7 @@ function PipelineCard({ opp, pipelines, editing }: { opp: GHLOpportunity; pipeli
             </div>
           ) : (
             <p className="text-[13px] text-soren-text">
-              {value > 0 ? `€\u202f${value.toLocaleString('fr-FR')}` : '—'}
+              {value > 0 ? `CHF\u202f${value.toLocaleString('fr-FR')}` : '—'}
             </p>
           )}
         </div>

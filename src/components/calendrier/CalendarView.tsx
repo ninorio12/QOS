@@ -15,6 +15,9 @@ import {
 import { useDraggable } from '@dnd-kit/core'
 import { type Appointment, type EventType, STATUS_META, TYPE_META } from './types'
 import { type GHLCalendar } from '@/lib/ghl'
+import { useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import dynamic from 'next/dynamic'
 
 const NewAppointmentModal = dynamic(() => import('./NewAppointmentModal'), { ssr: false })
@@ -23,7 +26,7 @@ const DAYS_SHORT = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 const MONTHS_FR  = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
                     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
 
-type ViewMode = 'month' | 'week'
+type ViewMode = 'month' | 'week' | 'day'
 
 // ─── Date helpers ─────────────────────────────────────────────
 function mondayOf(d: Date): Date {
@@ -823,6 +826,74 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
   )
 }
 
+// ─── Vue Jour / Agenda (pensée mobile) ────────────────────────
+function startOfWeek(d: Date) {
+  const x = new Date(d); x.setHours(0, 0, 0, 0)
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7))   // lundi = début de semaine
+  return x
+}
+
+function DayAgenda({ appointments, onApptClick }: { appointments: Appointment[]; onApptClick: (a: Appointment) => void }) {
+  const [sel, setSel] = useState(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d })
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const weekStart = startOfWeek(sel)
+  const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(weekStart); d.setDate(weekStart.getDate() + i); return d })
+  const shiftWeek = (n: number) => { const d = new Date(sel); d.setDate(d.getDate() + n * 7); setSel(d) }
+  const dayAppts = appointments
+    .filter(a => sameDay(new Date(a.startTime), sel))
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 w-full">
+      {/* Bandeau semaine */}
+      <div className="flex items-center gap-1 pb-2 flex-shrink-0">
+        <button onClick={() => shiftWeek(-1)} aria-label="Semaine précédente" className="w-7 h-7 flex-shrink-0 rounded-full bg-soren-card border border-soren-border flex items-center justify-center text-soren-muted"><ChevronLeft size={15} /></button>
+        <div className="flex-1 grid grid-cols-7 gap-1">
+          {days.map((d, i) => {
+            const on = sameDay(d, sel)
+            const isToday = sameDay(d, today)
+            const has = appointments.some(a => sameDay(new Date(a.startTime), d))
+            return (
+              <button key={i} onClick={() => setSel(new Date(d))}
+                className={`flex flex-col items-center gap-0.5 py-1.5 rounded-xl border transition-colors ${on ? 'bg-[#FF4D00] border-[#FF4D00]' : 'bg-soren-card border-soren-border'}`}>
+                <span className={`text-[9px] font-bold uppercase ${on ? 'text-white/80' : 'text-soren-subtle'}`}>{DAYS_SHORT[i].slice(0, 1)}</span>
+                <span className={`text-[14px] font-bold leading-none ${on ? 'text-white' : isToday ? 'text-[#FF4D00]' : 'text-soren-text'}`}>{d.getDate()}</span>
+                <span className={`w-1 h-1 rounded-full ${has ? (on ? 'bg-white' : 'bg-[#FF4D00]') : 'bg-transparent'}`} />
+              </button>
+            )
+          })}
+        </div>
+        <button onClick={() => shiftWeek(1)} aria-label="Semaine suivante" className="w-7 h-7 flex-shrink-0 rounded-full bg-soren-card border border-soren-border flex items-center justify-center text-soren-muted"><ChevronRight size={15} /></button>
+      </div>
+
+      {/* En-tête du jour */}
+      <div className="flex items-baseline justify-between pb-2 flex-shrink-0">
+        <p className="text-[13px] font-bold text-soren-text capitalize">{DAYS_LONG[(sel.getDay() + 6) % 7]} {sel.getDate()} {MONTHS_FR[sel.getMonth()].toLowerCase()}</p>
+        <span className="text-[11px] text-soren-muted">{dayAppts.length} RDV</span>
+      </div>
+
+      {/* Agenda du jour */}
+      <div className="flex-1 overflow-y-auto flex flex-col gap-2 pb-4">
+        {dayAppts.length === 0 && (
+          <div className="text-center text-[12px] text-soren-subtle py-16">Aucun rendez-vous ce jour</div>
+        )}
+        {dayAppts.map(a => {
+          const meta = (a.type ? TYPE_META[a.type] : undefined) ?? { color: '#6B7280', label: '' }
+          return (
+            <button key={a.id} onClick={() => onApptClick(a)} className="flex gap-2.5 text-left active:opacity-70 transition-opacity">
+              <div className="w-12 flex-shrink-0 text-[11px] font-bold text-soren-muted pt-2.5 tabular-nums">{fmt(a.startTime)}</div>
+              <div className="flex-1 rounded-xl p-3 border-l-[3px]" style={{ borderColor: meta.color, background: meta.color + '0f' }}>
+                <p className="text-[13px] font-semibold text-soren-text leading-tight">{a.title}</p>
+                <p className="text-[11px] text-soren-muted mt-1">{fmt(a.startTime)} – {fmt(a.endTime)} · {meta.label}</p>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main ─────────────────────────────────────────────────────
 export default function CalendarView({
   appointments: initial,
@@ -839,6 +910,7 @@ export default function CalendarView({
 }) {
   const router = useRouter()
   void router
+  void googleConfigured
   const now = new Date()
   const [appointments, setAppointments] = useState<Appointment[]>(initial)
 
@@ -848,6 +920,13 @@ export default function CalendarView({
   }, [initial])
   const [refreshing, setRefreshing]     = useState(false)
   const [view,         setView]         = useState<ViewMode>('month')
+  // Sur mobile, la vue Jour (agenda) est par défaut — le mois est illisible au doigt.
+  useEffect(() => { if (typeof window !== 'undefined' && window.innerWidth < 768) setView('day') }, [])
+
+  // Connexion Google PAR PROFIL (chaque utilisateur connecte son propre agenda).
+  const { clerkUser } = useCurrentUser()
+  const gAcc = useQuery(api.googleAccounts.isConnected, clerkUser ? { clerkUserId: clerkUser.id } : 'skip')
+  const myGoogleConnected = gAcc?.connected ?? false
   const [year,         setYear]         = useState(now.getFullYear())
   const [month,        setMonth]        = useState(now.getMonth())
   const [weekOffset,   setWeekOffset]   = useState(0)
@@ -963,13 +1042,13 @@ export default function CalendarView({
   }
 
   return (
-    <div className="flex h-[calc(100vh-56px)] overflow-hidden">
+    <div className="flex h-[calc(100dvh-148px)] md:h-[calc(100vh-56px)] overflow-hidden">
 
       {/* ── Main area ── */}
       <div className="flex-1 flex flex-col overflow-hidden p-3 gap-2">
 
         {/* Header */}
-        <div className="flex items-center justify-between flex-shrink-0 gap-2 min-w-0">
+        <div className="flex flex-wrap items-center justify-between flex-shrink-0 gap-2 gap-y-2 min-w-0">
           {/* Left: title + nav */}
           <div className="flex items-center gap-2 min-w-0 shrink-0">
             <div className="flex items-center gap-1">
@@ -996,12 +1075,12 @@ export default function CalendarView({
           </div>
 
           {/* Right: actions */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Google badge */}
-            {googleConfigured ? (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#34A853]/30 bg-[#34A853]/10 text-[11px] font-semibold text-[#34A853] whitespace-nowrap">
+          <div className="flex flex-wrap items-center gap-1.5 justify-end">
+            {/* Google badge — par profil */}
+            {myGoogleConnected ? (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#34A853]/30 bg-[#34A853]/10 text-[11px] font-semibold text-[#34A853] whitespace-nowrap" title={gAcc?.email ?? undefined}>
                 <span className="w-2 h-2 rounded-full bg-[#34A853] flex-shrink-0" />
-                Google Calendar
+                Mon Google
               </div>
             ) : (
               <a
@@ -1028,7 +1107,7 @@ export default function CalendarView({
             </button>
             {/* View tabs */}
             <div className="flex items-center bg-soren-card border border-soren-border rounded-full p-0.5">
-              {(['month', 'week'] as ViewMode[]).map(v => (
+              {(['day', 'week', 'month'] as ViewMode[]).map(v => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
@@ -1036,14 +1115,14 @@ export default function CalendarView({
                     view === v ? 'bg-soren-sidebar text-white' : 'text-soren-muted hover:text-soren-text'
                   }`}
                 >
-                  {v === 'month' ? 'Mois' : 'Semaine'}
+                  {v === 'month' ? 'Mois' : v === 'week' ? 'Semaine' : 'Jour'}
                 </button>
               ))}
             </div>
-            {/* New button */}
+            {/* New button — masqué sur mobile (remplacé par le bouton flottant +) */}
             <button
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-1.5 bg-soren-sidebar hover:bg-[#2a2a2a] text-white text-[12px] font-semibold px-3 py-1 rounded-full transition-colors whitespace-nowrap"
+              className="hidden sm:flex items-center gap-1.5 bg-soren-sidebar hover:bg-[#2a2a2a] text-white text-[12px] font-semibold px-3 py-1 rounded-full transition-colors whitespace-nowrap"
             >
               <Plus size={12} />
               Nouveau RDV
@@ -1075,7 +1154,12 @@ export default function CalendarView({
 
         {/* Grid */}
         <div className="flex-1 overflow-hidden flex">
-          {view === 'month' ? (
+          {view === 'day' ? (
+            <DayAgenda
+              appointments={visibleAppointments}
+              onApptClick={a => { setSelectedAppt(a); setSelectedDay(null) }}
+            />
+          ) : view === 'month' ? (
             <MonthGrid
               year={year}
               month={month}
@@ -1175,6 +1259,15 @@ export default function CalendarView({
           </div>
         )}
       </div>
+
+      {/* Bouton flottant — créer un RDV (mobile) */}
+      <button
+        onClick={() => setShowModal(true)}
+        aria-label="Nouveau rendez-vous"
+        className="md:hidden fixed right-4 bottom-24 z-30 w-12 h-12 rounded-full bg-[#FF4D00] text-white flex items-center justify-center shadow-[0_10px_24px_-6px_rgba(255,77,0,0.6)] active:scale-95 transition-transform"
+      >
+        <Plus size={22} strokeWidth={2.4} />
+      </button>
 
       {showModal && (
         <NewAppointmentModal

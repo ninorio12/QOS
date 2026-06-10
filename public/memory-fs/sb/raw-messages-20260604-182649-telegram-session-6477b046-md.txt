@@ -1,0 +1,18 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260604_152033_2d7354.jsonl
+captured_at: 2026-06-04T18:26:49.485419
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-06-04T18:23:56.023614
+
+ok si demain on veut installer hermes sur whatsapp est ce que c'est compliqué et quel sont les prérequis
+
+## assistant — 2026-06-04T18:23:56.023614
+
+Je vais vérifier le fonctionnement Hermes côté gateway/intégrations avant de te répondre, pour éviter de te dire une bêtise sur WhatsApp.
+
+## assistant — 2026-06-04T18:23:56.023614
+
+Oui, c’est faisable. Pas ultra compliqué, mais **plus fragile que Telegram/Slack**. ## Réponse courte Installer Hermes sur WhatsApp = **moyennement compliqué**. Le plus simple avec Hermes : passer par le bridge WhatsApp type **Baileys**. Ça permet à Hermes de lire/répondre via un compte WhatsApp connecté, un peu comme WhatsApp Web. ## Prérequis ### 1. Un numéro WhatsApp dédié Idéalement : - pas ton numéro perso principal - un numéro business/test - WhatsApp ou WhatsApp Business installé sur téléphone Pourquoi : les bridges WhatsApp peuvent être sensibles aux déconnexions / limitations. ### 2. Téléphone disponible pour scanner le QR code Comme WhatsApp Web : - Hermes lance le bridge - tu scans un QR code - la session est sauvegardée sur le VPS ### 3. VPS stable Déjà OK chez toi. Il faut : - Node.js - npm - accès terminal - gateway Hermes actif - process bridge qui reste vivant ### 4. Hermes Gateway configuré Hermes supporte WhatsApp côté gateway, mais il faut : - activer la plateforme - configurer le bridge/session - redémarrer le gateway - vérifier que `send_message` voit WhatsApp comme cible ### 5. Gestion sécurité Important : - éviter d’utiliser WhatsApp pour actions sensibles sans validation - définir qui peut parler au bot - ne pas exposer secrets/API keys dans WhatsApp - logs propres - prévoir reconnexion si WhatsApp coupe la session ## Ce qui peut être pénible ### WhatsApp n’aime pas trop les automatisations non officielles Avec Baileys, on utilise le protocole WhatsApp Web. Ça marche, mais ce n’est pas aussi stable qu’une API officielle. Risques : - déconnexion session - QR à rescanner - messages parfois retardés - risque de limitation si usage massif - compte possiblement flaggé si comportement spammy Donc pour ton usage perso / cockpit : OK. Pour envoyer beaucoup de messages clients : prudence. ## Alternative officielle WhatsApp Cloud API Meta. Plus propre pour prod, mais : - setup Meta Business - numéro validé - templates pour conversations sortantes - webhooks - restrictions fortes - moins flexible qu’un vrai WhatsApp perso Pour un agent personnel, c’est plus lourd. ## Recommandation Pour toi demain : ### Option rapide **Baileys bridge sur VPS** - 30–60 min si tout va bien - parfait pour tester Hermes sur WhatsApp - cockpit perso / petit usage ### Option propre client/prod **WhatsApp Cloud API** - plutôt 0,5–2 jours de setup propre - meilleur pour clients - plus légal/propre - mais moins libre ## Ce que je ferais Je commencerais par un **test Baileys avec numéro dédié**. Objectif : - envoyer un message WhatsApp à Hermes - Hermes répond - tester vocal/photo si supporté - tester envoi sortant - vérifier stabilité 24h Ensuite seulement on décide si WhatsApp devient un vrai canal.

@@ -1,5 +1,5 @@
-import CompanySettingsView from '@/components/settings/CompanySettingsView'
+import SettingsShell from '@/components/settings/SettingsShell'
 
 export default function ParametresPage() {
-  return <CompanySettingsView />
+  return <SettingsShell />
 }

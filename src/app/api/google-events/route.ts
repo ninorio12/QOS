@@ -32,24 +32,35 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   if (!await isGoogleConfigured()) return NextResponse.json({ event: null })
 
-  const { title, startTime, endTime, notes, withMeet = true } = await req.json() as {
+  const body = await req.json() as {
     title:     string
     startTime: string
     endTime:   string
     notes?:    string
     withMeet?: boolean
+    attendees?: string[]   // emails — invitations envoyées à ces personnes
+    tz?:       string
+    type?:     string      // R1/R2/Follow-up/… — persisted in extendedProperties
   }
+  const { title, startTime, endTime, notes, withMeet = true, attendees = [], type } = body
+  const tz = body.tz || 'Europe/Paris'
+
+  // Dédoublonne + valide grossièrement les emails
+  const guests = [...new Set((attendees ?? []).map(e => (e || '').trim()).filter(e => /.+@.+\..+/.test(e)))]
 
   try {
     const cal = await getCalendarClient()
     const res = await cal.events.insert({
       calendarId:          CAL_ID(),
       conferenceDataVersion: withMeet ? 1 : 0,
+      sendUpdates:         guests.length ? 'all' : 'none',   // déclenche l'envoi des invitations
       requestBody: {
         summary:     title,
         description: notes || undefined,
-        start:       { dateTime: startTime, timeZone: 'Europe/Paris' },
-        end:         { dateTime: endTime,   timeZone: 'Europe/Paris' },
+        start:       { dateTime: startTime, timeZone: tz },
+        end:         { dateTime: endTime,   timeZone: tz },
+        ...(type ? { extendedProperties: { private: { type } } } : {}),
+        ...(guests.length ? { attendees: guests.map(email => ({ email })) } : {}),
         ...(withMeet ? {
           conferenceData: {
             createRequest: {

@@ -1,628 +1,368 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Cpu, Users, Database, Globe, Save, RefreshCw, ChevronRight, Zap, Brain, Sparkles, FileText, Pencil } from 'lucide-react'
+/**
+ * Base de connaissance — nav : Skills · Mémoire · SOPs · Playbooks.
+ * Deep-links : /knowledge?tab=skills&q=... (ou &skill=id) ouvrent directement la bonne vue.
+ * Tout élément important est cliquable ou mène à une vue utile.
+ */
 
-type KBDoc = {
-  id: string
-  slug: string
-  title: string
-  content?: string
-  updated_at: string
-  updated_by: string
+import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
+import {
+  Wrench, Brain, Search, ArrowLeft, Library, ListChecks, Footprints,
+  ExternalLink, CheckSquare, ShieldCheck, User, Clock,
+} from 'lucide-react'
+import { Chip, Pill } from '@/components/agentic/ui'
+import MarkdownView from '@/components/agentic/MarkdownView'
+import MemorySection from './MemorySection'
+import { SOPS, PLAYBOOKS, DOC_STATUS, DOC_FILTERS, type SOP, type Playbook } from '@/components/agentic/sops'
+import DocEditor from './DocEditor'
+
+// Assignables pour l'action "Assigner" (agents + humains).
+const ASSIGNEES = ['COO', 'Agent Analyse', 'Agent Support Client', 'Agent Operations', 'Agent KB', 'Jonathan', 'Thomas', 'Humain']
+
+// Seed → page blanche Markdown (titres, points, checklists, étapes, liens — librement éditable ensuite).
+function sopToMarkdown(s: SOP): string {
+  const L: string[] = []
+  L.push('## Objectif', s.objective, '')
+  L.push('## Déclencheur', s.trigger, '')
+  if (s.inputs.length) { L.push('## Pré-requis / Inputs'); s.inputs.forEach(x => L.push(`- ${x}`)); L.push('') }
+  L.push('## Étapes'); s.steps.forEach(st => L.push(`- [ ] ${st.text}${st.owner ? ` — ${st.owner}` : ''}${st.tool ? ` (${st.tool})` : ''}`)); L.push('')
+  if (s.output) L.push('## Résultat attendu', s.output, '')
+  if (s.proofExpected) L.push('## Preuve / validation', s.proofExpected, '')
+  return L.join('\n')
 }
 
-// ─── Agents ──────────────────────────────────────────────────────────────────
-
-const AGENTS = [
-  {
-    id: 'vividflow',
-    name: 'VividFlow',
-    role: 'COO · Orchestrateur',
-    model: 'claude-haiku-4-5',
-    color: '#4A91A8',
-    Icon: Cpu,
-    soul: `# VividFlow — Orchestrateur BTP
-
-Tu es **VividFlow**, le COO Digital. Tu orchestres tous les agents, gères les priorités, et communiques avec le CEO via Telegram.
-
-## Valeurs fondamentales
-- Réactivité : répondre en moins de 5 minutes aux leads entrants
-- Précision : devis clairs, chiffrés, sans ambiguïté
-- Relation : chaque lead est traité comme un client prioritaire
-
-## Ton de communication
-- Direct et professionnel
-- Adapté au secteur BTP
-- Bienveillant mais orienté conversion
-
-## Limites
-- Ne pas promettre de délais sans validation humaine
-- Ne pas signer de devis au-dessus de 50 000 € sans validation Thomas`,
-    memory: `# Mémoire VividFlow
-
-Dernière analyse : 31 mars 2026
-Leads actifs : 3 (Inès Duprez, Xavier Alvarez, Didier Dubois)
-Pipeline total : 101 200 €
-
-## Décisions récentes
-- 2026-03-31 : Devis façade Jean Dupont envoyé (45 000 €)
-- 2026-03-30 : RDV confirmé Inès Duprez le 2 avril
-
-## Directives actives
-- Kai : relancer Xavier Alvarez avant 18h
-- Mia : finaliser devis façade pour Jean Dupont`,
-    skills: ['read_leads', 'send_telegram', 'delegate_kai', 'delegate_mia', 'analyze_pipeline'],
-  },
-  {
-    id: 'kai',
-    name: 'Kai',
-    role: 'CSM · Customer Success',
-    model: 'claude-haiku-4-5',
-    color: '#1A5C38',
-    Icon: Users,
-    soul: `# Kai — Customer Success Manager BTP
-
-Tu es **Kai**, le premier contact prospect. Mission : répondre < 60 secondes, qualifier avec précision, créer confiance immédiate.
-
-## Flux de qualification
-1. Réception lead → SMS de bienvenue (< 60 sec)
-2. Analyse intention client
-3. Questions qualification (max 4, naturelles)
-4. Score → mise à jour stage CRM
-5. Si score > 70 : proposer RDV + alerter VividFlow
-
-## Canaux
-- WhatsApp (prioritaire)
-- Vapi voice calls
-- Email`,
-    memory: `# Mémoire Kai
-
-## Leads en cours
-- Jean Dupont : RDV planifié, devis envoyé — attente retour
-- Xavier Alvarez : Relance prévue aujourd'hui via WhatsApp
-- Inès Duprez : RDV confirmé 2 avril 14h
-
-## Patterns détectés
-- Meilleur taux de réponse : mardi/jeudi 10h–12h
-- Canal le plus efficace : WhatsApp > Vapi > Email`,
-    skills: ['send_whatsapp', 'update_opportunity', 'send_telegram', 'contact_lookup', 'book_appointment'],
-  },
-  {
-    id: 'mia',
-    name: 'Mia',
-    role: 'KB · Knowledge Manager',
-    model: 'gemini-2.5-flash',
-    color: '#E8836A',
-    Icon: Database,
-    soul: `# Mia — Knowledge Base & Devis BTP
-
-Tu es **Mia**, gestionnaire KB et devis. Tu travailles en coulisses : pré-devis précis < 5 minutes, KB à jour, archives structurées.
-
-## Rôle principal
-Tu lis le document entreprise, extrais les informations clés (tarifs, services, zones d'intervention) et les distribues à VividFlow et Kai.
-
-## Responsabilités
-- Pré-devis depuis templates KB BTP (< 5 min)
-- Scraping et mise à jour du document entreprise
-- Archivage conversations qualifiées
-- Surveillance : devis sans réponse > 7 jours → alerte Kai`,
-    memory: `# Mémoire Mia
-
-## Documents en cours
-- Devis façade Jean Dupont : généré, envoi planifié
-- Fiche client Xavier Alvarez : créée le 29/03
-
-## Base de connaissance
-- 47 fiches clients actives
-- 12 templates de devis disponibles
-- Dernière synchro site web : jamais`,
-    skills: ['generate_devis', 'update_kb', 'scrape_website', 'archive_document', 'notify_vividflow'],
-  },
-]
-
-const DEFAULT_COMPANY_DOC = `# Document entreprise
-
-## À propos
-Renseignez ici les informations clés de votre entreprise. Mia lira ce document pour alimenter les autres agents.
-
-## Services proposés
-- Rénovation complète (intérieur/extérieur)
-- Construction neuve
-- Aménagement intérieur
-
-## Grille tarifaire
-| Prestation | Tarif HT |
-|---|---|
-| Rénovation façade | 80–120 €/m² |
-| Peinture intérieure | 25–40 €/m² |
-| Carrelage | 40–60 €/m² |
-
-## Zones d'intervention
-Hérault (34), Gard (30), Aveyron (12)
-
-## Délais moyens
-- Devis : sous 48h
-- Démarrage chantier : 2–4 semaines après signature`
-
-// ─── Skill badges ─────────────────────────────────────────────────────────────
-
-const SKILL_META: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  read_leads:         { label: 'Lire les leads',    icon: FileText,     color: '#3462EE' },
-  send_telegram:      { label: 'Telegram',           icon: Zap,          color: '#229ED9' },
-  delegate_kai:       { label: 'Déléguer → Kai',     icon: ChevronRight, color: '#1A5C38' },
-  delegate_mia:       { label: 'Déléguer → Mia',     icon: ChevronRight, color: '#E8836A' },
-  analyze_pipeline:   { label: 'Analyser pipeline',  icon: Brain,        color: '#8B5CF6' },
-  send_whatsapp:      { label: 'WhatsApp',           icon: Zap,          color: '#25D366' },
-  update_opportunity: { label: 'MAJ opportunité',    icon: RefreshCw,    color: '#F59E0B' },
-  contact_lookup:     { label: 'Recherche contact',  icon: Users,        color: '#6B7280' },
-  book_appointment:   { label: 'Réserver RDV',       icon: Sparkles,     color: '#EC4899' },
-  generate_devis:     { label: 'Générer devis',      icon: FileText,     color: '#8B5CF6' },
-  update_kb:          { label: 'MAJ base de conn.',  icon: Database,     color: '#E8836A' },
-  scrape_website:     { label: 'Scraper site web',   icon: Globe,        color: '#14B8A6' },
-  archive_document:   { label: 'Archiver doc',       icon: Save,         color: '#9CA3AF' },
-  notify_vividflow:   { label: 'Notifier VividFlow',     icon: Zap,          color: '#4A91A8' },
+function playbookToMarkdown(p: Playbook): string {
+  const L: string[] = []
+  L.push('## Situation', p.situation, '')
+  if (p.signals.length) { L.push('## Signaux à observer'); p.signals.forEach(x => L.push(`- ${x}`)); L.push('') }
+  if (p.diagnosticQuestions.length) { L.push('## Questions de diagnostic'); p.diagnosticQuestions.forEach((x, i) => L.push(`${i + 1}. ${x}`)); L.push('') }
+  if (p.options.length) { L.push('## Options possibles'); p.options.forEach(x => L.push(`- ${x}`)); L.push('') }
+  if (p.decisionRules.length) { L.push('## Règles de décision'); p.decisionRules.forEach(r => L.push(`- Si ${r.if} → ${r.then}`)); L.push('') }
+  if (p.recommendedAction) L.push('## Action recommandée', p.recommendedAction, '')
+  if (p.escalation) L.push('## Escalade', p.escalation, '')
+  return L.join('\n')
 }
 
-function SkillBadge({ skill }: { skill: string }) {
-  const meta = SKILL_META[skill] ?? { label: skill, icon: Zap, color: '#9CA3AF' }
-  const Icon = meta.icon
+type TabId = 'skills' | 'memory' | 'sops' | 'playbooks'
+type SkillMeta = { id: string; name: string; description: string; family: string; category?: string; path?: string; sourcePath?: string; tags: string[] }
+
+const TAB_HINT: Record<TabId, string> = {
+  skills: 'Méthodes agentiques. Voici ce que les agents savent utiliser.',
+  memory: 'Mémoire opérationnelle : ce que le système capte, comprend, retient et charge avant d’agir.',
+  sops: 'Procédures fixes. Voici exactement quoi faire.',
+  playbooks: 'Guides de décision. Voici comment choisir quoi faire selon le contexte.',
+}
+
+export default function KnowledgeView() {
+  const [tab, setTab] = useState<TabId>('skills')
+  const [skillsQuery, setSkillsQuery] = useState('')
+  const [openSkillId, setOpenSkillId] = useState<string | null>(null)
+
+  // Deep-links (sans Suspense : lecture client de l'URL)
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search)
+    const t = p.get('tab') as TabId | null
+    if (t && ['skills', 'memory', 'sops', 'playbooks'].includes(t)) setTab(t)
+    if (p.get('q')) { setSkillsQuery(p.get('q') || ''); setTab('skills') }
+    if (p.get('skill')) { setOpenSkillId(p.get('skill')); setTab('skills') }
+  }, [])
+
+  const goTab = (t: string, q?: string) => { setTab(t as TabId); if (q !== undefined) { setSkillsQuery(q); setOpenSkillId(null) } }
+
+  const TABS: { id: TabId; label: string; Icon: typeof Wrench }[] = [
+    { id: 'skills', label: 'Skills', Icon: Wrench },
+    { id: 'memory', label: 'Mémoire', Icon: Brain },
+    { id: 'sops', label: 'SOPs', Icon: ListChecks },
+    { id: 'playbooks', label: 'Playbooks', Icon: Footprints },
+  ]
   return (
-    <div className="flex items-center gap-2 bg-soren-elevated rounded-xl px-3 py-2">
-      <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: meta.color + '18' }}>
-        <Icon size={12} style={{ color: meta.color }} />
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="px-6 pt-5 pb-2 flex-shrink-0 flex items-center gap-1.5 flex-wrap">
+        {TABS.map(t => {
+          const on = tab === t.id
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-all ${on ? 'bg-soren-sidebar text-white border-soren-sidebar' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>
+              <t.Icon size={12} /> {t.label}
+            </button>
+          )
+        })}
       </div>
-      <span className="text-xs font-medium text-[#374151]">{meta.label}</span>
+      <p className="px-6 pb-3 text-[11px] text-soren-subtle flex-shrink-0">{TAB_HINT[tab]}</p>
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
+        {tab === 'skills' && <SkillsSection query={skillsQuery} setQuery={setSkillsQuery} openId={openSkillId} setOpenId={setOpenSkillId} />}
+        {tab === 'memory' && <MemorySection goTab={goTab} />}
+        {tab === 'sops' && <SopsSection />}
+        {tab === 'playbooks' && <PlaybooksSection />}
+      </div>
     </div>
   )
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── Communs ─────────────────────────────────────────────────────────────────
 
-type Tab = 'soul' | 'memoire' | 'skills'
-type Selection = { type: 'agent'; id: string } | { type: 'commun' }
-
-export default function KnowledgeView() {
-  const [selection, setSelection] = useState<Selection>({ type: 'agent', id: 'vividflow' })
-  const [tab, setTab] = useState<Tab>('soul')
-  const [editing, setEditing] = useState(false)
-  const [contents, setContents] = useState<Record<string, Record<string, string>>>(() =>
-    Object.fromEntries(AGENTS.map(a => [a.id, { soul: a.soul, memoire: a.memory }]))
+function ProcessBanner() {
+  const procs = useQuery(api.processes.list, {}) as unknown[] | undefined
+  return (
+    <Link href="/bibliotheque/process" className="flex items-center justify-between gap-2 bg-soren-elevated rounded-xl px-3.5 py-2 hover:bg-[#E5E7EB]/60 transition-colors">
+      <span className="text-[11px] text-soren-muted">Bibliothèque métier complète {procs ? `(${procs.length} process)` : ''} dans le module Process</span>
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#FF4D00]">Ouvrir <ExternalLink size={11} /></span>
+    </Link>
   )
-  const [companyDoc, setCompanyDoc] = useState(DEFAULT_COMPANY_DOC)
-  const [websiteUrl, setWebsiteUrl] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
-  const [scraping, setScraping] = useState(false)
-  const [scrapeError, setScrapeError] = useState<string | null>(null)
-  const [kbDocs, setKbDocs]             = useState<KBDoc[]>([])
-  const [kbSelected, setKbSelected]     = useState<KBDoc | null>(null)
-  const [kbEditing, setKbEditing]       = useState(false)
-  const [kbContent, setKbContent]       = useState('')
-  const [kbSaving, setKbSaving]         = useState(false)
-  const [kbLoadingDoc, setKbLoadingDoc] = useState(false)
-  const [showKb, setShowKb]             = useState(false)
+}
 
-  // Fetch company settings to get website_url and company_doc
+function StatusFilters({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {DOC_FILTERS.map(f => (
+        <button key={f.id} onClick={() => onChange(f.id)} className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${value === f.id ? 'bg-soren-sidebar text-white border-soren-sidebar' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>{f.label}</button>
+      ))}
+    </div>
+  )
+}
+
+function Block({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-2">
+        <span className="w-5 h-5 rounded-md bg-soren-elevated text-soren-muted text-[10px] font-bold flex items-center justify-center flex-shrink-0">{n}</span>
+        <span className="text-[11px] font-bold uppercase tracking-wide text-soren-subtle">{title}</span>
+      </div>
+      <div className="pl-7 text-[12px] text-soren-text leading-relaxed">{children}</div>
+    </div>
+  )
+}
+
+function BackBtn({ onClick, label }: { onClick: () => void; label: string }) {
+  return <button onClick={onClick} className="self-start inline-flex items-center gap-1.5 text-[12px] font-semibold text-soren-muted hover:text-soren-text"><ArrowLeft size={14} /> {label}</button>
+}
+
+function MemList({ items }: { items: string[] }) {
+  return <div className="flex items-center gap-1.5 flex-wrap">{items.map(m => <Chip key={m}>{m}</Chip>)}</div>
+}
+
+// ─── 1. Skills (réels, VPS — 3 familles) ─────────────────────────────────────
+
+const FAMILY_ORDER = ['Skills internes', 'Skills importés', 'Skills natifs']
+
+/** Affiche le VRAI contenu du SKILL.md : lecture live du fichier (sourcePath) d'abord,
+ *  snapshot bundlé en fallback. Frontmatter affiché proprement, markdown rendu fidèlement, scroll interne. */
+function SkillContent({ sourcePath, fallbackUrl }: { sourcePath?: string; fallbackUrl: string }) {
+  const [st, setSt] = useState<{ loading: boolean; text?: string; live?: boolean; error?: string }>({ loading: true })
+  const [mode, setMode] = useState<'md' | 'raw'>('md')
   useEffect(() => {
-    fetch('/api/settings/company')
-      .then(r => r.json())
-      .then(d => {
-        if (d.company?.website_url) setWebsiteUrl(d.company.website_url)
-        if (d.company?.company_doc) setCompanyDoc(d.company.company_doc)
-      })
-  }, [])
+    let alive = true
+    ;(async () => {
+      if (sourcePath) {
+        try {
+          const r = await fetch(`/api/skill?path=${encodeURIComponent(sourcePath)}`, { cache: 'no-store' })
+          if (r.ok) { const t = await r.text(); if (alive) setSt({ loading: false, text: t, live: true }); return }
+        } catch { /* bascule snapshot */ }
+      }
+      try {
+        const r = await fetch(fallbackUrl)
+        if (!r.ok) throw new Error()
+        const t = await r.text()
+        if (alive) setSt({ loading: false, text: t, live: false })
+      } catch {
+        if (alive) setSt({ loading: false, error: sourcePath || fallbackUrl })
+      }
+    })()
+    return () => { alive = false }
+  }, [sourcePath, fallbackUrl])
 
-  useEffect(() => {
-    fetch('/api/knowledge/docs')
-      .then(r => r.json())
-      .then((d: { docs: KBDoc[] }) => setKbDocs(d.docs ?? []))
-      .catch(() => {})
-  }, [])
+  if (st.loading) return (
+    <div className="bg-soren-card border border-soren-border rounded-2xl p-5 flex flex-col gap-2">
+      {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-3.5 rounded bg-soren-elevated animate-pulse" style={{ width: `${55 + (i * 11) % 40}%` }} />)}
+    </div>
+  )
+  if (st.error) return (
+    <div className="bg-soren-card border border-soren-border rounded-2xl p-5">
+      <p className="text-[12px] font-semibold text-[#DC2626]">Fichier introuvable</p>
+      <p className="text-[11px] text-soren-subtle font-mono mt-1 break-all">{st.error}</p>
+    </div>
+  )
+  const full = st.text ?? ''
+  const m = full.match(/^---\n([\s\S]*?)\n---\n?/)
+  const fm = m ? m[1] : null
+  const body = m ? full.slice(m[0].length) : full
+  return (
+    <div className="flex flex-col gap-2">
+      {/* Barre : badge source + bascule de mode */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full ${st.live ? 'text-[#16A34A]' : 'text-soren-muted bg-soren-elevated'}`} style={st.live ? { background: '#16A34A1A' } : undefined}>
+          {st.live ? 'Lecture live du fichier VPS' : 'Version synchronisée au dernier déploiement'}
+        </span>
+        <div className="ml-auto inline-flex items-center gap-1 bg-soren-elevated rounded-full p-0.5">
+          {(['md', 'raw'] as const).map(mo => (
+            <button key={mo} onClick={() => setMode(mo)}
+              className={`text-[10px] font-semibold px-2.5 py-1 rounded-full transition-colors ${mode === mo ? 'bg-soren-card text-soren-text shadow-sm' : 'text-soren-muted hover:text-soren-text'}`}>
+              {mo === 'md' ? 'Aperçu Markdown' : 'Fichier brut'}
+            </button>
+          ))}
+        </div>
+      </div>
 
-  const agent = selection.type === 'agent' ? AGENTS.find(a => a.id === selection.id) : null
+      <div className="bg-soren-card border border-soren-border rounded-2xl p-5 max-h-[68vh] overflow-auto">
+        {mode === 'raw' ? (
+          // Fidèle à l'octet : fichier complet (--- inclus), aucune transformation.
+          <pre className="text-[11.5px] font-mono text-soren-text whitespace-pre leading-relaxed">{full}</pre>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {fm && <pre className="text-[11px] font-mono text-soren-muted bg-soren-elevated rounded-xl px-3 py-2 overflow-x-auto whitespace-pre-wrap">{fm}</pre>}
+            <MarkdownView markdown={body} />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
-  function save() {
-    if (selection.type === 'commun') {
-      fetch('/api/settings/company', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company_doc: companyDoc }),
-      })
-    }
-    setSaved(true)
-    setEditing(false)
-    setTimeout(() => setSaved(false), 2000)
-  }
+function SkillsSection({ query, setQuery, openId, setOpenId }: {
+  query: string; setQuery: (v: string) => void; openId: string | null; setOpenId: (v: string | null) => void
+}) {
+  const [list, setList] = useState<SkillMeta[]>([])
+  const [fam, setFam] = useState('Tous')
 
-  async function scrape() {
-    setScrapeError(null)
-    if (!websiteUrl) {
-      setScrapeError('Ajoutez l\'URL du site dans Paramètres → Coordonnées avant de scraper.')
-      return
-    }
-    setScraping(true)
-    try {
-      const res = await fetch('/api/knowledge/scrape', { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Erreur')
-      setCompanyDoc(data.company_doc)
-    } catch (e) {
-      setScrapeError(e instanceof Error ? e.message : 'Erreur lors du scraping')
-    } finally {
-      setScraping(false)
-    }
-  }
+  useEffect(() => { fetch('/agentic-skills/index.json').then(r => r.json()).then(setList).catch(() => setList([])) }, [])
 
-  async function loadKbDoc(doc: KBDoc) {
-    setKbLoadingDoc(true)
-    setKbEditing(false)
-    try {
-      const res  = await fetch(`/api/knowledge/docs?slug=${doc.slug}`)
-      const data = await res.json() as { doc: KBDoc }
-      const full = data.doc ?? doc
-      setKbSelected(full)
-      setKbContent(full.content ?? '')
-    } finally {
-      setKbLoadingDoc(false)
-    }
-  }
+  const shown = useMemo(() => list.filter(s =>
+    (fam === 'Tous' || s.family === fam) &&
+    (!query.trim() || (s.name + ' ' + s.id + ' ' + (s.path ?? '') + ' ' + s.description + ' ' + s.tags.join(' ')).toLowerCase().includes(query.toLowerCase()))
+  ).sort((a, b) => a.name.localeCompare(b.name)), [list, query, fam])
 
-  async function saveKbDoc() {
-    if (!kbSelected) return
-    setKbSaving(true)
-    try {
-      await fetch('/api/knowledge/docs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug: kbSelected.slug, title: kbSelected.title, content: kbContent, updated_by: 'thomas' }),
-      })
-      setKbDocs(prev => prev.map(d => d.slug === kbSelected.slug ? { ...d, content: kbContent, updated_at: new Date().toISOString() } : d))
-      setKbSelected(prev => prev ? { ...prev, content: kbContent } : prev)
-      setKbEditing(false)
-    } finally {
-      setKbSaving(false)
-    }
-  }
+  // Familles présentes seulement (masque les vides), ordre fixe, "Tous" en premier.
+  const families = useMemo(() => ['Tous', ...FAMILY_ORDER.filter(f => list.some(s => s.family === f))], [list])
 
-  function selectAgent(id: string) {
-    setShowKb(false)
-    setSelection({ type: 'agent', id })
-    setTab('soul')
-    setEditing(false)
-    setSaved(false)
-    setScrapeError(null)
-  }
+  const open = openId ? list.find(s => s.id === openId) : null
 
-  function selectCommun() {
-    setShowKb(false)
-    setSelection({ type: 'commun' })
-    setEditing(false)
-    setSaved(false)
-    setScrapeError(null)
-  }
+  if (open) return (
+    <div className="flex flex-col gap-3">
+      <BackBtn onClick={() => setOpenId(null)} label="Skills" />
+      <div className="flex items-center gap-2 flex-wrap"><h2 className="text-[15px] font-bold text-soren-text">{open.name}</h2><Chip>{open.family}</Chip>{open.category && <Chip>{open.category}</Chip>}</div>
+      {open.path && <p className="text-[10px] text-soren-subtle font-mono -mt-1">{open.path}</p>}
+      <SkillContent sourcePath={open.sourcePath} fallbackUrl={`/agentic-skills/${open.id}.md`} />
+    </div>
+  )
 
   return (
-    <div className="flex h-[calc(100vh-56px)] bg-soren-app">
-
-      {/* ── Sidebar ──────────────────────────────────────────── */}
-      <div className="w-56 flex-shrink-0 flex flex-col p-3 gap-1 border-r border-soren-border bg-soren-card" style={{ animation: 'fadeSlideUp 400ms ease-out 0ms both' }}>
-        <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-widest px-2 pb-2">Agents</p>
-
-        {AGENTS.map(a => {
-          const active = selection.type === 'agent' && selection.id === a.id
-          return (
-            <button
-              key={a.id}
-              onClick={() => selectAgent(a.id)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${active ? 'bg-soren-elevated' : 'hover:bg-[#F9FAF8]'}`}
-            >
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: a.color + '18' }}>
-                <a.Icon size={15} style={{ color: a.color }} />
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 bg-soren-card border border-soren-border rounded-full px-3.5 py-2 max-w-md">
+        <Search size={14} className="text-soren-subtle" />
+        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un skill…" className="flex-1 bg-transparent text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none" />
+        <span className="text-[10px] text-soren-subtle">{shown.length}</span>
+      </div>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {families.map(f => (
+          <button key={f} onClick={() => setFam(f)} className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${fam === f ? 'bg-soren-sidebar text-white border-soren-sidebar' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>
+            {f}{f !== 'Tous' && <span className="ml-1 opacity-70">{list.filter(s => s.family === f).length}</span>}
+          </button>
+        ))}
+      </div>
+      {list.length === 0 ? <p className="text-[12px] text-soren-subtle py-16 text-center">Chargement de la bibliothèque…</p> : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5" data-stagger>
+          {shown.map(s => (
+            <button key={s.id} onClick={() => setOpenId(s.id)} className="text-left bg-soren-card border border-soren-border rounded-2xl p-3.5 hover:border-[#C8CBD0] hover:shadow-sm transition-all flex flex-col gap-1.5">
+              <div className="flex items-start gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#3462EE]/10 flex items-center justify-center flex-shrink-0"><Wrench size={14} className="text-[#3462EE]" /></div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[12px] font-normal text-soren-text truncate">{s.name}</p>
+                  <p className="text-[11px] text-soren-muted line-clamp-2 leading-snug">{s.description}</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-soren-text leading-none">{a.name}</p>
-                <p className="text-[10px] text-soren-subtle mt-0.5 truncate">{a.role.split('·')[0].trim()}</p>
+              <div className="flex items-center gap-2 min-w-0">
+                <Chip className="flex-shrink-0">{s.family}</Chip>
+                {s.path && <span className="text-[9px] text-soren-subtle font-mono truncate">{s.path}</span>}
               </div>
-              {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-soren-sidebar flex-shrink-0" />}
             </button>
-          )
-        })}
+          ))}
+          {shown.length === 0 && <p className="text-[12px] text-soren-subtle py-10 text-center col-span-full">Aucun skill pour « {query} ».</p>}
+        </div>
+      )}
+    </div>
+  )
+}
 
-        <div className="border-t border-[#F3F4F6] my-2" />
-        <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-widest px-2 pb-1">Commun</p>
+// ─── 3. SOPs ─────────────────────────────────────────────────────────────────
 
-        <button
-          onClick={selectCommun}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${selection.type === 'commun' ? 'bg-soren-elevated' : 'hover:bg-[#F9FAF8]'}`}
-        >
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#FF4D00]/60">
-            <FileText size={15} className="text-[#5C7A00]" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-soren-text leading-none">Entreprise</p>
-            <p className="text-[10px] text-soren-subtle mt-0.5">Tous les agents</p>
-          </div>
-          {selection.type === 'commun' && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-soren-sidebar flex-shrink-0" />}
-        </button>
-
-        <div className="border-t border-[#F3F4F6] my-2" />
-        <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-widest px-2 pb-1">Agents autonomes</p>
-
-        <button
-          onClick={() => { setShowKb(true); setKbSelected(null); setKbEditing(false) }}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${showKb ? 'bg-soren-elevated' : 'hover:bg-[#F9FAF8]'}`}
-        >
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#7C3AED]/10">
-            <Database size={15} className="text-[#7C3AED]" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-soren-text leading-none">Base de connaissance</p>
-            <p className="text-[10px] text-soren-subtle mt-0.5">{kbDocs.length} documents</p>
-          </div>
-          {showKb && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#7C3AED] flex-shrink-0" />}
-        </button>
+function SopsSection() {
+  const [filter, setFilter] = useState('all')
+  const [open, setOpen] = useState<SOP | null>(null)
+  const match = DOC_FILTERS.find(f => f.id === filter)?.match ?? (() => true)
+  const shown = SOPS.filter(s => match(s.status))
+  if (open) return <SopDetail sop={open} onBack={() => setOpen(null)} />
+  return (
+    <div className="flex flex-col gap-3">
+      <ProcessBanner />
+      <StatusFilters value={filter} onChange={setFilter} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5" data-stagger>
+        {shown.map(s => { const st = DOC_STATUS[s.status]; return (
+          <button key={s.id} onClick={() => setOpen(s)} className="text-left bg-soren-card border border-soren-border rounded-2xl p-4 hover:border-[#C8CBD0] hover:shadow-sm transition-all flex flex-col gap-2">
+            <div className="flex items-start justify-between gap-2"><p className="text-[12px] font-normal text-soren-text">{s.title}</p><Pill color={st.color} dot className="flex-shrink-0">{st.label}</Pill></div>
+            <p className="text-[12px] text-soren-muted leading-snug">{s.objective}</p>
+            <p className="text-[10px] text-soren-subtle"><span className="font-semibold">Déclencheur :</span> {s.trigger}</p>
+            <div className="flex items-center gap-2 flex-wrap text-[10px] text-soren-subtle">
+              <span className="inline-flex items-center gap-1"><User size={10} /> {s.owner}</span>
+              {s.estimatedTime && <span className="inline-flex items-center gap-1"><Clock size={10} /> {s.estimatedTime}</span>}
+              {s.linkedTo && <Chip>{s.linkedTo}</Chip>}
+              <span className="ml-auto">MAJ {s.updatedAt}</span>
+            </div>
+          </button>
+        )})}
       </div>
+    </div>
+  )
+}
 
-      {/* ── Main ─────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 p-4 gap-3" style={{ animation: 'fadeSlideUp 400ms ease-out 90ms both' }}>
+function SopDetail({ sop, onBack }: { sop: SOP; onBack: () => void }) {
+  const seed = useMemo(() => sopToMarkdown(sop), [sop.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="flex flex-col gap-4 w-full">
+      <BackBtn onClick={onBack} label="SOPs" />
+      <DocEditor docId={`sop:${sop.id}`} seedTitle={sop.title} seedBody={seed} seedStatus={sop.status} seedOwner={sop.owner} assignees={ASSIGNEES} />
+    </div>
+  )
+}
 
-        {/* ── AGENT ── */}
-        {agent && (
-          <>
-            <div className="flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: agent.color + '18' }}>
-                  <agent.Icon size={20} style={{ color: agent.color }} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-bold text-soren-text">{agent.name}</h2>
-                    <span className="text-[10px] font-mono text-soren-subtle bg-soren-elevated px-2 py-0.5 rounded-full">{agent.model}</span>
-                  </div>
-                  <p className="text-xs text-soren-subtle">{agent.role}</p>
-                </div>
-              </div>
+// ─── 4. Playbooks ────────────────────────────────────────────────────────────
 
-              {tab !== 'skills' && (
-                <div className="flex items-center gap-2">
-                  {!editing ? (
-                    <button
-                      onClick={() => setEditing(true)}
-                      className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-soren-sidebar text-white hover:bg-[#333] transition-colors"
-                    >
-                      <Pencil size={12} />
-                      Modifier
-                    </button>
-                  ) : (
-                    <button
-                      onClick={save}
-                      className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
-                      style={{ background: saved ? '#22c55e' : '#FF4D00', color: 'white' }}
-                    >
-                      <Save size={12} />
-                      {saved ? 'Sauvegardé ✓' : 'Sauvegarder'}
-                    </button>
-                  )}
-                </div>
-              )}
+function PlaybooksSection() {
+  const [filter, setFilter] = useState('all')
+  const [open, setOpen] = useState<Playbook | null>(null)
+  const match = DOC_FILTERS.find(f => f.id === filter)?.match ?? (() => true)
+  const shown = PLAYBOOKS.filter(p => match(p.status))
+  if (open) return <PlaybookDetail pb={open} onBack={() => setOpen(null)} />
+  return (
+    <div className="flex flex-col gap-3">
+      <ProcessBanner />
+      <StatusFilters value={filter} onChange={setFilter} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5" data-stagger>
+        {shown.map(p => { const st = DOC_STATUS[p.status]; return (
+          <button key={p.id} onClick={() => setOpen(p)} className="text-left bg-soren-card border border-soren-border rounded-2xl p-4 hover:border-[#C8CBD0] hover:shadow-sm transition-all flex flex-col gap-2">
+            <div className="flex items-start justify-between gap-2"><p className="text-[12px] font-normal text-soren-text">{p.title}</p><Pill color={st.color} dot className="flex-shrink-0">{st.label}</Pill></div>
+            <p className="text-[12px] text-soren-muted leading-snug">{p.situation}</p>
+            <div className="flex items-center gap-2 flex-wrap text-[10px] text-soren-subtle">
+              <span className="inline-flex items-center gap-1"><User size={10} /> {p.owner}</span>
+              {p.usedBy.length > 0 && <span>· {p.usedBy.length} agent{p.usedBy.length > 1 ? 's' : ''}</span>}
+              <span className="ml-auto">MAJ {p.updatedAt}</span>
             </div>
-
-            {/* Tabs */}
-            <div className="flex gap-1 flex-shrink-0">
-              {([
-                { id: 'soul',    label: 'Soul',    icon: Sparkles },
-                { id: 'memoire', label: 'Mémoire', icon: Brain },
-                { id: 'skills',  label: 'Skills',  icon: Zap },
-              ] as const).map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => { setTab(t.id); setEditing(false) }}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                    tab === t.id ? 'bg-soren-sidebar text-white' : 'bg-soren-card text-soren-muted hover:text-soren-text'
-                  }`}
-                >
-                  <t.icon size={12} />
-                  {t.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 bg-soren-card rounded-2xl overflow-hidden min-h-0">
-              {tab === 'skills' ? (
-                <div className="h-full p-5 overflow-y-auto">
-                  <p className="text-[11px] font-bold text-soren-subtle uppercase tracking-wider mb-3">Capacités de {agent.name}</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {agent.skills.map(s => <SkillBadge key={s} skill={s} />)}
-                  </div>
-                </div>
-              ) : editing ? (
-                <textarea
-                  value={contents[agent.id]?.[tab] ?? ''}
-                  onChange={e => setContents(prev => ({
-                    ...prev,
-                    [agent.id]: { ...prev[agent.id], [tab]: e.target.value },
-                  }))}
-                  className="w-full h-full bg-soren-card text-xs text-[#374151] font-mono leading-6 p-5 outline-none resize-none border-2 border-[#FF4D00] rounded-2xl"
-                  spellCheck={false}
-                  autoFocus
-                />
-              ) : (
-                <div className="h-full p-5 overflow-y-auto">
-                  <pre className="text-xs text-[#374151] font-mono leading-6 whitespace-pre-wrap">
-                    {contents[agent.id]?.[tab] ?? ''}
-                  </pre>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* ── COMMUN ── */}
-        {selection.type === 'commun' && (
-          <>
-            <div className="flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-[#FF4D00]/60 flex items-center justify-center">
-                  <FileText size={20} className="text-[#5C7A00]" />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-soren-text">Document entreprise</h2>
-                  <p className="text-xs text-soren-subtle">Partagé avec tous les agents · Mia maintient ce document à jour</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={scrape}
-                  disabled={scraping}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-soren-card border border-soren-border text-[#374151] hover:border-[#9CA3AF] transition-colors disabled:opacity-50"
-                >
-                  <Globe size={12} className={scraping ? 'animate-spin' : ''} />
-                  {scraping ? 'Scraping...' : 'Scraper le site'}
-                </button>
-
-                {!editing ? (
-                  <button
-                    onClick={() => setEditing(true)}
-                    className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-soren-sidebar text-white hover:bg-[#333] transition-colors"
-                  >
-                    <Pencil size={12} />
-                    Modifier
-                  </button>
-                ) : (
-                  <button
-                    onClick={save}
-                    className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
-                    style={{ background: saved ? '#22c55e' : '#FF4D00', color: 'white' }}
-                  >
-                    <Save size={12} />
-                    {saved ? 'Sauvegardé ✓' : 'Sauvegarder'}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Warning si pas d'URL */}
-            {scrapeError && (
-              <div className="flex-shrink-0 flex items-center gap-2 bg-[#FFF3CD] border border-[#F59E0B]/30 rounded-xl px-4 py-2.5">
-                <Globe size={13} className="text-[#F59E0B] flex-shrink-0" />
-                <p className="text-xs text-[#92400E]">{scrapeError}</p>
-                <button onClick={() => setScrapeError(null)} className="ml-auto text-[#92400E]/50 hover:text-[#92400E] text-lg leading-none">×</button>
-              </div>
-            )}
-
-            {/* Agents qui lisent ce doc */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-[11px] text-soren-subtle">Lu par</span>
-              {AGENTS.map(a => (
-                <div key={a.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold" style={{ background: a.color + '18', color: a.color }}>
-                  <a.Icon size={10} />
-                  {a.name}
-                </div>
-              ))}
-            </div>
-
-            {/* Editor / Viewer */}
-            <div className="flex-1 bg-soren-card rounded-2xl overflow-hidden min-h-0">
-              {editing ? (
-                <textarea
-                  value={companyDoc}
-                  onChange={e => setCompanyDoc(e.target.value)}
-                  className="w-full h-full bg-soren-card text-xs text-[#374151] font-mono leading-6 p-5 outline-none resize-none border-2 border-[#FF4D00] rounded-2xl"
-                  spellCheck={false}
-                  autoFocus
-                />
-              ) : (
-                <div className="h-full p-5 overflow-y-auto">
-                  <pre className="text-xs text-[#374151] font-mono leading-6 whitespace-pre-wrap">{companyDoc}</pre>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* ── BASE DE CONNAISSANCE ── */}
-        {showKb && (
-          <>
-            <div className="flex items-center justify-between flex-shrink-0">
-              <div>
-                <h2 className="text-base font-bold text-soren-text">Base de connaissance</h2>
-                <p className="text-xs text-soren-subtle">{kbDocs.length} documents · mis à jour par Hermes et les agents</p>
-              </div>
-              {kbSelected && !kbEditing && (
-                <button
-                  onClick={() => setKbEditing(true)}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-soren-sidebar text-white hover:bg-[#333] transition-colors"
-                >
-                  <Pencil size={12} />
-                  Modifier
-                </button>
-              )}
-              {kbEditing && (
-                <button
-                  onClick={saveKbDoc}
-                  disabled={kbSaving}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-50"
-                  style={{ background: '#FF4D00', color: 'white' }}
-                >
-                  <Save size={12} />
-                  {kbSaving ? 'Sauvegarde…' : 'Sauvegarder'}
-                </button>
-              )}
-            </div>
-
-            <div className="flex flex-1 gap-3 min-h-0">
-              {/* Doc list */}
-              <div className="w-48 flex-shrink-0 flex flex-col gap-1 overflow-y-auto">
-                {kbDocs.length === 0 && (
-                  <p className="text-xs text-soren-subtle px-2">Aucun document</p>
-                )}
-                {kbDocs.map(doc => (
-                  <button
-                    key={doc.slug}
-                    onClick={() => loadKbDoc(doc)}
-                    className={`text-left px-3 py-2.5 rounded-xl transition-all ${kbSelected?.slug === doc.slug ? 'bg-soren-elevated' : 'hover:bg-[#F9FAF8]'}`}
-                  >
-                    <p className="text-xs font-semibold text-soren-text truncate">{doc.title}</p>
-                    <p className="text-[9px] text-soren-subtle mt-0.5 truncate">
-                      {doc.updated_by} · {new Date(doc.updated_at).toLocaleDateString('fr-FR')}
-                    </p>
-                  </button>
-                ))}
-              </div>
-
-              {/* Doc viewer/editor */}
-              <div className="flex-1 bg-soren-card rounded-2xl overflow-hidden min-h-0">
-                {!kbSelected ? (
-                  <div className="h-full flex items-center justify-center">
-                    <p className="text-sm text-soren-subtle">Sélectionnez un document</p>
-                  </div>
-                ) : kbLoadingDoc ? (
-                  <div className="h-full flex items-center justify-center">
-                    <p className="text-sm text-soren-subtle">Chargement…</p>
-                  </div>
-                ) : kbEditing ? (
-                  <textarea
-                    value={kbContent}
-                    onChange={e => setKbContent(e.target.value)}
-                    className="w-full h-full bg-soren-card text-xs text-[#374151] font-mono leading-6 p-5 outline-none resize-none border-2 border-[#FF4D00] rounded-2xl"
-                    spellCheck={false}
-                    autoFocus
-                  />
-                ) : (
-                  <div className="h-full p-5 overflow-y-auto">
-                    <pre className="text-xs text-[#374151] font-mono leading-6 whitespace-pre-wrap">
-                      {kbSelected.content ?? 'Contenu non chargé'}
-                    </pre>
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-
+          </button>
+        )})}
       </div>
+    </div>
+  )
+}
+
+function PlaybookDetail({ pb, onBack }: { pb: Playbook; onBack: () => void }) {
+  const seed = useMemo(() => playbookToMarkdown(pb), [pb.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="flex flex-col gap-4 w-full">
+      <BackBtn onClick={onBack} label="Playbooks" />
+      <DocEditor docId={`pb:${pb.id}`} seedTitle={pb.title} seedBody={seed} seedStatus={pb.status} seedOwner={pb.owner} assignees={ASSIGNEES} />
     </div>
   )
 }

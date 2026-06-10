@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { type GHLPipelineData, type Opportunity, type Lead } from './types'
+import Select from '@/components/ui/Select'
 
 interface Props {
   pipeline?: GHLPipelineData
@@ -100,7 +101,7 @@ export default function NewLeadModal({ pipeline, onClose, onAdd }: Props) {
 
           <div className="grid grid-cols-2 gap-3">
             <Field
-              label="Valeur (€)"
+              label="Valeur (CHF)"
               placeholder="50000"
               value={form.value}
               type="number"
@@ -108,27 +109,23 @@ export default function NewLeadModal({ pipeline, onClose, onAdd }: Props) {
             />
             <div>
               <label className="block text-xs text-soren-muted mb-1.5 font-medium">Source</label>
-              <select
+              <Select
                 value={form.source}
-                onChange={e => setForm(f => ({ ...f, source: e.target.value }))}
-                className="w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none transition-all"
-              >
-                {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+                onChange={v => setForm(f => ({ ...f, source: v }))}
+                options={SOURCES.map(s => ({ value: s, label: s }))}
+                className="w-full"
+              />
             </div>
           </div>
 
           <div>
             <label className="block text-xs text-soren-muted mb-1.5 font-medium">Stage</label>
-            <select
+            <Select
               value={form.stageId}
-              onChange={e => setForm(f => ({ ...f, stageId: e.target.value }))}
-              className="w-full bg-soren-elevated border-0 rounded-xl px-3 py-2.5 text-sm text-soren-text focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 appearance-none transition-all"
-            >
-              {pipeline?.stages.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
+              onChange={v => setForm(f => ({ ...f, stageId: v }))}
+              options={(pipeline?.stages ?? []).map(s => ({ value: s.id, label: s.name }))}
+              className="w-full"
+            />
           </div>
 
           <div className="flex gap-3 pt-1">

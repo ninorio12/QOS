@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getAuthContext } from '@/lib/auth-context'
 import { getCalendars, getCalendarEvents } from '@/lib/ghl'
 import { getCalendarClient, isGoogleConfigured, type GoogleEvent } from '@/lib/google'
 
 export const dynamic = 'force-dynamic'
 
-const APPOINTMENT_COLORS = ['#3462EE', '#4A91A8', '#FF4D00', '#EFE347', '#8B5CF6', '#EC4899']
+const APPOINTMENT_COLORS = ['#3462EE', '#4A91A8', '#FF4D00', '#D97706', '#8B5CF6', '#EC4899']
 const GOOGLE_COLOR       = '#34A853'
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -49,7 +49,7 @@ const MOCK_APPOINTMENTS = (() => {
     {
       id: 'mock-4', calendarId: 'mock-cal', title: 'RDV client — Ravalement balcons', contactName: 'Syndic Cité Verte',
       startTime: d(3, 8, 30), endTime: d(3, 9, 30), status: 'pending',
-      calendarName: 'VividFlow', notes: 'Copropriété 12 logements', color: '#EFE347', source: 'ghl',
+      calendarName: 'VividFlow', notes: 'Copropriété 12 logements', color: '#D97706', source: 'ghl',
     },
     {
       id: 'mock-5', calendarId: 'google', title: 'Réunion équipe — Planning semaine', contactName: '—',
@@ -64,7 +64,7 @@ const MOCK_APPOINTMENTS = (() => {
   ]
 })()
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const ctx = await getAuthContext()
   if (!ctx) return NextResponse.json({
     appointments: MOCK_APPOINTMENTS,
@@ -75,13 +75,21 @@ export async function GET() {
   const now   = Date.now()
   const RANGE = 30 * 24 * 60 * 60 * 1000
 
+  // Optional from/to (ISO date) window — defaults to ±30 days around now
+  const fromParam = req.nextUrl.searchParams.get('from')
+  const toParam   = req.nextUrl.searchParams.get('to')
+  const fromMs    = fromParam ? Date.parse(fromParam) : NaN
+  const toMs      = toParam   ? Date.parse(toParam)   : NaN
+  const windowMin = Number.isNaN(fromMs) ? now - RANGE : fromMs
+  const windowMax = Number.isNaN(toMs)   ? now + RANGE : toMs
+
   try {
     const calendars = await getCalendars()
     let appointments: unknown[] = []
 
     if (calendars.length > 0) {
       const allEvents = await Promise.all(
-        calendars.map(cal => getCalendarEvents(cal.id, now - RANGE, now + RANGE).catch(() => []))
+        calendars.map(cal => getCalendarEvents(cal.id, windowMin, windowMax).catch(() => []))
       )
       appointments = allEvents.flat().map((ev, i) => ({
         id:          ev.id,
@@ -104,13 +112,16 @@ export async function GET() {
         const cal    = await getCalendarClient()
         const res    = await withTimeout(cal.events.list({
           calendarId:   process.env.GOOGLE_CALENDAR_ID || 'primary',
-          timeMin:      new Date(now - RANGE).toISOString(),
-          timeMax:      new Date(now + RANGE).toISOString(),
+          timeMin:      new Date(windowMin).toISOString(),
+          timeMax:      new Date(windowMax).toISOString(),
           singleEvents: true,
           orderBy:      'startTime',
           maxResults:   500,
         }), 2000).catch(() => ({ data: { items: [] } }))
-        const googleAppts = (res.data.items ?? [] as GoogleEvent[]).map((ev): unknown => ({
+        const googleAppts = (res.data.items ?? [] as GoogleEvent[]).map((ev): unknown => {
+          const evType = (ev as Record<string, unknown>).extendedProperties as
+            { private?: Record<string, string> } | undefined
+          return {
           id:           `google-${ev.id}`,
           calendarId:   'google',
           title:        ev.summary || 'Événement',
@@ -118,12 +129,14 @@ export async function GET() {
           startTime:    ev.start?.dateTime ?? ev.start?.date ?? new Date().toISOString(),
           endTime:      ev.end?.dateTime   ?? ev.end?.date   ?? new Date().toISOString(),
           status:       'confirmed',
+          type:         evType?.private?.type || undefined,
           calendarName: 'Google Calendar',
           notes:        (ev as Record<string, unknown>).description as string ?? null,
           color:        GOOGLE_COLOR,
           source:       'google',
           meetLink:     null,
-        }))
+          }
+        })
         appointments = [...appointments, ...googleAppts]
       } catch { /* Google optional */ }
     }
