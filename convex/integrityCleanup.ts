@@ -70,3 +70,24 @@ export const realign = mutation({
     return report
   },
 })
+
+// PURGE des coquilles de test non réalignables : enregistrements dont le contact/lead
+// a été supprimé et qui n'ont aucun moyen d'être re-liés (résidus de tests E2E / seeds).
+// À lancer : npx convex run integrityCleanup:purgeTestHusks
+export const purgeTestHusks = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const contactIds = new Set((await ctx.db.query("crm_contacts").collect()).map((c) => String(c._id)))
+    const leadIds = new Set((await ctx.db.query("crm_leads").collect()).map((l) => String(l._id)))
+    const report = { onboarding: 0, salesCalls: 0 }
+
+    for (const o of await ctx.db.query("onboarding").collect()) {
+      if (o.contactId && !contactIds.has(String(o.contactId))) { await ctx.db.delete(o._id); report.onboarding++ }
+    }
+    for (const s of await ctx.db.query("os_sales_calls").collect()) {
+      const bad = (s.contactId && !contactIds.has(String(s.contactId))) || (s.leadId && !leadIds.has(String(s.leadId)))
+      if (bad) { await ctx.db.delete(s._id); report.salesCalls++ }
+    }
+    return report
+  },
+})
