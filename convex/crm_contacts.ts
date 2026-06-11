@@ -1,6 +1,7 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
 import { findDuplicateContact } from "./contactDedup"
+import { enforce } from "./sync"
 
 const digits = (s?: string | null) => (s || "").replace(/\D/g, "")
 const norm = (s?: string | null) => (s || "").toLowerCase().trim()
@@ -60,13 +61,16 @@ export const create = mutation({
       if (args.linkedinUrl && !match.linkedinUrl) patch.linkedinUrl = args.linkedinUrl
       if (args.companyName && !match.companyName) patch.companyName = args.companyName
       await ctx.db.patch(match._id, patch)
+      await enforce(ctx, match._id)
       return match._id
     }
-    return await ctx.db.insert("crm_contacts", {
+    const newId = await ctx.db.insert("crm_contacts", {
       ...args,
       tags:      args.tags ?? [],
       createdAt: new Date().toISOString(),
     })
+    await enforce(ctx, newId)
+    return newId
   },
 })
 
@@ -99,6 +103,9 @@ export const update = mutation({
       if (v !== undefined) patch[k] = v
     }
     await ctx.db.patch(id, patch)
+    // Fiche = source de vérité : toute édition resynchronise le placement pipeline
+    // (lead↔client↔perdu) et propage les champs dérivés. Plus de désync possible.
+    await enforce(ctx, id)
   },
 })
 

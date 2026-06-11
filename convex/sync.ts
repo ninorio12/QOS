@@ -5,7 +5,7 @@ import { mutation } from "./_generated/server"
 // statut 'lead'   → 1 open lead in Leads pipeline, NO client row
 // statut 'client' → 1 client row in Clients pipeline, NO open lead
 // statut 'perdu'  → 1 lost lead in Leads pipeline, NO client row
-async function enforce(ctx: any, contactId: any, opts?: { dealValue?: number }) {
+export async function enforce(ctx: any, contactId: any, opts?: { dealValue?: number }) {
   const contact = await ctx.db.get(contactId)
   if (!contact) return { ok: false, reason: 'contact not found' }
 
@@ -15,7 +15,9 @@ async function enforce(ctx: any, contactId: any, opts?: { dealValue?: number }) 
 
   const leadsPipeline = await ctx.db.query("pipeline_config").withIndex("by_type", (q: any) => q.eq("type", "leads")).first()
   const existingLead   = await ctx.db.query("crm_leads").withIndex("by_contact", (q: any) => q.eq("contactId", contactId)).first()
-  const existingClient = await ctx.db.query("pipeline_clients").withIndex("by_ghl_contact", (q: any) => q.eq("ghl_contact_id", cid)).first()
+  // Client retrouvé par la clé typée contactId OU l'ancienne ghl_contact_id (compat migration).
+  const existingClient = (await ctx.db.query("pipeline_clients").withIndex("by_contact", (q: any) => q.eq("contactId", contactId)).first())
+    ?? (await ctx.db.query("pipeline_clients").withIndex("by_ghl_contact", (q: any) => q.eq("ghl_contact_id", cid)).first())
 
   if (contact.statut === 'client') {
     // Remove any lead row (a client is not a lead)
@@ -27,7 +29,7 @@ async function enforce(ctx: any, contactId: any, opts?: { dealValue?: number }) 
       return { ok: true, action: 'client-kept' }
     }
     await ctx.db.insert("pipeline_clients", {
-      ghl_contact_id: cid, name,
+      ghl_contact_id: cid, contactId, name,
       company: contact.companyName ?? undefined, email: contact.email ?? undefined,
       phone: contact.phone ?? undefined, value: opts?.dealValue ?? 0,
       stageId: 'nouveau-client', initials, createdAt: new Date().toISOString().split('T')[0],

@@ -61,12 +61,20 @@ function Avatar({ initials }: { initials: string }) {
   )
 }
 
+// Chips de source — reflètent fidèlement contact.source (inbound/outbound/recommandation/…).
+const SOURCE_META: Record<string, { label: string; bg: string; color: string }> = {
+  inbound:        { label: 'inbound',  bg: '#DCFCE7', color: '#16A34A' },
+  outbound:       { label: 'outbound', bg: '#FEF9C3', color: '#CA8A04' },
+  recommandation: { label: 'reco',     bg: '#EDE9FE', color: '#7C3AED' },
+  referral:       { label: 'reco',     bg: '#EDE9FE', color: '#7C3AED' },
+}
+
 // ─── Opportunity Card ─────────────────────────────────────────
 function OppCard({ opp, isDragging = false, muted = false, hideValue = false }: { opp: Opportunity; isDragging?: boolean; muted?: boolean; hideValue?: boolean }) {
   const date = new Date(opp.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-  // La source vient de la donnée Convex du lead (= source du contact, source unique de
-  // vérité) — plus de copie localStorage qui restait figée à "inbound".
-  const sourceType: 'inbound' | 'outbound' = opp.source === 'outbound' ? 'outbound' : 'inbound'
+  // La source vient de la fiche contact (source unique de vérité). Toute valeur est rendue ;
+  // une source non standard tombe sur une chip neutre avec son libellé réel.
+  const src = opp.source ? (SOURCE_META[opp.source] ?? { label: opp.source, bg: '#F3F4F6', color: '#6B7280' }) : null
 
   return (
     <div className={`
@@ -89,10 +97,7 @@ function OppCard({ opp, isDragging = false, muted = false, hideValue = false }: 
               {opp.value > 0 ? `${opp.value.toLocaleString('fr-FR')} CHF` : '—'}
             </span>
           )}
-          {sourceType === 'inbound'
-            ? <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-[#DCFCE7] text-[#16A34A] dark:bg-emerald-500/15 dark:text-emerald-400">inbound</span>
-            : <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-[#FEF9C3] text-[#CA8A04] dark:bg-amber-500/15 dark:text-amber-400">outbound</span>
-          }
+          {src && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: src.bg, color: src.color }}>{src.label}</span>}
         </div>
         <Avatar initials={opp.initials} />
       </div>
