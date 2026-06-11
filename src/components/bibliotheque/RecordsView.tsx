@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { FileText, RefreshCw, AlertCircle, X, Save, Trash2, Pencil, ArrowUpRight, Check, Mic, Users } from 'lucide-react'
+import { FileText, RefreshCw, AlertCircle, X, Save, Trash2, Pencil, ArrowUpRight, Check, Mic, Users, CalendarDays } from 'lucide-react'
+import { DateRangePicker } from '@/components/shared/DateRangePicker'
 
 type TldvRecord = {
   id: string
@@ -257,6 +258,8 @@ export default function RecordsView() {
   const [refreshing, setRefreshing] = useState(false)
   const [selected,   setSelected]   = useState<TldvRecord | null>(null)
   const [activeTags, setActiveTags] = useState<string[]>([])
+  const [calOpen,    setCalOpen]    = useState(false)
+  const [range,      setRange]      = useState<{ start: Date; end: Date; label: string } | null>(null)
 
   const metaMap = (useQuery(api.recordNotes.list) ?? {}) as Record<string, Meta>
 
@@ -275,9 +278,18 @@ export default function RecordsView() {
   useEffect(() => { void load() }, [load])
 
   const filtered = useMemo(() => {
-    if (activeTags.length === 0) return records
-    return records.filter(r => (metaMap[r.id]?.tags ?? []).some(t => activeTags.includes(t)))
-  }, [records, metaMap, activeTags])
+    let list = records
+    if (activeTags.length > 0) list = list.filter(r => (metaMap[r.id]?.tags ?? []).some(t => activeTags.includes(t)))
+    if (range) {
+      const from = new Date(range.start); from.setHours(0, 0, 0, 0)
+      const to   = new Date(range.end);   to.setHours(23, 59, 59, 999)
+      list = list.filter(r => {
+        const d = r.dateTime ? new Date(r.dateTime) : new Date(r.date)
+        return d >= from && d <= to
+      })
+    }
+    return list
+  }, [records, metaMap, activeTags, range])
 
   const toggleFilter = (id: string) => setActiveTags(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id])
 
@@ -297,6 +309,26 @@ export default function RecordsView() {
           })}
           {activeTags.length > 0 && (
             <button onClick={() => setActiveTags([])} className="text-[11px] font-semibold text-soren-muted hover:text-soren-text px-2 py-1">Tout</button>
+          )}
+
+          {/* Filtre par date — même calendrier que le tableau de bord */}
+          <div className="relative">
+            <button onClick={() => setCalOpen(v => !v)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold transition-all ${
+                calOpen || range ? 'bg-soren-sidebar text-white border-soren-sidebar' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text hover:border-soren-text'
+              }`}>
+              <CalendarDays size={12} />
+              <span>{range ? range.label : 'Période'}</span>
+            </button>
+            {calOpen && (
+              <DateRangePicker
+                onClose={() => setCalOpen(false)}
+                onApply={(start, end, label) => { setRange({ start, end, label }); setCalOpen(false) }}
+              />
+            )}
+          </div>
+          {range && (
+            <button onClick={() => setRange(null)} className="text-[11px] font-semibold text-soren-muted hover:text-soren-text px-2 py-1 inline-flex items-center gap-1"><X size={11} /> Date</button>
           )}
         </div>
         <button onClick={() => load(true)} disabled={refreshing}

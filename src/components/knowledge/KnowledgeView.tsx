@@ -8,11 +8,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useQuery } from 'convex/react'
+import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import {
   Wrench, Brain, Search, ArrowLeft, Library, ListChecks, Footprints,
-  ExternalLink, CheckSquare, ShieldCheck, User, Clock,
+  ExternalLink, CheckSquare, ShieldCheck, User, Clock, FileText, Save, Trash2, Check,
 } from 'lucide-react'
 import { Chip, Pill } from '@/components/agentic/ui'
 import MarkdownView from '@/components/agentic/MarkdownView'
@@ -145,6 +145,49 @@ function MemList({ items }: { items: string[] }) {
   return <div className="flex items-center gap-1.5 flex-wrap">{items.map(m => <Chip key={m}>{m}</Chip>)}</div>
 }
 
+// Synthèse libre, en français, éditable et persistée (Convex os_kb_docs) par skill.
+function SkillSynthesis({ skillId, skillName }: { skillId: string; skillName: string }) {
+  const docId  = `skill:${skillId}`
+  const note   = useQuery(api.osKbDocs.getByDocId, { docId }) as { body?: string } | null | undefined
+  const upsert = useMutation(api.osKbDocs.upsert)
+  const [body, setBody]           = useState('')
+  const [dirty, setDirty]         = useState(false)
+  const [saving, setSaving]       = useState(false)
+  const [loadedFor, setLoadedFor] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (note !== undefined && loadedFor !== skillId) { setBody(note?.body ?? ''); setLoadedFor(skillId); setDirty(false) }
+  }, [note, loadedFor, skillId])
+
+  async function save() {
+    setSaving(true)
+    await upsert({ docId, title: `Synthèse — ${skillName}`, body: body.trim(), status: 'draft' })
+    setDirty(false); setSaving(false)
+  }
+  async function clear() {
+    setBody(''); await upsert({ docId, title: `Synthèse — ${skillName}`, body: '', status: 'draft' }); setDirty(false)
+  }
+
+  return (
+    <div className="bg-soren-card border border-soren-border rounded-2xl p-3.5 flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold text-[#FF4D00] uppercase tracking-wide inline-flex items-center gap-1.5"><FileText size={11} /> Synthèse</span>
+        <div className="flex items-center gap-2">
+          {body.trim() && <button onClick={clear} className="text-[10px] font-semibold text-soren-muted hover:text-[#EF4444] inline-flex items-center gap-1"><Trash2 size={11} /> Effacer</button>}
+          <button onClick={save} disabled={!dirty || saving} className="text-[10px] font-semibold inline-flex items-center gap-1 px-2.5 py-1 rounded-full transition-colors disabled:opacity-40 bg-[#FF4D00] text-white hover:bg-[#e64500]">{saving ? '…' : <><Check size={11} /> Enregistrer</>}</button>
+        </div>
+      </div>
+      <textarea
+        value={body}
+        onChange={e => { setBody(e.target.value); setDirty(true) }}
+        rows={4}
+        placeholder="Écris ici, en français, ce que fait ce skill et quand l'utiliser… (libre, modifiable et supprimable à tout moment)"
+        className="w-full text-[12px] text-soren-text bg-soren-elevated rounded-xl px-3 py-2 outline-none border border-soren-border resize-y leading-relaxed placeholder:text-[#9CA3AF]"
+      />
+    </div>
+  )
+}
+
 // ─── 1. Skills (réels, VPS — 3 familles) ─────────────────────────────────────
 
 const FAMILY_ORDER = ['Skills internes', 'Skills importés', 'Skills natifs']
@@ -245,6 +288,7 @@ function SkillsSection({ query, setQuery, openId, setOpenId }: {
       <BackBtn onClick={() => setOpenId(null)} label="Skills" />
       <div className="flex items-center gap-2 flex-wrap"><h2 className="text-[15px] font-bold text-soren-text">{open.name}</h2><Chip>{open.family}</Chip>{open.category && <Chip>{open.category}</Chip>}</div>
       {open.path && <p className="text-[10px] text-soren-subtle font-mono -mt-1">{open.path}</p>}
+      <SkillSynthesis skillId={open.id} skillName={open.name} />
       <SkillContent sourcePath={open.sourcePath} fallbackUrl={`/agentic-skills/${open.id}.md`} />
     </div>
   )
