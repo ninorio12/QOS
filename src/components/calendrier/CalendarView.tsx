@@ -213,7 +213,7 @@ function MonthGrid({
                   <div className="flex justify-end mb-1">
                     <span className={`
                       w-6 h-6 flex items-center justify-center rounded-full text-[11px] font-bold
-                      ${isToday  ? 'bg-[#3462EE] text-white' : ''}
+                      ${isToday  ? 'bg-[#FF4D00] text-white' : ''}
                       ${!isToday && isThisMonth  ? 'text-soren-text' : ''}
                       ${!isThisMonth ? 'text-[#C4C4C0]' : ''}
                     `}>
@@ -569,12 +569,12 @@ function WeekGrid({
             <div
               key={i}
               className="flex-1 py-3 px-2 border-r border-[#E8E8E6] last:border-r-0 flex flex-col items-center gap-0.5"
-              style={{ background: isToday ? 'var(--bg-app)' : 'white' }}
+              style={{ background: isToday ? 'rgba(255,77,0,0.06)' : 'white' }}
             >
-              <p className={`text-[10px] font-semibold uppercase tracking-wider ${isToday ? 'text-[#3462EE]' : 'text-soren-subtle'}`}>
+              <p className={`text-[10px] font-bold uppercase tracking-wider ${isToday ? 'text-[#FF4D00]' : 'text-soren-subtle'}`}>
                 {DAYS_SHORT[i]}
               </p>
-              <p className={`text-[22px] font-black leading-none ${isToday ? 'text-[#3462EE]' : 'text-soren-text'}`}>
+              <p className={`text-[20px] font-bold leading-none ${isToday ? 'text-[#FF4D00]' : 'text-soren-text'}`}>
                 {day.getDate()}
               </p>
             </div>
@@ -644,7 +644,7 @@ function WeekGrid({
                     className="flex-1 relative border-r border-[#E8E8E6] last:border-r-0"
                     style={{
                       height: totalH,
-                      background: isToday ? 'rgba(221,229,226,0.3)' : '#F5F5F3',
+                      background: isToday ? 'rgba(255,77,0,0.05)' : '#F5F5F3',
                     }}
                   >
                     {/* Hour lines */}
@@ -897,7 +897,7 @@ function DayAgenda({ appointments, onApptClick }: { appointments: Appointment[];
           </div>
 
           {/* Colonne du jour */}
-          <div className="flex-1 relative" style={{ height: totalH, background: isToday ? 'rgba(221,229,226,0.25)' : '#F5F5F3' }}>
+          <div className="flex-1 relative" style={{ height: totalH, background: isToday ? 'rgba(255,77,0,0.05)' : '#F5F5F3' }}>
             {/* Lignes pleines (heures) + pointillés (demi-heures) */}
             {hours.map((_, hi) => (
               <div key={hi} className="absolute left-0 right-0" style={{ top: hi * HOUR_H, borderTop: '1px solid #EAEAE8' }} />
