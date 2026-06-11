@@ -12,6 +12,7 @@ type TldvRecord = {
   videoUrl?: string
   duration?: string
   date: string
+  dateTime?: string   // ISO complet (date + heure) quand dispo
   participants: string
 }
 
@@ -39,6 +40,7 @@ function normalizeMeeting(m: any): TldvRecord {
     videoUrl:     m.url ?? m.videoUrl ?? m.recording_url ?? '',
     duration:     m.duration ? `${Math.round(m.duration / 60)} min` : undefined,
     date:         when ? new Date(when).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    dateTime:     when ? new Date(when).toISOString() : undefined,
     participants,
   }
 }
@@ -206,6 +208,9 @@ function RecordDetail({ record, onClose }: { record: TldvRecord; onClose: () => 
 
 function RecordCard({ record, meta, onOpen }: { record: TldvRecord; meta?: Meta; onOpen: () => void }) {
   const displayName = meta?.name?.trim() || record.title
+  const when    = record.dateTime ? new Date(record.dateTime) : new Date(record.date)
+  const dateStr = when.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+  const timeStr = record.dateTime ? when.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''
   return (
     <div onClick={onOpen}
       className="group flex items-center gap-3.5 bg-soren-card border border-soren-border rounded-2xl px-4 py-3 cursor-pointer hover:border-[#C8CBD0] hover:shadow-sm transition-all">
@@ -224,6 +229,11 @@ function RecordCard({ record, meta, onOpen }: { record: TldvRecord; meta?: Meta;
         <p className="text-[11px] text-soren-subtle truncate flex items-center gap-1 mt-0.5">
           {record.participants ? <><Users size={10} className="flex-shrink-0" /> {record.participants}</> : <span className="text-soren-subtle">{record.date}</span>}
         </p>
+      </div>
+      {/* Date + heure du record */}
+      <div className="flex flex-col items-end flex-shrink-0 text-right leading-tight">
+        <span className="text-[11px] font-medium text-soren-text whitespace-nowrap">{dateStr}</span>
+        {timeStr && <span className="text-[10px] text-soren-subtle tabular-nums">{timeStr}</span>}
       </div>
       {record.videoUrl && (
         <a href={record.videoUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}
