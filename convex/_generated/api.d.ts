@@ -41,6 +41,7 @@ import type * as performance from "../performance.js";
 import type * as pipeline_clients from "../pipeline_clients.js";
 import type * as pipeline_config from "../pipeline_config.js";
 import type * as processCategories from "../processCategories.js";
+import type * as processSubfolders from "../processSubfolders.js";
 import type * as processes from "../processes.js";
 import type * as recordNotes from "../recordNotes.js";
 import type * as seed from "../seed.js";
@@ -89,6 +90,7 @@ declare const fullApi: ApiFromModules<{
   pipeline_clients: typeof pipeline_clients;
   pipeline_config: typeof pipeline_config;
   processCategories: typeof processCategories;
+  processSubfolders: typeof processSubfolders;
   processes: typeof processes;
   recordNotes: typeof recordNotes;
   seed: typeof seed;

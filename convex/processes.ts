@@ -35,6 +35,7 @@ export const list = query({
       previewUrl: r.previewStorageId ? (await ctx.storage.getUrl(r.previewStorageId as never)) ?? '' : '',
       blocks:     r.blocks ?? [],
       category:   r.category ?? 'Process internes',
+      subfolder:  r.subfolder ?? '',
       linkedClientId: r.linkedClientId ?? '',
       assignedUserIds: r.assignedUserIds ?? [],
       order:      r.order ?? 0,
@@ -46,12 +47,12 @@ export const list = query({
 })
 
 export const create = mutation({
-  args: { title: v.string(), icon: v.optional(v.string()), category: v.optional(v.string()), linkedClientId: v.optional(v.string()), assignedUserIds: v.optional(v.array(v.string())) },
-  handler: async (ctx, { title, icon, category, linkedClientId, assignedUserIds }) => {
+  args: { title: v.string(), icon: v.optional(v.string()), category: v.optional(v.string()), subfolder: v.optional(v.string()), linkedClientId: v.optional(v.string()), assignedUserIds: v.optional(v.array(v.string())) },
+  handler: async (ctx, { title, icon, category, subfolder, linkedClientId, assignedUserIds }) => {
     const count = (await ctx.db.query("processes").collect()).length
     return await ctx.db.insert("processes", {
       title: title || 'Nouveau process', icon: icon ?? 'workflow', blocks: [],
-      category: category ?? 'Process internes', linkedClientId,
+      category: category ?? 'Process internes', subfolder: subfolder || undefined, linkedClientId,
       assignedUserIds: assignedUserIds ?? [],
       order: count, updatedAt: new Date().toISOString(),
     })
@@ -67,6 +68,7 @@ export const update = mutation({
     previewStorageId: v.optional(v.string()),
     blocks:           v.optional(blockValidator),
     category:         v.optional(v.string()),
+    subfolder:        v.optional(v.string()),
     linkedClientId:   v.optional(v.string()),
     assignedUserIds:  v.optional(v.array(v.string())),
   },

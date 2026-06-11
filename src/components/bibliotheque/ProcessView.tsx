@@ -30,7 +30,13 @@ function blocksToHtml(blocks: Block[]): string {
   if (inList) out += '</ul>'
   return out
 }
-type Process = { id: string; title: string; icon: string; link: string; previewUrl: string; blocks: Block[]; category: string; linkedClientId: string; assignedUserIds: string[]; order: number; updatedAt: string }
+type Process = { id: string; title: string; icon: string; link: string; previewUrl: string; blocks: Block[]; category: string; subfolder: string; linkedClientId: string; assignedUserIds: string[]; order: number; updatedAt: string }
+
+// Aperçu texte : 1er bloc non vide, tags HTML retirés (fallback quand pas d'image).
+function textPreview(blocks: Block[]): string {
+  const first = (blocks ?? []).map(b => (b.text ?? '').trim()).find(Boolean) ?? ''
+  return first.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
+}
 type ClientLite = { _id: string; ghl_contact_id?: string; name: string }
 type UserLite = { id: string; name: string; avatarUrl?: string }
 
@@ -137,7 +143,7 @@ function Picker({ value, placeholder, options, onSelect, searchable, emptyLabel,
   )
 }
 
-function ProcessDetail({ proc, categories, clients, users, onBack, readOnly = false }: { proc: Process; categories: string[]; clients: ClientLite[]; users: UserLite[]; onBack: () => void; readOnly?: boolean }) {
+function ProcessDetail({ proc, categories, subfolderOptions, clients, users, onBack, readOnly = false }: { proc: Process; categories: string[]; subfolderOptions: string[]; clients: ClientLite[]; users: UserLite[]; onBack: () => void; readOnly?: boolean }) {
   const update = useMutation(api.processes.update)
   const removeP = useMutation(api.processes.remove)
   const toggleUser = (uid: string) => {
@@ -187,6 +193,7 @@ function ProcessDetail({ proc, categories, clients, users, onBack, readOnly = fa
           {readOnly ? (
             <>
               <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-soren-muted bg-soren-elevated rounded-full px-3 py-1.5"><FolderPlus size={12} className="text-soren-subtle" /> {proc.category}</span>
+              {proc.subfolder && <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-soren-muted bg-soren-elevated rounded-full px-3 py-1.5"><Folder size={12} className="text-soren-subtle" /> {proc.subfolder}</span>}
               {proc.linkedClientId && clients.find(c => (c.ghl_contact_id ?? c._id) === proc.linkedClientId) && (
                 <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-soren-muted bg-soren-elevated rounded-full px-3 py-1.5"><Users size={12} className="text-soren-subtle" /> {clients.find(c => (c.ghl_contact_id ?? c._id) === proc.linkedClientId)?.name}</span>
               )}
@@ -198,6 +205,12 @@ function ProcessDetail({ proc, categories, clients, users, onBack, readOnly = fa
                 options={categories.map(c => ({ value: c, label: c }))}
                 onSelect={v => update({ id: proc.id as never, category: v || 'Process internes' })}
                 icon={<FolderPlus size={12} className="text-soren-subtle flex-shrink-0" />}
+              />
+              <Picker
+                value={proc.subfolder} placeholder="Sous-dossier" emptyLabel="Aucun"
+                options={subfolderOptions.map(s => ({ value: s, label: s }))}
+                onSelect={v => update({ id: proc.id as never, subfolder: v })}
+                icon={<Folder size={12} className="text-soren-subtle flex-shrink-0" />}
               />
               <Picker
                 value={proc.linkedClientId} placeholder="Lier un client" searchable emptyLabel="Aucun client"
@@ -319,10 +332,24 @@ export default function ProcessView() {
   const create = useMutation(api.processes.create)
   const persistedCats = (useQuery(api.processCategories.list) ?? []) as { id: string; name: string }[]
   const createCat = useMutation(api.processCategories.create)
+  const subfoldersRaw = useQuery(api.processSubfolders.list) as { id: string; category: string; name: string }[] | undefined
+  const subfolders = useMemo(() => subfoldersRaw ?? [], [subfoldersRaw])
+  const createSubfolder = useMutation(api.processSubfolders.create)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [addingCat, setAddingCat] = useState(false)
   const [catName, setCatName] = useState('')
+  const [addingSubFor, setAddingSubFor] = useState<string | null>(null) // catégorie cible
+  const [subName, setSubName] = useState('')
+
+  // Auto-création des sous-dossiers SOPs + Playbooks sous « Process internes » (une fois).
+  const seededRef = useRef(false)
+  useEffect(() => {
+    if (!isAdmin || subfoldersRaw === undefined || seededRef.current) return
+    seededRef.current = true
+    const have = new Set(subfolders.filter(s => s.category === 'Process internes').map(s => s.name.toLowerCase()))
+    ;['SOPs', 'Playbooks'].forEach(n => { if (!have.has(n.toLowerCase())) void createSubfolder({ category: 'Process internes', name: n }) })
+  }, [isAdmin, subfoldersRaw, subfolders, createSubfolder])
 
   const categories = useMemo(() => {
     const set = new Set<string>(DEFAULT_CATS)
@@ -355,28 +382,39 @@ export default function ProcessView() {
     setSelectedId(id as unknown as string)
   }
 
-  if (selected) return <ProcessDetail proc={selected} categories={categories} clients={clients} users={users} onBack={() => setSelectedId(null)} readOnly={!isAdmin} />
+  if (selected) {
+    const selCat = selected.category || 'Process internes'
+    const subOpts = Array.from(new Set([
+      ...subfolders.filter(s => s.category === selCat).map(s => s.name),
+      ...items.filter(p => (p.category || 'Process internes') === selCat && p.subfolder).map(p => p.subfolder),
+    ]))
+    return <ProcessDetail proc={selected} categories={categories} subfolderOptions={subOpts} clients={clients} users={users} onBack={() => setSelectedId(null)} readOnly={!isAdmin} />
+  }
 
   function Card({ p }: { p: Process }) {
     return (
-      <div onClick={() => setSelectedId(p.id)} className="group bg-soren-card border border-soren-border rounded-2xl overflow-hidden cursor-pointer hover:border-[#C8CBD0] hover:shadow-sm transition-all flex flex-col">
-        {p.previewUrl
-          ? <div className="h-28 bg-soren-elevated overflow-hidden"><img src={p.previewUrl} alt={p.title} className="w-full h-full object-cover" /></div>
-          : <div className="h-28 bg-soren-elevated flex items-center justify-center"><IconOf k={p.icon} size={26} className="text-soren-muted" /></div>}
-        <div className="p-3.5 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[#FF4D00]/10 flex items-center justify-center flex-shrink-0"><IconOf k={p.icon} size={15} className="text-[#FF4D00]" /></div>
+      <div onClick={() => setSelectedId(p.id)} className="group bg-soren-card border border-soren-border rounded-xl overflow-hidden cursor-pointer hover:border-[#C8CBD0] hover:shadow-sm transition-all flex flex-col">
+        {p.previewUrl ? (
+          <div className="h-20 bg-soren-elevated overflow-hidden"><img src={p.previewUrl} alt={p.title} className="w-full h-full object-cover" /></div>
+        ) : (() => {
+          const preview = textPreview(p.blocks)
+          return preview
+            ? <div className="h-20 bg-soren-elevated px-3 py-2 overflow-hidden"><p className="text-[10px] text-soren-muted leading-snug line-clamp-4">{preview}</p></div>
+            : <div className="h-20 bg-soren-elevated flex items-center justify-center"><IconOf k={p.icon} size={22} className="text-soren-muted" /></div>
+        })()}
+        <div className="p-2.5 flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-[#FF4D00]/10 flex items-center justify-center flex-shrink-0"><IconOf k={p.icon} size={13} className="text-[#FF4D00]" /></div>
           <div className="min-w-0 flex-1">
-            <span className="text-[12px] font-normal text-soren-text truncate block">{p.title}</span>
-            {p.linkedClientId && clientNameOf[p.linkedClientId] && <span className="text-[10px] text-soren-subtle truncate block">{clientNameOf[p.linkedClientId]}</span>}
+            <span className="text-[11.5px] font-normal text-soren-text truncate block">{p.title}</span>
+            {p.linkedClientId && clientNameOf[p.linkedClientId] && <span className="text-[9.5px] text-soren-subtle truncate block">{clientNameOf[p.linkedClientId]}</span>}
           </div>
-          {p.link && <a href={p.link} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} title="Ouvrir le lien" className="w-7 h-7 rounded-lg flex items-center justify-center text-soren-muted hover:text-[#FF4D00] hover:bg-soren-elevated transition-colors flex-shrink-0"><ArrowUpRight size={15} /></a>}
+          {p.link && <a href={p.link} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} title="Ouvrir le lien" className="w-6 h-6 rounded-lg flex items-center justify-center text-soren-muted hover:text-[#FF4D00] hover:bg-soren-elevated transition-colors flex-shrink-0"><ArrowUpRight size={14} /></a>}
         </div>
-        {/* Avatars des profils assignés — petits ronds en bas de la carte */}
         {(p.assignedUserIds.length > 0 || isAdmin) && (
-          <div className="px-3.5 pb-3 -mt-1 flex items-center">
+          <div className="px-2.5 pb-2.5 -mt-0.5 flex items-center">
             {p.assignedUserIds.length === 0
-              ? <span className="text-[9px] font-semibold text-soren-subtle bg-soren-elevated rounded-full px-2 py-0.5">Non assigné</span>
-              : <span className="flex -space-x-1.5">{p.assignedUserIds.map(id => userMap[id]).filter(Boolean).slice(0, 6).map(u => <Avatar key={u.id} u={u} size={20} />)}</span>}
+              ? <span className="text-[8.5px] font-semibold text-soren-subtle bg-soren-elevated rounded-full px-2 py-0.5">Non assigné</span>
+              : <span className="flex -space-x-1.5">{p.assignedUserIds.map(id => userMap[id]).filter(Boolean).slice(0, 6).map(u => <Avatar key={u.id} u={u} size={18} />)}</span>}
           </div>
         )}
       </div>
@@ -411,17 +449,45 @@ export default function ProcessView() {
           </div>
         ) : (
           <div className="flex flex-col gap-6">
-            {visibleCats.map(cat => (
-              <div key={cat} className="flex flex-col gap-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wide text-soren-muted">{cat}</span>
-                  <span className="text-[9px] font-bold bg-soren-card border border-soren-border text-soren-subtle px-1.5 py-0.5 rounded-full">{byCat[cat]?.length ?? 0}</span>
+            {visibleCats.map(cat => {
+              const all    = byCat[cat] ?? []
+              const direct = all.filter(p => !p.subfolder)
+              const subs   = Array.from(new Set([
+                ...subfolders.filter(s => s.category === cat).map(s => s.name),
+                ...all.map(p => p.subfolder).filter(Boolean),
+              ]))
+              return (
+                <div key={cat} className="flex flex-col gap-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-soren-muted">{cat}</span>
+                    <span className="text-[9px] font-bold bg-soren-card border border-soren-border text-soren-subtle px-1.5 py-0.5 rounded-full">{all.length}</span>
+                    {isAdmin && <button onClick={() => { setAddingSubFor(cat); setSubName('') }} className="inline-flex items-center gap-1 text-[10px] font-semibold text-soren-subtle hover:text-soren-text"><FolderPlus size={11} /> Sous-dossier</button>}
+                  </div>
+
+                  {direct.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5" data-stagger>
+                      {direct.map(p => <Card key={p.id} p={p} />)}
+                    </div>
+                  )}
+
+                  {subs.map(sub => {
+                    const subProcs = all.filter(p => p.subfolder === sub)
+                    return (
+                      <div key={sub} className="flex flex-col gap-2 pl-3 ml-0.5 border-l-2 border-soren-border">
+                        <div className="flex items-center gap-1.5">
+                          <Folder size={12} className="text-[#FF4D00]" />
+                          <span className="text-[11px] font-semibold text-soren-text">{sub}</span>
+                          <span className="text-[9px] font-bold bg-soren-card border border-soren-border text-soren-subtle px-1.5 py-0.5 rounded-full">{subProcs.length}</span>
+                        </div>
+                        {subProcs.length > 0
+                          ? <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5" data-stagger>{subProcs.map(p => <Card key={p.id} p={p} />)}</div>
+                          : <p className="text-[10px] text-soren-subtle pl-0.5">Dossier vide</p>}
+                      </div>
+                    )
+                  })}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" data-stagger>
-                  {(byCat[cat] ?? []).map(p => <Card key={p.id} p={p} />)}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -439,6 +505,24 @@ export default function ProcessView() {
               className="w-full bg-soren-elevated border-0 rounded-2xl px-4 py-3 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#FF4D00]/40" />
             <button onClick={() => { if (catName.trim()) { createCat({ name: catName.trim() }); setCatName(''); setAddingCat(false) } }} disabled={!catName.trim()}
               className="w-full bg-[#FF4D00] hover:bg-[#e64500] disabled:opacity-50 text-white font-semibold rounded-full py-3 text-sm transition-colors">Créer la catégorie</button>
+          </div>
+        </div>
+      )}
+
+      {addingSubFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setAddingSubFor(null)} />
+          <div className="relative bg-soren-card rounded-3xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-black text-soren-text">Nouveau sous-dossier</h2>
+              <button onClick={() => setAddingSubFor(null)} className="w-8 h-8 rounded-full bg-soren-elevated flex items-center justify-center hover:bg-[#E5E7EB]"><X size={14} className="text-soren-muted" /></button>
+            </div>
+            <p className="text-[11px] text-soren-subtle -mt-2">Dans <span className="font-semibold text-soren-text">{addingSubFor}</span></p>
+            <input value={subName} onChange={e => setSubName(e.target.value)} autoFocus placeholder="Nom du sous-dossier (ex: SOPs, Playbooks)"
+              onKeyDown={e => { if (e.key === 'Enter' && subName.trim()) { createSubfolder({ category: addingSubFor, name: subName.trim() }); setSubName(''); setAddingSubFor(null) } }}
+              className="w-full bg-soren-elevated border-0 rounded-2xl px-4 py-3 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#FF4D00]/40" />
+            <button onClick={() => { if (subName.trim()) { createSubfolder({ category: addingSubFor, name: subName.trim() }); setSubName(''); setAddingSubFor(null) } }} disabled={!subName.trim()}
+              className="w-full bg-[#FF4D00] hover:bg-[#e64500] disabled:opacity-50 text-white font-semibold rounded-full py-3 text-sm transition-colors">Créer le sous-dossier</button>
           </div>
         </div>
       )}

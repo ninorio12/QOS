@@ -240,6 +240,7 @@ export default defineSchema({
     previewStorageId: v.optional(v.string()),   // image de preview (Convex storage)
     blocks:           v.optional(v.array(v.object({ type: v.string(), text: v.string() }))), // h1 | h2 | text | bullet
     category:         v.optional(v.string()),   // groupe de process (ex: "Process internes", "Process clients", …)
+    subfolder:        v.optional(v.string()),   // sous-dossier dans la catégorie (ex: "SOPs", "Playbooks")
     linkedClientId:   v.optional(v.string()),   // rattachement à un client (crm_contacts/pipeline_clients id)
     order:            v.optional(v.number()),
     assignedRoles:    v.optional(v.array(v.string())), // déprécié (ancien modèle par rôle) — conservé pour compat
@@ -260,6 +261,13 @@ export default defineSchema({
   process_categories: defineTable({
     name:  v.string(),
     order: v.optional(v.number()),
+  }),
+
+  // Sous-dossiers de process à l'intérieur d'une catégorie (persistés même vides)
+  process_subfolders: defineTable({
+    category: v.string(),
+    name:     v.string(),
+    order:    v.optional(v.number()),
   }),
 
   // Bibliothèque "Data" — fichiers (Convex storage) et liens (Notion/GitHub/Vercel/…), rangés par catégorie
