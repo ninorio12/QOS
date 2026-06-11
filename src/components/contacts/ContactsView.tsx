@@ -63,12 +63,15 @@ function TagPill({ label }: { label: string }) {
 
 // ─── Source badge ─────────────────────────────────────────────
 type SourceVal = 'inbound' | 'outbound' | 'recommandation'
-function SourceBadge({ value, onClick }: { value: SourceVal; onClick: (e: React.MouseEvent) => void }) {
-  const cfg = value === 'inbound'
-    ? { cls: 'bg-[#DCFCE7] text-[#16A34A] border-[#BBF7D0] dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20', label: 'inbound'  }
-    : value === 'outbound'
-      ? { cls: 'bg-[#FEF9C3] text-[#CA8A04] border-[#FDE68A] dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/20', label: 'outbound' }
-      : { cls: 'bg-[#EDE9FE] text-[#7C3AED] border-[#DDD6FE] dark:bg-violet-500/15 dark:text-violet-400 dark:border-violet-500/20', label: 'recommandation' }
+function SourceBadge({ value, onClick }: { value: string; onClick: (e: React.MouseEvent) => void }) {
+  // Affiche fidèlement la source d'acquisition (trace conservée même devenu client).
+  const cfg =
+    value === 'inbound'        ? { cls: 'bg-[#DCFCE7] text-[#16A34A] border-[#BBF7D0] dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20', label: 'inbound'  } :
+    value === 'outbound'       ? { cls: 'bg-[#FEF9C3] text-[#CA8A04] border-[#FDE68A] dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/20', label: 'outbound' } :
+    value === 'recommandation' || value === 'referral'
+                               ? { cls: 'bg-[#EDE9FE] text-[#7C3AED] border-[#DDD6FE] dark:bg-violet-500/15 dark:text-violet-400 dark:border-violet-500/20', label: 'recommandation' } :
+    value === 'onboarding'     ? { cls: 'bg-[#EFF6FF] text-[#2563EB] border-[#BFDBFE] dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/20', label: 'onboarding' } :
+                                 { cls: 'bg-[#F3F4F6] text-[#6B7280] border-[#E5E7EB] dark:bg-white/10 dark:text-zinc-300 dark:border-white/10', label: value || '—' }
   return (
     <span onClick={onClick} className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap cursor-pointer select-none hover:opacity-80 transition-opacity border ${cfg.cls}`}>
       {cfg.label}
