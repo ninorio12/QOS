@@ -246,7 +246,7 @@ export default function ProspectionView() {
               </div>
               <div className="flex gap-1.5 mt-2">
                 {tel
-                  ? <a href={`tel:${tel}`} className="flex-1 flex items-center justify-center gap-1.5 text-[11px] font-bold text-white bg-soren-sidebar rounded-lg py-2"><Phone size={12} /> Appeler</a>
+                  ? <a href={`tel:${tel}`} className="flex-1 flex items-center justify-center gap-1.5 text-[11px] font-bold text-white bg-[#FF4D00] hover:bg-[#E64500] rounded-lg py-2"><Phone size={12} /> Appeler</a>
                   : <span className="flex-1 flex items-center justify-center gap-1.5 text-[11px] font-bold text-soren-subtle bg-soren-elevated rounded-lg py-2 opacity-60"><Phone size={12} /> Appeler</span>}
                 <button onClick={() => setR1For(r)} className="flex-1 flex items-center justify-center gap-1.5 text-[11px] font-bold text-white bg-[#16A34A] hover:bg-[#15803D] rounded-lg py-2"><CalendarPlus size={12} /> R1</button>
                 <button onClick={() => setPerduFor(r)} aria-label="Perdu" className="w-10 flex items-center justify-center text-[#DC2626] bg-[#DC2626]/10 rounded-lg"><Ban size={13} /></button>
