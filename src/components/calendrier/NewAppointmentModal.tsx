@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Loader2, Check, Search, ChevronDown, AlertTriangle, User, Bot, Mail } from 'lucide-react'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
@@ -20,6 +21,7 @@ interface Props {
   initialTitle?:       string
   initialContactName?: string
   initialContactId?:   string
+  teamOnly?:           boolean   // R1 prospection : seuls les membres d'équipe peuvent être ajoutés
 }
 
 const TYPE_ORDER: EventType[] = ['r1', 'r2', 'follow_up', 'interne', 'client', 'autre']
@@ -51,7 +53,7 @@ function contactLabel(c: GHLContact): string {
   return extra ? `${name} · ${extra}` : name
 }
 
-export default function NewAppointmentModal({ calendars, onClose, onCreated, initialType, initialTitle, initialContactName, initialContactId }: Props) {
+export default function NewAppointmentModal({ calendars, onClose, onCreated, initialType, initialTitle, initialContactName, initialContactId, teamOnly = false }: Props) {
   const [calendarId,    setCalendarId]   = useState(calendars[0]?.id ?? '')
   const [showCalDrop,   setShowCalDrop]  = useState(false)
   const calDropRef = useRef<HTMLDivElement>(null)
@@ -75,7 +77,7 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated, ini
   )
   const [query,        setQuery]        = useState('')
   const [showDrop,     setShowDrop]     = useState(false)
-  const [pickFilter,   setPickFilter]   = useState<'all' | PickKind>('all')
+  const [pickFilter,   setPickFilter]   = useState<'all' | PickKind>(teamOnly ? 'team' : 'all')
   const dropRef = useRef<HTMLDivElement>(null)
 
   // Membres de l'équipe = profils VividFlow (table users), pas les agents IA
@@ -149,7 +151,7 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated, ini
     email: c.email || undefined,
   }))
   const teamItems: PickItem[] = teamProfiles.map(u => ({ id: u.id, kind: 'team', name: u.name, sub: u.email || u.role, email: u.email || undefined }))
-  const pool: PickItem[] = pickFilter === 'client' ? clientItems : pickFilter === 'team' ? teamItems : [...teamItems, ...clientItems]
+  const pool: PickItem[] = teamOnly ? teamItems : pickFilter === 'client' ? clientItems : pickFilter === 'team' ? teamItems : [...teamItems, ...clientItems]
   const filteredItems = (query.length > 0
     ? pool.filter(it => `${it.name} ${it.sub} ${it.phone ?? ''} ${it.email ?? ''}`.toLowerCase().includes(query.toLowerCase()))
     : pool
@@ -255,18 +257,21 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated, ini
   const canSave  = title.trim().length > 0 && !saving
 
   if (success) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-end justify-center pb-10 pointer-events-none">
+    if (typeof document === 'undefined') return null
+    return createPortal(
+      <div className="fixed inset-0 z-[100] flex items-end justify-center pb-10 pointer-events-none">
         <div className="flex items-center gap-2 bg-soren-sidebar text-white text-sm font-semibold px-5 py-3 rounded-full shadow-xl">
           <Check size={14} className="text-[#FF4D00]" />
           {warning ? 'RDV créé dans Google Calendar' : 'RDV créé avec succès'}
         </div>
-      </div>
+      </div>,
+      document.body,
     )
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+  if (typeof document === 'undefined') return null
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-soren-card rounded-2xl shadow-2xl w-full max-w-[400px] max-h-[90vh] flex flex-col">
 
         {/* Header */}
@@ -352,8 +357,8 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated, ini
           </Field>
 
           {/* PARTICIPANTS — 1 contact + N membres d'équipe, invités par email */}
-          <Field label="Participants">
-            <div className="flex items-center gap-1 mb-1.5">
+          <Field label={teamOnly ? 'Membres de l’équipe' : 'Participants'}>
+            <div className={`flex items-center gap-1 mb-1.5 ${teamOnly ? 'hidden' : ''}`}>
               {([['all', 'Tous'], ['client', 'Clients'], ['team', 'Équipe']] as ['all' | PickKind, string][]).map(([k, lbl]) => (
                 <button
                   key={k}
@@ -544,7 +549,8 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated, ini
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

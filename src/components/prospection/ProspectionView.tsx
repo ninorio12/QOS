@@ -294,7 +294,7 @@ export default function ProspectionView() {
 
       {/* R1 → modale Calendrier */}
       {r1For && (
-        <NewAppointmentModal calendars={[]} initialType="r1"
+        <NewAppointmentModal calendars={[]} initialType="r1" teamOnly
           initialTitle={`R1 - ${r1For.contact.fullName}${r1For.contact.companyName ? ` / ${r1For.contact.companyName}` : ''}`}
           initialContactName={r1For.contact.fullName} initialContactId={r1For.contactId}
           onClose={() => setR1For(null)}

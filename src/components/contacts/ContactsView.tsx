@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useClickOutside } from '@/hooks/useClickOutside'
-import { Search, Download, SlidersHorizontal, ArrowUpDown, Settings2, Check, ChevronDown, ChevronRight, FileSpreadsheet, Trash2, RefreshCw, Filter } from 'lucide-react'
+import { Search, Download, SlidersHorizontal, ArrowUpDown, Settings2, Check, ChevronDown, ChevronRight, FileSpreadsheet, Trash2, Filter } from 'lucide-react'
 import { type GHLContact } from '@/lib/ghl'
 import { fetchJSON } from '@/lib/fetchJSON'
 import { getAvatarColor, formatDate, formatRelative, type ContactAttribution } from './types'
@@ -616,10 +616,7 @@ export default function ContactsView({
               {deleting ? 'Suppression…' : `Supprimer (${checked.size})`}
             </button>
           )}
-          <button onClick={refreshContacts} disabled={refreshing} className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-[11px] font-semibold px-2.5 py-1 rounded-full hover:bg-soren-elevated disabled:opacity-50 transition-colors">
-            <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
-            <span className="hidden sm:inline">Actualiser</span>
-          </button>
+          {/* Liste live (Convex) — plus de bouton Actualiser : tout se met à jour automatiquement. */}
           <button onClick={exportExcel} className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-[11px] font-semibold px-2.5 py-1 rounded-full hover:bg-soren-elevated transition-colors">
             <FileSpreadsheet size={12} />
             <span className="hidden sm:inline">Exporter</span>
