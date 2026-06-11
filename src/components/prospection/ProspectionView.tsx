@@ -126,9 +126,10 @@ function TrackerRow({ r, onOpen, onComment, onPhase, onR1, onPerdu }: {
   onPhase: (phase: string, v: string) => void; onR1: () => void; onPerdu: () => void
 }) {
   return (
-    <div className={`${GRID} px-4 py-2 border-b border-[#F0F0EE] last:border-0 hover:bg-[#FAFAF8] transition-colors`}>
-      {/* Identité — clic = ouvre la fiche contact */}
-      <div className="flex items-center gap-2.5 min-w-0 sticky left-0 z-10 bg-inherit">
+    <div className={`group ${GRID} px-4 py-2 border-b border-[#F0F0EE] last:border-0 hover:bg-[#FAFAF8] transition-colors`}>
+      {/* Identité — clic = ouvre la fiche contact. Colonne figée : fond OPAQUE pour
+          masquer les colonnes qui défilent dessous en scroll horizontal (petit écran). */}
+      <div className="flex items-center gap-2.5 min-w-0 sticky left-0 z-10 bg-soren-card group-hover:bg-[#FAFAF8] transition-colors">
         <ContactIcon />
         <button onClick={onOpen} className="min-w-0 text-left flex-1 leading-tight">
           <p className="text-[11px] font-normal text-soren-text truncate">{r.contact.fullName}</p>
@@ -262,7 +263,7 @@ export default function ProspectionView() {
             <div className="min-w-[1000px]">
               {/* Header + filtres Excel */}
               <div className={`${GRID} px-4 py-2.5 bg-soren-card border-b border-soren-border sticky top-0 z-20`}>
-                <div className="sticky left-0 bg-soren-card flex items-center justify-center gap-1.5">
+                <div className="sticky left-0 z-10 bg-soren-card flex items-center justify-center gap-1.5">
                   <HeaderTextFilter label="Leads à traiter" value={leadF} onChange={setLeadF} color="var(--text)" />
                 </div>
                 <span className="text-[9.5px] font-bold uppercase tracking-wider text-[#111111]">Téléphone</span>
