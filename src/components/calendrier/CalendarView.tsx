@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Plus, RefreshCw, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, RefreshCw, X, Trash2, Pencil, Check } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -709,111 +709,115 @@ function WeekGrid({
 }
 
 // ─── Detail card (redesigned) ─────────────────────────────────
+function toLocalInput(iso: string) {
+  const d = new Date(iso); const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 function DetailCard({
-  appt, onClose, onDelete,
+  appt, onClose, onDelete, onUpdate,
 }: {
   appt:     Appointment
   onClose:  () => void
   onDelete: (id: string, source?: 'ghl' | 'google') => void
+  onUpdate: (id: string, fields: { title: string; startTime: string; endTime: string; notes: string }, source?: 'ghl' | 'google') => void
 }) {
   const status    = STATUS_META[appt.status]
   const isGoogle  = appt.source === 'google'
   const dotColor  = isGoogle ? '#34A853' : '#B899D9'
+  const [editing, setEditing]   = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [title, setTitle] = useState(appt.title)
+  const [start, setStart] = useState(toLocalInput(appt.startTime))
+  const [end,   setEnd]   = useState(toLocalInput(appt.endTime))
+  const [notes, setNotes] = useState(appt.notes ?? '')
 
-  async function handleDelete() {
-    setDeleting(true)
-    onDelete(appt.id, appt.source)
+  // Re-synchronise les champs quand on change de rendez-vous sélectionné.
+  useEffect(() => {
+    setTitle(appt.title); setStart(toLocalInput(appt.startTime)); setEnd(toLocalInput(appt.endTime)); setNotes(appt.notes ?? ''); setEditing(false)
+  }, [appt.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function resetFields() {
+    setTitle(appt.title); setStart(toLocalInput(appt.startTime)); setEnd(toLocalInput(appt.endTime)); setNotes(appt.notes ?? '')
+  }
+  function save() {
+    const s = new Date(start), e = new Date(end)
+    if (isNaN(s.getTime()) || isNaN(e.getTime()) || e <= s) return
+    onUpdate(appt.id, { title: title.trim() || appt.title, startTime: s.toISOString(), endTime: e.toISOString(), notes }, appt.source)
+    setEditing(false)
   }
 
   return (
-    <div className="bg-soren-card border border-soren-border overflow-hidden" style={{ borderRadius: 12 }}>
+    <div className="bg-soren-card border border-soren-border overflow-hidden flex flex-col max-h-[80vh]" style={{ borderRadius: 12 }}>
       {/* Header — dark */}
-      <div
-        className="flex items-start justify-between gap-2 px-4 py-3"
-        style={{ background: '#111111' }}
-      >
-        <div className="flex items-center gap-2 min-w-0">
-          <span
-            className="w-2 h-2 rounded-full flex-shrink-0 mt-0.5"
-            style={{ background: dotColor }}
-            title={isGoogle ? 'Google Calendar' : 'GHL'}
-          />
-          <p className="text-[13px] font-bold text-white leading-snug truncate">{appt.title}</p>
+      <div className="flex items-start justify-between gap-2 px-4 py-3 flex-shrink-0" style={{ background: '#111111' }}>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className="w-2 h-2 rounded-full flex-shrink-0 mt-0.5" style={{ background: dotColor }} title={isGoogle ? 'Google Calendar' : 'GHL'} />
+          {editing
+            ? <input value={title} onChange={e => setTitle(e.target.value)} autoFocus placeholder="Titre" className="flex-1 min-w-0 bg-white/10 text-white text-[13px] font-bold rounded-lg px-2 py-1 outline-none placeholder-white/40" />
+            : <p className="text-[13px] font-bold text-white leading-snug truncate">{appt.title}</p>}
         </div>
-        <button
-          onClick={onClose}
-          className="flex-shrink-0 text-white/40 hover:text-white transition-colors mt-0.5"
-        >
-          <X size={14} />
-        </button>
+        <button onClick={onClose} className="flex-shrink-0 text-white/40 hover:text-white transition-colors mt-0.5"><X size={14} /></button>
       </div>
 
-      {/* Body */}
-      <div className="flex flex-col gap-0 divide-y divide-[#F0F0EE] overflow-y-auto max-h-[60vh]">
-        <DetailRow label="Statut">
-          <span
-            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-            style={{ color: status.color, background: status.bg }}
-          >
-            {status.label}
-          </span>
-        </DetailRow>
-
-        <DetailRow label="Heure">
-          <span className="text-[12px] font-semibold text-soren-text">
-            {fmt(appt.startTime)} – {fmt(appt.endTime)}
-            <span className="text-soren-subtle font-normal ml-1">({duration(appt.startTime, appt.endTime)})</span>
-          </span>
-        </DetailRow>
-
-        {appt.contactName !== '—' && (
-          <DetailRow label="Contact">
-            <span className="text-[12px] text-soren-text">{appt.contactName}</span>
-          </DetailRow>
-        )}
-
-        <DetailRow label="Calendrier">
-          <span className="text-[12px] text-soren-text">{appt.calendarName}</span>
-        </DetailRow>
-
-        {appt.meetLink && (
-          <DetailRow label="Meet">
-            <a
-              href={appt.meetLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white bg-[#1A73E8] hover:bg-[#1558B0] px-2.5 py-1 rounded-full transition-colors"
-            >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/></svg>
-              Rejoindre Meet
-            </a>
-          </DetailRow>
-        )}
-
-        {appt.notes && (
-          <div className="px-4 py-3">
-            <p className="text-[10px] text-soren-subtle font-semibold uppercase tracking-wider mb-1">Notes</p>
-            <p className="text-[12px] text-soren-muted leading-relaxed whitespace-pre-line">{appt.notes}</p>
+      {/* Body — scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        {editing ? (
+          <div className="flex flex-col gap-3 px-4 py-4">
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] text-soren-subtle font-semibold uppercase tracking-wider">Début</span>
+              <input type="datetime-local" value={start} onChange={e => setStart(e.target.value)} className="text-[12px] text-soren-text bg-soren-elevated rounded-lg px-2.5 py-1.5 outline-none border border-soren-border" />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] text-soren-subtle font-semibold uppercase tracking-wider">Fin</span>
+              <input type="datetime-local" value={end} onChange={e => setEnd(e.target.value)} className="text-[12px] text-soren-text bg-soren-elevated rounded-lg px-2.5 py-1.5 outline-none border border-soren-border" />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] text-soren-subtle font-semibold uppercase tracking-wider">Notes</span>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={4} placeholder="Notes…" className="text-[12px] text-soren-text bg-soren-elevated rounded-lg px-2.5 py-1.5 outline-none border border-soren-border resize-none" />
+            </label>
+          </div>
+        ) : (
+          <div className="flex flex-col divide-y divide-[#F0F0EE]">
+            <DetailRow label="Statut"><span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ color: status.color, background: status.bg }}>{status.label}</span></DetailRow>
+            <DetailRow label="Heure"><span className="text-[12px] font-semibold text-soren-text">{fmt(appt.startTime)} – {fmt(appt.endTime)}<span className="text-soren-subtle font-normal ml-1">({duration(appt.startTime, appt.endTime)})</span></span></DetailRow>
+            {appt.contactName !== '—' && <DetailRow label="Contact"><span className="text-[12px] text-soren-text">{appt.contactName}</span></DetailRow>}
+            <DetailRow label="Calendrier"><span className="text-[12px] text-soren-text">{appt.calendarName}</span></DetailRow>
+            {appt.meetLink && (
+              <DetailRow label="Meet">
+                <a href={appt.meetLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white bg-[#1A73E8] hover:bg-[#1558B0] px-2.5 py-1 rounded-full transition-colors">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/></svg>
+                  Rejoindre Meet
+                </a>
+              </DetailRow>
+            )}
+            {appt.notes && (
+              <div className="px-4 py-3">
+                <p className="text-[10px] text-soren-subtle font-semibold uppercase tracking-wider mb-1">Notes</p>
+                <p className="text-[12px] text-soren-muted leading-relaxed whitespace-pre-line">{appt.notes}</p>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between gap-2 px-4 py-3 border-t border-[#F0F0EE]">
-        <button
-          onClick={handleDelete}
-          disabled={deleting}
-          className="text-[11px] font-semibold text-[#EF4444] hover:text-white hover:bg-[#EF4444] px-3 py-1.5 rounded-full border border-[#EF4444]/40 hover:border-[#EF4444] transition-all disabled:opacity-50"
-        >
-          {deleting ? 'Suppression…' : 'Supprimer'}
+      <div className="flex items-center justify-between gap-2 px-4 py-3 border-t border-[#F0F0EE] flex-shrink-0">
+        <button onClick={() => { setDeleting(true); onDelete(appt.id, appt.source) }} disabled={deleting} title="Supprimer"
+          className="w-8 h-8 flex items-center justify-center rounded-full text-[#EF4444] hover:text-white hover:bg-[#EF4444] border border-[#EF4444]/40 hover:border-[#EF4444] transition-all disabled:opacity-50">
+          <Trash2 size={14} />
         </button>
-        <button
-          onClick={onClose}
-          className="text-[11px] font-semibold text-soren-muted hover:text-soren-text px-3 py-1.5 rounded-full border border-soren-border hover:border-[#111111] transition-all"
-        >
-          Fermer
-        </button>
+        {editing ? (
+          <div className="flex items-center gap-2">
+            <button onClick={() => { resetFields(); setEditing(false) }} className="text-[11px] font-semibold text-soren-muted hover:text-soren-text px-3 py-1.5 rounded-full border border-soren-border transition-all">Annuler</button>
+            <button onClick={save} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white bg-[#FF4D00] hover:bg-[#e64500] px-3 py-1.5 rounded-full transition-colors"><Check size={13} /> Enregistrer</button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-soren-text bg-soren-elevated hover:bg-[#E5E7EB] px-3 py-1.5 rounded-full transition-colors"><Pencil size={12} /> Modifier</button>
+            <button onClick={onClose} className="text-[11px] font-semibold text-soren-muted hover:text-soren-text px-3 py-1.5 rounded-full border border-soren-border hover:border-[#111111] transition-all">Fermer</button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1071,6 +1075,28 @@ export default function CalendarView({
     )
   }
 
+  // ── Édition complète (titre / heures / notes) depuis la fiche détail ──
+  function handleEditAppt(
+    id: string,
+    fields: { title: string; startTime: string; endTime: string; notes: string },
+    source?: 'ghl' | 'google',
+  ) {
+    setAppointments(prev => prev.map(a => a.id === id ? { ...a, ...fields } : a))
+    setSelectedAppt(prev => prev?.id === id ? { ...prev, ...fields } : prev)
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    if (source === 'google') {
+      fetch(`/api/google-events/${id.replace('google-', '')}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...fields, tz }),
+      }).catch(console.error)
+    } else {
+      fetch(`/api/calendar-event/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields),
+      }).catch(console.error)
+    }
+  }
+
   // ── Delete appointment ─────────────────────────────────────
   function handleDelete(id: string, source?: 'ghl' | 'google') {
     // Optimistic remove
@@ -1243,6 +1269,7 @@ export default function CalendarView({
             appt={selectedAppt}
             onClose={() => setSelectedAppt(null)}
             onDelete={handleDelete}
+            onUpdate={handleEditAppt}
           />
         )}
 

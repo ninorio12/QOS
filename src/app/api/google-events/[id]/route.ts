@@ -74,20 +74,22 @@ export async function PATCH(
     startTime: string
     endTime:   string
     tz?:       string
+    title?:    string
+    notes?:    string
   }
-  const { startTime, endTime } = body
+  const { startTime, endTime, title, notes } = body
   const tz = body.tz || 'Europe/Paris'
 
   try {
     const cal = await getCalendarClient()
-    const res = await cal.events.patch({
-      calendarId:  CAL_ID(),
-      eventId:     id,
-      requestBody: {
-        start: { dateTime: new Date(startTime).toISOString(), timeZone: tz },
-        end:   { dateTime: new Date(endTime).toISOString(),   timeZone: tz },
-      },
-    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const requestBody: any = {
+      start: { dateTime: new Date(startTime).toISOString(), timeZone: tz },
+      end:   { dateTime: new Date(endTime).toISOString(),   timeZone: tz },
+    }
+    if (title !== undefined) requestBody.summary = title
+    if (notes !== undefined) requestBody.description = notes
+    const res = await cal.events.patch({ calendarId: CAL_ID(), eventId: id, requestBody })
     return NextResponse.json({ event: res.data })
   } catch (err) {
     console.error('[Google] patch failed:', err)
