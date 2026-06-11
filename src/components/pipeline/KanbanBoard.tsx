@@ -65,8 +65,8 @@ function Avatar({ initials }: { initials: string }) {
 const SOURCE_META: Record<string, { label: string; bg: string; color: string }> = {
   inbound:        { label: 'inbound',  bg: '#DCFCE7', color: '#16A34A' },
   outbound:       { label: 'outbound', bg: '#FEF9C3', color: '#CA8A04' },
-  recommandation: { label: 'reco',     bg: '#EDE9FE', color: '#7C3AED' },
-  referral:       { label: 'reco',     bg: '#EDE9FE', color: '#7C3AED' },
+  recommandation: { label: 'recommandation', bg: '#EDE9FE', color: '#7C3AED' },
+  referral:       { label: 'recommandation', bg: '#EDE9FE', color: '#7C3AED' },
 }
 
 // ─── Opportunity Card ─────────────────────────────────────────
