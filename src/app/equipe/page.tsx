@@ -1,7 +1,7 @@
-import AgentAccountsView from '@/components/equipe/AgentAccountsView'
+import EquipeView from '@/components/equipe/EquipeView'
 
-// Équipe IA = roster des comptes agents machine (Convex). Remplace l'ancienne vue
-// maquette (AGENT_PROFILES/localStorage) par les vraies identités machine.
+// Équipe IA — module historique (organigramme + fiches agents : COO, ANALYSE,
+// SUPPORT CLIENT, OPERATIONS, KB). Restauré à la demande.
 export default function EquipePage() {
-  return <AgentAccountsView />
+  return <EquipeView />
 }
