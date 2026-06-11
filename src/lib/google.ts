@@ -1,5 +1,6 @@
 import { google } from 'googleapis'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from '../../convex/_generated/api'
 
 function appUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
@@ -13,28 +14,31 @@ export function getOAuth2Client() {
   )
 }
 
+function convexClient(): ConvexHttpClient | null {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  return url ? new ConvexHttpClient(url) : null
+}
+
+// Token Google = source de vérité Convex (table google_accounts), plus Supabase.
+// "global" = premier profil connecté (le calendrier ne lit pas encore par profil).
+// La lecture par profil reste possible via api.googleAccounts.getToken(clerkUserId).
 async function getRefreshToken(): Promise<string | null> {
   if (process.env.GOOGLE_REFRESH_TOKEN) return process.env.GOOGLE_REFRESH_TOKEN
+  const secret = process.env.INTERNAL_API_SECRET
+  const convex = convexClient()
+  if (!secret || !convex) return null
   try {
-    const supabase = createAdminClient()
-    const { data } = await supabase
-      .from('company_settings')
-      .select('google_refresh_token')
-      .eq('id', '00000000-0000-0000-0000-000000000001')
-      .single()
-    return (data?.google_refresh_token as string) || null
+    const accounts = await convex.query(api.googleAccounts.listConnected, { secret })
+    return accounts[0]?.refreshToken ?? null
   } catch {
     return null
   }
 }
 
-export async function saveGoogleRefreshToken(token: string): Promise<void> {
-  const supabase = createAdminClient()
-  const { error } = await supabase
-    .from('company_settings')
-    .update({ google_refresh_token: token })
-    .eq('id', '00000000-0000-0000-0000-000000000001')
-  if (error) throw new Error(`Supabase update failed: ${error.message} (code: ${error.code})`)
+// Conservé en no-op : le callback OAuth écrit directement dans Convex
+// (api.googleAccounts.connect). Évite de casser les appelants existants.
+export async function saveGoogleRefreshToken(_token: string): Promise<void> {
+  /* no-op — source de vérité = Convex google_accounts */
 }
 
 export async function getCalendarClient() {
