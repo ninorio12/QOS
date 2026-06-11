@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import useSWR from 'swr'
@@ -21,7 +21,17 @@ type CalData = {
 
 const fetcher = (url: string) => fetch(url).then(r => r.json())
 
+// useSearchParams() impose une frontière Suspense au build (CSR bailout). fallback={null}
+// → aucun squelette, conforme à la demande.
 export default function CalendrierPage() {
+  return (
+    <Suspense fallback={null}>
+      <CalendrierContent />
+    </Suspense>
+  )
+}
+
+function CalendrierContent() {
   const searchParams = useSearchParams()
   const router       = useRouter()
   const justConnected = searchParams.get('google') === 'connected'
