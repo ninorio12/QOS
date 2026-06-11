@@ -257,20 +257,20 @@ function ProcessDetail({ proc, categories, subfolderOptions, clients, users, onB
         {/* Image = action principale (ouvre le lien) */}
         {proc.previewUrl ? (
           <div className="relative rounded-2xl overflow-hidden border border-soren-border group">
-            <a href={link || proc.previewUrl} target={link ? '_blank' : undefined} rel="noreferrer" className="block">
+            <button onClick={() => setZoomed(true)} className="block w-full">
               <img src={proc.previewUrl} alt={proc.title} className="w-full max-h-80 object-cover" />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 text-[11px] font-semibold text-[#111] px-3 py-1.5 rounded-full flex items-center gap-1.5">Ouvrir <ArrowUpRight size={12} /></span>
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 text-[11px] font-semibold text-[#111] px-3 py-1.5 rounded-full flex items-center gap-1.5">Agrandir <Maximize2 size={12} /></span>
               </div>
-            </a>
+            </button>
             <div className="absolute top-2 right-2 flex items-center gap-1.5">
-              <button onClick={() => setZoomed(true)} title="Zoomer"
-                className="w-8 h-8 rounded-full bg-black/55 text-white flex items-center justify-center hover:bg-black/75 transition-colors">
-                <Maximize2 size={13} />
-              </button>
               {!readOnly && <button onClick={() => fileRef.current?.click()} title="Remplacer l'image"
                 className="w-8 h-8 rounded-full bg-black/55 text-white flex items-center justify-center hover:bg-black/75 transition-colors">
                 <Camera size={14} />
+              </button>}
+              {!readOnly && <button onClick={() => update({ id: proc.id as never, previewStorageId: '' })} title="Supprimer la photo"
+                className="w-8 h-8 rounded-full bg-black/55 text-white flex items-center justify-center hover:bg-[#EF4444] transition-colors">
+                <Trash2 size={13} />
               </button>}
             </div>
           </div>
@@ -294,7 +294,13 @@ function ProcessDetail({ proc, categories, subfolderOptions, clients, users, onB
         onClick={() => setZoomed(false)}>
         <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
         <div className="relative max-w-6xl w-full" onClick={e => e.stopPropagation()}>
-          <button onClick={() => setZoomed(false)}
+          {!readOnly && (
+            <button onClick={() => { update({ id: proc.id as never, previewStorageId: '' }); setZoomed(false) }} title="Jeter la photo"
+              className="absolute -top-10 right-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-[#EF4444] transition-colors text-white">
+              <Trash2 size={14} />
+            </button>
+          )}
+          <button onClick={() => setZoomed(false)} title="Quitter"
             className="absolute -top-10 right-0 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white">
             <X size={14} />
           </button>

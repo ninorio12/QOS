@@ -6,6 +6,7 @@ import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { FileText, RefreshCw, AlertCircle, X, Save, Trash2, Pencil, ArrowUpRight, Check, Mic, Users, CalendarDays } from 'lucide-react'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
+import { MotionStagger, MotionItem } from '@/components/ui/Motion'
 
 type TldvRecord = {
   id: string
@@ -354,9 +355,9 @@ export default function RecordsView() {
             <p className="text-[12px] text-soren-subtle">{activeTags.length ? 'Aucun record pour ces balises.' : 'Aucun enregistrement.'}</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2.5" data-stagger>
-            {filtered.map(r => <RecordCard key={r.id} record={r} meta={metaMap[r.id]} onOpen={() => setSelected(r)} />)}
-          </div>
+          <MotionStagger className="flex flex-col gap-2.5">
+            {filtered.map(r => <MotionItem key={r.id}><RecordCard record={r} meta={metaMap[r.id]} onOpen={() => setSelected(r)} /></MotionItem>)}
+          </MotionStagger>
         )}
       </div>
 

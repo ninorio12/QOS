@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import DataPreviewPanel, { type LibItem } from './DataPreviewPanel'
 import CodeView from './CodeView'
+import { MotionStagger, MotionItem } from '@/components/ui/Motion'
 
 // ─── Folder groups ───────────────────────────────────────────────────────────
 
@@ -451,13 +452,13 @@ export default function DataView() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" data-stagger>
+              <MotionStagger className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {FOLDERS.filter(f => folderCounts[f.id] > 0).map(f => {
                   const filtered = filteredFolderCounts[f.id] ?? 0
                   const showBadge = filterAssignee.length > 0
                   return (
-                    <button key={f.id} onClick={() => setOpenFolder(f.id)}
-                      className="group flex flex-col items-start gap-3 p-5 bg-soren-card border border-soren-border rounded-3xl hover:border-[#C8CBD0] hover:shadow-md transition-all text-left relative">
+                    <MotionItem key={f.id} onClick={() => setOpenFolder(f.id)}
+                      className="group flex flex-col items-start gap-3 p-5 bg-soren-card border border-soren-border rounded-3xl hover:border-[#C8CBD0] hover:shadow-md transition-all text-left relative cursor-pointer">
                       {showBadge && (
                         <span className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] font-bold"
                           style={{ background: filtered > 0 ? '#FF4D0015' : '#9CA3AF15', color: filtered > 0 ? '#FF4D00' : '#9CA3AF' }}>
@@ -471,10 +472,10 @@ export default function DataView() {
                         <p className="text-[12px] font-normal text-soren-text">{f.label}</p>
                         <p className="text-[11px] text-soren-subtle mt-0.5">{folderCounts[f.id]} fichier{folderCounts[f.id] > 1 ? 's' : ''}</p>
                       </div>
-                    </button>
+                    </MotionItem>
                   )
                 })}
-              </div>
+              </MotionStagger>
             </>
           )
         )}
@@ -498,28 +499,28 @@ export default function DataView() {
               </div>
             ) : activeFolderDef.action === 'expand' ? (
               // Markdown: stacked expandable cards
-              <div className="flex flex-col gap-2" data-stagger>
+              <MotionStagger className="flex flex-col gap-2">
                 {folderItems.map(item => (
-                  <MarkdownCard key={item.id} item={item} onEdit={() => setPreviewItem(item)} users={allUsers as UserLite[]} />
+                  <MotionItem key={item.id}><MarkdownCard item={item} onEdit={() => setPreviewItem(item)} users={allUsers as UserLite[]} /></MotionItem>
                 ))}
-              </div>
+              </MotionStagger>
             ) : activeFolderDef.action === 'lightbox' ? (
               // Images: thumbnail grid
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3" data-stagger>
+              <MotionStagger className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {folderItems.map(item => (
-                  <ImageCard key={item.id} item={item} onClick={() => setLightbox(item)} onEdit={() => setPreviewItem(item)} users={allUsers as UserLite[]} />
+                  <MotionItem key={item.id}><ImageCard item={item} onClick={() => setLightbox(item)} onEdit={() => setPreviewItem(item)} users={allUsers as UserLite[]} /></MotionItem>
                 ))}
-              </div>
+              </MotionStagger>
             ) : (
               // PDF + Links: card list
-              <div className="flex flex-col gap-2" data-stagger>
+              <MotionStagger className="flex flex-col gap-2">
                 {folderItems.map(item => (
-                  <ItemCard key={item.id} item={item} folder={activeFolderDef}
+                  <MotionItem key={item.id}><ItemCard item={item} folder={activeFolderDef}
                     onClick={() => handleItemClick(item)}
                     onEdit={() => setPreviewItem(item)}
-                    users={allUsers as UserLite[]} />
+                    users={allUsers as UserLite[]} /></MotionItem>
                 ))}
-              </div>
+              </MotionStagger>
             )}
           </div>
         )}
