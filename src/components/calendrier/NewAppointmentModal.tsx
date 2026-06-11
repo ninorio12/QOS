@@ -81,6 +81,31 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated, ini
   // Membres de l'équipe = profils VividFlow (table users), pas les agents IA
   const teamProfiles = (useQuery(api.users.list, {}) ?? []) as { id: string; name: string; role: string; email?: string }[]
 
+  // ── Disponibilité des invités (FreeBusy Google) ──
+  const [busyMap,      setBusyMap]      = useState<Record<string, { busy: boolean; error?: string }>>({})
+  const [checkingBusy, setCheckingBusy] = useState(false)
+  const [overrideBusy, setOverrideBusy] = useState(false)
+  useEffect(() => {
+    const emails = attendees.map(a => a.email.trim().toLowerCase()).filter(isEmail)
+    setOverrideBusy(false)
+    const s = new Date(startTime), e = new Date(endTime)
+    if (!emails.length || isNaN(s.getTime()) || isNaN(e.getTime()) || e <= s) { setBusyMap({}); return }
+    let cancelled = false
+    setCheckingBusy(true)
+    const t = setTimeout(() => {
+      fetch('/api/calendar/freebusy', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emails, start: s.toISOString(), end: e.toISOString() }),
+      })
+        .then(r => r.json())
+        .then((d: { results?: Record<string, { busy: boolean; error?: string }> }) => { if (!cancelled) setBusyMap(d.results ?? {}) })
+        .catch(() => { if (!cancelled) setBusyMap({}) })
+        .finally(() => { if (!cancelled) setCheckingBusy(false) })
+    }, 500)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [startTime, endTime, attendees])
+  const conflicts = attendees.filter(a => isEmail(a.email) && busyMap[a.email.trim().toLowerCase()]?.busy)
+
   // Fetch contacts once on mount + complète l'email du contact pré-rempli (R1)
   useEffect(() => {
     fetch('/api/contact')
@@ -146,6 +171,12 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated, ini
 
   async function handleSave() {
     if (!title.trim()) return
+    // Vérif dispo : on bloque si un invité est déjà occupé (override au 2e clic).
+    if (conflicts.length && !overrideBusy) {
+      setError(`${conflicts.map(c => c.name || c.email).join(', ')} ${conflicts.length > 1 ? 'sont déjà occupé·es' : 'est déjà occupé·e'} sur ce créneau. Choisis un autre horaire — ou reclique sur Créer pour forcer.`)
+      setOverrideBusy(true)
+      return
+    }
     setSaving(true); setError(null)
     try {
       const startISO = new Date(startTime).toISOString()
@@ -359,6 +390,16 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated, ini
                         />
                       )}
                     </div>
+                    {(() => {
+                      const st = isEmail(a.email) ? busyMap[a.email.trim().toLowerCase()] : undefined
+                      if (!isEmail(a.email)) return null
+                      if (checkingBusy && !st) return <span className="text-[9.5px] text-soren-subtle flex-shrink-0">…</span>
+                      if (!st) return null
+                      if (st.error) return <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-[#F3F4F6] text-[#9CA3AF] flex-shrink-0" title={st.error}>dispo inconnue</span>
+                      return st.busy
+                        ? <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#FEE2E2] text-[#DC2626] flex-shrink-0">Occupé</span>
+                        : <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#DCFCE7] text-[#16A34A] flex-shrink-0">Libre</span>
+                    })()}
                     <button type="button" onClick={() => removeAttendee(a)} className="text-soren-subtle hover:text-[#EF4444] flex-shrink-0 transition-colors">
                       <X size={13} />
                     </button>
