@@ -248,9 +248,22 @@ export default function Sidebar() {
   const configuration = visible(CONFIGURATION)
   const showAcquisition = acquisitionPre.length > 0 || acquisitionPost.length > 0 || canSee('/pipeline')
 
-  // Avoid flicker: render nothing until user data is loaded
-  if (!isLoaded) return (
-    <aside className="fixed left-3 top-3 bottom-3 w-56 bg-soren-sidebar rounded-2xl flex flex-col z-50 overflow-hidden shadow-xl" />
+  // Pendant le chargement (Clerk pas prêt OU profil Convex en attente) : squelette
+  // sobre — logo immédiat + lignes shimmer — au lieu d'un fond noir vide qui fait
+  // "pas chargé". La transition vers les vrais liens est alors invisible.
+  if (!isLoaded || me === undefined) return (
+    <aside className="fixed left-3 top-3 bottom-3 w-56 bg-soren-sidebar rounded-2xl flex flex-col z-50 overflow-hidden shadow-xl">
+      <Link href="/dashboard" className="flex items-center gap-2.5 px-4 pt-4 pb-2.5 flex-shrink-0">
+        <Image src="/vividflow-logo.png" alt="VividFlow" width={32} height={32} priority className="object-contain rounded-xl flex-shrink-0 shadow-md" />
+        <span className="text-white font-sans font-bold text-[16px] tracking-[-0.01em]">VividFlow</span>
+      </Link>
+      <div className="mx-3 h-px bg-soren-card/8 flex-shrink-0" />
+      <div className="flex flex-col gap-1.5 px-3 pt-3 animate-pulse">
+        {[14, 9, 10, 8, 12, 9, 7, 11, 8].map((w, i) => (
+          <div key={i} className={`h-7 rounded-xl bg-white/5 ${w === 7 ? 'mt-3' : ''}`} style={{ width: `${Math.min(w * 6 + 20, 92)}%` }} />
+        ))}
+      </div>
+    </aside>
   )
 
   return (
