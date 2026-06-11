@@ -142,9 +142,10 @@ export const seedAgents = mutation({
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const agents = await ctx.db.query("os_agents")
+    const all = await ctx.db.query("os_agents")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", WORKSPACE)).collect()
-    // n'expose que les comptes machine (type=agent) + legacy os_agents éventuels
+    // N'expose que les vrais comptes machine (type=agent) ; ignore les os_agents legacy.
+    const agents = all.filter((a) => a.type === "agent")
     const out = await Promise.all(agents.map(async (a) => {
       const perms = await ctx.db.query("os_agent_permissions").withIndex("by_agent", (q) => q.eq("agentId", a._id)).collect()
       const pendingApprovals = (await ctx.db.query("os_agent_approvals").withIndex("by_agent", (q) => q.eq("agentId", a._id)).collect())
