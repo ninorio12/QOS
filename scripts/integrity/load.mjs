@@ -19,6 +19,9 @@ export const TABLE_QUERY = {
   crm_leads:        api.crm_leads.list,
   pipeline_clients: api.pipeline_clients.list,
   osProspection:    api.osProspection.list,   // lit la table prospection_records
+  os_sales_calls:   api.osSalesCalls.list,
+  os_outreach:      api.osOutreach.list,
+  onboarding:       api.onboarding.list,
 }
 
 // Charge les tables demandées. Retourne { [table]: rows[] }. Une table sans query connue lève une erreur explicite.

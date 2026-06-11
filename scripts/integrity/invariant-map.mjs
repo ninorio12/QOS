@@ -14,6 +14,11 @@ export const REFERENTIAL = [
   { id: 'pipeline_clients.contactId→crm_contacts',       table: 'pipeline_clients', field: 'contactId',      target: 'crm_contacts' },
   { id: 'osProspection.contactId→crm_contacts',        table: 'osProspection',    field: 'contactId',      target: 'crm_contacts' },
   { id: 'osProspection.leadId→crm_leads',              table: 'osProspection',    field: 'leadId',         target: 'crm_leads' },
+  { id: 'os_sales_calls.contactId→crm_contacts',       table: 'os_sales_calls',   field: 'contactId',      target: 'crm_contacts' },
+  { id: 'os_sales_calls.leadId→crm_leads',             table: 'os_sales_calls',   field: 'leadId',         target: 'crm_leads' },
+  { id: 'os_outreach.contactId→crm_contacts',          table: 'os_outreach',      field: 'contactId',      target: 'crm_contacts' },
+  { id: 'os_outreach.leadId→crm_leads',                table: 'os_outreach',      field: 'leadId',         target: 'crm_leads' },
+  { id: 'onboarding.contactId→crm_contacts',           table: 'onboarding',       field: 'contactId',      target: 'crm_contacts' },
 ]
 
 export const CONSISTENCY = [
@@ -38,4 +43,5 @@ export const CONSISTENCY = [
 // ci-dessus ET avec les clés de TABLE_QUERY (Task 4).
 export const ALL_TABLES = [
   'crm_contacts', 'crm_leads', 'pipeline_clients', 'osProspection',
+  'os_sales_calls', 'os_outreach', 'onboarding',
 ]
