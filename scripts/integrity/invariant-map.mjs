@@ -25,9 +25,10 @@ export const CONSISTENCY = [
   {
     id: 'crm_leads.stage↔contact.statut',
     table: 'crm_leads', via: 'contactId', parentTable: 'crm_contacts',
-    // Un contact "perdu" ne doit pas avoir un lead dans une étape active (ex. Yasmine en R2).
-    ok: (lead, contact) => !(contact.statut === 'perdu' && lead.stageId !== 'perdu'),
-    describe: (lead, contact) => `lead en stage "${lead.stageId}" alors que le contact est "${contact.statut}"`,
+    // Un contact "perdu" ne doit pas avoir de lead encore OUVERT (un lead perdu = status 'lost',
+    // ce qui l'envoie en "Zone perdu" du pipeline). On vérifie le status, pas le stageId.
+    ok: (lead, contact) => !(contact.statut === 'perdu' && lead.status === 'open'),
+    describe: (lead, contact) => `lead encore ouvert (stage "${lead.stageId}") alors que le contact est "${contact.statut}"`,
   },
   {
     id: 'crm_leads.source↔contact.source',
