@@ -122,6 +122,13 @@ export const remove = mutation({
     const cid = args.id.toString()
     const clients = await ctx.db.query("pipeline_clients").withIndex("by_ghl_contact", q => q.eq("ghl_contact_id", cid)).collect()
     for (const c of clients) await ctx.db.delete(c._id)
+    // Cascade prospection : enregistrements + événements liés (sinon orphelins dans le board prospection)
+    const precords = await ctx.db.query("prospection_records").withIndex("by_contact", q => q.eq("contactId", cid)).collect()
+    for (const r of precords) {
+      const evs = await ctx.db.query("prospection_events").withIndex("by_record", q => q.eq("prospectionRecordId", r._id)).collect()
+      for (const e of evs) await ctx.db.delete(e._id)
+      await ctx.db.delete(r._id)
+    }
     await ctx.db.delete(args.id)
   },
 })
