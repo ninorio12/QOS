@@ -96,20 +96,26 @@ function classifyPipeline(name: string): 'acquisition' | 'reactivation' | 'recep
 }
 
 function buildPhone(dial: string, local: string): string {
-  const cleaned = local.trim().replace(/^0/, '')
-  return cleaned ? `${dial}${cleaned}` : ''
+  const trimmed = local.trim()
+  if (!trimmed) return ''
+  // Si l'utilisateur a déjà saisi un numéro international complet (+41…), ne pas
+  // re-préfixer l'indicatif (évite des numéros invalides type "+33+41…").
+  if (trimmed.startsWith('+')) return trimmed
+  const cleaned = trimmed.replace(/^0/, '')
+  return `${dial}${cleaned}`
 }
 
-// Extract local number from E.164 phone (strips dial code)
+// Extract local number from E.164 phone (strips dial code).
+// Défaut Suisse (+41) : VividFlow cible les agences immobilières suisses.
 function parsePhone(phone: string | null): { countryCode: string; local: string } {
-  if (!phone) return { countryCode: 'FR', local: '' }
+  if (!phone) return { countryCode: 'CH', local: '' }
   const sorted = [...COUNTRIES].sort((a, b) => b.dial.length - a.dial.length)
   for (const c of sorted) {
     if (phone.startsWith(c.dial)) {
       return { countryCode: c.code, local: phone.slice(c.dial.length) }
     }
   }
-  return { countryCode: 'FR', local: phone }
+  return { countryCode: 'CH', local: phone }
 }
 
 function friendlyError(raw: string): string {

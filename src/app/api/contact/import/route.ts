@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from '../../../../../convex/_generated/api'
+
+export const dynamic = 'force-dynamic'
 
 type ImportRow = {
   firstName:   string
@@ -8,11 +12,19 @@ type ImportRow = {
   companyName: string
 }
 
-export async function POST(req: NextRequest) {
-  const apiKey     = process.env.GHL_API_KEY!
-  const locationId = process.env.GHL_LOCATION_ID!
-  const baseUrl    = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'
+function convex() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) throw new Error('NEXT_PUBLIC_CONVEX_URL not set')
+  return new ConvexHttpClient(url)
+}
 
+const initialsOf = (first: string, last: string, email: string) => {
+  const a = (first || '').trim(), b = (last || '').trim()
+  const ini = `${a[0] ?? ''}${b[0] ?? ''}`.toUpperCase()
+  return ini || (email[0] ?? '?').toUpperCase()
+}
+
+export async function POST(req: NextRequest) {
   const { rows, pipelineId, firstStageId } = await req.json() as {
     rows:           ImportRow[]
     pipelineId?:    string | null
@@ -20,71 +32,48 @@ export async function POST(req: NextRequest) {
   }
   if (!rows?.length) return NextResponse.json({ created: 0, errors: [] })
 
-  // Guard anti-burst — max 20 contacts par appel (GHL rate-limit)
+  // Garde anti-burst — max 20 contacts par appel.
   const BURST_LIMIT = 20
   if (rows.length > BURST_LIMIT) {
-    const trace_id = Math.random().toString(36).slice(2, 8)
-    console.warn(`[import] burst guard déclenché — ${rows.length} rows > ${BURST_LIMIT} (trace_id: ${trace_id})`)
     return NextResponse.json(
-      { error: 'burst_limit_exceeded', trace_id, message: `Maximum ${BURST_LIMIT} contacts par import. Reçu: ${rows.length}. Découpez en lots.`, limit: BURST_LIMIT, received: rows.length },
+      { error: 'burst_limit_exceeded', message: `Maximum ${BURST_LIMIT} contacts par import. Reçu: ${rows.length}. Découpez en lots.`, limit: BURST_LIMIT, received: rows.length },
       { status: 429 }
     )
   }
 
-  const headers = {
-    Authorization:  `Bearer ${apiKey}`,
-    Version:        '2021-07-28',
-    'Content-Type': 'application/json',
-  }
-
+  const c = convex()
   const results = await Promise.all(rows.map(async (r, i) => {
     try {
-      // 1. Create contact
-      const contactRes = await fetch(`${baseUrl}/contacts/`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          locationId,
-          firstName:   r.firstName   || undefined,
-          lastName:    r.lastName    || undefined,
-          email:       r.email       || undefined,
-          phone:       r.phone       || undefined,
-          companyName: r.companyName || undefined,
-        }),
-        cache: 'no-store',
+      // 1. Créer le contact dans Convex (source unique de vérité).
+      const contactId = await c.mutation(api.crm_contacts.create, {
+        firstName:   r.firstName   || '',
+        lastName:    r.lastName    || undefined,
+        email:       r.email       || undefined,
+        phone:       r.phone       || undefined,
+        companyName: r.companyName || undefined,
+        source:      'import',
       })
 
-      if (!contactRes.ok) {
-        return { ok: false, row: i + 1, message: await contactRes.text() }
-      }
-
-      // 2. Create opportunity if pipeline selected
+      // 2. Créer un lead dans le pipeline si demandé.
       if (pipelineId && firstStageId) {
-        const contactData = await contactRes.json() as { contact?: { id: string } }
-        const contactId   = contactData.contact?.id
-        if (contactId) {
-          const name = [r.firstName, r.lastName].filter(Boolean).join(' ') || r.email || 'Contact importé'
-          await fetch(`${baseUrl}/opportunities/`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              locationId,
-              pipelineId,
-              pipelineStageId: firstStageId,
-              contactId,
-              name,
-              monetaryValue:   0,
-              status:          'open',
-            }),
-            cache: 'no-store',
-          })
-          // Opportunity errors are non-fatal — contact was already created
-        }
+        const name = [r.firstName, r.lastName].filter(Boolean).join(' ') || r.email || 'Contact importé'
+        await c.mutation(api.crm_leads.create, {
+          contactId,
+          name,
+          email:      r.email       || undefined,
+          phone:      r.phone       || undefined,
+          company:    r.companyName || undefined,
+          pipelineId,
+          stageId:    firstStageId,
+          value:      0,
+          source:     'import',
+          initials:   initialsOf(r.firstName, r.lastName, r.email),
+        })
       }
 
-      return { ok: true }
+      return { ok: true as const }
     } catch (err) {
-      return { ok: false, row: i + 1, message: String(err) }
+      return { ok: false as const, row: i + 1, message: String(err) }
     }
   }))
 
