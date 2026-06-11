@@ -153,10 +153,10 @@ export default function DocEditor({
         <textarea
           ref={ta} value={body} onChange={e => setBody(e.target.value)}
           placeholder="Page blanche — écrivez librement. Utilisez les boutons ci-dessus (titres, points, checklists, étapes, liens) ou tapez en Markdown."
-          className="w-full min-h-[60vh] bg-soren-app rounded-2xl border border-soren-border p-6 text-[14px] leading-relaxed text-soren-text placeholder:text-soren-subtle focus:outline-none focus:border-[#C8CBD0] resize-y font-sans"
+          className="w-full min-h-[60vh] bg-transparent rounded-2xl border border-soren-border p-6 text-[14px] leading-relaxed text-soren-text placeholder:text-soren-subtle focus:outline-none focus:border-[#C8CBD0] resize-y font-sans"
         />
       ) : (
-        <div className="w-full min-h-[60vh] bg-soren-app rounded-2xl border border-soren-border p-6">
+        <div className="w-full min-h-[60vh] bg-transparent rounded-2xl border border-soren-border p-6">
           {body.trim() ? <MarkdownView markdown={body} /> : <p className="text-[12px] text-soren-subtle">Document vide.</p>}
         </div>
       )}
