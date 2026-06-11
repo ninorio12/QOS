@@ -40,7 +40,11 @@ async function enforce(ctx: any, contactId: any, opts?: { dealValue?: number }) 
     if (existingClient) await ctx.db.delete(existingClient._id)
     const targetStatus = contact.statut === 'perdu' ? 'lost' : 'open'
     if (existingLead) {
-      if (existingLead.status !== targetStatus) await ctx.db.patch(existingLead._id, { status: targetStatus })
+      // Propager les champs dérivés de la fiche contact (source unique de vérité) au lead existant.
+      const patch: { status?: string; source?: string } = {}
+      if (existingLead.status !== targetStatus) patch.status = targetStatus
+      if (contact.source && existingLead.source !== contact.source) patch.source = contact.source
+      if (Object.keys(patch).length) await ctx.db.patch(existingLead._id, patch)
       return { ok: true, action: `lead-${targetStatus}` }
     }
     const firstStage = leadsPipeline ? [...leadsPipeline.stages].sort((a: any, b: any) => a.position - b.position)[0] : null

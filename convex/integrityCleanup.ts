@@ -57,14 +57,17 @@ export const realign = mutation({
       }
     }
 
-    // 4. désync : lead "ouvert" en stage actif alors que le contact est "perdu" → aligner (status=lost).
+    // 4. désync : aligner chaque lead sur sa fiche contact (source unique de vérité).
     for (const l of leads) {
       if (!l.contactId) continue
       const ct = contactById.get(String(l.contactId))
-      if (ct && ct.statut === "perdu" && l.status === "open" && l.stageId !== "perdu") {
-        await ctx.db.patch(l._id, { status: "lost" })
-        report.desyncAligned++
-      }
+      if (!ct) continue
+      const patch: { status?: string; source?: string } = {}
+      // a) lead ouvert mais contact "perdu" → lead perdu (Zone perdu).
+      if (ct.statut === "perdu" && l.status === "open" && l.stageId !== "perdu") patch.status = "lost"
+      // b) source du lead différente de la fiche → aligner sur la fiche.
+      if (ct.source && l.source !== ct.source) patch.source = ct.source
+      if (Object.keys(patch).length) { await ctx.db.patch(l._id, patch); report.desyncAligned++ }
     }
 
     return report

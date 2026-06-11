@@ -23,12 +23,12 @@ export const REFERENTIAL = [
 
 export const CONSISTENCY = [
   {
-    id: 'crm_leads.stage↔contact.statut',
+    id: 'crm_leads.open↔contact.statut=lead',
     table: 'crm_leads', via: 'contactId', parentTable: 'crm_contacts',
-    // Un contact "perdu" ne doit pas avoir de lead encore OUVERT (un lead perdu = status 'lost',
-    // ce qui l'envoie en "Zone perdu" du pipeline). On vérifie le status, pas le stageId.
-    ok: (lead, contact) => !(contact.statut === 'perdu' && lead.status === 'open'),
-    describe: (lead, contact) => `lead encore ouvert (stage "${lead.stageId}") alors que le contact est "${contact.statut}"`,
+    // Un lead OUVERT (présent dans la pipeline leads) doit avoir un contact de statut "lead".
+    // Si le contact est "client" ou "perdu", il n'a rien à faire dans la pipeline leads.
+    ok: (lead, contact) => lead.status !== 'open' || contact.statut === 'lead',
+    describe: (lead, contact) => `lead ouvert mais contact "${contact.statut}" (pipeline leads = contacts "lead" uniquement)`,
   },
   {
     id: 'crm_leads.source↔contact.source',
@@ -37,6 +37,15 @@ export const CONSISTENCY = [
     // rester alignée avec celle du contact (source unique de vérité). Filet anti-drift.
     ok: (lead, contact) => !lead.source || !contact.source || lead.source === contact.source,
     describe: (lead, contact) => `lead.source "${lead.source}" ≠ contact.source "${contact.source}"`,
+  },
+  {
+    // Une ligne pipeline_clients doit avoir un contact de statut "client". Combiné à la règle
+    // ci-dessus (lead ouvert ⇒ contact "lead"), ça garantit qu'un contact n'est JAMAIS dans
+    // les deux pipelines : lead → leads, client → clients, jamais les deux.
+    id: 'pipeline_clients↔contact.statut=client',
+    table: 'pipeline_clients', via: 'contactId', parentTable: 'crm_contacts',
+    ok: (client, contact) => contact.statut === 'client',
+    describe: (client, contact) => `dans la pipeline clients mais contact "${contact.statut}" (devrait être "client")`,
   },
 ]
 

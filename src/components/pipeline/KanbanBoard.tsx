@@ -290,23 +290,30 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   const [editContact,    setEditContact]    = useState<Record<string, unknown> | null>(null)
   const draggingRef = useRef(false)
 
-  // Reactive live leads — updates instantly on any change, anywhere
+  // Reactive live leads + contacts — la card DÉRIVE de la fiche contact (source unique).
   const liveLeads = useQuery(api.crm_leads.list)
+  const liveContacts = useQuery(api.crm_contacts.list)
   useEffect(() => {
     if (!liveLeads || draggingRef.current) return
+    // source de vérité = la fiche contact ; la chip inbound/outbound en dérive.
+    const sourceByContact = new Map<string, string>()
+    for (const c of (liveContacts ?? []) as { _id: string; source?: string }[]) {
+      if (c.source) sourceByContact.set(c._id, c.source)
+    }
     const mapped: Opportunity[] = (liveLeads as {
       _id: string; name: string; email?: string; phone?: string; company?: string;
       pipelineId: string; stageId: string; value: number; source?: string;
       status: string; initials: string; createdAt: string; contactId?: string
     }[]).map(l => ({
       id: l._id, name: l.name, company: l.company ?? '', value: l.value,
-      source: l.source ?? '', createdAt: l.createdAt.split('T')[0], initials: l.initials,
+      source: (l.contactId && sourceByContact.get(l.contactId)) || l.source || '',
+      createdAt: l.createdAt.split('T')[0], initials: l.initials,
       stageId: l.stageId, pipelineId: l.pipelineId, email: l.email ?? '', phone: l.phone ?? '',
       contactId: l.contactId ?? '', tags: [], status: l.status as Opportunity['status'],
     }))
     setOpps(mapped.filter(o => o.status !== 'lost'))
     setLostOpps(mapped.filter(o => o.status === 'lost'))
-  }, [liveLeads])
+  }, [liveLeads, liveContacts])
 
   function reopenLead(opp: Opportunity) {
     const firstStageId = stages[0]?.id ?? 'nouveau-lead'
