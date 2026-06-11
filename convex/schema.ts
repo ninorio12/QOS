@@ -326,12 +326,14 @@ export default defineSchema({
   }).index("by_workspace", ["workspaceId"]).index("by_entity", ["entityType", "entityId"]),
 
   // Équipe IA — agents opérationnels
+  // Comptes agents = MACHINE IDENTITIES (≠ humains Clerk). Champs ajoutés optionnels
+  // pour ne pas casser l'existant ; la couche identité machine vit ici + tables dédiées.
   os_agents: defineTable({
     workspaceId: v.string(),
     name:        v.string(),
     role:        v.string(),
     email:       v.optional(v.string()),   // pour les invitations calendrier
-    status:      v.string(),   // active | paused | offline
+    status:      v.string(),   // active | inactive | disabled | maintenance | qr_required (+ legacy paused/offline)
     lane:        v.optional(v.string()),   // operating lane
     autonomy:    v.string(),   // read_only | suggest | execute | autonomous
     channels:    v.optional(v.array(v.string())),   // slack | telegram | dataos
@@ -340,7 +342,87 @@ export default defineSchema({
     lastActiveAt: v.optional(v.string()),
     order:       v.optional(v.number()),
     updatedAt:   v.string(),
-  }).index("by_workspace", ["workspaceId"]),
+    // --- Machine identity ---
+    slug:                   v.optional(v.string()),
+    displayName:            v.optional(v.string()),
+    type:                   v.optional(v.string()),   // "agent"
+    hermesProfile:          v.optional(v.string()),   // chief_of_staff | cmo_executor | …
+    runtimeService:         v.optional(v.string()),   // hermes-gateway-chief_of_staff.service
+    description:            v.optional(v.string()),
+    ownerHumanId:           v.optional(v.string()),   // clerkUserId du référent humain
+    channelBindings:        v.optional(v.array(v.object({ channel: v.string(), ref: v.optional(v.string()), status: v.optional(v.string()) }))),
+    capabilities:           v.optional(v.array(v.string())),
+    forbiddenActions:       v.optional(v.array(v.string())),
+    requiredKnowledgeCores: v.optional(v.array(v.string())),
+    runbookUrl:             v.optional(v.string()),
+    lastHeartbeatAt:        v.optional(v.string()),
+    lastSeenAt:             v.optional(v.string()),
+    lastErrorAt:            v.optional(v.string()),
+    lastError:              v.optional(v.string()),
+    createdAt:              v.optional(v.string()),
+  }).index("by_workspace", ["workspaceId"]).index("by_slug", ["workspaceId", "slug"]),
+
+  // Tokens machine : on ne stocke JAMAIS le secret en clair, seulement son hash.
+  os_agent_credentials: defineTable({
+    agentId:    v.id("os_agents"),
+    tokenHash:  v.string(),
+    label:      v.optional(v.string()),
+    scopes:     v.array(v.string()),
+    expiresAt:  v.optional(v.string()),
+    lastUsedAt: v.optional(v.string()),
+    revokedAt:  v.optional(v.string()),
+    createdAt:  v.string(),
+  }).index("by_agent", ["agentId"]).index("by_tokenHash", ["tokenHash"]),
+
+  // Permissions granulaires (scope/ressource/niveau, approval requis).
+  os_agent_permissions: defineTable({
+    agentId:         v.id("os_agents"),
+    scope:           v.string(),
+    level:           v.string(),   // read | write | execute | admin_limited
+    resource:        v.optional(v.string()),
+    requiresApproval: v.boolean(),
+    createdAt:       v.string(),
+  }).index("by_agent", ["agentId"]),
+
+  // Journal d'audit machine (toute action passe par ici).
+  os_agent_events: defineTable({
+    agentId:   v.id("os_agents"),
+    eventType: v.string(),
+    source:    v.optional(v.string()),
+    payload:   v.optional(v.any()),
+    riskLevel: v.optional(v.string()),   // low | medium | high
+    createdAt: v.string(),
+  }).index("by_agent", ["agentId"]).index("by_type", ["eventType"]),
+
+  // Exécutions d'agent (runs).
+  os_agent_runs: defineTable({
+    agentId:             v.id("os_agents"),
+    taskId:              v.optional(v.string()),
+    status:              v.string(),   // queued | running | success | failed | cancelled
+    inputSummary:        v.optional(v.string()),
+    outputSummary:       v.optional(v.string()),
+    toolUseSummary:      v.optional(v.string()),
+    verificationSummary: v.optional(v.string()),
+    error:               v.optional(v.string()),
+    startedAt:           v.optional(v.string()),
+    finishedAt:          v.optional(v.string()),
+    createdAt:           v.string(),
+  }).index("by_agent", ["agentId"]),
+
+  // Demandes d'approbation (action sensible proposée, exécutée seulement après validation humaine).
+  os_agent_approvals: defineTable({
+    agentId:         v.id("os_agents"),
+    requestedAction: v.string(),
+    riskLevel:       v.string(),
+    reason:          v.optional(v.string()),
+    context:         v.optional(v.any()),
+    payload:         v.optional(v.any()),
+    status:          v.string(),   // pending | approved | rejected | expired | executed
+    requestedAt:     v.string(),
+    reviewedBy:      v.optional(v.string()),
+    reviewedAt:      v.optional(v.string()),
+    reviewNote:      v.optional(v.string()),
+  }).index("by_agent", ["agentId"]).index("by_status", ["status"]),
 
   // Prospection — cockpit caller (Nouveau lead → R1 booké). Lié au Contact via contactId.
   prospection_records: defineTable({

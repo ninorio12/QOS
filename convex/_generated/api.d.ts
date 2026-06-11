@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as agentApi from "../agentApi.js";
+import type * as agents from "../agents.js";
 import type * as analytics from "../analytics.js";
 import type * as clients from "../clients.js";
 import type * as companySettings from "../companySettings.js";
@@ -20,6 +22,7 @@ import type * as devis from "../devis.js";
 import type * as files from "../files.js";
 import type * as googleAccounts from "../googleAccounts.js";
 import type * as integrations from "../integrations.js";
+import type * as integrityCleanup from "../integrityCleanup.js";
 import type * as leadSync from "../leadSync.js";
 import type * as lead_stage_history from "../lead_stage_history.js";
 import type * as library from "../library.js";
@@ -53,6 +56,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  agentApi: typeof agentApi;
+  agents: typeof agents;
   analytics: typeof analytics;
   clients: typeof clients;
   companySettings: typeof companySettings;
@@ -65,6 +70,7 @@ declare const fullApi: ApiFromModules<{
   files: typeof files;
   googleAccounts: typeof googleAccounts;
   integrations: typeof integrations;
+  integrityCleanup: typeof integrityCleanup;
   leadSync: typeof leadSync;
   lead_stage_history: typeof lead_stage_history;
   library: typeof library;
