@@ -64,12 +64,9 @@ function Avatar({ initials }: { initials: string }) {
 // ─── Opportunity Card ─────────────────────────────────────────
 function OppCard({ opp, isDragging = false, muted = false, hideValue = false }: { opp: Opportunity; isDragging?: boolean; muted?: boolean; hideValue?: boolean }) {
   const date = new Date(opp.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-  const sourceType: 'inbound' | 'outbound' = (() => {
-    try {
-      const m = JSON.parse(localStorage.getItem('vividflow_contact_source') ?? '{}') as Record<string, string>
-      return (m[opp.contactId] as 'inbound' | 'outbound') ?? 'inbound'
-    } catch { return 'inbound' }
-  })()
+  // La source vient de la donnée Convex du lead (= source du contact, source unique de
+  // vérité) — plus de copie localStorage qui restait figée à "inbound".
+  const sourceType: 'inbound' | 'outbound' = opp.source === 'outbound' ? 'outbound' : 'inbound'
 
   return (
     <div className={`

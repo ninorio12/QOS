@@ -24,6 +24,14 @@ export const CONSISTENCY = [
     ok: (lead, contact) => !(contact.statut === 'perdu' && lead.stageId !== 'perdu'),
     describe: (lead, contact) => `lead en stage "${lead.stageId}" alors que le contact est "${contact.statut}"`,
   },
+  {
+    id: 'crm_leads.source↔contact.source',
+    table: 'crm_leads', via: 'contactId', parentTable: 'crm_contacts',
+    // Le badge source de la card pipeline dérive de la source (inbound/outbound) ; elle doit
+    // rester alignée avec celle du contact (source unique de vérité). Filet anti-drift.
+    ok: (lead, contact) => !lead.source || !contact.source || lead.source === contact.source,
+    describe: (lead, contact) => `lead.source "${lead.source}" ≠ contact.source "${contact.source}"`,
+  },
 ]
 
 // Libellés logiques à charger (toute source + toute cible). Doit rester en phase avec les règles
