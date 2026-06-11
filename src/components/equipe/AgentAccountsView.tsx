@@ -52,7 +52,15 @@ export default function AgentAccountsView() {
           <>
             {(() => {
               // Organigramme agentique — coordinateur en haut, exécutants en dessous.
-              const toNode = (a: typeof agents[number]): OrgNode => ({ id: a.id, name: a.displayName ?? a.name, role: a.role, active: a.status === 'active' })
+              // Photos des agents (public/agents), mappées par slug ; repli icône sinon.
+              const AVATARS: Record<string, string> = {
+                coordinator: '/agents/coo.png',
+                cmo:         '/agents/analyse.png',
+                csm:         '/agents/support.png',
+                ops:         '/agents/operations.png',
+                'kb-gbrain': '/agents/kb.png',
+              }
+              const toNode = (a: typeof agents[number]): OrgNode => ({ id: a.id, name: a.displayName ?? a.name, role: a.role, active: a.status === 'active', avatar: a.slug ? AVATARS[a.slug] : undefined })
               const coordinator = agents.find(a => a.slug === 'coordinator') ?? agents.find(a => a.hermesProfile === 'chief_of_staff') ?? agents[0]
               const reports = agents.filter(a => a.id !== coordinator.id)
               return (
