@@ -142,8 +142,8 @@ function TrackerRow({ r, onOpen, onComment, onPhase, onR1, onPerdu }: {
       <div className="min-w-0">
         {r.contact.phone ? (
           <a href={`tel:${r.contact.phone.replace(/[^+0-9]/g, '')}`} onClick={e => e.stopPropagation()} title={`Appeler ${r.contact.phone}`}
-            className="inline-flex items-center gap-1.5 max-w-full text-[11px] font-medium text-soren-text hover:text-[#16A34A] transition-colors">
-            <Phone size={12} className="text-[#16A34A] flex-shrink-0" />
+            className="inline-flex items-center gap-1.5 max-w-full text-[11px] font-medium text-soren-text hover:text-[#FF4D00] transition-colors">
+            <Phone size={12} className="text-[#FF4D00] flex-shrink-0" />
             <span className="truncate">{r.contact.phone}</span>
           </a>
         ) : <span className="text-[11px] text-soren-subtle">—</span>}
