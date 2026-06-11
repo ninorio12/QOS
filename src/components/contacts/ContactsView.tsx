@@ -11,6 +11,8 @@ import dynamic from 'next/dynamic'
 import { useToast } from '@/hooks/useToast'
 import { Toaster } from '@/components/shared/Toaster'
 import { MotionStagger, MotionItem } from '@/components/ui/Motion'
+import { useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
 
 const NewLeadWidget   = dynamic(() => import('@/components/shared/NewLeadWidget'), { ssr: false })
 const ImportModal     = dynamic(() => import('./ImportModal'),     { ssr: false })
@@ -294,13 +296,39 @@ export default function ContactsView({
 
   const [contacts,     setContacts]     = useState<GHLContact[]>(initial)
   const [checked,      setChecked]      = useState<Set<string>>(new Set())
+
+  // Réactivité live : toute modif d'un contact (fiche, badge, ajout, suppression) écrite
+  // dans Convex resynchronise la liste automatiquement — plus besoin d'« Actualiser ».
+  const liveContacts = useQuery(api.crm_contacts.list)
+  useEffect(() => {
+    if (!liveContacts) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setContacts((liveContacts as any[]).map(c => ({
+      id:          c._id,
+      contactName: `${c.firstName} ${c.lastName ?? ''}`.trim(),
+      firstName:   c.firstName   || null,
+      lastName:    c.lastName    || null,
+      email:       c.email       || null,
+      phone:       c.phone       || null,
+      companyName: c.companyName || null,
+      address1:    c.address1    || null,
+      city:        c.city        || null,
+      postalCode:  c.postalCode  || null,
+      website:     c.website     || null,
+      source:      c.source      || null,
+      statut:      c.statut      || null,
+      canton:      c.canton      || null,
+      metier:      c.metier      || null,
+      niche:       c.niche       || null,
+      tags:        c.tags        ?? [],
+      dateAdded:   c.createdAt,
+      dateUpdated: c.updatedAt   || null,
+    })) as GHLContact[])
+  }, [liveContacts])
   const [query,          setQuery]          = useState(() => readSaved()?.query ?? '')
   const [debouncedQuery, setDebouncedQuery] = useState(() => readSaved()?.query ?? '')
 
-  useEffect(() => {
-    void refreshContacts()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // (Plus de refresh REST au montage : la liste est live via useQuery ci-dessus.)
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query), 200)
