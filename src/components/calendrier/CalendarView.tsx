@@ -558,17 +558,17 @@ function WeekGrid({
     >
       {/* ── Day headers — sticky ── */}
       <div
-        className="flex flex-shrink-0 border-b border-[#E8E8E6] sticky top-0 z-20 bg-soren-card"
+        className="flex flex-shrink-0 border-b border-soren-border sticky top-0 z-20 bg-soren-card"
         style={{ borderRadius: '32px 32px 0 0', overflow: 'hidden' }}
       >
         {/* Gutter */}
-        <div className="w-20 flex-shrink-0 border-r border-[#E8E8E6] bg-soren-card" />
+        <div className="w-20 flex-shrink-0 border-r border-soren-border bg-soren-card" />
         {days.map((day, i) => {
           const isToday = sameDay(day, today)
           return (
             <div
               key={i}
-              className="flex-1 py-3 px-2 border-r border-[#E8E8E6] last:border-r-0 flex flex-col items-center gap-0.5"
+              className="flex-1 py-3 px-2 border-r border-soren-border last:border-r-0 flex flex-col items-center gap-0.5"
               style={{ background: 'white' }}
             >
               <p className={`text-[10px] font-bold uppercase tracking-wider ${isToday ? 'text-[#FF4D00]' : 'text-soren-subtle'}`}>
@@ -592,7 +592,7 @@ function WeekGrid({
           <div className="flex" style={{ height: totalH }}>
 
             {/* Time labels column */}
-            <div className="w-20 flex-shrink-0 bg-soren-card border-r border-[#E8E8E6] flex flex-col">
+            <div className="w-20 flex-shrink-0 bg-soren-card border-r border-soren-border flex flex-col">
               {hours.map((h, hi) => (
                 <div
                   key={h}
@@ -641,10 +641,10 @@ function WeekGrid({
                 return (
                   <div
                     key={di}
-                    className="flex-1 relative border-r border-[#E8E8E6] last:border-r-0"
+                    className="flex-1 relative border-r border-soren-border last:border-r-0"
                     style={{
                       height: totalH,
-                      background: isToday ? 'rgba(17,17,17,0.025)' : '#F5F5F3',
+                      background: isToday ? 'rgba(128,128,128,0.08)' : 'var(--bg-elevated)',
                     }}
                   >
                     {/* Hour lines */}
@@ -652,7 +652,7 @@ function WeekGrid({
                       <div
                         key={hi}
                         className="absolute left-0 right-0"
-                        style={{ top: hi * HOUR_H, borderTop: '1px solid #EAEAE8' }}
+                        style={{ top: hi * HOUR_H, borderTop: '1px solid var(--border)' }}
                       />
                     ))}
                     {/* Half-hour lines */}
@@ -660,7 +660,7 @@ function WeekGrid({
                       <div
                         key={`hh-${hi}`}
                         className="absolute left-0 right-0"
-                        style={{ top: hi * HOUR_H + HOUR_H / 2, borderTop: '1px dashed #F0F0EE' }}
+                        style={{ top: hi * HOUR_H + HOUR_H / 2, borderTop: '1px dashed color-mix(in srgb, var(--border) 55%, transparent)' }}
                       />
                     ))}
 
@@ -892,7 +892,7 @@ function DayAgenda({ appointments, onApptClick }: { appointments: Appointment[];
       <div ref={gridRef} className="flex-1 overflow-y-auto rounded-2xl border border-soren-border bg-soren-card">
         <div className="flex" style={{ height: totalH }}>
           {/* Colonne des heures */}
-          <div className="w-16 flex-shrink-0 border-r border-[#E8E8E6] flex flex-col">
+          <div className="w-16 flex-shrink-0 border-r border-soren-border flex flex-col">
             {hours.map((h, hi) => (
               <div key={h} className="flex-shrink-0 flex items-start justify-end pr-2.5" style={{ height: HOUR_H }}>
                 <span className="text-[10.5px] text-[#ADADAD] font-medium" style={{ marginTop: hi === 0 ? 4 : -8 }}>{fmtHour(h)}</span>
@@ -901,13 +901,13 @@ function DayAgenda({ appointments, onApptClick }: { appointments: Appointment[];
           </div>
 
           {/* Colonne du jour */}
-          <div className="flex-1 relative" style={{ height: totalH, background: isToday ? 'rgba(17,17,17,0.025)' : '#F5F5F3' }}>
+          <div className="flex-1 relative" style={{ height: totalH, background: isToday ? 'rgba(128,128,128,0.08)' : 'var(--bg-elevated)' }}>
             {/* Lignes pleines (heures) + pointillés (demi-heures) */}
             {hours.map((_, hi) => (
-              <div key={hi} className="absolute left-0 right-0" style={{ top: hi * HOUR_H, borderTop: '1px solid #EAEAE8' }} />
+              <div key={hi} className="absolute left-0 right-0" style={{ top: hi * HOUR_H, borderTop: '1px solid var(--border)' }} />
             ))}
             {hours.map((_, hi) => (
-              <div key={`hh-${hi}`} className="absolute left-0 right-0" style={{ top: hi * HOUR_H + HOUR_H / 2, borderTop: '1px dashed #F0F0EE' }} />
+              <div key={`hh-${hi}`} className="absolute left-0 right-0" style={{ top: hi * HOUR_H + HOUR_H / 2, borderTop: '1px dashed color-mix(in srgb, var(--border) 55%, transparent)' }} />
             ))}
 
             {/* Barre d'heure courante */}

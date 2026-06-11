@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation } from 'convex/react'
+import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { api } from '../../../convex/_generated/api'
 import {
   Plus, ArrowLeft, ArrowUpRight, Trash2, X, Image as ImageIcon, Camera, RefreshCw, Search, Link2, ChevronDown, FolderPlus, Check, Maximize2,
@@ -330,6 +331,17 @@ export default function ProcessView() {
   const clientNameOf = useMemo(() => { const m: Record<string, string> = {}; clients.forEach(c => { m[c.ghl_contact_id ?? c._id] = c.name }); return m }, [clients])
 
   const create = useMutation(api.processes.create)
+  const updateProc = useMutation(api.processes.update)
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+  function handleDragEnd(e: DragEndEvent) {
+    const procId = String(e.active.id)
+    const d = e.over?.data?.current as { category: string; subfolder: string } | undefined
+    if (!d) return
+    const p = items.find(x => x.id === procId)
+    if (!p) return
+    if ((p.category || 'Process internes') === d.category && (p.subfolder || '') === (d.subfolder || '')) return
+    void updateProc({ id: procId as never, category: d.category, subfolder: d.subfolder || '' })
+  }
   const persistedCats = (useQuery(api.processCategories.list) ?? []) as { id: string; name: string }[]
   const createCat = useMutation(api.processCategories.create)
   const subfoldersRaw = useQuery(api.processSubfolders.list) as { id: string; category: string; name: string }[] | undefined
@@ -391,25 +403,39 @@ export default function ProcessView() {
     return <ProcessDetail proc={selected} categories={categories} subfolderOptions={subOpts} clients={clients} users={users} onBack={() => setSelectedId(null)} readOnly={!isAdmin} />
   }
 
+  function DropZone({ category, subfolder, children, className }: { category: string; subfolder: string; children: React.ReactNode; className?: string }) {
+    const { setNodeRef, isOver } = useDroppable({ id: `move:${category}:${subfolder}`, data: { category, subfolder } })
+    return <div ref={setNodeRef} className={`${className ?? ''} rounded-xl transition-all ${isOver ? 'ring-2 ring-[#FF4D00]/60 bg-[#FF4D00]/5' : ''}`}>{children}</div>
+  }
+
   function Card({ p }: { p: Process }) {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: p.id, data: { process: p } })
+    const link = p.link && <a href={p.link} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} title="Ouvrir le lien" className="w-6 h-6 rounded-lg flex items-center justify-center text-soren-muted hover:text-[#FF4D00] hover:bg-soren-elevated transition-colors flex-shrink-0"><ArrowUpRight size={14} /></a>
+    const clientLine = p.linkedClientId && clientNameOf[p.linkedClientId] && <span className="text-[9.5px] text-soren-subtle truncate block">{clientNameOf[p.linkedClientId]}</span>
     return (
-      <div onClick={() => setSelectedId(p.id)} className="group bg-soren-card border border-soren-border rounded-xl overflow-hidden cursor-pointer hover:border-[#C8CBD0] hover:shadow-sm transition-all flex flex-col">
+      <div ref={setNodeRef} {...attributes} {...listeners} onClick={() => setSelectedId(p.id)} style={{ touchAction: 'none' }}
+        className={`group bg-soren-card border border-soren-border rounded-xl overflow-hidden cursor-pointer hover:border-[#C8CBD0] hover:shadow-sm transition-all flex flex-col ${isDragging ? 'opacity-40' : ''}`}>
         {p.previewUrl ? (
-          <div className="h-20 bg-soren-elevated overflow-hidden"><img src={p.previewUrl} alt={p.title} className="w-full h-full object-cover" /></div>
-        ) : (() => {
-          const preview = textPreview(p.blocks)
-          return preview
-            ? <div className="h-20 bg-soren-elevated px-3 py-2 overflow-hidden"><p className="text-[10px] text-soren-muted leading-snug line-clamp-4">{preview}</p></div>
-            : <div className="h-20 bg-soren-elevated flex items-center justify-center"><IconOf k={p.icon} size={22} className="text-soren-muted" /></div>
-        })()}
-        <div className="p-2.5 flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-[#FF4D00]/10 flex items-center justify-center flex-shrink-0"><IconOf k={p.icon} size={13} className="text-[#FF4D00]" /></div>
-          <div className="min-w-0 flex-1">
-            <span className="text-[11.5px] font-normal text-soren-text truncate block">{p.title}</span>
-            {p.linkedClientId && clientNameOf[p.linkedClientId] && <span className="text-[9.5px] text-soren-subtle truncate block">{clientNameOf[p.linkedClientId]}</span>}
+          <>
+            <div className="h-20 bg-soren-elevated overflow-hidden"><img src={p.previewUrl} alt={p.title} className="w-full h-full object-cover" /></div>
+            <div className="p-2.5 flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-[#FF4D00]/10 flex items-center justify-center flex-shrink-0"><IconOf k={p.icon} size={13} className="text-[#FF4D00]" /></div>
+              <div className="min-w-0 flex-1"><span className="text-[11.5px] font-normal text-soren-text truncate block">{p.title}</span>{clientLine}</div>
+              {link}
+            </div>
+          </>
+        ) : (
+          // Sans photo : titre en haut + début de la description (pas de cadre photo vide).
+          <div className="p-3 flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-[#FF4D00]/10 flex items-center justify-center flex-shrink-0"><IconOf k={p.icon} size={13} className="text-[#FF4D00]" /></div>
+              <span className="text-[12px] font-medium text-soren-text truncate flex-1">{p.title}</span>
+              {link}
+            </div>
+            {(() => { const t = textPreview(p.blocks); return t ? <p className="text-[10.5px] text-soren-muted leading-snug line-clamp-3">{t}</p> : <p className="text-[10.5px] text-soren-subtle italic">Pas encore de description</p> })()}
+            {clientLine}
           </div>
-          {p.link && <a href={p.link} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} title="Ouvrir le lien" className="w-6 h-6 rounded-lg flex items-center justify-center text-soren-muted hover:text-[#FF4D00] hover:bg-soren-elevated transition-colors flex-shrink-0"><ArrowUpRight size={14} /></a>}
-        </div>
+        )}
         {(p.assignedUserIds.length > 0 || isAdmin) && (
           <div className="px-2.5 pb-2.5 -mt-0.5 flex items-center">
             {p.assignedUserIds.length === 0
@@ -448,6 +474,7 @@ export default function ProcessView() {
             <p className="text-[12px] text-soren-subtle">{query || clientFilter ? 'Aucun process trouvé.' : isAdmin ? 'Aucun process. Clique « Ajouter un process ».' : 'Aucun process ne t’est assigné pour le moment.'}</p>
           </div>
         ) : (
+          <DndContext sensors={dndSensors} onDragEnd={handleDragEnd}>
           <div className="flex flex-col gap-6">
             {visibleCats.map(cat => {
               const all    = byCat[cat] ?? []
@@ -464,31 +491,35 @@ export default function ProcessView() {
                     {isAdmin && <button onClick={() => { setAddingSubFor(cat); setSubName('') }} className="inline-flex items-center gap-1 text-[10px] font-semibold text-soren-subtle hover:text-soren-text"><FolderPlus size={11} /> Sous-dossier</button>}
                   </div>
 
-                  {direct.length > 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5" data-stagger>
-                      {direct.map(p => <Card key={p.id} p={p} />)}
-                    </div>
-                  )}
+                  {/* Zone catégorie (sans sous-dossier) — droppable */}
+                  <DropZone category={cat} subfolder="">
+                    {direct.length > 0
+                      ? <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5" data-stagger>{direct.map(p => <Card key={p.id} p={p} />)}</div>
+                      : isAdmin ? <p className="text-[10px] text-soren-subtle px-1 py-3">Glisse un process ici</p> : null}
+                  </DropZone>
 
                   {subs.map(sub => {
                     const subProcs = all.filter(p => p.subfolder === sub)
                     return (
-                      <div key={sub} className="flex flex-col gap-2 pl-3 ml-0.5 border-l-2 border-soren-border">
-                        <div className="flex items-center gap-1.5">
-                          <Folder size={12} className="text-[#FF4D00]" />
-                          <span className="text-[11px] font-semibold text-soren-text">{sub}</span>
-                          <span className="text-[9px] font-bold bg-soren-card border border-soren-border text-soren-subtle px-1.5 py-0.5 rounded-full">{subProcs.length}</span>
+                      <DropZone key={sub} category={cat} subfolder={sub} className="pl-3 ml-0.5 border-l-2 border-soren-border">
+                        <div className="flex flex-col gap-2 py-1">
+                          <div className="flex items-center gap-1.5">
+                            <Folder size={12} className="text-[#FF4D00]" />
+                            <span className="text-[11px] font-semibold text-soren-text">{sub}</span>
+                            <span className="text-[9px] font-bold bg-soren-card border border-soren-border text-soren-subtle px-1.5 py-0.5 rounded-full">{subProcs.length}</span>
+                          </div>
+                          {subProcs.length > 0
+                            ? <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5" data-stagger>{subProcs.map(p => <Card key={p.id} p={p} />)}</div>
+                            : <p className="text-[10px] text-soren-subtle pl-0.5 py-1">Dossier vide — glisse un process ici</p>}
                         </div>
-                        {subProcs.length > 0
-                          ? <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5" data-stagger>{subProcs.map(p => <Card key={p.id} p={p} />)}</div>
-                          : <p className="text-[10px] text-soren-subtle pl-0.5">Dossier vide</p>}
-                      </div>
+                      </DropZone>
                     )
                   })}
                 </div>
               )
             })}
           </div>
+          </DndContext>
         )}
       </div>
 
