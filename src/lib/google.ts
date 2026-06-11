@@ -6,11 +6,11 @@ function appUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 }
 
-export function getOAuth2Client() {
+export function getOAuth2Client(redirectUri?: string) {
   return new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    `${appUrl()}/api/auth/google/callback`,
+    redirectUri ?? `${appUrl()}/api/auth/google/callback`,
   )
 }
 

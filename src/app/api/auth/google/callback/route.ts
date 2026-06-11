@@ -17,7 +17,10 @@ export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code')
   if (!code) return NextResponse.json({ error: 'No code' }, { status: 400 })
 
-  const oauth2 = getOAuth2Client()
+  // Même redirect_uri que la requête d'autorisation (sinon l'échange du token échoue).
+  const origin = (process.env.NEXT_PUBLIC_APP_URL || '').trim() || req.nextUrl.origin
+  const redirectUri = `${origin.replace(/\/+$/, '')}/api/auth/google/callback`
+  const oauth2 = getOAuth2Client(redirectUri)
   const { tokens } = await oauth2.getToken(code)
 
   let saved = false
