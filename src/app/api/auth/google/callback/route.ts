@@ -13,9 +13,23 @@ function emailFromIdToken(idToken?: string | null): string | undefined {
   } catch { return undefined }
 }
 
+function failPage(detail: string) {
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Google Calendar</title><style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#F5F5F0}.card{background:#fff;border-radius:16px;padding:32px 40px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08);max-width:460px}h2{margin:0 0 10px;font-size:18px;color:#111}p{margin:0 0 22px;font-size:13px;color:#6B7280;line-height:1.6}a{display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 24px;border-radius:10px;font-size:13px;font-weight:600}</style></head><body><div class="card"><div style="font-size:40px;margin-bottom:12px">❌</div><h2>Connexion Google non aboutie</h2><p>${detail}</p><a href="/calendrier">← Retour au calendrier</a></div></body></html>`
+}
+
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code')
-  if (!code) return NextResponse.json({ error: 'No code' }, { status: 400 })
+  // Google renvoie ?error=... quand il refuse (accès bloqué, app en test, consentement refusé…).
+  // On l'affiche tel quel au lieu d'un opaque "No code".
+  const oauthError = req.nextUrl.searchParams.get('error')
+  if (oauthError || !code) {
+    const detail = oauthError === 'access_denied'
+      ? 'Accès refusé par Google. Cause la plus fréquente : l’app OAuth est en « Mode test » et ce compte n’est pas autorisé. → Écran de consentement OAuth : PUBLIER l’application (Production), ou ajoute ce compte dans « Utilisateurs tests ».'
+      : oauthError
+        ? `Google a renvoyé l’erreur : ${oauthError}. Détail : ${req.nextUrl.searchParams.get('error_description') ?? '—'}`
+        : 'Google n’a pas renvoyé de code d’autorisation (la connexion a été interrompue avant l’accord).'
+    return new NextResponse(failPage(detail), { headers: { 'Content-Type': 'text/html; charset=utf-8' }, status: 200 })
+  }
 
   // Même redirect_uri que la requête d'autorisation (sinon l'échange du token échoue).
   const origin = (process.env.NEXT_PUBLIC_APP_URL || '').trim() || req.nextUrl.origin
