@@ -240,9 +240,11 @@ function MonthGrid({
 }
 
 // ─── Week grid constants ──────────────────────────────────────
-const HOUR_H     = 80
-const HOUR_START = 7
-const HOUR_END   = 21
+const HOUR_H     = 56
+const HOUR_START = 0
+const HOUR_END   = 24
+// Heure vers laquelle on défile à l'ouverture (évite de fixer minuit sur une grille 24h).
+const scrollHourTop = () => Math.max(0, (new Date().getHours() - 1)) * HOUR_H
 
 const DAYS_LONG = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
 void DAYS_LONG // used as reference, suppress unused warning
@@ -486,7 +488,7 @@ function WeekGrid({
   )
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: 0, behavior: 'instant' })
+    scrollRef.current?.scrollTo({ top: scrollHourTop(), behavior: 'instant' })
   }, [weekOffset])
 
   const nowMins     = (now.getHours() - HOUR_START) * 60 + now.getMinutes()
@@ -843,6 +845,16 @@ function DayAgenda({ appointments, onApptClick }: { appointments: Appointment[];
     .filter(a => sameDay(new Date(a.startTime), sel))
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 
+  // Grille horaire 24h (comme Google Calendar) — axe des heures + barre d'heure courante.
+  const hours   = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i)
+  const totalH  = HOUR_H * hours.length
+  const gridRef = useRef<HTMLDivElement>(null)
+  const nowD    = new Date()
+  const isToday = sameDay(sel, today)
+  const nowTop  = ((nowD.getHours() - HOUR_START) * 60 + nowD.getMinutes()) / 60 * HOUR_H
+  const layout  = computeOverlapLayout(dayAppts)
+  useEffect(() => { gridRef.current?.scrollTo({ top: scrollHourTop(), behavior: 'instant' }) }, [sel])
+
   return (
     <div className="flex-1 flex flex-col min-h-0 w-full">
       {/* Bandeau semaine */}
@@ -872,23 +884,56 @@ function DayAgenda({ appointments, onApptClick }: { appointments: Appointment[];
         <span className="text-[11px] text-soren-muted">{dayAppts.length} RDV</span>
       </div>
 
-      {/* Agenda du jour */}
-      <div className="flex-1 overflow-y-auto flex flex-col gap-2 pb-4">
-        {dayAppts.length === 0 && (
-          <div className="text-center text-[12px] text-soren-subtle py-16">Aucun rendez-vous ce jour</div>
-        )}
-        {dayAppts.map(a => {
-          const meta = (a.type ? TYPE_META[a.type] : undefined) ?? { color: '#6B7280', label: '' }
-          return (
-            <button key={a.id} onClick={() => onApptClick(a)} className="flex gap-2.5 text-left active:opacity-70 transition-opacity">
-              <div className="w-12 flex-shrink-0 text-[11px] font-bold text-soren-muted pt-2.5 tabular-nums">{fmt(a.startTime)}</div>
-              <div className="flex-1 rounded-xl p-3 border-l-[3px]" style={{ borderColor: meta.color, background: meta.color + '0f' }}>
-                <p className="text-[13px] font-semibold text-soren-text leading-tight">{a.title}</p>
-                <p className="text-[11px] text-soren-muted mt-1">{fmt(a.startTime)} – {fmt(a.endTime)} · {meta.label}</p>
+      {/* Grille horaire 24h — axe des heures + barre d'heure courante (comme Google Calendar) */}
+      <div ref={gridRef} className="flex-1 overflow-y-auto rounded-2xl border border-soren-border bg-soren-card">
+        <div className="flex" style={{ height: totalH }}>
+          {/* Colonne des heures */}
+          <div className="w-16 flex-shrink-0 border-r border-[#E8E8E6] flex flex-col">
+            {hours.map((h, hi) => (
+              <div key={h} className="flex-shrink-0 flex items-start justify-end pr-2.5" style={{ height: HOUR_H }}>
+                <span className="text-[10.5px] text-[#ADADAD] font-medium" style={{ marginTop: hi === 0 ? 4 : -8 }}>{fmtHour(h)}</span>
               </div>
-            </button>
-          )
-        })}
+            ))}
+          </div>
+
+          {/* Colonne du jour */}
+          <div className="flex-1 relative" style={{ height: totalH, background: isToday ? 'rgba(221,229,226,0.25)' : '#F5F5F3' }}>
+            {/* Lignes pleines (heures) + pointillés (demi-heures) */}
+            {hours.map((_, hi) => (
+              <div key={hi} className="absolute left-0 right-0" style={{ top: hi * HOUR_H, borderTop: '1px solid #EAEAE8' }} />
+            ))}
+            {hours.map((_, hi) => (
+              <div key={`hh-${hi}`} className="absolute left-0 right-0" style={{ top: hi * HOUR_H + HOUR_H / 2, borderTop: '1px dashed #F0F0EE' }} />
+            ))}
+
+            {/* Barre d'heure courante */}
+            {isToday && (
+              <div className="absolute left-0 right-0 z-30 pointer-events-none flex items-center" style={{ top: nowTop }}>
+                <div className="flex-shrink-0" style={{ width: 10, height: 10, borderRadius: '50%', background: '#B899D9', border: '2px solid white', marginLeft: -5, boxShadow: '0 0 0 1px #B899D9' }} />
+                <div className="flex-1" style={{ height: 1.5, background: '#B899D9' }} />
+              </div>
+            )}
+
+            {/* Événements */}
+            {dayAppts.map(a => {
+              const meta = (a.type ? TYPE_META[a.type] : undefined) ?? { color: '#6B7280', label: '' }
+              const s = new Date(a.startTime), e = new Date(a.endTime)
+              const mins = (s.getHours() - HOUR_START) * 60 + s.getMinutes()
+              const dur  = Math.max(15, Math.round((e.getTime() - s.getTime()) / 60000))
+              const top  = (mins / 60) * HOUR_H
+              const cardH = Math.max((dur / 60) * HOUR_H - 3, 26)
+              const { leftPct, widthPct } = layout.get(a.id) ?? { leftPct: 0, widthPct: 100 }
+              return (
+                <button key={a.id} onClick={() => onApptClick(a)}
+                  className="absolute rounded-lg p-1.5 text-left border-l-[3px] overflow-hidden active:opacity-70 transition-opacity"
+                  style={{ top, height: cardH, left: `calc(${leftPct}% + 4px)`, width: `calc(${widthPct}% - 8px)`, borderColor: meta.color, background: meta.color + '1a' }}>
+                  <p className="text-[11px] font-semibold text-soren-text leading-tight truncate">{a.title}</p>
+                  {cardH > 32 && <p className="text-[10px] text-soren-muted truncate">{fmt(a.startTime)} – {fmt(a.endTime)}</p>}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </div>
     </div>
   )
