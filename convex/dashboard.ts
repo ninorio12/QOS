@@ -22,11 +22,14 @@ export const getMetrics = query({
     // ─── Clients = pipeline_clients whose linked contact has statut='client'
     //     AND the client was created within [from,to] (intersection + flux) ──
     const allClients   = await ctx.db.query("pipeline_clients").collect()
-    const periodClients = allClients.filter(c =>
-      c.ghl_contact_id != null &&
-      contactStatut.get(c.ghl_contact_id) === 'client' &&
-      inWindow(c.createdAt)
-    )
+    // Clé de jointure : contactId (Convex, source unique) avec repli sur ghl_contact_id
+    // le temps de la migration Vague 2. Les deux valeurs sont identiques après backfill.
+    const periodClients = allClients.filter(c => {
+      const key = c.contactId ?? c.ghl_contact_id
+      return key != null &&
+        contactStatut.get(key) === 'client' &&
+        inWindow(c.createdAt)
+    })
     const clientsCount  = periodClients.length
 
     // ─── Leads = open leads, contact statut='lead', created within [from,to] ──

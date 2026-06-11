@@ -11,6 +11,7 @@
 export const REFERENTIAL = [
   { id: 'crm_leads.contactId→crm_contacts',            table: 'crm_leads',        field: 'contactId',      target: 'crm_contacts' },
   { id: 'pipeline_clients.ghl_contact_id→crm_contacts', table: 'pipeline_clients', field: 'ghl_contact_id', target: 'crm_contacts' },
+  { id: 'pipeline_clients.contactId→crm_contacts',       table: 'pipeline_clients', field: 'contactId',      target: 'crm_contacts' },
   { id: 'osProspection.contactId→crm_contacts',        table: 'osProspection',    field: 'contactId',      target: 'crm_contacts' },
   { id: 'osProspection.leadId→crm_leads',              table: 'osProspection',    field: 'leadId',         target: 'crm_leads' },
 ]

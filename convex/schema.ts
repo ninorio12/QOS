@@ -173,7 +173,8 @@ export default defineSchema({
 
   // Pipeline Clients — remplace localStorage vividflow_clients
   pipeline_clients: defineTable({
-    ghl_contact_id: v.optional(v.string()), // lien vers le contact GHL / futur contact Convex
+    ghl_contact_id: v.optional(v.string()), // LEGACY GHL — en cours de migration vers contactId (Vague 2)
+    contactId: v.optional(v.id("crm_contacts")), // nouvelle clé de jointure typée (source unique Convex)
     name: v.string(),
     company: v.optional(v.string()),
     email: v.optional(v.string()),
@@ -184,6 +185,7 @@ export default defineSchema({
     createdAt: v.string(),
   })
     .index("by_ghl_contact", ["ghl_contact_id"])
+    .index("by_contact", ["contactId"])
     .index("by_stage", ["stageId"])
     .index("by_created", ["createdAt"]),
 
