@@ -201,7 +201,7 @@ export default function PerformanceView() {
             <KpiMini label="R1 bookés" value={s.r1Booked ?? 0} Icon={CalendarCheck} color="#16A34A" />
             <KpiMini label="Perdus" value={s.perdus ?? 0} Icon={XCircle} color="#9CA3AF" />
             <KpiMini label="Taux de conversion R1" value={s.conversionR1 ?? 0} suffix="%" formula="R1 ÷ contactés" Icon={BarChart3} color="#FF4D00" />
-            <KpiMini label="CA généré" value={s.caGenere ?? 0} suffix=" CHF" formula="Via appels" Icon={Banknote} color="#16A34A" />
+            <KpiMini label="Commission" value={s.commission ?? 0} suffix=" CHF" formula="2% des paiements outbound" Icon={Banknote} color="#16A34A" />
           </div>
         </section>
 

@@ -67,10 +67,29 @@ export const summary = query({
     const objectifR1 = (await goalsInRange(ctx, from, to)).reduce((s: number, g: any) => s + (g.targetR1Booked ?? 0), 0)
 
     // CA généré lié aux appels — placeholder tant qu'aucun montant n'est saisi sur les cartes prospection.
-    const caGenere = 0
+    // Commission setter = 2% des paiements ENCAISSÉS (échéances cochées payées) en onboarding,
+    // UNIQUEMENT pour les clients issus de l'outbound. Respecte la période via paidDates.
+    const COMMISSION_RATE = 0.02
+    const onbs = await ctx.db.query("onboarding").collect()
+    const contacts = await ctx.db.query("crm_contacts").collect()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sourceById = new Map<string, string | undefined>(contacts.map((c: any) => [c._id.toString(), c.source]))
+    let paidOutbound = 0
+    for (const o of onbs as any[]) {
+      if (sourceById.get(o.contactId) !== "outbound") continue
+      const amounts: number[] = o.payment?.amounts ?? []
+      const paid: boolean[] = o.paidStatus ?? []
+      const dates: string[] = o.paidDates ?? []
+      for (let i = 0; i < amounts.length; i++) {
+        if (!paid[i]) continue
+        if (dates[i]) { const d = dayOf(dates[i]); if (d < from || d > to) continue }  // hors période
+        paidOutbound += amounts[i] ?? 0
+      }
+    }
+    const commission = Math.round(paidOutbound * COMMISSION_RATE)
 
     return {
-      contactes, reponses, aRappeler, r1Booked, perdus, objectifR1, caGenere,
+      contactes, reponses, aRappeler, r1Booked, perdus, objectifR1, commission,
       tauxReponse:   contactes ? Math.round((reponses / contactes) * 100) : 0,
       conversionR1:  contactes ? Math.round((r1Booked / contactes) * 100) : 0,
     }
