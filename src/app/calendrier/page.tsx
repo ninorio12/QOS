@@ -4,13 +4,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import useSWR from 'swr'
-import CalendrierLoading from './loading'
 
 // Client-only : CalendarView utilise new Date() au rendu → un SSR provoquerait un mismatch
 // d'hydratation (#418/#423) qui casse le routeur App Router. ssr:false l'évite totalement.
 const CalendarView = dynamic(() => import('@/components/calendrier/CalendarView'), {
   ssr: false,
-  loading: () => <CalendrierLoading />,
 })
 import type { Appointment } from '@/components/calendrier/types'
 import type { GHLCalendar } from '@/lib/ghl'
@@ -36,7 +34,7 @@ export default function CalendrierPage() {
     ? `/api/calendrier?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`
     : '/api/calendrier'
 
-  const { data, isLoading, mutate } = useSWR<CalData>(swrKey, fetcher, {
+  const { data, mutate } = useSWR<CalData>(swrKey, fetcher, {
     revalidateOnFocus: false,
     dedupingInterval:  justConnected ? 0 : 30_000,
     keepPreviousData:  true,
@@ -58,8 +56,6 @@ export default function CalendrierPage() {
   const handleRangeChange = useCallback((from: string, to: string) => {
     setRange(prev => (prev && prev.from === from && prev.to === to) ? prev : { from, to })
   }, [])
-
-  if (isLoading && !data) return <CalendrierLoading />
 
   return (
     <CalendarView
