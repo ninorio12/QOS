@@ -170,7 +170,7 @@ export const AGENT_PROFILES: AgentProfile[] = [
   {
     id: 'agent-operations', name: 'AGENT OPERATIONS', role: 'Exécution opérationnelle',
     mission: 'Exécuter les tâches externes, emails, relances, actions admin et mises à jour Data OS.',
-    owner: 'COO', status: 'paused', channels: ['slack'], avatar: '/agents/operations.png',
+    owner: 'COO', status: 'active', channels: ['slack'], avatar: '/agents/operations.png',
     soul: {
       purpose: 'Exécuter de façon fiable et traçable.',
       protects: 'L’exécution fiable et traçable.',
