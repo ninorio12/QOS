@@ -300,7 +300,11 @@ function TaskModal({ task, onClose }: { task: Task | null; onClose: () => void }
 }
 
 export default function TachesView() {
-  const remoteTasks = (useQuery(api.osTasks.list, {}) ?? []) as Task[]
+  // useQuery renvoie undefined pendant le chargement ; `?? []` créait un nouveau tableau
+  // à chaque render → l'effet ci-dessous bouclait (Maximum update depth). On mémoïse pour
+  // garder une référence stable tant que la donnée ne change pas.
+  const remoteTasksRaw = useQuery(api.osTasks.list, {})
+  const remoteTasks = useMemo<Task[]>(() => (remoteTasksRaw ?? []) as Task[], [remoteTasksRaw])
   const update = useMutation(api.osTasks.update)
   const [local, setLocal] = useState<Task[]>([])
   const draggingRef = useRef(false)
