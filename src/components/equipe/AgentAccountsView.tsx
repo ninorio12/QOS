@@ -8,6 +8,7 @@ import {
   Bot, Activity, ShieldCheck, KeyRound, AlertTriangle, X, Power, HeartPulse,
   CircleDot, BookOpen, ChevronRight, CheckCircle2, XCircle, Clock,
 } from 'lucide-react'
+import OrgChart, { type OrgNode } from '@/components/agentic/OrgChart'
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
   active:       { label: 'Actif',        color: '#16A34A', bg: '#DCFCE7' },
@@ -48,7 +49,19 @@ export default function AgentAccountsView() {
         ) : agents.length === 0 ? (
           <p className="text-[12px] text-soren-subtle">Aucun agent. Lance le seed (<code>convex run agents:seedAgents</code>).</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          <>
+            {(() => {
+              // Organigramme agentique — coordinateur en haut, exécutants en dessous.
+              const toNode = (a: typeof agents[number]): OrgNode => ({ id: a.id, name: a.displayName ?? a.name, role: a.role, active: a.status === 'active' })
+              const coordinator = agents.find(a => a.slug === 'coordinator') ?? agents.find(a => a.hermesProfile === 'chief_of_staff') ?? agents[0]
+              const reports = agents.filter(a => a.id !== coordinator.id)
+              return (
+                <div className="mb-5">
+                  <OrgChart coordinator={toNode(coordinator)} reports={reports.map(toNode)} onSelect={(id) => setOpenId(id as Id<'os_agents'>)} />
+                </div>
+              )
+            })()}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {agents.map(a => (
               <button key={a.id} onClick={() => setOpenId(a.id)}
                 className="text-left bg-soren-card border border-soren-border rounded-2xl p-4 hover:border-[#C8CBD0] hover:shadow-sm transition-all flex flex-col gap-3">
@@ -76,7 +89,8 @@ export default function AgentAccountsView() {
                 <span className="text-[11px] text-[#FF4D00] font-medium inline-flex items-center gap-1 mt-auto">Détails <ChevronRight size={12} /></span>
               </button>
             ))}
-          </div>
+            </div>
+          </>
         )}
       </div>
 
