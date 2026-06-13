@@ -15,7 +15,7 @@
 // ───────────────────────────────────────────────────────────────────────────
 import { createHash, randomBytes } from "node:crypto"
 import { execFileSync } from "node:child_process"
-import { mkdirSync, writeFileSync, chmodSync } from "node:fs"
+import { mkdirSync, writeFileSync, chmodSync, existsSync, readFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
 
@@ -48,6 +48,17 @@ for (const { slug, profile } of AGENTS) {
   writeFileSync(file, `# Data OS token — agent ${slug} (profil ${profile}). Rotation: relancer rotate-agent-tokens.mjs.\nDATAOS_TOKEN=${token}\n`, { mode: 0o600 })
   chmodSync(file, 0o600)
   console.error(`  ✓ ${slug.padEnd(22)} profil=${profile.padEnd(20)} scopes=${scopeCount}  → ${file}`)
+
+  // COO = token de la base interactive (Cockpit). Garder ~/.hermes/.env synchro,
+  // sinon le Cockpit garde l'ancien token révoqué → -32001 après chaque rotation.
+  if (slug === "coo") {
+    const baseEnv = join(homedir(), ".hermes", ".env")
+    const kept = existsSync(baseEnv) ? readFileSync(baseEnv, "utf8").split("\n").filter(l => l && !l.startsWith("DATAOS_TOKEN=")) : []
+    kept.push(`DATAOS_TOKEN=${token}`)
+    writeFileSync(baseEnv, kept.join("\n") + "\n", { mode: 0o600 })
+    chmodSync(baseEnv, 0o600)
+    console.error(`    ↳ base interactive ${baseEnv} re-synchronisée (token COO)`)
+  }
 }
 
 console.error(`\nTokens écrits dans ${outDir}/<profil>.env (0600). Aucun token affiché.`)
