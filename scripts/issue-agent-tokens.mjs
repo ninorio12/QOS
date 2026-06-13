@@ -17,8 +17,7 @@ import { createHash, randomBytes } from "node:crypto"
 import { execFileSync } from "node:child_process"
 
 const SLUGS = ["coo", "agent-kb", "agent-support-client", "agent-operations", "agent-analyse"]
-const EXPIRY_DAYS = { coo: 30 } // COO = privilège élevé → expiration plus courte
-const DEFAULT_DAYS = 90
+// Décision produit (2026-06-13) : tokens PERMANENTS, aucune expiration.
 
 if (!process.env.CONVEX_DEPLOY_KEY) {
   console.error("✖ CONVEX_DEPLOY_KEY manquant dans l'env. Voir l'entête du script.")
@@ -28,8 +27,6 @@ if (!process.env.CONVEX_DEPLOY_KEY) {
 const convexRun = (fn, args) =>
   execFileSync("npx", ["convex", "run", fn, JSON.stringify(args)], { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] })
 
-const isoIn = (days) => new Date(Date.now() + days * 86400000).toISOString()
-
 console.error("→ seed des permissions des 5 agents…")
 console.error(convexRun("agentPermissions:seedAgentPermissions", {}).trim())
 
@@ -37,11 +34,10 @@ const issued = []
 for (const slug of SLUGS) {
   const token = `dos_${slug.replace(/-/g, "_")}_${randomBytes(24).toString("hex")}`
   const tokenHash = createHash("sha256").update(token).digest("hex")
-  const expiresAt = isoIn(EXPIRY_DAYS[slug] ?? DEFAULT_DAYS)
-  const res = convexRun("agentPermissions:issueCredential", { slug, tokenHash, label: `hermes:${slug}`, expiresAt })
+  const res = convexRun("agentPermissions:issueCredential", { slug, tokenHash, label: `hermes:${slug}` }) // sans expiresAt → permanent
   const scopeCount = (res.match(/scopeCount[":\s]+(\d+)/) ?? [])[1] ?? "?"
-  issued.push({ slug, token, expiresAt, scopeCount })
-  console.error(`  ✓ ${slug} — ${scopeCount} scopes, expire ${expiresAt.slice(0, 10)}`)
+  issued.push({ slug, token, scopeCount })
+  console.error(`  ✓ ${slug} — ${scopeCount} scopes, permanent`)
 }
 
 // Tokens en clair — à copier dans le coffre / l'env Hermes par profil. Affichés une seule fois.

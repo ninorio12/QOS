@@ -20,30 +20,29 @@ import { homedir } from "node:os"
 import { join } from "node:path"
 
 // slug Data OS → profil Hermes (runtimeService = hermes-gateway-<profil>.service)
+// Décision produit (2026-06-13) : tokens PERMANENTS, aucune expiration.
 const AGENTS = [
-  { slug: "coo", profile: "chief_of_staff", days: 30 },
-  { slug: "agent-kb", profile: "cmo_executor", days: 90 },
-  { slug: "agent-support-client", profile: "csm_executor", days: 90 },
-  { slug: "agent-operations", profile: "operations_executor", days: 90 },
-  { slug: "agent-analyse", profile: "rd_executor", days: 90 },
+  { slug: "coo", profile: "chief_of_staff" },
+  { slug: "agent-kb", profile: "cmo_executor" },
+  { slug: "agent-support-client", profile: "csm_executor" },
+  { slug: "agent-operations", profile: "operations_executor" },
+  { slug: "agent-analyse", profile: "rd_executor" },
 ]
 
 if (!process.env.CONVEX_DEPLOY_KEY) { console.error("✖ CONVEX_DEPLOY_KEY manquant. Voir l'entête du script."); process.exit(1) }
 
 const run = (fn, args) => execFileSync("npx", ["convex", "run", fn, JSON.stringify(args)], { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] })
-const isoIn = (d) => new Date(Date.now() + d * 86400000).toISOString()
 const outDir = join(homedir(), ".hermes", "dataos")
 mkdirSync(outDir, { recursive: true }); chmodSync(outDir, 0o700)
 
 console.error("→ (re)seed des permissions…")
 run("agentPermissions:seedAgentPermissions", {})
 
-for (const { slug, profile, days } of AGENTS) {
+for (const { slug, profile } of AGENTS) {
   run("agentPermissions:revokeAgentCredentials", { slug })          // révoque l'ancien (compromis)
   const token = `dos_${slug.replace(/-/g, "_")}_${randomBytes(24).toString("hex")}`
   const tokenHash = createHash("sha256").update(token).digest("hex")
-  const expiresAt = isoIn(days)
-  const res = run("agentPermissions:issueCredential", { slug, tokenHash, label: `hermes:${profile}`, expiresAt })
+  const res = run("agentPermissions:issueCredential", { slug, tokenHash, label: `hermes:${profile}` }) // sans expiresAt → token permanent
   const scopeCount = (res.match(/scopeCount[":\s]+(\d+)/) ?? [])[1] ?? "?"
   const file = join(outDir, `${profile}.env`)
   writeFileSync(file, `# Data OS token — agent ${slug} (profil ${profile}). Rotation: relancer rotate-agent-tokens.mjs.\nDATAOS_TOKEN=${token}\n`, { mode: 0o600 })

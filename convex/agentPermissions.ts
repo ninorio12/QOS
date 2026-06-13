@@ -52,6 +52,29 @@ export const issueCredential = mutation({
   },
 })
 
+// clearCredentialExpiry : retire l'expiration des tokens actifs (tous les agents
+// mappés, ou un slug donné) → tokens permanents. Patch expiresAt=undefined le
+// supprime du document (decision produit : aucune expiration).
+export const clearCredentialExpiry = mutation({
+  args: { slug: v.optional(v.string()) },
+  handler: async (ctx, { slug }) => {
+    const slugs = slug ? [slug] : Object.keys(SLUG_TO_ROLE)
+    const out: { slug: string; cleared: number }[] = []
+    let total = 0
+    for (const s of slugs) {
+      const agent = await agentBySlug(ctx, s)
+      if (!agent) { out.push({ slug: s, cleared: 0 }); continue }
+      const creds = await ctx.db.query("os_agent_credentials").withIndex("by_agent", (q: any) => q.eq("agentId", agent._id)).collect()
+      let cleared = 0
+      for (const cred of creds) {
+        if (!cred.revokedAt && cred.expiresAt !== undefined) { await ctx.db.patch(cred._id, { expiresAt: undefined }); cleared++; total++ }
+      }
+      out.push({ slug: s, cleared })
+    }
+    return { ok: true, total, agents: out }
+  },
+})
+
 // revokeCredential : révocation immédiate (rotation / exposition).
 export const revokeCredential = mutation({
   args: { credentialId: v.id("os_agent_credentials") },
