@@ -111,6 +111,7 @@ export default defineSchema({
     website:     v.optional(v.string()),
     source:      v.optional(v.string()),  // 'inbound' | 'outbound'
     statut:      v.optional(v.string()),  // 'lead' | 'client' | 'perdu'
+    lostReason:  v.optional(v.string()),  // raison de perte (faux_numero | pas_interesse | jamais_repondu | …)
     leadStatus:  v.optional(v.string()),  // active | handoff | non_qualifie | dormant
     linkedinUrl: v.optional(v.string()),
     canton:      v.optional(v.string()),
@@ -273,7 +274,8 @@ export default defineSchema({
   // Bibliothèque "Data" — fichiers (Convex storage) et liens (Notion/GitHub/Vercel/…), rangés par catégorie
   library_items: defineTable({
     kind:        v.string(),             // 'file' | 'link'
-    category:    v.string(),             // pdf | image | svg | markdown | doc | notion | github | vercel | link
+    category:    v.string(),             // pdf | image | svg | markdown | doc | notion | github | vercel | link (type → icône/action)
+    folder:      v.optional(v.string()), // dossier thématique : Projets | Skills | PDF | Images
     name:        v.string(),
     ext:         v.optional(v.string()),
     storageId:   v.optional(v.string()), // pour les fichiers (Convex storage)
@@ -432,11 +434,33 @@ export default defineSchema({
     reviewNote:      v.optional(v.string()),
   }).index("by_agent", ["agentId"]).index("by_status", ["status"]),
 
+  // Handoffs — transfert de responsabilité entre agents (ne donne AUCUN droit :
+  // le receveur doit déjà avoir le scope sur l'entité pour agir).
+  os_handoffs: defineTable({
+    workspaceId: v.string(),
+    fromAgentId: v.id("os_agents"),
+    toAgentSlug: v.string(),
+    entityType:  v.string(),   // contact | client | lead | task | prospection
+    entityId:    v.string(),
+    reason:      v.string(),
+    context:     v.optional(v.any()),
+    priority:    v.optional(v.string()),
+    status:      v.string(),   // pending | accepted | rejected | completed
+    slaDueAt:    v.optional(v.string()),
+    createdBy:   v.string(),
+    createdAt:   v.string(),
+    acceptedBy:  v.optional(v.string()),
+    acceptedAt:  v.optional(v.string()),
+    completedAt: v.optional(v.string()),
+    note:        v.optional(v.string()),
+  }).index("by_to", ["toAgentSlug", "status"]).index("by_entity", ["entityType", "entityId"]),
+
   // Prospection — cockpit caller (Nouveau lead → R1 booké). Lié au Contact via contactId.
   prospection_records: defineTable({
     workspaceId:    v.string(),
     contactId:      v.string(),
     leadId:         v.optional(v.string()),   // crm_leads id (représentation Pipeline)
+    boardColumn:    v.optional(v.string()),   // colonne kanban : leads_a_traiter | nrp1..nrp4 | rdv_booke | perdu
     phase:          v.string(),               // phase courante (legacy/compat) : phase1 | phase2 | phase3
     phaseStatus:    v.optional(v.string()),   // statut courant (legacy/compat)
     phase1Status:   v.optional(v.string()),   // cellule Phase 1 du tracker : appele|repondu|pas_repondu|message_laisse|a_rappeler|interesse
@@ -572,6 +596,20 @@ export default defineSchema({
     email:        v.optional(v.string()),
     connectedAt:  v.number(),
   }).index("by_clerk", ["clerkUserId"]),
+
+  // Skills uploadés (import .md depuis la Base de connaissance). Les skills "natifs"
+  // restent des fichiers statiques public/agentic-skills ; ceux-ci s'y ajoutent (famille "Skills importés").
+  os_skills: defineTable({
+    workspaceId: v.string(),
+    skillId:     v.string(),               // slug (clé naturelle)
+    name:        v.string(),
+    description: v.optional(v.string()),
+    tags:        v.optional(v.array(v.string())),
+    body:        v.string(),               // contenu markdown du .md
+    createdBy:   v.optional(v.string()),
+    createdAt:   v.string(),
+    updatedAt:   v.optional(v.string()),
+  }).index("by_workspace", ["workspaceId"]).index("by_skill", ["workspaceId", "skillId"]),
 
   // Base de connaissance éditable (SOPs, Playbooks, docs libres). Persiste le contenu
   // édité dans le DocEditor (avant : localStorage seulement → non partagé, perdu au reset).

@@ -9,6 +9,8 @@
  */
 
 import type * as agentApi from "../agentApi.js";
+import type * as agentGuard from "../agentGuard.js";
+import type * as agentPermissions from "../agentPermissions.js";
 import type * as agents from "../agents.js";
 import type * as analytics from "../analytics.js";
 import type * as clients from "../clients.js";
@@ -25,16 +27,19 @@ import type * as integrations from "../integrations.js";
 import type * as integrityCleanup from "../integrityCleanup.js";
 import type * as leadSync from "../leadSync.js";
 import type * as lead_stage_history from "../lead_stage_history.js";
+import type * as lib_permissions from "../lib/permissions.js";
 import type * as library from "../library.js";
 import type * as onboarding from "../onboarding.js";
 import type * as osActivities from "../osActivities.js";
 import type * as osAgents from "../osAgents.js";
+import type * as osHandoffs from "../osHandoffs.js";
 import type * as osKbDocs from "../osKbDocs.js";
 import type * as osKnowledge from "../osKnowledge.js";
 import type * as osLib from "../osLib.js";
 import type * as osOutreach from "../osOutreach.js";
 import type * as osProspection from "../osProspection.js";
 import type * as osSalesCalls from "../osSalesCalls.js";
+import type * as osSkills from "../osSkills.js";
 import type * as osTasks from "../osTasks.js";
 import type * as paiement from "../paiement.js";
 import type * as performance from "../performance.js";
@@ -58,6 +63,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   agentApi: typeof agentApi;
+  agentGuard: typeof agentGuard;
+  agentPermissions: typeof agentPermissions;
   agents: typeof agents;
   analytics: typeof analytics;
   clients: typeof clients;
@@ -74,16 +81,19 @@ declare const fullApi: ApiFromModules<{
   integrityCleanup: typeof integrityCleanup;
   leadSync: typeof leadSync;
   lead_stage_history: typeof lead_stage_history;
+  "lib/permissions": typeof lib_permissions;
   library: typeof library;
   onboarding: typeof onboarding;
   osActivities: typeof osActivities;
   osAgents: typeof osAgents;
+  osHandoffs: typeof osHandoffs;
   osKbDocs: typeof osKbDocs;
   osKnowledge: typeof osKnowledge;
   osLib: typeof osLib;
   osOutreach: typeof osOutreach;
   osProspection: typeof osProspection;
   osSalesCalls: typeof osSalesCalls;
+  osSkills: typeof osSkills;
   osTasks: typeof osTasks;
   paiement: typeof paiement;
   performance: typeof performance;

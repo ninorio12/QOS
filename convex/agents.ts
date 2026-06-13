@@ -102,6 +102,134 @@ const AGENT_SEEDS = [
   },
 ]
 
+// Roster de l'organigramme front (EquipeView / AGENT_PROFILES) — 5 agents, mappés
+// 1:1 sur les vrais workers Hermes. Slug = id du profil front pour alignement direct.
+const EQUIPE_AGENT_SEEDS = [
+  {
+    slug: "coo", displayName: "COO", role: "Coordination opérationnelle",
+    hermesProfile: "orchestrator", runtimeService: "hermes-gateway-orchestrator.service", status: "active",
+    description: "Décompose les missions en travail sûr et prouvable, route vers le bon spécialiste, préserve le greenlight humain.",
+    channels: ["telegram", "slack"], capabilities: ["orchestration", "decomposition", "routing", "delegation"],
+    requiredKnowledgeCores: ["context-loader-core", "source-of-truth-core", "agent-roles-core", "agent-control-room-core", "machine-de-guerre-core"],
+    forbiddenActions: ["merge sans greenlight", "publish sans greenlight", "destructif sans greenlight", "external-send sans greenlight", "credential-change sans greenlight"],
+    permissions: [
+      { scope: "tasks", level: "execute", requiresApproval: false },
+      { scope: "activities", level: "read", requiresApproval: false },
+      { scope: "knowledge", level: "read", requiresApproval: false },
+      { scope: "source_of_truth", level: "write", requiresApproval: true },
+    ],
+  },
+  {
+    slug: "agent-analyse", displayName: "AGENT ANALYSE", role: "Analyse, scraping et signaux",
+    hermesProfile: "researcher", runtimeService: "hermes-gateway-researcher.service", status: "active",
+    description: "Recherche brain-first, synthèse et revue de sources — décider sur des faits vérifiés, incertitude explicite.",
+    channels: ["slack", "dataos"], capabilities: ["research", "analysis", "scraping", "signals"],
+    requiredKnowledgeCores: ["context-loader-core", "source-of-truth-core", "agent-roles-core"],
+    forbiddenActions: ["publish sans greenlight", "external-send sans greenlight", "long-running-loop sans greenlight"],
+    permissions: [
+      { scope: "knowledge", level: "read", requiresApproval: false },
+      { scope: "activities", level: "read", requiresApproval: false },
+      { scope: "external_send", level: "execute", requiresApproval: true },
+    ],
+  },
+  {
+    slug: "agent-support-client", displayName: "AGENT SUPPORT CLIENT", role: "Suivi client",
+    hermesProfile: "inbox-triage", runtimeService: "hermes-gateway-inbox-triage.service", status: "active",
+    description: "Route le flux entrant en discard / tâche / recherche / capture durable, sans accumuler de bruit.",
+    channels: ["slack", "dataos"], capabilities: ["triage", "inbox", "capture", "routing"],
+    requiredKnowledgeCores: ["context-loader-core", "source-of-truth-core", "agent-roles-core"],
+    forbiddenActions: ["delete sans greenlight", "purge sans greenlight", "publish sans greenlight", "external-send sans greenlight"],
+    permissions: [
+      { scope: "contacts", level: "read", requiresApproval: false },
+      { scope: "tasks", level: "write", requiresApproval: false },
+      { scope: "client_send", level: "execute", requiresApproval: true },
+    ],
+  },
+  {
+    slug: "agent-operations", displayName: "AGENT OPERATIONS", role: "Exécution opérationnelle",
+    hermesProfile: "builder", runtimeService: "hermes-gateway-builder.service", status: "active",
+    description: "Livre des tranches de produit/code scoped avec tests, diffs minimaux et preuves de vérification.",
+    channels: ["slack", "dataos"], capabilities: ["implementation", "testing", "integration", "execution"],
+    requiredKnowledgeCores: ["context-loader-core", "source-of-truth-core", "agent-roles-core", "machine-de-guerre-core"],
+    forbiddenActions: ["merge sans greenlight", "push sans greenlight", "destructif sans greenlight", "external-write sans greenlight"],
+    permissions: [
+      { scope: "tasks", level: "execute", requiresApproval: false },
+      { scope: "activities", level: "write", requiresApproval: false },
+      { scope: "merge", level: "execute", requiresApproval: true },
+    ],
+  },
+  {
+    slug: "agent-kb", displayName: "AGENT KB", role: "Base de connaissance et mémoire",
+    hermesProfile: "km-agent", runtimeService: "hermes-gateway-km-agent.service", status: "active",
+    description: "Garde le cerveau opérationnel cohérent, cherchable et aligné à la source de vérité, sans polluer la mémoire durable.",
+    channels: ["slack", "dataos"], capabilities: ["knowledge", "curation", "drift_audit", "documentation"],
+    requiredKnowledgeCores: ["context-loader-core", "source-of-truth-core", "agent-roles-core", "agent-control-room-core"],
+    forbiddenActions: ["delete sans greenlight", "purge sans greenlight", "bulk-edit sans greenlight", "source-of-record-change sans greenlight"],
+    permissions: [
+      { scope: "knowledge", level: "read", requiresApproval: false },
+      { scope: "knowledge_candidate", level: "write", requiresApproval: false },
+      { scope: "source_of_truth", level: "write", requiresApproval: true },
+    ],
+  },
+]
+
+// Crée les comptes Data OS des 5 agents de l'organigramme front (EquipeView).
+export const seedEquipeAgents = mutation({
+  args: { force: v.optional(v.boolean()) },
+  handler: async (ctx, { force }) => {
+    const now = new Date().toISOString()
+    let created = 0, updated = 0, perms = 0
+    for (const [i, s] of EQUIPE_AGENT_SEEDS.entries()) {
+      const existing = await ctx.db.query("os_agents")
+        .withIndex("by_slug", (q) => q.eq("workspaceId", WORKSPACE).eq("slug", s.slug)).first()
+      const base = {
+        workspaceId: WORKSPACE, name: s.displayName, displayName: s.displayName, type: "agent",
+        role: s.role, status: s.status, hermesProfile: s.hermesProfile, runtimeService: s.runtimeService,
+        description: s.description, channels: s.channels, capabilities: s.capabilities,
+        requiredKnowledgeCores: s.requiredKnowledgeCores, forbiddenActions: s.forbiddenActions,
+        autonomy: "suggest", health: "ok",
+        order: i, updatedAt: now,
+      }
+      let agentId: Id<"os_agents">
+      if (existing) {
+        await ctx.db.patch(existing._id, base); agentId = existing._id; updated++
+        if (!force) continue
+      } else {
+        agentId = await ctx.db.insert("os_agents", { ...base, slug: s.slug, createdAt: now }); created++
+      }
+      for (const p of await ctx.db.query("os_agent_permissions").withIndex("by_agent", (q) => q.eq("agentId", agentId)).collect()) {
+        await ctx.db.delete(p._id)
+      }
+      for (const p of s.permissions) {
+        await ctx.db.insert("os_agent_permissions", { agentId, scope: p.scope, level: p.level, requiresApproval: p.requiresApproval, createdAt: now })
+        perms++
+      }
+    }
+    return { created, updated, permissions: perms }
+  },
+})
+
+// Suppression en cascade d'agents par slug (agent + permissions/credentials/events/runs/approvals).
+// Utilisé pour purger un ancien roster — sauvegarder avant.
+export const deleteAgentsBySlug = mutation({
+  args: { slugs: v.array(v.string()) },
+  handler: async (ctx, { slugs }) => {
+    let agents = 0, children = 0
+    for (const slug of slugs) {
+      const a = await ctx.db.query("os_agents")
+        .withIndex("by_slug", (q) => q.eq("workspaceId", WORKSPACE).eq("slug", slug)).first()
+      if (!a) continue
+      for (const table of ["os_agent_permissions", "os_agent_credentials", "os_agent_events", "os_agent_runs", "os_agent_approvals"] as const) {
+        for (const row of await ctx.db.query(table).withIndex("by_agent", (q) => q.eq("agentId", a._id)).collect()) {
+          await ctx.db.delete(row._id); children++
+        }
+      }
+      await ctx.db.delete(a._id); agents++
+    }
+    return { agentsDeleted: agents, childrenDeleted: children }
+  },
+})
+
 export const seedAgents = mutation({
   args: { force: v.optional(v.boolean()) },
   handler: async (ctx, { force }) => {

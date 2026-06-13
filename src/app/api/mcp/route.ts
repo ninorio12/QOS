@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ConvexHttpClient } from 'convex/browser'
+import { createHash } from 'node:crypto'
 import { api } from '../../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { type Id } from '../../../../convex/_generated/dataModel'
+import { decide, requiredScopeForCall } from '../../../../convex/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +17,6 @@ export const dynamic = 'force-dynamic'
 
 const PROTOCOL_VERSION = '2025-06-18'
 const SERVER_INFO = { name: 'vividflow-dataos', version: '2.0.0' }
-const AGENT = 'agent:chief_of_staff'
 
 function cx() {
   const url = process.env.NEXT_PUBLIC_CONVEX_URL
@@ -23,13 +24,13 @@ function cx() {
   return new ConvexHttpClient(url)
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function logAct(c: ConvexHttpClient, a: { eventType: string; summary: string; entityType?: string; entityId?: string; metadata?: any }) {
-  try { await c.mutation(api.osActivities.log, { actorType: 'agent', actorId: AGENT, source: 'mcp', ...a }) } catch { /* ignore */ }
+async function logAct(c: ConvexHttpClient, actorType: string, actorId: string, a: { eventType: string; summary: string; entityType?: string; entityId?: string; metadata?: any }) {
+  try { await c.mutation(api.osActivities.log, { actorType, actorId, source: 'mcp', ...a }) } catch { /* ignore */ }
 }
 const initials = (name: string) => (name || 'X').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Tool = { name: string; description: string; inputSchema: Record<string, unknown>; run: (a: any) => Promise<unknown>; log?: (a: any, r: any) => { eventType: string; summary: string; entityType?: string; entityId?: string } }
+type Tool = { name: string; description: string; inputSchema: Record<string, unknown>; run: (a: any, actor: string) => Promise<unknown>; log?: (a: any, r: any) => { eventType: string; summary: string; entityType?: string; entityId?: string } }
 const obj = (props: Record<string, unknown>, required: string[] = []) => ({ type: 'object', properties: props, required, additionalProperties: true })
 const Sx = { string: { type: 'string' }, number: { type: 'number' }, bool: { type: 'boolean' }, strArr: { type: 'array', items: { type: 'string' } } }
 
@@ -160,7 +161,7 @@ const TOOLS: Tool[] = [
   {
     name: 'sales_calls_create', description: 'Crée un sales call (lié à un contact/lead/client). title requis.',
     inputSchema: obj({ title: Sx.string, contactId: Sx.string, leadId: Sx.string, clientId: Sx.string, date: Sx.string, status: Sx.string, outcome: Sx.string, notes: Sx.string, summary: Sx.string, nextStep: Sx.string }, ['title']),
-    run: (a) => cx().mutation(api.osSalesCalls.create, { ...a, createdBy: AGENT }),
+    run: (a, actor) => cx().mutation(api.osSalesCalls.create, { ...a, createdBy: actor }),
     log: (a, r) => ({ eventType: 'call.created', summary: `Sales call : ${a.title}`, entityType: 'sales_call', entityId: String(r) }),
   },
   {
@@ -173,9 +174,9 @@ const TOOLS: Tool[] = [
   {
     name: 'objections_extract_or_save', description: "Enregistre une objection en Base de connaissance (kind 'objection', à valider). objection (requis). Optionnel: callId pour l'attacher au call.",
     inputSchema: obj({ objection: Sx.string, callId: Sx.string, context: Sx.string }, ['objection']),
-    run: async (a) => {
+    run: async (a, actor) => {
       const c = cx()
-      const kid = await c.mutation(api.osKnowledge.create, { kind: 'objection', title: a.objection.slice(0, 80), body: a.context ?? a.objection, status: 'to_validate', source: 'mcp', createdBy: AGENT })
+      const kid = await c.mutation(api.osKnowledge.create, { kind: 'objection', title: a.objection.slice(0, 80), body: a.context ?? a.objection, status: 'to_validate', source: 'mcp', createdBy: actor })
       if (a.callId) await c.mutation(api.osSalesCalls.addObjection, { id: a.callId, objection: a.objection })
       return { knowledgeId: kid }
     },
@@ -187,7 +188,7 @@ const TOOLS: Tool[] = [
   {
     name: 'outreach_create', description: "Crée une action outreach. channel requis (email|linkedin|sms|whatsapp|call). contactId/leadId, message, status, nextFollowUpAt (ISO).",
     inputSchema: obj({ channel: Sx.string, contactId: Sx.string, leadId: Sx.string, message: Sx.string, status: Sx.string, sentAt: Sx.string, nextFollowUpAt: Sx.string, notes: Sx.string }, ['channel']),
-    run: (a) => cx().mutation(api.osOutreach.create, { ...a, createdBy: AGENT }),
+    run: (a, actor) => cx().mutation(api.osOutreach.create, { ...a, createdBy: actor }),
     log: (a, r) => ({ eventType: 'outreach.created', summary: `Outreach ${a.channel}`, entityType: 'outreach', entityId: String(r) }),
   },
   {
@@ -201,60 +202,103 @@ const TOOLS: Tool[] = [
 
   // ───────────── Tâches ─────────────
   { name: 'tasks_list', description: 'Liste les tâches (filtre status optionnel).', inputSchema: obj({ status: Sx.string }), run: (a) => cx().query(api.osTasks.list, { status: a.status }) },
-  { name: 'tasks_create', description: 'Crée une tâche. title requis + description, priority, assigneeType, assigneeId, source, linkedClientId.', inputSchema: obj({ title: Sx.string, description: Sx.string, priority: Sx.string, assigneeType: Sx.string, assigneeId: Sx.string, source: Sx.string, linkedClientId: Sx.string }, ['title']), run: (a) => cx().mutation(api.osTasks.create, { ...a, source: a.source ?? 'system', createdBy: AGENT }) },
-  { name: 'tasks_update', description: 'Met à jour une tâche (status, priority, assigneeType, assigneeId, blockerReason). id requis.', inputSchema: obj({ id: Sx.string, status: Sx.string, priority: Sx.string, assigneeType: Sx.string, assigneeId: Sx.string, blockerReason: Sx.string }, ['id']), run: (a) => cx().mutation(api.osTasks.update, { ...a, updatedBy: AGENT }) },
-  { name: 'tasks_comment', description: 'Commente une tâche. id + text requis.', inputSchema: obj({ id: Sx.string, text: Sx.string }, ['id', 'text']), run: (a) => cx().mutation(api.osTasks.addComment, { id: a.id, authorType: 'agent', authorId: AGENT, text: a.text }) },
+  { name: 'tasks_create', description: 'Crée une tâche. title requis + description, priority, assigneeType, assigneeId, source, linkedClientId.', inputSchema: obj({ title: Sx.string, description: Sx.string, priority: Sx.string, assigneeType: Sx.string, assigneeId: Sx.string, source: Sx.string, linkedClientId: Sx.string }, ['title']), run: (a, actor) => cx().mutation(api.osTasks.create, { ...a, source: a.source ?? 'system', createdBy: actor }) },
+  { name: 'tasks_update', description: 'Met à jour une tâche (status, priority, assigneeType, assigneeId, blockerReason). id requis.', inputSchema: obj({ id: Sx.string, status: Sx.string, priority: Sx.string, assigneeType: Sx.string, assigneeId: Sx.string, blockerReason: Sx.string }, ['id']), run: (a, actor) => cx().mutation(api.osTasks.update, { ...a, updatedBy: actor }) },
+  { name: 'tasks_comment', description: 'Commente une tâche. id + text requis.', inputSchema: obj({ id: Sx.string, text: Sx.string }, ['id', 'text']), run: (a, actor) => cx().mutation(api.osTasks.addComment, { id: a.id, authorType: 'agent', authorId: actor, text: a.text }) },
 
   // ───────────── Activités ─────────────
   { name: 'activities_list', description: "Journal d'activités (preuve/audit). Filtres: limit, entityType, entityId.", inputSchema: obj({ limit: Sx.number, entityType: Sx.string, entityId: Sx.string }), run: (a) => cx().query(api.osActivities.list, a) },
-  { name: 'activities_log', description: 'Écrit une entrée dans le journal. eventType + summary requis.', inputSchema: obj({ eventType: Sx.string, summary: Sx.string, entityType: Sx.string, entityId: Sx.string, metadata: { type: 'object' } }, ['eventType', 'summary']), run: (a) => cx().mutation(api.osActivities.log, { actorType: 'agent', actorId: AGENT, source: 'mcp', ...a }) },
+  { name: 'activities_log', description: 'Écrit une entrée dans le journal. eventType + summary requis.', inputSchema: obj({ eventType: Sx.string, summary: Sx.string, entityType: Sx.string, entityId: Sx.string, metadata: { type: 'object' } }, ['eventType', 'summary']), run: (a, actor) => cx().mutation(api.osActivities.log, { actorType: 'agent', actorId: actor, source: 'mcp', ...a }) },
 
   // ───────────── Agents ─────────────
   { name: 'agents_list', description: 'Liste les agents opérationnels.', inputSchema: obj({}), run: () => cx().query(api.osAgents.list, {}) },
 
   // ───────────── Connaissance / mémoire ─────────────
   { name: 'knowledge_list', description: "Base de connaissance. Filtre kind: memory|decision|rule|client_project|pattern|risk|objection|candidate.", inputSchema: obj({ kind: Sx.string }), run: (a) => cx().query(api.osKnowledge.list, { kind: a.kind }) },
-  { name: 'knowledge_propose', description: "Propose une entrée (à valider). kind + title requis.", inputSchema: obj({ kind: Sx.string, title: Sx.string, body: Sx.string, tags: Sx.strArr }, ['kind', 'title']), run: (a) => cx().mutation(api.osKnowledge.create, { kind: a.kind, title: a.title, body: a.body, status: 'to_validate', tags: a.tags, source: 'mcp', createdBy: AGENT }) },
+  { name: 'knowledge_propose', description: "Propose une entrée (à valider). kind + title requis.", inputSchema: obj({ kind: Sx.string, title: Sx.string, body: Sx.string, tags: Sx.strArr }, ['kind', 'title']), run: (a, actor) => cx().mutation(api.osKnowledge.create, { kind: a.kind, title: a.title, body: a.body, status: 'to_validate', tags: a.tags, source: 'mcp', createdBy: actor }) },
   { name: 'knowledge_approve', description: "Valide une entrée (active). id requis.", inputSchema: obj({ id: Sx.string }, ['id']), run: (a) => cx().mutation(api.osKnowledge.approve, { id: a.id }) },
   { name: 'objections_list', description: "Liste les objections enregistrées (knowledge kind 'objection').", inputSchema: obj({}), run: () => cx().query(api.osKnowledge.list, { kind: 'objection' }) },
 
   // ───────────── Process ─────────────
   { name: 'processes_list', description: 'Liste les process.', inputSchema: obj({}), run: () => cx().query(api.processes.list, {}) },
 
+  // ───────────── Handoffs (transfert de responsabilité entre agents) ─────────────
+  { name: 'handoffs_list', description: "Liste les handoffs (transferts de responsabilité). Filtres: toAgentSlug, status (pending|accepted|completed).", inputSchema: obj({ toAgentSlug: Sx.string, status: Sx.string }), run: (a) => cx().query(api.osHandoffs.list, a) },
+  {
+    name: 'handoffs_create', description: "Transfère une entité (task|lead|client|prospection|...) vers un autre agent. toAgentSlug, entityType, entityId, reason requis ; priority, slaDueAt (ISO), context optionnels. NB : un handoff ne donne aucun droit — le receveur doit déjà posséder le scope.",
+    inputSchema: obj({ toAgentSlug: Sx.string, entityType: Sx.string, entityId: Sx.string, reason: Sx.string, priority: Sx.string, slaDueAt: Sx.string, context: { type: 'object' } }, ['toAgentSlug', 'entityType', 'entityId', 'reason']),
+    run: async (a, actor) => {
+      const c = cx()
+      const slug = actor.replace(/^agent:/, '')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const me = (await c.query(api.osAgents.list, {}) as any[]).find(x => x.slug === slug)
+      if (!me) throw new Error(`agent émetteur introuvable : ${slug}`)
+      return await c.mutation(api.osHandoffs.create, { fromAgentId: me._id, toAgentSlug: a.toAgentSlug, entityType: a.entityType, entityId: a.entityId, reason: a.reason, priority: a.priority, slaDueAt: a.slaDueAt, context: a.context, createdBy: actor })
+    },
+    log: (a) => ({ eventType: 'handoff.created', summary: `Handoff → ${a.toAgentSlug} : ${a.reason}`, entityType: a.entityType, entityId: String(a.entityId) }),
+  },
+  {
+    name: 'handoffs_accept', description: "Accepte un handoff (en prend la responsabilité ; réassigne la tâche si entityType=task). handoffId requis.",
+    inputSchema: obj({ handoffId: Sx.string }, ['handoffId']),
+    run: (a, actor) => cx().mutation(api.osHandoffs.accept, { handoffId: a.handoffId, acceptedBy: actor }),
+    log: (a) => ({ eventType: 'handoff.accepted', summary: 'Handoff accepté', entityType: 'handoff', entityId: String(a.handoffId) }),
+  },
+  {
+    name: 'handoffs_complete', description: "Clôt un handoff (travail terminé). handoffId requis ; note optionnelle.",
+    inputSchema: obj({ handoffId: Sx.string, note: Sx.string }, ['handoffId']),
+    run: (a) => cx().mutation(api.osHandoffs.complete, { handoffId: a.handoffId, note: a.note }),
+    log: (a) => ({ eventType: 'handoff.completed', summary: 'Handoff terminé', entityType: 'handoff', entityId: String(a.handoffId) }),
+  },
+
+  // ───────────── Skills / SOPs persistants ─────────────
+  { name: 'skills_list', description: "Liste les Skills/SOPs persistants du Data OS (procédures, playbooks).", inputSchema: obj({}), run: () => cx().query(api.osSkills.list, {}) },
+  {
+    name: 'skills_create', description: "Crée ou met à jour un Skill/SOP (upsert par skillId). skillId, name, body requis ; description, tags optionnels.",
+    inputSchema: obj({ skillId: Sx.string, name: Sx.string, description: Sx.string, tags: Sx.strArr, body: Sx.string }, ['skillId', 'name', 'body']),
+    run: (a, actor) => cx().mutation(api.osSkills.create, { skillId: a.skillId, name: a.name, description: a.description, tags: a.tags, body: a.body, createdBy: actor }),
+    log: (a) => ({ eventType: 'skill.upserted', summary: `Skill/SOP : ${a.name}`, entityType: 'skill', entityId: String(a.skillId) }),
+  },
+  {
+    name: 'skills_remove', description: "Supprime un Skill/SOP (destructif → validation humaine requise). id requis.",
+    inputSchema: obj({ id: Sx.string }, ['id']),
+    run: (a) => cx().mutation(api.osSkills.remove, { id: a.id }),
+    log: (a) => ({ eventType: 'skill.removed', summary: 'Skill/SOP supprimé', entityType: 'skill', entityId: String(a.id) }),
+  },
+
   // ───────────── Prospection (cockpit caller, Nouveau lead → R1) ─────────────
   { name: 'prospection_list', description: 'Liste les cartes de prospection (jointes au contact). Board = colonnes lead_a_traiter|r1_booke|perdu (filtre column). Phase 1/2/3 internes. Filtres: column, phase, temperature, channel, status, search.', inputSchema: obj({ column: Sx.string, phase: Sx.string, temperature: Sx.string, channel: Sx.string, status: Sx.string, search: Sx.string }), run: (a) => cx().query(api.osProspection.list, a) },
   {
     name: 'prospection_create_or_link_contact', description: "Crée un lead de prospection. Déduplique le contact (phone/email/linkedin/nom+entreprise), crée/lie le Contact (statut lead, stage Nouveau lead), crée la carte prospection + le lead Pipeline. fullName requis.",
     inputSchema: obj({ fullName: Sx.string, companyName: Sx.string, phone: Sx.string, email: Sx.string, linkedinUrl: Sx.string, source: Sx.string, niche: Sx.string, canton: Sx.string, channel: Sx.string, temperature: Sx.string }, ['fullName']),
-    run: (a) => cx().mutation(api.osProspection.createOrLink, { ...a, createdBy: AGENT }),
+    run: (a, actor) => cx().mutation(api.osProspection.createOrLink, { ...a, createdBy: actor }),
     log: (a, r) => ({ eventType: 'prospection.created', summary: `Prospection : ${a.fullName}`, entityType: 'prospection', entityId: String((r as { recordId?: string })?.recordId ?? '') }),
   },
   {
     name: 'prospection_quick_action', description: "Applique une action et synchronise colonne/Pipeline/Contact/Tâches. action ∈ appele|repondu|pas_repondu|message_laisse|a_rappeler|interesse|negatif|mauvais_numero|non_qualifie|r1_booke|perdu. La carte reste dans 'Lead à traiter' (phase1→2→3 interne) ; pas_repondu/message_laisse répétés font progresser la phase puis → Perdu après phase3. negatif/mauvais_numero/non_qualifie → Perdu. interesse → temperature chaud. r1_booke (r1At ISO) → handoff + tâche R1. id requis.",
     inputSchema: obj({ id: Sx.string, action: Sx.string, note: Sx.string, nextFollowUpAt: Sx.string, r1At: Sx.string, lostReason: Sx.string }, ['id', 'action']),
-    run: (a) => cx().mutation(api.osProspection.quickAction, { ...a, createdBy: AGENT }),
+    run: (a, actor) => cx().mutation(api.osProspection.quickAction, { ...a, createdBy: actor }),
   },
   {
     name: 'prospection_move', description: "Déplace une carte de prospection (= prospection_quick_action). id + action requis.",
     inputSchema: obj({ id: Sx.string, action: Sx.string }, ['id', 'action']),
-    run: (a) => cx().mutation(api.osProspection.quickAction, { id: a.id, action: a.action, createdBy: AGENT }),
+    run: (a, actor) => cx().mutation(api.osProspection.quickAction, { id: a.id, action: a.action, createdBy: actor }),
   },
   {
     name: 'prospection_mark_r1_booked', description: "Marque la carte comme R1 booké : status=handoff, Pipeline→R1, crée la tâche 'Préparer R1', log lead.r1_booked. id requis ; r1At = date ISO du R1.",
     inputSchema: obj({ id: Sx.string, r1At: Sx.string, note: Sx.string }, ['id']),
-    run: (a) => cx().mutation(api.osProspection.quickAction, { id: a.id, action: 'r1_booke', r1At: a.r1At, note: a.note, createdBy: AGENT }),
+    run: (a, actor) => cx().mutation(api.osProspection.quickAction, { id: a.id, action: 'r1_booke', r1At: a.r1At, note: a.note, createdBy: actor }),
     log: (a) => ({ eventType: 'lead.r1_booked', summary: 'R1 booké', entityType: 'prospection', entityId: String(a.id) }),
   },
   {
     name: 'prospection_mark_lost', description: "Marque la carte comme Perdu : status=lost, Contact perdu/non_qualifie, Pipeline lost, log lead.lost. id requis ; lostReason ∈ reponse_negative|pas_de_reponse_phase3|mauvais_numero|non_qualifie|hors_cible|autre.",
     inputSchema: obj({ id: Sx.string, lostReason: Sx.string, note: Sx.string }, ['id']),
-    run: (a) => cx().mutation(api.osProspection.quickAction, { id: a.id, action: 'perdu', lostReason: a.lostReason, note: a.note, createdBy: AGENT }),
+    run: (a, actor) => cx().mutation(api.osProspection.quickAction, { id: a.id, action: 'perdu', lostReason: a.lostReason, note: a.note, createdBy: actor }),
     log: (a) => ({ eventType: 'lead.lost', summary: 'Lead perdu', entityType: 'prospection', entityId: String(a.id) }),
   },
   {
     name: 'prospection_set_phase', description: "Met à jour une cellule du tracker (Phase 1/2/3) sans sortir le lead de 'Lead à traiter'. Dès qu'une phase est renseignée, le lead passe 'En conversation' dans le Pipeline. phase ∈ phase1|phase2|phase3 ; value ∈ ''|repondu|pas_repondu|a_rappeler. id requis.",
     inputSchema: obj({ id: Sx.string, phase: Sx.string, value: Sx.string }, ['id', 'phase', 'value']),
-    run: (a) => cx().mutation(api.osProspection.setPhaseCell, { ...a, createdBy: AGENT }),
+    run: (a, actor) => cx().mutation(api.osProspection.setPhaseCell, { ...a, createdBy: actor }),
   },
   { name: 'prospection_set_temperature', description: 'Définit la température (chaud|tiede|froid). id requis.', inputSchema: obj({ id: Sx.string, temperature: Sx.string }, ['id', 'temperature']), run: (a) => cx().mutation(api.osProspection.setTemperature, a) },
   { name: 'prospection_set_next_followup', description: 'Définit le prochain rappel (ISO date). id requis.', inputSchema: obj({ id: Sx.string, nextFollowUpAt: Sx.string }, ['id', 'nextFollowUpAt']), run: (a) => cx().mutation(api.osProspection.setNextFollowUp, a) },
@@ -266,20 +310,20 @@ const TOOLS: Tool[] = [
   {
     name: 'performance_set_r1_objective', description: "Définit l'objectif R1 (éditable, persisté) pour une date donnée. date (YYYY-MM-DD) + target (nombre) requis.",
     inputSchema: obj({ date: Sx.string, target: Sx.number }, ['date', 'target']),
-    run: (a) => cx().mutation(api.performance.setR1Objective, { ...a, createdBy: AGENT }),
+    run: (a, actor) => cx().mutation(api.performance.setR1Objective, { ...a, createdBy: actor }),
     log: (a) => ({ eventType: 'performance.objective_set', summary: `Objectif R1 ${a.date} : ${a.target}`, entityType: 'prospection_goal', entityId: String(a.date) }),
   },
   { name: 'performance_daily_tasks_list', description: "Objectifs quotidiens du setter (progression auto via les événements de prospection). date requise (YYYY-MM-DD), setter optionnel.", inputSchema: obj({ setter: Sx.string, date: Sx.string }, ['date']), run: (a) => cx().query(api.performance.dailyTasksList, a) },
   {
     name: 'performance_daily_tasks_create', description: "Crée un objectif quotidien. metric ∈ appels|messages|relances|reponses|r1 (progression auto) ou omis (manuel). setter/date/title/targetNumber requis.",
     inputSchema: obj({ setter: Sx.string, date: Sx.string, title: Sx.string, targetNumber: Sx.number, metric: Sx.string }, ['setter', 'date', 'title', 'targetNumber']),
-    run: (a) => cx().mutation(api.performance.dailyTasksCreate, { ...a, createdBy: AGENT }),
+    run: (a, actor) => cx().mutation(api.performance.dailyTasksCreate, { ...a, createdBy: actor }),
     log: (a) => ({ eventType: 'performance.task_created', summary: `Objectif : ${a.title}`, entityType: 'setter_task', entityId: '' }),
   },
   {
     name: 'performance_daily_tasks_update', description: "Met à jour un objectif : increment (+N), currentProgress (valeur), status (todo|in_progress|done). id requis.",
     inputSchema: obj({ id: Sx.string, increment: Sx.number, currentProgress: Sx.number, status: Sx.string }, ['id']),
-    run: (a) => cx().mutation(api.performance.dailyTasksUpdate, { ...a, createdBy: AGENT }),
+    run: (a, actor) => cx().mutation(api.performance.dailyTasksUpdate, { ...a, createdBy: actor }),
     log: (a) => ({ eventType: 'performance.task_updated', summary: 'Objectif mis à jour', entityType: 'setter_task', entityId: String(a.id) }),
   },
 
@@ -340,15 +384,34 @@ const TOOLS: Tool[] = [
   },
 ]
 
-// ── Auth (optional bearer guard on writes) ───────────────────────────────────
-const WRITE = new Set(['tools/call'])
-function authorized(req: NextRequest, method: string): boolean {
-  const secret = process.env.HERMES_API_SECRET
-  if (!secret) return true
-  if (!WRITE.has(method)) return true // reads open; lock writes when secret set
-  const provided = req.headers.get('authorization')?.replace('Bearer ', '') ?? req.headers.get('x-hermes-secret') ?? ''
-  return provided === secret
+// ── Auth par agent (token Bearer → identité + scopes) ───────────────────────
+// Break-glass humain : Bearer == HERMES_API_SECRET → accès complet (console humaine).
+// Sinon : hash du Bearer → resolveAgent (scopes effectifs). deny-by-default.
+type Auth =
+  | { kind: 'anon' }
+  | { kind: 'invalid' }
+  | { kind: 'human'; actor: string }
+  | { kind: 'agent'; tokenHash: string; actor: string; scopes: Set<string>; approvalScopes: Set<string> }
+
+function bearerOf(req: NextRequest): string {
+  return req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? req.headers.get('x-hermes-secret') ?? ''
 }
+
+async function resolveAuth(req: NextRequest): Promise<Auth> {
+  const bearer = bearerOf(req)
+  if (!bearer) return { kind: 'anon' }
+  const secret = process.env.HERMES_API_SECRET
+  if (secret && bearer === secret) return { kind: 'human', actor: 'human:breakglass' }
+  const tokenHash = createHash('sha256').update(bearer).digest('hex')
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r = await cx().query(api.agentGuard.resolveAgent, { tokenHash }) as any
+    if (!r?.ok) return { kind: 'invalid' }
+    return { kind: 'agent', tokenHash, actor: `agent:${r.agent.slug}`, scopes: new Set<string>(r.scopes), approvalScopes: new Set<string>(r.approvalScopes) }
+  } catch { return { kind: 'invalid' } }
+}
+
+const riskOf = (verb: string) => (verb === 'read' || verb === 'write' || verb === 'heartbeat') ? 'low' : (['move', 'action', 'assign'].includes(verb) ? 'medium' : 'high')
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-hermes-secret, mcp-protocol-version, mcp-session-id' }
 const jres = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: CORS })
@@ -356,23 +419,66 @@ const jres = (body: unknown, status = 200) => NextResponse.json(body, { status, 
 const rpcOk = (id: any, result: unknown) => ({ jsonrpc: '2.0', id, result })
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const rpcErr = (id: any, code: number, message: string) => ({ jsonrpc: '2.0', id, error: { code, message } })
+const textResult = (data: unknown) => ({ content: [{ type: 'text', text: JSON.stringify(data ?? { ok: true }, null, 2) }] })
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function dispatch(msg: any): Promise<unknown | null> {
+async function dispatch(msg: any, auth: Auth): Promise<unknown | null> {
   const { id, method, params } = msg ?? {}
-  if (method === 'initialize') return rpcOk(id, { protocolVersion: params?.protocolVersion ?? PROTOCOL_VERSION, capabilities: { tools: { listChanged: false } }, serverInfo: SERVER_INFO, instructions: "API opérationnelle du VividFlow Data OS (contacts, pipeline/leads, clients, sales calls, outreach, tâches, activités, mémoire, process, état COO). Appeler dataos_state avant de répondre. Contacts = source de vérité ; ne pas dupliquer un lead si le contact existe." })
+  if (method === 'initialize') return rpcOk(id, { protocolVersion: params?.protocolVersion ?? PROTOCOL_VERSION, capabilities: { tools: { listChanged: false } }, serverInfo: SERVER_INFO, instructions: "API opérationnelle du VividFlow Data OS. Authentification par token agent (Bearer) ; permissions/scopes par agent, deny-by-default. Les actions sensibles renvoient {status:'pending'} sans modifier les données. Appeler dataos_state avant de répondre. Contacts = source de vérité." })
   if (method === 'ping') return rpcOk(id, {})
   if (typeof method === 'string' && method.startsWith('notifications/')) return null
   if (method === 'tools/list') return rpcOk(id, { tools: TOOLS.map(t => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })) })
   if (method === 'tools/call') {
     const tool = TOOLS.find(t => t.name === params?.name)
     if (!tool) return rpcErr(id, -32602, `Unknown tool: ${params?.name}`)
+    if (auth.kind === 'anon' || auth.kind === 'invalid') return rpcErr(id, -32001, 'Unauthorized: token agent requis')
+    const args = params?.arguments ?? {}
+
+    // Break-glass humain : exécution directe, tracée comme humain.
+    if (auth.kind === 'human') {
+      try {
+        const result = await tool.run(args, auth.actor)
+        if (tool.log) { try { await logAct(cx(), 'human', auth.actor, tool.log(args, result)) } catch { /* ignore */ } }
+        return rpcOk(id, textResult(result))
+      } catch (e) { return rpcOk(id, { isError: true, ...textResult(`Erreur: ${String(e)}`) }) }
+    }
+
+    // Agent : deny-by-default → scope → approval/forbidden/execute.
+    const need = requiredScopeForCall(tool.name, args)
+    if (!need) {
+      await cx().mutation(api.agentGuard.logDenied, { tokenHash: auth.tokenHash, tool: tool.name, requiredScope: 'unmapped' }).catch(() => {})
+      return rpcErr(id, -32003, `Forbidden: outil non autorisé (non mappé)`)
+    }
+    const [moduleName, verb] = need.scope.split(':')
+    let forceApproval = false
+    if (need.criticalKnowledge && tool.name === 'knowledge_approve') {
+      // Fail-closed : sans id, ou si la lecture échoue, ou si la connaissance est
+      // critique (rule|decision) → on exige l'approbation humaine.
+      if (!args.id) forceApproval = true
+      else {
+        try { const doc = await cx().query(api.osKnowledge.get, { id: args.id }) as { kind?: string } | null; if (!doc || doc.kind === 'rule' || doc.kind === 'decision') forceApproval = true } catch { forceApproval = true }
+      }
+    }
+    const decision = decide(auth.scopes, auth.approvalScopes, need.scope, forceApproval)
+    if (decision === 'forbidden') {
+      await cx().mutation(api.agentGuard.logDenied, { tokenHash: auth.tokenHash, tool: tool.name, requiredScope: need.scope }).catch(() => {})
+      return rpcErr(id, -32003, `Forbidden: scope « ${need.scope} » requis`)
+    }
+    if (decision === 'approval') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const r = await cx().mutation(api.agentGuard.createPendingApproval, { tokenHash: auth.tokenHash, tool: tool.name, module: moduleName, verb, payload: args, riskLevel: riskOf(verb) }) as any
+      return rpcOk(id, textResult({ status: 'pending', approvalId: r.approvalId, message: 'Action sensible : en attente de validation humaine/COO. Aucune donnée modifiée.' }))
+    }
+    // execute
     try {
-      const args = params?.arguments ?? {}
-      const result = await tool.run(args)
-      if (tool.log) { try { await logAct(cx(), tool.log(args, result)) } catch { /* ignore */ } }
-      return rpcOk(id, { content: [{ type: 'text', text: JSON.stringify(result ?? { ok: true }, null, 2) }] })
-    } catch (e) { return rpcOk(id, { isError: true, content: [{ type: 'text', text: `Erreur: ${String(e)}` }] }) }
+      const result = await tool.run(args, auth.actor)
+      const meta = tool.log ? tool.log(args, result) : undefined
+      await cx().mutation(api.agentGuard.logToolUse, { tokenHash: auth.tokenHash, tool: tool.name, module: moduleName, verb, riskLevel: riskOf(verb), entityType: meta?.entityType, entityId: meta?.entityId, summary: meta?.summary }).catch(() => {})
+      return rpcOk(id, textResult(result))
+    } catch (e) {
+      await cx().mutation(api.agentGuard.logToolUse, { tokenHash: auth.tokenHash, tool: tool.name, module: moduleName, verb, failed: true, summary: String(e).slice(0, 160) }).catch(() => {})
+      return rpcOk(id, { isError: true, ...textResult(`Erreur: ${String(e)}`) })
+    }
   }
   if (id === undefined) return null
   return rpcErr(id, -32601, `Method not found: ${method}`)
@@ -381,11 +487,9 @@ async function dispatch(msg: any): Promise<unknown | null> {
 export async function POST(req: NextRequest) {
   let body: unknown
   try { body = await req.json() } catch { return jres(rpcErr(null, -32700, 'Parse error'), 400) }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const first = Array.isArray(body) ? (body[0] as any)?.method : (body as any)?.method
-  if (!authorized(req, first)) return jres(rpcErr(null, -32001, 'Unauthorized'), 401)
-  if (Array.isArray(body)) { const out = (await Promise.all(body.map(dispatch))).filter(Boolean); return out.length ? jres(out) : new NextResponse(null, { status: 202, headers: CORS }) }
-  const res = await dispatch(body)
+  const auth = await resolveAuth(req)
+  if (Array.isArray(body)) { const out = (await Promise.all(body.map(m => dispatch(m, auth)))).filter(Boolean); return out.length ? jres(out) : new NextResponse(null, { status: 202, headers: CORS }) }
+  const res = await dispatch(body, auth)
   return res ? jres(res) : new NextResponse(null, { status: 202, headers: CORS })
 }
 
