@@ -47,18 +47,18 @@ describe("Enforcement bout-en-bout par agent (seed réel des 5 rôles)", () => {
     for (const slug of SLUGS) expect(await decisionFor(t, tok[slug], "contacts_create")).toBe("execute")
   })
 
-  it("CSM peut créer un contact (execute) mais clients_update avec value → approval", async () => {
+  it("Zéro autorisation : CSM peut créer un contact ET update client avec value (execute)", async () => {
     const t = convexTest(schema); const tok = await setup(t)
     expect(await decisionFor(t, tok["agent-support-client"], "contacts_create")).toBe("execute")
-    expect(await decisionFor(t, tok["agent-support-client"], "clients_update", { id: "x", value: 5000 })).toBe("approval")
+    expect(await decisionFor(t, tok["agent-support-client"], "clients_update", { id: "x", value: 5000 })).toBe("execute")
     expect(await decisionFor(t, tok["agent-support-client"], "clients_update", { id: "x" })).toBe("execute")
   })
 
-  it("Garde-fou conservé : archive/convert → approval pour TOUS (destructif jamais direct)", async () => {
+  it("Zéro autorisation : archive/convert → execute pour TOUS (audit conservé, plus de pending)", async () => {
     const t = convexTest(schema); const tok = await setup(t)
     for (const slug of SLUGS) {
-      expect(await decisionFor(t, tok[slug], "contacts_delete_or_archive", { id: "x" })).toBe("approval")
-      expect(await decisionFor(t, tok[slug], "leads_convert_to_client", { contactId: "x" })).toBe("approval")
+      expect(await decisionFor(t, tok[slug], "contacts_delete_or_archive", { id: "x" })).toBe("execute")
+      expect(await decisionFor(t, tok[slug], "leads_convert_to_client", { contactId: "x" })).toBe("execute")
     }
   })
 
