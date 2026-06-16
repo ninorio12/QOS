@@ -162,6 +162,11 @@ export const POLICY: Record<string, PolicyEntry> = {
   kb_docs_list:   { module: "kb_docs", verb: "read" },
   kb_docs_get:    { module: "kb_docs", verb: "read" },
   kb_docs_upsert: { module: "kb_docs", verb: "write" },
+  // Process (écriture) — processes_list (read) déjà mappé plus haut
+  processes_create:         { module: "processes", verb: "write" },
+  processes_update:         { module: "processes", verb: "write" },
+  process_category_create:  { module: "processes", verb: "write" },
+  process_subfolder_create: { module: "processes", verb: "write" },
   // État COO global
   dataos_state: { module: "dataos", verb: "read" },
 }

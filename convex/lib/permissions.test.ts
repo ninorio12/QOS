@@ -204,3 +204,16 @@ describe("parité library + kb_docs", () => {
     }
   })
 })
+
+describe("parité processes (write)", () => {
+  it("processes write tools sont mappés et exécutables", () => {
+    const granted = new Set(scopesFromGrants(FULL_GRANTS).scopes)
+    for (const [tool, scope] of [
+      ["processes_create", "processes:write"], ["processes_update", "processes:write"],
+      ["process_category_create", "processes:write"], ["process_subfolder_create", "processes:write"],
+    ] as const) {
+      expect(requiredScopeForCall(tool)?.scope, tool).toBe(scope)
+      expect(decide(granted, new Set(), scope), tool).toBe("execute")
+    }
+  })
+})

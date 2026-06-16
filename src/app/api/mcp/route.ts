@@ -461,6 +461,32 @@ const TOOLS: Tool[] = [
     log: (a) => ({ eventType: 'kb_doc.upserted', summary: `KB doc : ${a.title}`, entityType: 'kb_doc', entityId: a.docId }),
   },
 
+  // ───────────── Process (écriture) ─────────────
+  {
+    name: 'processes_create', description: "Crée un process. title requis ; icon (lucide), category, subfolder, linkedClientId, assignedUserIds[].",
+    inputSchema: obj({ title: Sx.string, icon: Sx.string, category: Sx.string, subfolder: Sx.string, linkedClientId: Sx.string, assignedUserIds: Sx.strArr }, ['title']),
+    run: (a) => cx().mutation(api.processes.create, { title: a.title, icon: a.icon, category: a.category, subfolder: a.subfolder, linkedClientId: a.linkedClientId, assignedUserIds: a.assignedUserIds }),
+    log: (a, r) => ({ eventType: 'process.created', summary: `Process : ${a.title}`, entityType: 'process', entityId: String(r) }),
+  },
+  {
+    name: 'processes_update', description: "Met à jour un process. id requis ; title, icon, blocks[{type,text}], category, subfolder, linkedClientId, assignedUserIds[].",
+    inputSchema: obj({ id: Sx.string, title: Sx.string, icon: Sx.string, blocks: { type: 'array', items: { type: 'object' } }, category: Sx.string, subfolder: Sx.string, linkedClientId: Sx.string, assignedUserIds: Sx.strArr }, ['id']),
+    run: (a) => cx().mutation(api.processes.update, { id: a.id, title: a.title, icon: a.icon, blocks: a.blocks, category: a.category, subfolder: a.subfolder, linkedClientId: a.linkedClientId, assignedUserIds: a.assignedUserIds }),
+    log: (a) => ({ eventType: 'process.updated', summary: 'Process mis à jour', entityType: 'process', entityId: a.id }),
+  },
+  {
+    name: 'process_category_create', description: "Crée une catégorie de process. name requis.",
+    inputSchema: obj({ name: Sx.string }, ['name']),
+    run: (a) => cx().mutation(api.processCategories.create, { name: a.name }),
+    log: (a) => ({ eventType: 'process.category_created', summary: `Catégorie : ${a.name}`, entityType: 'process_category' }),
+  },
+  {
+    name: 'process_subfolder_create', description: "Crée un sous-dossier de process. category + name requis.",
+    inputSchema: obj({ category: Sx.string, name: Sx.string }, ['category', 'name']),
+    run: (a) => cx().mutation(api.processSubfolders.create, { category: a.category, name: a.name }),
+    log: (a) => ({ eventType: 'process.subfolder_created', summary: `Sous-dossier : ${a.name}`, entityType: 'process_subfolder' }),
+  },
+
   // ───────────── État COO global enrichi ─────────────
   {
     name: 'dataos_state', description: "Vue COO complète du Data OS : agents, tâches (ouvertes/bloquées/dues), activités récentes, leads actifs par étape, leads stagnants, R1/R2 à relancer, clients actifs, paiements en attente, candidats mémoire, risques, prochaines actions recommandées.",
