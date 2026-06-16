@@ -133,6 +133,11 @@ export const POLICY: Record<string, PolicyEntry> = {
   media_buyer_board:  { module: "media_buyer", verb: "read" },
   media_buyer_upsert: { module: "media_buyer", verb: "write" },
   media_buyer_remove: { module: "media_buyer", verb: "delete" },
+  // Onboarding
+  onboarding_list:               { module: "onboarding", verb: "read" },
+  onboarding_get_by_contact:     { module: "onboarding", verb: "read" },
+  onboarding_payments_overview:  { module: "onboarding", verb: "read" },
+  onboarding_save_progress:      { module: "onboarding", verb: "write" },
   // État COO global
   dataos_state: { module: "dataos", verb: "read" },
 }

@@ -364,6 +364,17 @@ const TOOLS: Tool[] = [
     log: (a) => ({ eventType: 'media_buyer.removed', summary: 'Métrique Meta retirée', entityType: 'meta_ad_metrics', entityId: a.id }),
   },
 
+  // ───────────── Onboarding ─────────────
+  { name: 'onboarding_list', description: 'Liste les onboardings clients.', inputSchema: obj({}), run: () => cx().query(api.onboarding.list, {}) },
+  { name: 'onboarding_get_by_contact', description: "Onboarding d'un contact. contactId requis.", inputSchema: obj({ contactId: Sx.string }, ['contactId']), run: (a) => cx().query(api.onboarding.getByContact, { contactId: a.contactId }) },
+  { name: 'onboarding_payments_overview', description: "Tour de contrôle paiements (échéances + remboursements, encaissé/attente).", inputSchema: obj({}), run: () => cx().query(api.onboarding.paymentsOverview, {}) },
+  {
+    name: 'onboarding_save_progress', description: "Crée/maj l'onboarding (paiements, étapes). token requis ; name, contactId, state (objet complet, inclut payment.amounts/paidStatus/paidDates/refunds).",
+    inputSchema: obj({ token: Sx.string, name: Sx.string, contactId: Sx.string, state: { type: 'object' } }, ['token', 'state']),
+    run: (a) => cx().mutation(api.onboarding.saveProgress, { token: a.token, name: a.name, contactId: a.contactId, state: a.state ?? {} }),
+    log: (a) => ({ eventType: 'onboarding.saved', summary: `Onboarding maj : ${a.name ?? a.contactId ?? a.token}`, entityType: 'onboarding' }),
+  },
+
   // ───────────── État COO global enrichi ─────────────
   {
     name: 'dataos_state', description: "Vue COO complète du Data OS : agents, tâches (ouvertes/bloquées/dues), activités récentes, leads actifs par étape, leads stagnants, R1/R2 à relancer, clients actifs, paiements en attente, candidats mémoire, risques, prochaines actions recommandées.",

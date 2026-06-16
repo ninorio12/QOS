@@ -148,3 +148,16 @@ describe("parité media-buyer", () => {
     }
   })
 })
+
+describe("parité onboarding", () => {
+  it("onboarding tools sont mappés et exécutables", () => {
+    const granted = new Set(scopesFromGrants(FULL_GRANTS).scopes)
+    for (const [tool, scope] of [
+      ["onboarding_list", "onboarding:read"], ["onboarding_get_by_contact", "onboarding:read"],
+      ["onboarding_payments_overview", "onboarding:read"], ["onboarding_save_progress", "onboarding:write"],
+    ] as const) {
+      expect(requiredScopeForCall(tool)?.scope, tool).toBe(scope)
+      expect(decide(granted, new Set(), scope), tool).toBe("execute")
+    }
+  })
+})
