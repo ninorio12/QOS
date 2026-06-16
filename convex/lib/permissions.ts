@@ -10,7 +10,7 @@
 // ───────────────────────────────────────────────────────────────────────────
 
 export type Decision = "execute" | "approval" | "forbidden"
-export type Role = "coo" | "kb" | "csm" | "ops" | "analyst"
+export type Role = "coo" | "kb" | "csm" | "ops" | "analyst" | "media-buyer" | "debug"
 
 export type Grant = { scope: string; level: string; requiresApproval: boolean; resource?: string }
 
@@ -129,7 +129,10 @@ export const POLICY: Record<string, PolicyEntry> = {
 
 // ── Verbes qui requièrent une approbation quand ils sont accordés ───────────
 // (le seed pose requiresApproval=true sur ces (module,verb) ; ici pour cohérence/tests)
-export const APPROVAL_VERBS = new Set(["archive", "convert", "value", "send", "publish"])
+// Zéro autorisation (décision Thomas 2026-06-16) : aucune action n'exige d'approbation.
+// L'audit append-only (os_activities) reste la traçabilité. Le flux createPendingApproval/
+// reviewApproval est conservé dans le code mais devient dormant.
+export const APPROVAL_VERBS = new Set<string>([])
 
 // ── ACCÈS COMPLET UNIFORME ──────────────────────────────────────────────────
 // Décision produit (2026-06) : on ne cloisonne plus l'accès aux données par
@@ -175,6 +178,7 @@ export const FULL_GRANTS: Grant[] = buildFullGrants()
 // UI / identité Hermes), mais ne différencient plus l'accès données.
 export const ROLE_TEMPLATES: Record<Role, Grant[]> = {
   coo: FULL_GRANTS, kb: FULL_GRANTS, csm: FULL_GRANTS, ops: FULL_GRANTS, analyst: FULL_GRANTS,
+  "media-buyer": FULL_GRANTS, debug: FULL_GRANTS,
 }
 
 // slug Data OS → rôle template
@@ -184,6 +188,8 @@ export const SLUG_TO_ROLE: Record<string, Role> = {
   "agent-support-client": "csm",
   "agent-operations": "ops",
   "agent-analyse": "analyst",
+  "agent-media-buyer": "media-buyer",
+  "agent-debug": "debug",
 }
 
 // Dérive les scopes (et ceux à approval) à partir d'une liste de grants.

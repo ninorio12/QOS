@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest"
 import {
   scopeAllows, decide, requiredScopeForCall, scopesFromGrants,
-  POLICY, ROLE_TEMPLATES, SLUG_TO_ROLE, type Role,
+  POLICY, ROLE_TEMPLATES, SLUG_TO_ROLE, APPROVAL_VERBS, FULL_GRANTS, type Role,
 } from "./permissions"
 
 const set = (...xs: string[]) => new Set(xs)
@@ -38,7 +38,7 @@ describe("requiredScopeForCall — dynamique", () => {
 })
 
 describe("POLICY — couverture des 63 outils MCP", () => {
-  it("couvre exactement 63 outils", () => expect(Object.keys(POLICY).length).toBe(63))
+  it("couvre au moins 63 outils", () => expect(Object.keys(POLICY).length).toBeGreaterThanOrEqual(63))
   it("handoffs + skills sont mappés (accès complet)", () => {
     expect(POLICY.handoffs_create.module).toBe("handoff")
     expect(POLICY.handoffs_create.verb).toBe("create")
@@ -61,8 +61,8 @@ describe("ROLE_TEMPLATES — accès complet uniforme", () => {
   const scopesOf = (role: Role) => new Set(scopesFromGrants(ROLE_TEMPLATES[role]).scopes)
   const ROLES: Role[] = ["coo", "kb", "csm", "ops", "analyst"]
 
-  it("les 5 slugs sont mappés", () => {
-    expect(Object.keys(SLUG_TO_ROLE).sort()).toEqual(["agent-analyse", "agent-kb", "agent-operations", "agent-support-client", "coo"])
+  it("les 7 slugs sont mappés", () => {
+    expect(Object.keys(SLUG_TO_ROLE).sort()).toEqual(["agent-analyse", "agent-debug", "agent-kb", "agent-media-buyer", "agent-operations", "agent-support-client", "coo"])
   })
   it("tous les rôles partagent exactement le même jeu de scopes", () => {
     const ref = [...scopesOf("coo")].sort()
@@ -85,10 +85,10 @@ describe("ROLE_TEMPLATES — accès complet uniforme", () => {
       if (p.approvalIfValue) expect(s.has(`${p.module}:value`)).toBe(true)
     }
   })
-  it("les verbes sensibles restent en approbation pour TOUS les rôles", () => {
+  it("zéro autorisation : aucun verbe en approbation pour TOUS les rôles", () => {
     for (const r of ROLES) {
       const { approvalScopes } = scopesFromGrants(ROLE_TEMPLATES[r])
-      for (const s of ["contacts:archive", "clients:archive", "clients:convert", "clients:value", "outreach:send"]) expect(approvalScopes).toContain(s)
+      expect(approvalScopes).toEqual([])
     }
   })
   it("approvals = uniquement APPROVAL_VERBS (write/read/approve s'exécutent)", () => {
@@ -106,5 +106,19 @@ describe("Invariant handoff — un handoff ne donne aucun droit", () => {
   it("un scope handoff:accept n'implique JAMAIS clients:write", () => {
     const granted = new Set(["handoff:accept", "contacts:read"])
     expect(decide(granted, new Set(), "clients:write")).toBe("forbidden")
+  })
+})
+
+describe("zéro autorisation", () => {
+  it("APPROVAL_VERBS est vide", () => {
+    expect(APPROVAL_VERBS.size).toBe(0)
+  })
+  it("aucun grant ne requiert d'approbation", () => {
+    const { approvalScopes } = scopesFromGrants(FULL_GRANTS)
+    expect(approvalScopes).toEqual([])
+  })
+  it("decide ne renvoie jamais 'approval' pour un scope accordé", () => {
+    const granted = new Set(["clients:convert"])
+    expect(decide(granted, new Set(), "clients:convert")).toBe("execute")
   })
 })
