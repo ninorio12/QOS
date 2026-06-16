@@ -375,6 +375,28 @@ const TOOLS: Tool[] = [
     log: (a) => ({ eventType: 'onboarding.saved', summary: `Onboarding maj : ${a.name ?? a.contactId ?? a.token}`, entityType: 'onboarding' }),
   },
 
+  // ───────────── Closing / confirmation ─────────────
+  { name: 'closing_upcoming_calls', description: "Calls à venir (prép R1/R2). scope optionnel: today|week|all.", inputSchema: obj({ scope: Sx.string }), run: (a) => cx().query(api.closing.upcomingCalls, { scope: a.scope }) },
+  {
+    name: 'closing_save_call_note', description: "Note de prép d'un call. id (os_sales_calls) requis ; notes, nextStep.",
+    inputSchema: obj({ id: Sx.string, notes: Sx.string, nextStep: Sx.string }, ['id']),
+    run: (a) => cx().mutation(api.closing.saveCallNote, { id: a.id, notes: a.notes, nextStep: a.nextStep }),
+    log: (a) => ({ eventType: 'closing.note_saved', summary: 'Note de call enregistrée', entityType: 'sales_call', entityId: a.id }),
+  },
+  { name: 'confirmation_list_for_contact', description: "Soumissions formulaire de confirmation d'un contact. contactId ou email.", inputSchema: obj({ contactId: Sx.string, email: Sx.string }), run: (a) => cx().query(api.confirmationIntake.listForContact, { contactId: a.contactId || undefined, email: a.email || undefined }) },
+  {
+    name: 'confirmation_create', description: "Enregistre une soumission de confirmation (auto-lien contact par email). fullName requis ; email,company,companyType,headcount,monthlyRevenue,costliestFunction,repetitiveCost,whyNow,timing,budget.",
+    inputSchema: obj({ fullName: Sx.string, email: Sx.string, company: Sx.string, companyType: Sx.string, headcount: Sx.string, monthlyRevenue: Sx.string, costliestFunction: Sx.string, repetitiveCost: Sx.string, whyNow: Sx.string, timing: Sx.string, budget: Sx.string }, ['fullName']),
+    run: (a) => cx().mutation(api.confirmationIntake.create, { fullName: a.fullName, email: a.email, company: a.company, companyType: a.companyType, headcount: a.headcount, monthlyRevenue: a.monthlyRevenue, costliestFunction: a.costliestFunction, repetitiveCost: a.repetitiveCost, whyNow: a.whyNow, timing: a.timing, budget: a.budget }),
+    log: (a, r) => ({ eventType: 'confirmation.created', summary: `Confirmation : ${a.fullName}`, entityType: 'confirmation_intake', entityId: String((r as { id?: string })?.id ?? '') }),
+  },
+  {
+    name: 'confirmation_link', description: "Lie une soumission de confirmation à un contact. id + contactId requis.",
+    inputSchema: obj({ id: Sx.string, contactId: Sx.string }, ['id', 'contactId']),
+    run: (a) => cx().mutation(api.confirmationIntake.linkToContact, { id: a.id, contactId: a.contactId }),
+    log: (a) => ({ eventType: 'confirmation.linked', summary: 'Confirmation liée au contact', entityType: 'confirmation_intake', entityId: a.id }),
+  },
+
   // ───────────── État COO global enrichi ─────────────
   {
     name: 'dataos_state', description: "Vue COO complète du Data OS : agents, tâches (ouvertes/bloquées/dues), activités récentes, leads actifs par étape, leads stagnants, R1/R2 à relancer, clients actifs, paiements en attente, candidats mémoire, risques, prochaines actions recommandées.",

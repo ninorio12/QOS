@@ -161,3 +161,17 @@ describe("parité onboarding", () => {
     }
   })
 })
+
+describe("parité closing", () => {
+  it("closing/confirmation tools sont mappés et exécutables", () => {
+    const granted = new Set(scopesFromGrants(FULL_GRANTS).scopes)
+    for (const [tool, scope] of [
+      ["closing_upcoming_calls", "closing:read"], ["closing_save_call_note", "closing:write"],
+      ["confirmation_list_for_contact", "closing:read"], ["confirmation_create", "closing:write"],
+      ["confirmation_link", "closing:write"],
+    ] as const) {
+      expect(requiredScopeForCall(tool)?.scope, tool).toBe(scope)
+      expect(decide(granted, new Set(), scope), tool).toBe("execute")
+    }
+  })
+})

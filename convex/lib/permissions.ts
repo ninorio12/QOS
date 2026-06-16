@@ -138,6 +138,12 @@ export const POLICY: Record<string, PolicyEntry> = {
   onboarding_get_by_contact:     { module: "onboarding", verb: "read" },
   onboarding_payments_overview:  { module: "onboarding", verb: "read" },
   onboarding_save_progress:      { module: "onboarding", verb: "write" },
+  // Closing (prép R1/R2 + confirmation)
+  closing_upcoming_calls:        { module: "closing", verb: "read" },
+  closing_save_call_note:        { module: "closing", verb: "write" },
+  confirmation_list_for_contact: { module: "closing", verb: "read" },
+  confirmation_create:           { module: "closing", verb: "write" },
+  confirmation_link:             { module: "closing", verb: "write" },
   // État COO global
   dataos_state: { module: "dataos", verb: "read" },
 }
