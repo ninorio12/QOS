@@ -123,6 +123,12 @@ export const POLICY: Record<string, PolicyEntry> = {
   performance_daily_tasks_list: { module: "performance", verb: "read" },
   performance_daily_tasks_create: { module: "performance", verb: "write" },
   performance_daily_tasks_update: { module: "performance", verb: "write" },
+  // Devis
+  devis_list:   { module: "devis", verb: "read" },
+  devis_get:    { module: "devis", verb: "read" },
+  devis_create: { module: "devis", verb: "write" },
+  devis_update: { module: "devis", verb: "write" },
+  devis_delete: { module: "devis", verb: "delete" },
   // État COO global
   dataos_state: { module: "dataos", verb: "read" },
 }

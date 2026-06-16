@@ -122,3 +122,16 @@ describe("zéro autorisation", () => {
     expect(decide(granted, new Set(), "clients:convert")).toBe("execute")
   })
 })
+
+describe("parité devis", () => {
+  it("devis tools sont mappés et exécutables", () => {
+    const granted = new Set(scopesFromGrants(FULL_GRANTS).scopes)
+    for (const [tool, scope] of [
+      ["devis_list", "devis:read"], ["devis_get", "devis:read"], ["devis_create", "devis:write"],
+      ["devis_update", "devis:write"], ["devis_delete", "devis:delete"],
+    ] as const) {
+      expect(requiredScopeForCall(tool)?.scope, tool).toBe(scope)
+      expect(decide(granted, new Set(), scope), tool).toBe("execute")
+    }
+  })
+})

@@ -327,6 +327,28 @@ const TOOLS: Tool[] = [
     log: (a) => ({ eventType: 'performance.task_updated', summary: 'Objectif mis à jour', entityType: 'setter_task', entityId: String(a.id) }),
   },
 
+  // ───────────── Devis ─────────────
+  { name: 'devis_list', description: 'Liste les devis.', inputSchema: obj({}), run: () => cx().query(api.devis.listDevis, {}) },
+  { name: 'devis_get', description: 'Récupère un devis par id.', inputSchema: obj({ id: Sx.string }, ['id']), run: (a) => cx().query(api.devis.getDevis, { id: a.id }) },
+  {
+    name: 'devis_create', description: 'Crée un devis. titre requis ; source, lignes[{description,quantite,unite,prixUnitaire,tvaRate}], notes, statut, contact_id/name/email/phone, adresse_client.',
+    inputSchema: obj({ titre: Sx.string, source: Sx.string, lignes: { type: 'array', items: { type: 'object' } }, notes: Sx.string, statut: Sx.string, contact_id: Sx.string, contact_name: Sx.string, contact_email: Sx.string, contact_phone: Sx.string, adresse_client: Sx.string }, ['titre']),
+    run: (a) => cx().mutation(api.devis.createDevis, { titre: a.titre, source: a.source ?? 'agent', lignes: a.lignes, notes: a.notes, statut: a.statut, contact_id: a.contact_id, contact_name: a.contact_name, contact_email: a.contact_email, contact_phone: a.contact_phone, adresse_client: a.adresse_client }),
+    log: (a, r) => ({ eventType: 'devis.created', summary: `Devis : ${a.titre}`, entityType: 'devis', entityId: String(r) }),
+  },
+  {
+    name: 'devis_update', description: 'Met à jour un devis. id requis + updates{titre,lignes,notes,statut,contact_name,contact_email,contact_phone,ville,date_validite,adresse_chantier,adresse_client}.',
+    inputSchema: obj({ id: Sx.string, updates: { type: 'object' } }, ['id', 'updates']),
+    run: (a) => cx().mutation(api.devis.updateDevis, { id: a.id, updates: a.updates ?? {} }),
+    log: (a) => ({ eventType: 'devis.updated', summary: 'Devis mis à jour', entityType: 'devis', entityId: a.id }),
+  },
+  {
+    name: 'devis_delete', description: 'Supprime un devis. id requis.',
+    inputSchema: obj({ id: Sx.string }, ['id']),
+    run: (a) => cx().mutation(api.devis.deleteDevis, { id: a.id }),
+    log: (a) => ({ eventType: 'devis.deleted', summary: 'Devis supprimé', entityType: 'devis', entityId: a.id }),
+  },
+
   // ───────────── État COO global enrichi ─────────────
   {
     name: 'dataos_state', description: "Vue COO complète du Data OS : agents, tâches (ouvertes/bloquées/dues), activités récentes, leads actifs par étape, leads stagnants, R1/R2 à relancer, clients actifs, paiements en attente, candidats mémoire, risques, prochaines actions recommandées.",
