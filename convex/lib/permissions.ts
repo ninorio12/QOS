@@ -129,6 +129,10 @@ export const POLICY: Record<string, PolicyEntry> = {
   devis_create: { module: "devis", verb: "write" },
   devis_update: { module: "devis", verb: "write" },
   devis_delete: { module: "devis", verb: "delete" },
+  // Media buyer
+  media_buyer_board:  { module: "media_buyer", verb: "read" },
+  media_buyer_upsert: { module: "media_buyer", verb: "write" },
+  media_buyer_remove: { module: "media_buyer", verb: "delete" },
   // État COO global
   dataos_state: { module: "dataos", verb: "read" },
 }

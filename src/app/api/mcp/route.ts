@@ -349,6 +349,21 @@ const TOOLS: Tool[] = [
     log: (a) => ({ eventType: 'devis.deleted', summary: 'Devis supprimé', entityType: 'devis', entityId: a.id }),
   },
 
+  // ───────────── Media buyer (cockpit Meta) ─────────────
+  { name: 'media_buyer_board', description: "Board média Meta. level optionnel (creative|adset|campaign).", inputSchema: obj({ level: Sx.string }), run: (a) => cx().query(api.mediaBuyer.board, { level: a.level }) },
+  {
+    name: 'media_buyer_upsert', description: "Crée/maj une métrique d'annonce. level+name+spend requis ; id pour update ; campaign,adset,roas,cpa,ctr,hookRate,frequency,results,verdictOverride(scale|watch|kill).",
+    inputSchema: obj({ id: Sx.string, level: Sx.string, name: Sx.string, campaign: Sx.string, adset: Sx.string, thumbUrl: Sx.string, periodFrom: Sx.string, periodTo: Sx.string, spend: Sx.number, roas: Sx.number, cpa: Sx.number, ctr: Sx.number, hookRate: Sx.number, frequency: Sx.number, results: Sx.number, verdictOverride: Sx.string, source: Sx.string }, ['level', 'name', 'spend']),
+    run: (a) => cx().mutation(api.mediaBuyer.upsert, { id: a.id || undefined, level: a.level, name: a.name, campaign: a.campaign, adset: a.adset, thumbUrl: a.thumbUrl, periodFrom: a.periodFrom, periodTo: a.periodTo, spend: a.spend, roas: a.roas, cpa: a.cpa, ctr: a.ctr, hookRate: a.hookRate, frequency: a.frequency, results: a.results, verdictOverride: a.verdictOverride, source: a.source ?? 'agent' }),
+    log: (a) => ({ eventType: 'media_buyer.upserted', summary: `Métrique Meta : ${a.name}`, entityType: 'meta_ad_metrics' }),
+  },
+  {
+    name: 'media_buyer_remove', description: "Désactive une métrique (soft). id requis.",
+    inputSchema: obj({ id: Sx.string }, ['id']),
+    run: (a) => cx().mutation(api.mediaBuyer.remove, { id: a.id }),
+    log: (a) => ({ eventType: 'media_buyer.removed', summary: 'Métrique Meta retirée', entityType: 'meta_ad_metrics', entityId: a.id }),
+  },
+
   // ───────────── État COO global enrichi ─────────────
   {
     name: 'dataos_state', description: "Vue COO complète du Data OS : agents, tâches (ouvertes/bloquées/dues), activités récentes, leads actifs par étape, leads stagnants, R1/R2 à relancer, clients actifs, paiements en attente, candidats mémoire, risques, prochaines actions recommandées.",

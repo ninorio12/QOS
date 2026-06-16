@@ -135,3 +135,16 @@ describe("parité devis", () => {
     }
   })
 })
+
+describe("parité media-buyer", () => {
+  it("media_buyer tools sont mappés et exécutables", () => {
+    const granted = new Set(scopesFromGrants(FULL_GRANTS).scopes)
+    for (const [tool, scope] of [
+      ["media_buyer_board", "media_buyer:read"], ["media_buyer_upsert", "media_buyer:write"],
+      ["media_buyer_remove", "media_buyer:delete"],
+    ] as const) {
+      expect(requiredScopeForCall(tool)?.scope, tool).toBe(scope)
+      expect(decide(granted, new Set(), scope), tool).toBe("execute")
+    }
+  })
+})
