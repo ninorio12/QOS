@@ -149,6 +149,19 @@ export const POLICY: Record<string, PolicyEntry> = {
   records_get:    { module: "records", verb: "read" },
   records_patch:  { module: "records", verb: "write" },
   records_remove: { module: "records", verb: "delete" },
+  // Library (bibliothèque/data)
+  library_list:          { module: "library", verb: "read" },
+  library_folders_list:  { module: "library", verb: "read" },
+  library_add_link:      { module: "library", verb: "write" },
+  library_update_item:   { module: "library", verb: "write" },
+  library_remove:        { module: "library", verb: "delete" },
+  library_create_folder: { module: "library", verb: "write" },
+  library_rename_folder: { module: "library", verb: "write" },
+  library_delete_folder: { module: "library", verb: "delete" },
+  // KB docs
+  kb_docs_list:   { module: "kb_docs", verb: "read" },
+  kb_docs_get:    { module: "kb_docs", verb: "read" },
+  kb_docs_upsert: { module: "kb_docs", verb: "write" },
   // État COO global
   dataos_state: { module: "dataos", verb: "read" },
 }

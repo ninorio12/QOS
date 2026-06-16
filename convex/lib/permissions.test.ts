@@ -188,3 +188,19 @@ describe("parité records", () => {
     }
   })
 })
+
+describe("parité library + kb_docs", () => {
+  it("library/kb_docs tools sont mappés et exécutables", () => {
+    const granted = new Set(scopesFromGrants(FULL_GRANTS).scopes)
+    for (const [tool, scope] of [
+      ["library_list", "library:read"], ["library_folders_list", "library:read"],
+      ["library_add_link", "library:write"], ["library_update_item", "library:write"],
+      ["library_remove", "library:delete"], ["library_create_folder", "library:write"],
+      ["library_rename_folder", "library:write"], ["library_delete_folder", "library:delete"],
+      ["kb_docs_list", "kb_docs:read"], ["kb_docs_get", "kb_docs:read"], ["kb_docs_upsert", "kb_docs:write"],
+    ] as const) {
+      expect(requiredScopeForCall(tool)?.scope, tool).toBe(scope)
+      expect(decide(granted, new Set(), scope), tool).toBe("execute")
+    }
+  })
+})

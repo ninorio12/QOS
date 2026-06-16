@@ -413,6 +413,54 @@ const TOOLS: Tool[] = [
     log: (a) => ({ eventType: 'record.removed', summary: 'Record supprimé', entityType: 'record', entityId: a.recordId }),
   },
 
+  // ───────────── Library (data) + KB docs ─────────────
+  { name: 'library_list', description: 'Liste les items de la bibliothèque (fichiers/liens).', inputSchema: obj({}), run: () => cx().query(api.library.list, {}) },
+  { name: 'library_folders_list', description: 'Liste les dossiers de la bibliothèque.', inputSchema: obj({}), run: () => cx().query(api.library.listFolders, {}) },
+  {
+    name: 'library_add_link', description: 'Ajoute un lien. name + url requis ; category, folder.',
+    inputSchema: obj({ name: Sx.string, url: Sx.string, category: Sx.string, folder: Sx.string }, ['name', 'url']),
+    run: (a) => cx().mutation(api.library.addLink, { name: a.name, url: a.url, category: a.category, folder: a.folder }),
+    log: (a, r) => ({ eventType: 'library.link_added', summary: `Lien : ${a.name}`, entityType: 'library_item', entityId: String(r) }),
+  },
+  {
+    name: 'library_update_item', description: 'Met à jour un item. id requis ; name, tags[], description, assignedTo[], folder, status.',
+    inputSchema: obj({ id: Sx.string, name: Sx.string, tags: Sx.strArr, description: Sx.string, assignedTo: Sx.strArr, folder: Sx.string, status: Sx.string }, ['id']),
+    run: (a) => cx().mutation(api.library.updateItem, { id: a.id, name: a.name, tags: a.tags, description: a.description, assignedTo: a.assignedTo, folder: a.folder, status: a.status }),
+    log: (a) => ({ eventType: 'library.item_updated', summary: 'Item bibliothèque mis à jour', entityType: 'library_item', entityId: a.id }),
+  },
+  {
+    name: 'library_remove', description: 'Supprime un item. id requis.',
+    inputSchema: obj({ id: Sx.string }, ['id']),
+    run: (a) => cx().mutation(api.library.remove, { id: a.id }),
+    log: (a) => ({ eventType: 'library.item_removed', summary: 'Item bibliothèque supprimé', entityType: 'library_item', entityId: a.id }),
+  },
+  {
+    name: 'library_create_folder', description: 'Crée un dossier. name requis ; parentPath optionnel.',
+    inputSchema: obj({ name: Sx.string, parentPath: Sx.string }, ['name']),
+    run: (a) => cx().mutation(api.library.createFolder, { name: a.name, parentPath: a.parentPath }),
+    log: (a) => ({ eventType: 'library.folder_created', summary: `Dossier : ${a.name}`, entityType: 'library_folder' }),
+  },
+  {
+    name: 'library_rename_folder', description: 'Renomme un dossier (path-based). path + name requis.',
+    inputSchema: obj({ path: Sx.string, name: Sx.string }, ['path', 'name']),
+    run: (a) => cx().mutation(api.library.renameFolder, { path: a.path, name: a.name }),
+    log: (a) => ({ eventType: 'library.folder_renamed', summary: 'Dossier renommé', entityType: 'library_folder' }),
+  },
+  {
+    name: 'library_delete_folder', description: 'Supprime un dossier (path-based). path requis.',
+    inputSchema: obj({ path: Sx.string }, ['path']),
+    run: (a) => cx().mutation(api.library.deleteFolder, { path: a.path }),
+    log: (a) => ({ eventType: 'library.folder_deleted', summary: 'Dossier supprimé', entityType: 'library_folder' }),
+  },
+  { name: 'kb_docs_list', description: 'Liste les docs de base de connaissance opérationnelle.', inputSchema: obj({}), run: () => cx().query(api.osKbDocs.list, {}) },
+  { name: 'kb_docs_get', description: 'Récupère un KB doc par docId.', inputSchema: obj({ docId: Sx.string }, ['docId']), run: (a) => cx().query(api.osKbDocs.getByDocId, { docId: a.docId }) },
+  {
+    name: 'kb_docs_upsert', description: 'Crée/maj un KB doc. docId+title+body+status requis ; owner, validatedAt.',
+    inputSchema: obj({ docId: Sx.string, title: Sx.string, body: Sx.string, status: Sx.string, owner: Sx.string, validatedAt: Sx.string }, ['docId', 'title', 'body', 'status']),
+    run: (a, actor) => cx().mutation(api.osKbDocs.upsert, { docId: a.docId, title: a.title, body: a.body, status: a.status, owner: a.owner, validatedAt: a.validatedAt, updatedBy: actor }),
+    log: (a) => ({ eventType: 'kb_doc.upserted', summary: `KB doc : ${a.title}`, entityType: 'kb_doc', entityId: a.docId }),
+  },
+
   // ───────────── État COO global enrichi ─────────────
   {
     name: 'dataos_state', description: "Vue COO complète du Data OS : agents, tâches (ouvertes/bloquées/dues), activités récentes, leads actifs par étape, leads stagnants, R1/R2 à relancer, clients actifs, paiements en attente, candidats mémoire, risques, prochaines actions recommandées.",
