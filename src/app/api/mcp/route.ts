@@ -397,6 +397,22 @@ const TOOLS: Tool[] = [
     log: (a) => ({ eventType: 'confirmation.linked', summary: 'Confirmation liée au contact', entityType: 'confirmation_intake', entityId: a.id }),
   },
 
+  // ───────────── Records (méta bibliothèque) ─────────────
+  { name: 'records_list', description: 'Méta de tous les records (synthèse, tags, liens).', inputSchema: obj({}), run: () => cx().query(api.recordNotes.list, {}) },
+  { name: 'records_get', description: "Méta d'un record. recordId requis.", inputSchema: obj({ recordId: Sx.string }, ['recordId']), run: (a) => cx().query(api.recordNotes.get, { recordId: a.recordId }) },
+  {
+    name: 'records_patch', description: "Met à jour la méta d'un record. recordId requis ; synthesis, tags[], name, linkedContactId, linkedLeadId.",
+    inputSchema: obj({ recordId: Sx.string, synthesis: Sx.string, tags: Sx.strArr, name: Sx.string, linkedContactId: Sx.string, linkedLeadId: Sx.string }, ['recordId']),
+    run: (a) => cx().mutation(api.recordNotes.patch, { recordId: a.recordId, synthesis: a.synthesis, tags: a.tags, name: a.name, linkedContactId: a.linkedContactId, linkedLeadId: a.linkedLeadId }),
+    log: (a) => ({ eventType: 'record.updated', summary: 'Record mis à jour', entityType: 'record', entityId: a.recordId }),
+  },
+  {
+    name: 'records_remove', description: "Supprime la méta d'un record. recordId requis.",
+    inputSchema: obj({ recordId: Sx.string }, ['recordId']),
+    run: (a) => cx().mutation(api.recordNotes.remove, { recordId: a.recordId }),
+    log: (a) => ({ eventType: 'record.removed', summary: 'Record supprimé', entityType: 'record', entityId: a.recordId }),
+  },
+
   // ───────────── État COO global enrichi ─────────────
   {
     name: 'dataos_state', description: "Vue COO complète du Data OS : agents, tâches (ouvertes/bloquées/dues), activités récentes, leads actifs par étape, leads stagnants, R1/R2 à relancer, clients actifs, paiements en attente, candidats mémoire, risques, prochaines actions recommandées.",

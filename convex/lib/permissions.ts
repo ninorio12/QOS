@@ -144,6 +144,11 @@ export const POLICY: Record<string, PolicyEntry> = {
   confirmation_list_for_contact: { module: "closing", verb: "read" },
   confirmation_create:           { module: "closing", verb: "write" },
   confirmation_link:             { module: "closing", verb: "write" },
+  // Records (bibliothèque/records — méta des records)
+  records_list:   { module: "records", verb: "read" },
+  records_get:    { module: "records", verb: "read" },
+  records_patch:  { module: "records", verb: "write" },
+  records_remove: { module: "records", verb: "delete" },
   // État COO global
   dataos_state: { module: "dataos", verb: "read" },
 }

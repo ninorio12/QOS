@@ -175,3 +175,16 @@ describe("parité closing", () => {
     }
   })
 })
+
+describe("parité records", () => {
+  it("records tools sont mappés et exécutables", () => {
+    const granted = new Set(scopesFromGrants(FULL_GRANTS).scopes)
+    for (const [tool, scope] of [
+      ["records_list", "records:read"], ["records_get", "records:read"],
+      ["records_patch", "records:write"], ["records_remove", "records:delete"],
+    ] as const) {
+      expect(requiredScopeForCall(tool)?.scope, tool).toBe(scope)
+      expect(decide(granted, new Set(), scope), tool).toBe("execute")
+    }
+  })
+})
