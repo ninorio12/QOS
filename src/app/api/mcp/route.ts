@@ -5,6 +5,7 @@ import { api } from '../../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { type Id } from '../../../../convex/_generated/dataModel'
 import { decide, requiredScopeForCall } from '../../../../convex/lib/permissions'
+import { checkToolEnums, enumViolationMessage } from '../../../../convex/lib/agentEnums'
 
 export const dynamic = 'force-dynamic'
 
@@ -593,6 +594,10 @@ async function dispatch(msg: any, auth: Auth): Promise<unknown | null> {
     if (!tool) return rpcErr(id, -32602, `Unknown tool: ${params?.name}`)
     if (auth.kind === 'anon' || auth.kind === 'invalid') return rpcErr(id, -32001, 'Unauthorized: token agent requis')
     const args = params?.arguments ?? {}
+
+    // RÈGLE D'OR : refuser toute valeur hors-vocabulaire (l'agent doit choisir dans la liste autorisée).
+    const enumViolations = checkToolEnums(tool.name, args)
+    if (enumViolations.length) return rpcErr(id, -32602, enumViolationMessage(enumViolations))
 
     // Break-glass humain : exécution directe, tracée comme humain.
     if (auth.kind === 'human') {
