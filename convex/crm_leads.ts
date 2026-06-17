@@ -1,6 +1,7 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
 import { moveStage, markLost } from "./leadSync"
+import { normalizeLeadSource } from "./lib/leadSource"
 
 export const list = query({
   handler: async (ctx) => {
@@ -34,6 +35,7 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const { stageName, ...rest } = args
+    if (rest.source !== undefined) rest.source = normalizeLeadSource(rest.source)
     const id = await ctx.db.insert("crm_leads", {
       ...rest,
       status:    "open",
@@ -96,6 +98,7 @@ export const update = mutation({
   handler: async (ctx, { id, ...fields }) => {
     const patch: Record<string, unknown> = {}
     for (const [k, val] of Object.entries(fields)) if (val !== undefined) patch[k] = val
+    if (patch.source !== undefined) patch.source = normalizeLeadSource(patch.source as string)
     await ctx.db.patch(id, patch)
   },
 })

@@ -3,6 +3,8 @@ import { mutation, query } from "./_generated/server"
 import { type Id } from "./_generated/dataModel"
 import { WORKSPACE, logActivity } from "./osLib"
 import { findDuplicateContact } from "./contactDedup"
+import { LEAD_STAGE_FOR_COLUMN } from "./leadSync"
+import { normalizeLeadSource } from "./lib/leadSource"
 
 const now = () => new Date().toISOString()
 const today = () => new Date().toISOString().split("T")[0]
@@ -18,11 +20,25 @@ const PHASE_NEXT: Record<string, string> = { phase1: "phase2", phase2: "phase3",
 const ATTEMPT = ["pas_repondu", "message_laisse", "a_rappeler"]   // tentatives ratées → font progresser la phase
 const ALIAS: Record<string, string> = { non_qualifie: "non_qualifie", en_conversation: "repondu" }
 
-function columnOf(status: string): "lead_a_traiter" | "r1_booke" | "perdu" {
-  if (status === "handoff") return "r1_booke"
-  if (status === "lost" || status === "archived") return "perdu"
-  return "lead_a_traiter"
+// Colonnes du nouveau board kanban : leads_a_traiter | nrp1..nrp4 | rdv_booke | perdu.
+// boardColumn fait foi ; rétro-compat = dérivé du status pour les anciens enregistrements.
+const BOARD_COLUMNS = ["leads_a_traiter", "nrp1", "nrp2", "nrp3", "nrp4", "rdv_booke", "perdu"] as const
+type BoardColumn = (typeof BOARD_COLUMNS)[number]
+function boardColumnOf(r: { boardColumn?: string; status: string }): BoardColumn {
+  if (r.boardColumn && (BOARD_COLUMNS as readonly string[]).includes(r.boardColumn)) return r.boardColumn as BoardColumn
+  if (r.status === "handoff") return "rdv_booke"
+  if (r.status === "lost" || r.status === "archived") return "perdu"
+  return "leads_a_traiter"
 }
+// status synchronisé à la colonne (cohérence avec le reste du système).
+function statusForColumn(col: BoardColumn): string {
+  if (col === "perdu") return "lost"
+  if (col === "rdv_booke") return "handoff"
+  return "active"
+}
+// Synchro Pipeline leads : chaque colonne prospection → un stage du pipeline.
+// Map centralisée dans leadSync (source unique pour les deux sens).
+// leads_a_traiter→Nouveau lead ; NRP 1-4→Conversation ; RDV booké→R1 ; Perdu→lost derrière Conversation.
 
 async function contactCard(ctx: { db: { get: (id: Id<"crm_contacts">) => Promise<unknown> } }, contactId: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -42,21 +58,61 @@ export const list = query({
   handler: async (ctx, f) => {
     let rows = await ctx.db.query("prospection_records").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
     if (f.status) rows = rows.filter(r => r.status === f.status)
-    if (f.column) rows = rows.filter(r => columnOf(r.status) === f.column)
+    if (f.column) rows = rows.filter(r => boardColumnOf(r) === f.column)
     if (f.phase) rows = rows.filter(r => r.phase === f.phase)
     if (f.temperature) rows = rows.filter(r => r.temperature === f.temperature)
     if (f.channel) rows = rows.filter(r => r.channel === f.channel)
     if (f.ownerUserId) rows = rows.filter(r => r.ownerUserId === f.ownerUserId)
-    const out = await Promise.all(rows.map(async r => ({ ...r, id: r._id, column: columnOf(r.status), contact: await contactCard(ctx, r.contactId) })))
+    const out = await Promise.all(rows.map(async r => ({ ...r, id: r._id, column: boardColumnOf(r), contact: await contactCard(ctx, r.contactId) })))
+    // Un lead converti en client (statut contact = "client") quitte la prospection :
+    // il ne doit plus apparaître dans RDV booké (ni ailleurs), comme il quitte R1 du pipeline.
+    const visible = out.filter(o => o.contact.statut !== "client")
     const q = norm(f.search)
-    const filtered = q ? out.filter(o => `${o.contact.fullName} ${o.contact.companyName} ${o.contact.phone} ${o.contact.email} ${o.contact.linkedinUrl}`.toLowerCase().includes(q)) : out
+    const filtered = q ? visible.filter(o => `${o.contact.fullName} ${o.contact.companyName} ${o.contact.phone} ${o.contact.email} ${o.contact.linkedinUrl}`.toLowerCase().includes(q)) : visible
     return filtered.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
   },
 })
 
 export const get = query({
   args: { id: v.id("prospection_records") },
-  handler: async (ctx, { id }) => { const r = await ctx.db.get(id); if (!r) return null; return { ...r, id: r._id, column: columnOf(r.status), contact: await contactCard(ctx, r.contactId) } },
+  handler: async (ctx, { id }) => { const r = await ctx.db.get(id); if (!r) return null; return { ...r, id: r._id, column: boardColumnOf(r), contact: await contactCard(ctx, r.contactId) } },
+})
+
+// Déplace une carte vers une colonne du board (drag & drop kanban).
+// lostReason : renseigné quand on dépose dans "Perdu" (faux_numero | pas_interesse | jamais_repondu).
+export const setColumn = mutation({
+  args: { id: v.id("prospection_records"), column: v.string(), lostReason: v.optional(v.string()) },
+  handler: async (ctx, { id, column, lostReason }) => {
+    if (!(BOARD_COLUMNS as readonly string[]).includes(column)) throw new Error(`colonne inconnue: ${column}`)
+    const rec = await ctx.db.get(id)
+    if (!rec) throw new Error("record introuvable")
+    const col = column as BoardColumn
+    const wasLost = rec.status === "lost"
+    const recPatch: Record<string, unknown> = { boardColumn: col, status: statusForColumn(col), updatedAt: now() }
+    if (col === "perdu") { if (lostReason) recPatch.lostReason = lostReason }
+    else recPatch.lostReason = undefined   // sort de "Perdu" → on efface la raison
+    await ctx.db.patch(id, recPatch)
+
+    // Synchro du lead Pipeline lié + du contact (la raison vit aussi sur le contact pour la fiche).
+    const stageId = LEAD_STAGE_FOR_COLUMN[col]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const lead = rec.leadId ? await ctx.db.get(rec.leadId as Id<"crm_leads">) as any : null
+    if (col === "perdu") {
+      if (lead) await ctx.db.patch(lead._id, { stageId, status: "lost" })
+      // Colonne EXACTE au moment de la perte (leads_a_traiter | nrp1..4 | rdv_booke) — rec est pré-patch.
+      const priorCol = boardColumnOf(rec)
+      const lostStage = priorCol === "perdu" ? (rec.lostStage ?? "prospection") : priorCol
+      await ctx.db.patch(rec.contactId as Id<"crm_contacts">, { statut: "perdu", lostStage, lostReason: lostReason ?? rec.lostReason ?? undefined, updatedAt: now() })
+    } else {
+      if (lead) {
+        const stageChanged = lead.stageId !== stageId
+        await ctx.db.patch(lead._id, { stageId, status: "open" })
+        if (stageChanged) await ctx.db.insert("lead_stage_history", { leadId: lead._id, stageId, stageName: stageId, enteredAt: today() })
+      }
+      if (wasLost) await ctx.db.patch(rec.contactId as Id<"crm_contacts">, { statut: "lead", lostStage: undefined, lostReason: undefined, lostObjection: undefined, updatedAt: now() })
+    }
+    return { ok: true, column: col }
+  },
 })
 
 export const events = query({
@@ -80,7 +136,7 @@ export const createOrLink = mutation({
       await ctx.db.patch(match._id, { statut: match.statut ?? "lead", leadStatus: "active", temperature: match.temperature ?? temp, linkedinUrl: a.linkedinUrl ?? match.linkedinUrl, updatedAt: now() })
     } else {
       const [firstName, ...rest] = (a.fullName || "Lead").split(" ")
-      contactId = await ctx.db.insert("crm_contacts", { firstName, lastName: rest.join(" ") || undefined, email: a.email, phone: a.phone, companyName: a.companyName, linkedinUrl: a.linkedinUrl, source: a.source, niche: a.niche, canton: a.canton, statut: "lead", leadStatus: "active", temperature: temp, tags: [], createdAt: now() })
+      contactId = await ctx.db.insert("crm_contacts", { firstName, lastName: rest.join(" ") || undefined, email: a.email, phone: a.phone, companyName: a.companyName, linkedinUrl: a.linkedinUrl, source: a.source !== undefined ? normalizeLeadSource(a.source) : undefined, niche: a.niche, canton: a.canton, statut: "lead", leadStatus: "active", temperature: temp, tags: [], createdAt: now() })
     }
     return await linkInternal(ctx, contactId, { channel: a.channel, temperature: temp, ownerUserId: a.ownerUserId, by })
   },
@@ -117,7 +173,7 @@ async function linkInternal(ctx: any, contactId: string, o: { channel?: string; 
   } else {
     const pipelines = await ctx.db.query("pipeline_config").collect()
     const pipelineId = pipelines[0]?._id ?? "leads"
-    leadId = await ctx.db.insert("crm_leads", { contactId, name: cName, email: contact?.email, phone: contact?.phone, company: contact?.companyName, pipelineId, stageId: "nouveau-lead", status: "open", value: 0, source: contact?.source ?? "outbound", initials: initialsOf(cName), isDemo: o.isDemo, createdAt: now() })
+    leadId = await ctx.db.insert("crm_leads", { contactId, name: cName, email: contact?.email, phone: contact?.phone, company: contact?.companyName, pipelineId, stageId: "nouveau-lead", status: "open", value: 0, source: normalizeLeadSource(contact?.source ?? "outbound"), initials: initialsOf(cName), isDemo: o.isDemo, createdAt: now() })
     await ctx.db.insert("lead_stage_history", { leadId, stageId: "nouveau-lead", stageName: "Nouveau lead", enteredAt: today() })
   }
   // Pas de doublon de prospection_record
@@ -199,11 +255,12 @@ export const quickAction = mutation({
       }
     }
     // Contact sync
-    if (contactStatut || contactLeadStatus || newTemp) {
+    if (contactStatut || contactLeadStatus || newTemp || leadLost) {
       const cp: Record<string, unknown> = { updatedAt: now() }
       if (contactStatut) cp.statut = contactStatut
       if (contactLeadStatus) cp.leadStatus = contactLeadStatus
       if (newTemp) cp.temperature = newTemp
+      if (leadLost) { cp.lostStage = boardColumnOf(rec); if (lostReason) cp.lostReason = lostReason }   // colonne exacte au moment de la perte
       await ctx.db.patch(rec.contactId as Id<"crm_contacts">, cp)
     }
     // Tâches
@@ -312,26 +369,36 @@ export const setGoal = mutation({
 export const summary = query({
   args: {},
   handler: async (ctx) => {
-    const recs = await ctx.db.query("prospection_records").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
+    const recsAll = await ctx.db.query("prospection_records").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
+    // Cohérence avec le board : on exclut les leads convertis en clients (statut contact = "client"),
+    // et on compte par COLONNE RÉELLE (boardColumnOf) et non par status legacy (columnOf).
+    const recs: typeof recsAll = []
+    for (const r of recsAll) {
+      const c = await ctx.db.get(r.contactId as Id<"crm_contacts">)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((c as any)?.statut !== "client") recs.push(r)
+    }
     const evs = await ctx.db.query("prospection_events").collect()
     const td = today()
     const evToday = evs.filter(e => e.createdAt.startsWith(td))
     const goal = (await ctx.db.query("prospection_goals").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()).find(g => g.date === td)
-    const active = recs.filter(r => columnOf(r.status) === "lead_a_traiter")
+    const WORKING_COLS = ["leads_a_traiter", "nrp1", "nrp2", "nrp3", "nrp4"]
+    const working  = recs.filter(r => WORKING_COLS.includes(boardColumnOf(r)))   // leads encore à travailler (1ʳᵉ colonne + relances)
+    const aTraiter = recs.filter(r => boardColumnOf(r) === "leads_a_traiter")    // strictement la colonne "Leads à traiter"
     const callsMessagesDone = evToday.filter(e => ["appele", "message_laisse", "pas_repondu"].includes(e.eventType)).length
     const target = goal?.targetCalls ?? 0
     return {
-      leadsToWork: active.length,
-      leadsAtraiter: active.length,
-      leadsToCall: active.filter(r => ["a_appeler", "pas_repondu", "a_rappeler", "message_laisse"].includes(r.phaseStatus ?? "")).length,
+      leadsToWork: working.length,
+      leadsAtraiter: aTraiter.length,
+      leadsToCall: working.filter(r => ["a_appeler", "pas_repondu", "a_rappeler", "message_laisse"].includes(r.phaseStatus ?? "")).length,
       callsMessagesToday: callsMessagesDone,
       answersToday: evToday.filter(e => e.eventType === "repondu").length,
       messagesLeftToday: evToday.filter(e => e.eventType === "message_laisse").length,
-      callbacksScheduled: active.filter(r => !!r.nextFollowUpAt).length,
-      hotLeads: active.filter(r => r.temperature === "chaud").length,
-      r1Booked: recs.filter(r => columnOf(r.status) === "r1_booke").length,
+      callbacksScheduled: working.filter(r => !!r.nextFollowUpAt).length,
+      hotLeads: working.filter(r => r.temperature === "chaud").length,
+      r1Booked: recs.filter(r => boardColumnOf(r) === "rdv_booke").length,
       r1BookedToday: evToday.filter(e => e.eventType === "r1_booke").length,
-      lostLeads: recs.filter(r => columnOf(r.status) === "perdu").length,
+      lostLeads: recs.filter(r => boardColumnOf(r) === "perdu").length,
       target, remaining: Math.max(0, target - callsMessagesDone),
     }
   },
