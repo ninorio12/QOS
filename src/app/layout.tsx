@@ -1,11 +1,13 @@
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
-import type { Metadata } from 'next'
+import NextTopLoader from 'nextjs-toploader'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import Providers from '@/components/Providers'
 import ShellGate from '@/components/ShellGate'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 import InstallPrompt from '@/components/InstallPrompt'
+import PinchZoomGuard from '@/components/PinchZoomGuard'
 import './globals.css'
 
 const inter = Inter({
@@ -28,6 +30,14 @@ export const metadata: Metadata = {
   },
 }
 
+// Sensation d'application : pas de zoom au doigt (pinch) ni de double-tap zoom.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -36,7 +46,9 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
+        <NextTopLoader color="#FF4D00" height={2} shadow="0 0 8px #FF4D00,0 0 4px #FF4D00" showSpinner={false} />
         <Providers>
+          <PinchZoomGuard />
           <ShellGate>{children}</ShellGate>
           <ServiceWorkerRegister />
           <InstallPrompt />

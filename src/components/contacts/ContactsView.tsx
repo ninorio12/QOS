@@ -3,10 +3,11 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useClickOutside } from '@/hooks/useClickOutside'
-import { Search, Download, SlidersHorizontal, ArrowUpDown, Settings2, Check, ChevronDown, ChevronRight, FileSpreadsheet, Trash2, RefreshCw, Filter } from 'lucide-react'
+import { Search, Download, SlidersHorizontal, ArrowUpDown, Settings2, Check, ChevronDown, ChevronRight, FileSpreadsheet, Trash2, RefreshCw, Filter, X } from 'lucide-react'
 import { type GHLContact } from '@/lib/ghl'
 import { fetchJSON } from '@/lib/fetchJSON'
 import { getAvatarColor, formatDate, formatRelative, type ContactAttribution } from './types'
+import { lostObjectionLabel, lostReasonLabel } from '@/lib/lostReasons'
 import dynamic from 'next/dynamic'
 import { useToast } from '@/hooks/useToast'
 import { Toaster } from '@/components/shared/Toaster'
@@ -69,7 +70,7 @@ function SourceBadge({ value, onClick }: { value: string; onClick: (e: React.Mou
   // Affiche fidèlement la source d'acquisition (trace conservée même devenu client).
   const cfg =
     value === 'inbound'        ? { cls: 'bg-[#DCFCE7] text-[#16A34A] border-[#BBF7D0] dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20', label: 'inbound'  } :
-    value === 'outbound'       ? { cls: 'bg-[#FEF9C3] text-[#CA8A04] border-[#FDE68A] dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/20', label: 'outbound' } :
+    value === 'outbound'       ? { cls: 'bg-[#FCE7F3] text-[#EC4899] border-[#FBCFE8] dark:bg-pink-500/15 dark:text-pink-400 dark:border-pink-500/20', label: 'outbound' } :
     value === 'recommandation' || value === 'referral'
                                ? { cls: 'bg-[#EDE9FE] text-[#7C3AED] border-[#DDD6FE] dark:bg-violet-500/15 dark:text-violet-400 dark:border-violet-500/20', label: 'recommandation' } :
     value === 'onboarding'     ? { cls: 'bg-[#EFF6FF] text-[#2563EB] border-[#BFDBFE] dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/20', label: 'onboarding' } :
@@ -134,22 +135,35 @@ function ColFilterDropdown({ values, active, onSelect, onClose }: {
   onClose:  () => void
 }) {
   const ref = useClickOutside<HTMLDivElement>(onClose)
+  const [q, setQ] = useState('')
+  const shown = q.trim() ? values.filter(v => v.toLowerCase().includes(q.toLowerCase())) : values
   return (
-    <div ref={ref} className="absolute left-0 top-full mt-1 bg-white border border-soren-border rounded-xl shadow-lg z-30 py-1 min-w-[140px] max-h-52 overflow-y-auto" onClick={e => e.stopPropagation()}>
-      <button onClick={() => { onSelect(null); onClose() }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-soren-muted hover:bg-soren-elevated">
-        Tous
-      </button>
-      {values.map(v => (
-        <button key={v} onClick={() => { onSelect(v); onClose() }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-soren-text hover:bg-soren-elevated">
-          {active === v && <Check size={10} className="text-[#FF4D00]" />}
-          <span className={active === v ? 'font-semibold' : ''}>{v}</span>
+    <div ref={ref} className="absolute left-0 top-full mt-1 bg-white border border-soren-border rounded-xl shadow-lg z-30 w-[200px] flex flex-col" onClick={e => e.stopPropagation()}>
+      {/* Recherche type Excel */}
+      <div className="p-2 border-b border-soren-border">
+        <div className="flex items-center gap-1.5 bg-soren-elevated rounded-lg px-2 py-1.5">
+          <Search size={11} className="text-soren-subtle flex-shrink-0" />
+          <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Filtrer…"
+            className="flex-1 bg-transparent text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none min-w-0" />
+        </div>
+      </div>
+      <div className="py-1 max-h-52 overflow-y-auto">
+        <button onClick={() => { onSelect(null); onClose() }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-soren-muted hover:bg-soren-elevated">
+          {!active && <Check size={10} className="text-[#FF4D00]" />}<span className={!active ? 'font-semibold' : ''}>Tous</span>
         </button>
-      ))}
+        {shown.map(v => (
+          <button key={v} onClick={() => { onSelect(v); onClose() }} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-soren-text hover:bg-soren-elevated text-left">
+            {active === v && <Check size={10} className="text-[#FF4D00] flex-shrink-0" />}
+            <span className={`truncate ${active === v ? 'font-semibold' : ''}`}>{v}</span>
+          </button>
+        ))}
+        {shown.length === 0 && <p className="px-3 py-2 text-[11px] text-soren-subtle">Aucun résultat</p>}
+      </div>
     </div>
   )
 }
 
-const ALL_COLS = ['Téléphone', 'E-mail', "Nom de l'entreprise", 'Métier', 'Niche', 'Source', 'Statut', 'Canton', 'Créé'] as const
+const ALL_COLS = ['Téléphone', 'E-mail', "Nom de l'entreprise", 'Métier', 'Niche', 'Source', 'Statut', 'Étape', 'Objections', 'Canton', 'Créé'] as const
 type ColName = typeof ALL_COLS[number]
 
 type ColFilter = Partial<Record<ColName | 'Nom de Contact', string>>
@@ -157,7 +171,7 @@ type ColFilter = Partial<Record<ColName | 'Nom de Contact', string>>
 // ─── Table row ────────────────────────────────────────────────
 function ContactRow({
   contact, checked, onCheck, onClick, visibleCols,
-  source, statut, canton,
+  source, statut, canton, stage,
   onSourceToggle, onStatutToggle, onCantonChange,
 }: {
   contact:         GHLContact
@@ -168,6 +182,7 @@ function ContactRow({
   source:          SourceVal
   statut:          'lead' | 'client' | 'perdu'
   canton:          string | null
+  stage:           { label: string; lost: boolean } | null
   onSourceToggle:  (id: string, e: React.MouseEvent) => void
   onStatutToggle:  (id: string, e: React.MouseEvent) => void
   onCantonChange:  (id: string, c: string | null) => void
@@ -208,6 +223,32 @@ function ContactRow({
       </td>}
       {v('Statut') && <td className="px-3 py-2 min-w-[100px]" onClick={e => e.stopPropagation()}>
         <StatutBadge value={statut} onClick={e => onStatutToggle(contact.id, e)} />
+      </td>}
+      {v('Étape') && <td className="px-3 py-2 min-w-[130px]">
+        {stage ? (
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap border ${
+            stage.lost ? 'bg-[#FEE2E2] text-[#B91C1C] border-[#FECACA]' : 'bg-[#EFF6FF] text-[#2563EB] border-[#BFDBFE]'
+          }`}>
+            {stage.lost && <X size={9} strokeWidth={3} className="flex-shrink-0" />}{stage.label}
+          </span>
+        ) : <span className="text-[12px] text-[#D1D5DB]">—</span>}
+      </td>}
+      {v('Objections') && <td className="px-3 py-2 min-w-[150px]">
+        {(() => {
+          const won  = lostObjectionLabel(contact.wonObjection)   // surmontée → vert
+          // Perdu → rouge : l'objection R1/R2 si présente, sinon la raison de perte
+          // (faux numéro, pas intéressé, jamais répondu, non qualifié…).
+          const lost = statut === 'perdu'
+            ? (lostObjectionLabel(contact.lostObjection) ?? lostReasonLabel(contact.lostReason))
+            : null
+          if (!won && !lost) return <span className="text-[12px] text-[#D1D5DB]">—</span>
+          return (
+            <div className="flex items-center gap-1 flex-wrap">
+              {won && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap border bg-[#DCFCE7] text-[#16A34A] border-[#BBF7D0] dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20">{won}</span>}
+              {lost && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap border bg-[#FEF2F2] text-[#DC2626] border-[#FECACA] dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/20">{lost}</span>}
+            </div>
+          )
+        })()}
       </td>}
       {v('Canton') && <td className="px-3 py-2 min-w-[100px] relative" onClick={e => e.stopPropagation()}>
         <CantonBadge value={canton} onClick={e => { e.stopPropagation(); setShowCantonPicker(v => !v) }} />
@@ -300,6 +341,9 @@ export default function ContactsView({
   // Réactivité live : toute modif d'un contact (fiche, badge, ajout, suppression) écrite
   // dans Convex resynchronise la liste automatiquement — plus besoin d'« Actualiser ».
   const liveContacts = useQuery(api.crm_contacts.list)
+  // Étape commerciale de chaque contact (1 seul appel groupé).
+  const stageMap = (useQuery(api.crm_contacts.commercialStagesAll) ?? {}) as Record<string, { label: string; lost: boolean; key: string }>
+  const stageOf = (id: string) => stageMap[id] ?? null
   useEffect(() => {
     if (!liveContacts) return
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -316,8 +360,13 @@ export default function ContactsView({
       postalCode:  c.postalCode  || null,
       website:     c.website     || null,
       source:      c.source      || null,
-      statut:      c.statut      || null,
-      canton:      c.canton      || null,
+      statut:        c.statut        || null,
+      lostStage:     c.lostStage     || null,
+      lostReason:    c.lostReason    || null,
+      lostObjection: c.lostObjection || null,
+      wonObjection:  c.wonObjection  || null,
+      dealDate:      c.dealDate      || null,
+      canton:        c.canton        || null,
       metier:      c.metier      || null,
       niche:       c.niche       || null,
       tags:        c.tags        ?? [],
@@ -325,6 +374,11 @@ export default function ContactsView({
       dateUpdated: c.updatedAt   || null,
     })) as GHLContact[])
   }, [liveContacts])
+
+  // La liste est live via useQuery(crm_contacts.list) ci-dessus → pas de router.refresh()
+  // au montage (il forçait un re-fetch serveur bloquant redondant à chaque ouverture).
+  useEffect(() => { setContacts(initial) }, [initial])
+
   const [query,          setQuery]          = useState(() => readSaved()?.query ?? '')
   const [debouncedQuery, setDebouncedQuery] = useState(() => readSaved()?.query ?? '')
 
@@ -483,8 +537,12 @@ export default function ContactsView({
       if (!val) continue
       result = result.filter(c => {
         if (col === 'Nom de Contact') return (c.contactName ?? '').toLowerCase().includes(val.toLowerCase())
+        if (col === 'Téléphone')      return (c.phone ?? '').toLowerCase().includes(val.toLowerCase())
+        if (col === 'E-mail')         return (c.email ?? '').toLowerCase().includes(val.toLowerCase())
         if (col === 'Source')         return (sourceMap.get(c.id) ?? 'inbound') === val
         if (col === 'Statut')         return (statutMap.get(c.id) ?? 'lead') === val
+        if (col === 'Étape')          return (stageMap[c.id]?.label ?? '') === val
+        if (col === 'Objections')     return [lostObjectionLabel(c.wonObjection), c.statut === 'perdu' ? (lostObjectionLabel(c.lostObjection) ?? lostReasonLabel(c.lostReason)) : null].filter(Boolean).includes(val)
         if (col === 'Canton')         return (cantonMap.get(c.id) ?? null) === val
         if (col === "Nom de l'entreprise") return (c.companyName ?? '').toLowerCase().includes(val.toLowerCase())
         if (col === 'Métier')         return (c.metier ?? '') === val
@@ -505,7 +563,7 @@ export default function ContactsView({
     }
 
     return result
-  }, [contacts, debouncedQuery, colFilters, sortCol, sortDir, sourceMap, statutMap, cantonMap, filterPipeline, pipelineContactIds])
+  }, [contacts, debouncedQuery, colFilters, sortCol, sortDir, sourceMap, statutMap, cantonMap, stageMap, filterPipeline, pipelineContactIds])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
   const safePage    = Math.min(page, totalPages)
@@ -522,12 +580,14 @@ export default function ContactsView({
     'Métier':              [...new Set(contacts.map(c => c.metier).filter(Boolean) as string[])].sort(),
     'Niche':               [...new Set(contacts.map(c => c.niche).filter(Boolean) as string[])].sort(),
     "Nom de l'entreprise": [...new Set(contacts.map(c => c.companyName).filter(Boolean) as string[])].sort(),
-    'Nom de Contact':      [] as string[],
-    'Téléphone':           [] as string[],
-    'E-mail':              [] as string[],
+    'Étape':               [...new Set(contacts.map(c => stageMap[c.id]?.label).filter(Boolean) as string[])].sort(),
+    'Objections':          [...new Set(contacts.flatMap(c => [lostObjectionLabel(c.wonObjection), c.statut === 'perdu' ? (lostObjectionLabel(c.lostObjection) ?? lostReasonLabel(c.lostReason)) : null]).filter(Boolean) as string[])].sort(),
+    'Nom de Contact':      [...new Set(contacts.map(c => c.contactName).filter(Boolean) as string[])].sort(),
+    'Téléphone':           [...new Set(contacts.map(c => c.phone).filter(Boolean) as string[])].sort(),
+    'E-mail':              [...new Set(contacts.map(c => c.email).filter(Boolean) as string[])].sort(),
     'Créé':                [] as string[],
     'Dernière activité':   [] as string[],
-  }), [contacts, cantonMap])
+  }), [contacts, cantonMap, stageMap])
 
   function toggleCheck(id: string) {
     setChecked(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
@@ -586,6 +646,8 @@ export default function ContactsView({
       'Canton':            cantonMap.get(c.id) ?? '',
       'Source':            sourceMap.get(c.id) ?? 'inbound',
       'Statut':            statutMap.get(c.id) ?? 'lead',
+      'Objection surmontée': lostObjectionLabel(c.wonObjection) ?? '',
+      'Objection perdante':  (c.statut === 'perdu' ? (lostObjectionLabel(c.lostObjection) ?? lostReasonLabel(c.lostReason)) : null) ?? '',
       'Créé':              formatDate(c.dateAdded),
       'Dernière activité': formatRelative(c.dateUpdated ?? c.dateAdded),
       'Balises':           c.tags.join(', '),
@@ -760,6 +822,7 @@ export default function ContactsView({
                   source={sourceMap.get(contact.id) ?? 'inbound'}
                   statut={statutMap.get(contact.id) ?? 'lead'}
                   canton={cantonMap.get(contact.id) ?? null}
+                  stage={stageOf(contact.id)}
                   onSourceToggle={handleSourceToggle}
                   onStatutToggle={handleStatutToggle}
                   onCantonChange={handleCantonChange}

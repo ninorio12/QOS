@@ -11,8 +11,11 @@ const CONTRACT_CURRENCIES = ['CHF', 'EUR', 'USD', 'GBP']
 import {
   CheckCircle2, Circle, ChevronRight, ChevronDown, Eye, EyeOff, Copy, Download, Search,
   Upload, CalendarPlus, FileSignature, ClipboardList, Check, FileCheck2, CreditCard,
-  RefreshCw, Trash2, ArrowDownUp,
+  RefreshCw, Trash2, ArrowDownUp, Lock, ExternalLink, Send,
 } from 'lucide-react'
+
+// Formulaire d'onboarding public — URL LIVE (le sous-domaine -mu est orphelin).
+const ONBOARDING_FORM_URL = 'https://vividflow-onboarding.vercel.app/onboarding'
 
 const NewContactModal = dynamic(() => import('@/components/contacts/NewContactModal'), { ssr: false })
 
@@ -202,6 +205,7 @@ function ClientOnboarding({ client, contactId, router }: { client: ClientLite; c
         onToggle={v => setTask('formSent', v)}
         form={doc?.form ?? {}}
         receivedAt={doc?.formReceivedAt}
+        contractReady={!!doc?.signedContract?.fileName}
       />
 
       <StepCard icon={<CalendarPlus size={16} />} title="Kickoff call — planifier" done={!!tasks.kickoffPlanned} onToggle={v => setTask('kickoffPlanned', v)}>
@@ -247,7 +251,7 @@ function PaymentPhase({ amounts, paidStatus, paidDates, onPay }: {
       </div>
       <div className="pl-8 flex flex-col gap-3">
         {/* cards — refined palette */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div className="rounded-xl p-3" style={{ background: '#FF4D00' }}>
             <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.65)' }}>Total</span>
             <p className="text-[18px] font-black tabular-nums" style={{ color: '#fff' }}>{fmt(total)}</p>
@@ -425,7 +429,7 @@ function ContractStep({ done, onToggle, client, full, payment, signed, onPayment
             ))}
           </div>
           {installments > 1 && (
-            <div className="grid grid-cols-3 gap-2 mt-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
               {amounts.map((a, i) => (
                 <div key={i}>
                   <label className="text-[10px] text-soren-subtle">Échéance {i + 1}</label>
@@ -574,11 +578,14 @@ function AccountBlock({ group, data }: { group: { title: string; fields: [string
 }
 
 // Miroir read-only EXHAUSTIF de la soumission publique : affiche tout ce qui est dans form (toute clé), codes masquables + copiables.
-function OnboardingForm({ done, onToggle, form, receivedAt }: {
+function OnboardingForm({ done, onToggle, form, receivedAt, contractReady }: {
   done: boolean; onToggle: (v: boolean) => void
   form: Record<string, Record<string, unknown>>
   receivedAt?: string
+  contractReady?: boolean
 }) {
+  const [copied, setCopied] = useState(false)
+  const copyLink = () => { navigator.clipboard?.writeText(ONBOARDING_FORM_URL).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800) }).catch(() => {}) }
   const accData = (form.accounts ?? {}) as Record<string, unknown>
   const accExtraKeys = Object.keys(accData).filter(k => !ACCOUNT_GROUP_KEYS.includes(k) && hasValue(accData[k]))
   // Sections présentes dans la soumission mais hors schéma + comptes (anciennes versions, clés inconnues) → affichées aussi.
@@ -603,9 +610,30 @@ function OnboardingForm({ done, onToggle, form, receivedAt }: {
   return (
     <StepCard icon={<ClipboardList size={16} />} title="Formulaire d'onboarding" done={done} onToggle={onToggle}>
       {empty ? (
-        <div className="bg-soren-elevated rounded-xl p-4 text-center">
-          <p className="text-[12px] font-semibold text-soren-text">Formulaire pas encore reçu</p>
-          <p className="text-[11px] text-soren-subtle mt-1">Le client le remplit via le lien public — ses réponses s'afficheront ici automatiquement.</p>
+        <div className="bg-soren-elevated rounded-xl p-4 flex flex-col gap-3 text-center">
+          <div>
+            <p className="text-[12px] font-semibold text-soren-text">Formulaire pas encore reçu</p>
+            <p className="text-[11px] text-soren-subtle mt-1">Le client le remplit via le lien public — ses réponses s'afficheront ici automatiquement.</p>
+          </div>
+          {contractReady ? (
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <a href={ONBOARDING_FORM_URL} target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF4D00] text-white text-[12px] font-semibold hover:bg-[#E64500] transition-colors">
+                  <Send size={14} /> Envoyer le formulaire
+                </a>
+                <button onClick={copyLink}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-soren-card border border-soren-border text-soren-text text-[12px] font-semibold hover:border-[#C8CBD0] transition-colors">
+                  {copied ? <Check size={14} className="text-[#16A34A]" /> : <Copy size={14} />} {copied ? 'Lien copié !' : 'Copier le lien'}
+                </button>
+              </div>
+              <p className="text-[10px] text-soren-subtle font-mono truncate max-w-full">{ONBOARDING_FORM_URL}</p>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2 text-[11px] font-semibold text-soren-subtle bg-soren-card/60 border border-dashed border-soren-border rounded-xl px-3 py-2.5">
+              <Lock size={13} /> Dépose d'abord le contrat signé dans l'étape « Envoi du contrat » pour débloquer l'envoi du formulaire.
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-5">

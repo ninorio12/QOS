@@ -36,6 +36,26 @@ html.dark .bg-\[\#F5F5F0\], html.dark .bg-\[\#FAFAFA\], html.dark .bg-\[\#F9F9F9
 html.dark .bg-\[\#E9E9E5\], html.dark .bg-\[\#F5F5F5\], html.dark .bg-\[\#FAFAF9\], html.dark .bg-\[\#F0F0EC\] {
   background-color: var(--bg-elevated) !important;
 }
+/* Idem pour les états HOVER / ACTIVE en gris (ou bleu très clair) codés en dur : au survol/clic
+   d'une ligne (Contacts…) ou d'un item cliquable, le fond virait au gris clair en sombre.
+   Les variantes hover:/active: ne sont PAS couvertes par le bloc bg-[...] ci-dessus (sélecteur
+   .hover\:bg-[...]:hover). On les remappe vers la surface élevée sombre. */
+html.dark .hover\:bg-\[\#FAFAF8\]:hover, html.dark .hover\:bg-\[\#fafaf8\]:hover,
+html.dark .hover\:bg-\[\#F9F9F7\]:hover, html.dark .hover\:bg-\[\#f9f9f7\]:hover,
+html.dark .hover\:bg-\[\#F3F4F6\]:hover, html.dark .hover\:bg-\[\#f3f4f6\]:hover,
+html.dark .hover\:bg-\[\#F9FAFB\]:hover, html.dark .hover\:bg-\[\#f9fafb\]:hover,
+html.dark .hover\:bg-\[\#F0F0EE\]:hover, html.dark .hover\:bg-\[\#F5F5F0\]:hover,
+html.dark .hover\:bg-\[\#F5F5F3\]:hover, html.dark .hover\:bg-\[\#FAFAFA\]:hover,
+html.dark .hover\:bg-\[\#F9F9F9\]:hover, html.dark .hover\:bg-\[\#FAFAF9\]:hover,
+html.dark .hover\:bg-\[\#E5E7EB\]:hover, html.dark .hover\:bg-\[\#e5e7eb\]:hover,
+html.dark .hover\:bg-\[\#EFF6FF\]:hover, html.dark .hover\:bg-\[\#eff6ff\]:hover {
+  background-color: var(--bg-elevated) !important;
+}
+html.dark .active\:bg-\[\#FAFAF8\]:active, html.dark .active\:bg-\[\#fafaf8\]:active,
+html.dark .active\:bg-\[\#F9F9F7\]:active, html.dark .active\:bg-\[\#F3F4F6\]:active,
+html.dark .active\:bg-\[\#FAFAFA\]:active, html.dark .active\:bg-\[\#F0F0EE\]:active {
+  background-color: var(--bg-elevated) !important;
+}
 html.dark .border-\[\#F0F0EE\], html.dark .border-\[\#f0f0eb\], html.dark .border-\[\#F3F4F6\], html.dark .border-\[\#f3f4f6\],
 html.dark .border-\[\#E5E7EB\], html.dark .border-\[\#e5e7eb\], html.dark .border-\[\#D1D5DB\], html.dark .border-\[\#d1d5db\],
 html.dark .border-\[\#C8CBD0\], html.dark .border-\[\#E8E8E6\], html.dark .border-\[\#E8E8E4\], html.dark .border-\[\#F5F5F0\],
@@ -109,6 +129,10 @@ body {
   color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  /* Sensation d'app : pas de double-tap zoom ni de délai de tap ; pas d'inflation de police iOS. */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 /* ── Mobile nav frosted glass (legacy) ── */
@@ -123,21 +147,21 @@ html.dark .mob-nav-blur {
 
 /* ── Floating nav island — Apple style ── */
 .nav-island {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(36px) saturate(190%);
+  -webkit-backdrop-filter: blur(36px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.40);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.12),
-    0 2px 8px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    0 8px 32px rgba(0, 0, 0, 0.10),
+    0 2px 8px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 html.dark .nav-island {
-  background: rgba(44, 44, 46, 0.82);
+  background: rgba(44, 44, 46, 0.52);
   border: 1px solid rgba(255, 255, 255, 0.10);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.45),
-    0 2px 8px rgba(0, 0, 0, 0.25),
+    0 8px 32px rgba(0, 0, 0, 0.40),
+    0 2px 8px rgba(0, 0, 0, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
@@ -222,6 +246,15 @@ html.dark .nav-island {
 .calendar-scroll::-webkit-scrollbar { width: 6px; }
 .calendar-scroll::-webkit-scrollbar-track { background: var(--bg-elevated); border-radius: 999px; }
 .calendar-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+
+/* ── Mobile : toutes les barres de scroll masquées (sensation d'app native ; scroll au doigt intact).
+   Surcharge les scrollbars nommées (kanban, calendrier, global…) sous 768px. ── */
+@media (max-width: 767px) {
+  *::-webkit-scrollbar { width: 0 !important; height: 0 !important; background: transparent !important; }
+  *::-webkit-scrollbar-track { background: transparent !important; }
+  *::-webkit-scrollbar-thumb { background: transparent !important; }
+  * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+}
 
 /* ── Select globaux ── */
 select {
@@ -365,3 +398,25 @@ select:focus {
   from { transform: translateX(-100%); }
   to   { transform: translateX(0); }
 }
+
+/* ===== Wave 1 — fluidité ===== */
+
+/* Empêche le zoom iOS au focus des champs (le pinch est désactivé ailleurs,
+   donc un input < 16px piégerait l'utilisateur en vue zoomée). */
+@media (max-width: 767px) {
+  input:not([type='checkbox']):not([type='radio']),
+  textarea,
+  select { font-size: 16px !important; }
+}
+
+/* Feedback tactile immédiat sur appareils sans hover (mobile). */
+@media (hover: none) {
+  button:active:not(:disabled) { transform: scale(0.97); }
+}
+
+/* Toast : entrée animée (les classes animate-in/slide-in n'existaient pas). */
+@keyframes vf-toast-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.vf-toast-in { animation: vf-toast-in 220ms cubic-bezier(0.22, 1, 0.36, 1); }

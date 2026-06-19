@@ -27,7 +27,7 @@ export function Toaster({ toasts, dismiss }: ToasterProps) {
         <div
           key={t.id}
           className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm font-medium shadow-xl pointer-events-auto
-            animate-in slide-in-from-bottom-2 duration-200 ${STYLES[t.type]}`}
+            vf-toast-in ${STYLES[t.type]}`}
         >
           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${DOT[t.type]}`} />
           <span className="flex-1">{t.message}</span>

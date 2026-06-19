@@ -7,12 +7,12 @@ export default function DashboardLoading() {
         <div className="h-8 w-28 bg-soren-border rounded-xl" />
       </div>
 
-      {/* Stat cards row */}
-      <div className="grid grid-cols-4 gap-3 mb-4 flex-shrink-0">
-        {Array.from({ length: 4 }).map((_, i) => (
+      {/* Stat cards row — aligné sur la vraie grille (grid-cols-2 md:grid-cols-6) */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4 flex-shrink-0">
+        {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="bg-soren-card rounded-2xl p-4 shadow-sm border border-soren-border">
             <div className="h-3 w-20 bg-soren-border rounded mb-3" />
-            <div className="h-8 w-16 bg-soren-border rounded-lg" />
+            <div className="h-6 w-16 bg-soren-border rounded-lg" />
           </div>
         ))}
       </div>

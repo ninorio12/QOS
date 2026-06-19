@@ -403,7 +403,7 @@ export default function ClientsBoard() {
               )
             })}
           </div>
-          <div ref={boardRef} className="flex gap-3 overflow-x-auto px-3 md:px-6 pb-4 kanban-scroll kanban-board-row">
+          <div ref={boardRef} className="flex gap-3 overflow-x-auto px-3 md:px-6 pb-[max(1rem,env(safe-area-inset-bottom))] kanban-scroll kanban-board-row">
             {CLIENT_STAGES.map(stage => (
               <ClientColumn
                 key={stage.id}
