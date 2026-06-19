@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
+import PipelineMobileTabs from '@/components/pipeline/PipelineMobileTabs'
 const NewLeadWidget = dynamic(() => import('@/components/shared/NewLeadWidget'), { ssr: false })
 const NewContactModal = dynamic(() => import('@/components/contacts/NewContactModal'), { ssr: false })
 import { useKanbanSensors } from '@/hooks/useKanbanSensors'
@@ -365,6 +366,8 @@ export default function ClientsBoard() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <Toaster toasts={toasts} dismiss={dismiss} />
+
+      <PipelineMobileTabs />
 
       <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         {/* Header */}

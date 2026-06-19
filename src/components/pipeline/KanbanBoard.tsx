@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
+import PipelineMobileTabs from '@/components/pipeline/PipelineMobileTabs'
 import {
   DndContext,
   DragOverlay,
@@ -720,6 +721,8 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
           onSave={() => { setEditContact(null); router.refresh() }}
         />
       )}
+
+      <PipelineMobileTabs />
 
       <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         {/* Header */}
