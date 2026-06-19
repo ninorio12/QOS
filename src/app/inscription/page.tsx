@@ -3,6 +3,12 @@
 import { useEffect } from 'react'
 import { SignUp } from '@clerk/nextjs'
 import Image from 'next/image'
+import { DEMO_MODE } from '@/lib/demo'
+
+function DemoRedirectInscription() {
+  useEffect(() => { window.location.replace('/') }, [])
+  return null
+}
 
 // Page d'acceptation d'invitation — même design 2 panneaux que /login, mais <SignUp>
 // (l'invité définit son mot de passe). Le ticket Clerk (__clerk_ticket) est lu automatiquement.
@@ -84,6 +90,10 @@ const FOOTER_SOFT = `
 `
 
 export default function InscriptionPage() {
+  if (DEMO_MODE) return <DemoRedirectInscription />
+  return <RealInscriptionPage />
+}
+function RealInscriptionPage() {
   useEffect(() => {
     const html = document.documentElement
     const force = () => {
@@ -100,6 +110,36 @@ export default function InscriptionPage() {
       try { t = localStorage.getItem('theme') } catch { /* noop */ }
       if (t === 'dark') { html.classList.add('dark'); html.classList.remove('light') }
     }
+  }, [])
+
+  // Compte déjà existant (ex. invitation rouverte sur un 2ᵉ appareil) → on n'affiche
+  // pas l'erreur brute : on redirige vers /login avec un message d'accueil.
+  // Filet de sécurité : si le markup Clerk change et que la détection échoue, le
+  // comportement par défaut reste (erreur + lien « se connecter » natif signInUrl=/login).
+  useEffect(() => {
+    let done = false
+    const EXISTS_RE = /(d[ée]j[àa].*(utilis|exist|pris|compte))|already\s+(exists|taken|registered)|identifier_exists/i
+    const detectsExisting = () => {
+      const keyed = document.querySelectorAll('[data-localization-key]')
+      for (const el of Array.from(keyed)) {
+        if ((el.getAttribute('data-localization-key') || '').includes('identifier_exists')) return true
+      }
+      const errs = document.querySelectorAll('.cl-formFieldErrorText, .cl-formFieldError, .cl-alert, [class*="ErrorText"]')
+      for (const el of Array.from(errs)) {
+        if (EXISTS_RE.test(el.textContent || '')) return true
+      }
+      return false
+    }
+    const obs = new MutationObserver(() => {
+      if (done) return
+      if (detectsExisting()) {
+        done = true
+        obs.disconnect()
+        window.location.replace('/login?exists=1')
+      }
+    })
+    obs.observe(document.body, { childList: true, subtree: true, characterData: true })
+    return () => obs.disconnect()
   }, [])
 
   return (
@@ -132,16 +172,24 @@ export default function InscriptionPage() {
         <div className="flex items-center justify-center px-6 py-8 sm:px-8">
           <div className="w-full max-w-[326px]">
             <h1 className="text-[#1C1C1E] text-[22px] font-semibold tracking-[-0.03em]">Bienvenue chez VividFlow</h1>
-            <p className="mt-1 mb-6 text-[#9A9AA0] text-[13px] leading-[1.5]">
+            <p className="mt-1 mb-4 text-[#9A9AA0] text-[13px] leading-[1.5]">
               Créez votre mot de passe pour activer votre accès.
+            </p>
+
+            <p className="mb-5 text-[12.5px] text-[#9A9AA0] leading-[1.5]">
+              Vous avez déjà activé votre compte&nbsp;?{' '}
+              <a href="/login" className="text-[#FF4D00] font-semibold hover:text-[#FF4D00]/80">
+                Connectez-vous ici
+              </a>{' '}
+              (fonctionne sur ordinateur et téléphone en même temps).
             </p>
 
             <SignUp
               appearance={appearance}
               routing="hash"
               signInUrl="/login"
-              fallbackRedirectUrl="/dashboard"
-              forceRedirectUrl="/dashboard"
+              fallbackRedirectUrl="/"
+              forceRedirectUrl="/"
             />
           </div>
         </div>

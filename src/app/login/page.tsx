@@ -1,8 +1,14 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { SignIn } from '@clerk/nextjs'
 import Image from 'next/image'
+import { DEMO_MODE } from '@/lib/demo'
+
+function DemoRedirect() {
+  useEffect(() => { window.location.replace('/') }, [])
+  return null
+}
 
 // La page login est TOUJOURS en clair, quel que soit le thème choisi (next-themes).
 // Script bloquant (chargement SSR) + effet (nav SPA) ; on restaure le thème en quittant.
@@ -91,6 +97,18 @@ const FOOTER_SOFT = `
 `
 
 export default function LoginPage() {
+  if (DEMO_MODE) return <DemoRedirect />
+  return <RealLoginPage />
+}
+function RealLoginPage() {
+  // Message d'accueil quand on arrive depuis /inscription avec un compte déjà existant
+  // (ex. invitation rouverte sur un 2ᵉ appareil). Lu via window.location → pas de
+  // <Suspense> requis (contrairement à useSearchParams en App Router).
+  const [accountExists, setAccountExists] = useState(false)
+  useEffect(() => {
+    try { setAccountExists(new URLSearchParams(window.location.search).get('exists') === '1') } catch { /* noop */ }
+  }, [])
+
   useEffect(() => {
     const html = document.documentElement
     const force = () => {
@@ -148,12 +166,18 @@ export default function LoginPage() {
               Connectez-vous pour accéder à votre espace VividFlow.
             </p>
 
+            {accountExists && (
+              <div className="mb-5 rounded-[11px] border border-[#FFD9C2] bg-[#FFF4EC] px-3.5 py-3 text-[12.5px] leading-[1.5] text-[#7A4A2E]">
+                Ce compte existe déjà&nbsp;: connectez-vous ci-dessous avec votre email et votre mot de passe. Vous pouvez rester connecté sur ordinateur et téléphone en même temps.
+              </div>
+            )}
+
             <SignIn
               appearance={appearance}
               routing="hash"
               signUpUrl="/login"
-              fallbackRedirectUrl="/dashboard"
-              forceRedirectUrl="/dashboard"
+              fallbackRedirectUrl="/"
+              forceRedirectUrl="/"
             />
           </div>
         </div>
