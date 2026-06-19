@@ -8,9 +8,6 @@ import { api } from '../../../convex/_generated/api'
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
-  useSensor,
-  useSensors,
   closestCenter,
   pointerWithin,
   defaultDropAnimationSideEffects,
@@ -28,12 +25,13 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Trash2, Eye, EyeOff, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, X, ArrowLeft } from 'lucide-react'
 import { type GHLPipelineData, type GHLStage, type Opportunity, type Lead } from './types'
+import { NONVENTE_REASONS, NONVENTE_OBJECTIONS } from '@/lib/lostReasons'
 import { getAvatarColor } from '@/components/contacts/types'
 import dynamic from 'next/dynamic'
 import { useToast } from '@/hooks/useToast'
-import { useCoarsePointer } from '@/hooks/useCoarsePointer'
+import { useKanbanSensors } from '@/hooks/useKanbanSensors'
 import { Toaster } from '@/components/shared/Toaster'
 import ContactSlideOver from './ContactSlideOver'
 
@@ -64,7 +62,7 @@ function Avatar({ initials }: { initials: string }) {
 // Chips de source — reflètent fidèlement contact.source (inbound/outbound/recommandation/…).
 const SOURCE_META: Record<string, { label: string; bg: string; color: string }> = {
   inbound:        { label: 'inbound',  bg: '#DCFCE7', color: '#16A34A' },
-  outbound:       { label: 'outbound', bg: '#FEF9C3', color: '#CA8A04' },
+  outbound:       { label: 'outbound', bg: '#FCE7F3', color: '#EC4899' },
   recommandation: { label: 'recommandation', bg: '#EDE9FE', color: '#7C3AED' },
   referral:       { label: 'recommandation', bg: '#EDE9FE', color: '#7C3AED' },
 }
@@ -87,7 +85,7 @@ function OppCard({ opp, isDragging = false, muted = false, hideValue = false }: 
       }
     `}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] font-normal text-soren-text leading-tight truncate">{opp.name}</p>
+        <p className="flex-1 min-w-0 text-[10.5px] font-normal text-soren-text leading-tight truncate">{opp.name}</p>
         <span className="text-[10px] text-soren-subtle shrink-0">{date}</span>
       </div>
       <div className="flex items-center justify-between gap-1 min-w-0">
@@ -111,7 +109,6 @@ function SortableCard({ opp, onCardClick, wasDragged, onMove, canPrev = false, c
     id: opp.id,
     transition: { duration: 200, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' },
   })
-  const coarse = useCoarsePointer()  // tactile → pas de drag (scroll fluide), on déplace via les flèches
   const stop = (e: React.SyntheticEvent) => e.stopPropagation()
   return (
     <div
@@ -123,25 +120,27 @@ function SortableCard({ opp, onCardClick, wasDragged, onMove, canPrev = false, c
         transition,
       }}
     >
-      {/* corps — drag (desktop) / tap pour ouvrir */}
-      <div {...(coarse ? {} : listeners)} onClick={() => { if (!wasDragged.current) onCardClick() }} className="md:cursor-grab">
-        <OppCard opp={opp} hideValue />
-      </div>
-      {/* déplacer entre étapes — mobile (au doigt, sans drag) */}
-      {onMove && (
-        <div className="md:hidden flex items-center gap-1.5 mt-1">
-          <button
-            type="button" disabled={!canPrev}
+      {/* mobile : flèches latérales pour déplacer la carte de colonne en colonne (sans drag) ;
+          desktop : seule la carte s'affiche (flèches md:hidden), drag classique. */}
+      <div className="flex items-stretch gap-1">
+        {onMove && (
+          <button type="button" disabled={!canPrev} aria-label="Étape précédente"
             onPointerDown={stop} onClick={e => { stop(e); onMove(opp, -1) }}
-            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-soren-card border border-soren-border text-[11px] font-semibold text-soren-muted disabled:opacity-30"
-          ><ChevronLeft size={13} /> Étape</button>
-          <button
-            type="button" disabled={!canNext}
-            onPointerDown={stop} onClick={e => { stop(e); onMove(opp, 1) }}
-            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-soren-card border border-soren-border text-[11px] font-semibold text-soren-muted disabled:opacity-30"
-          >Étape <ChevronRight size={13} /></button>
+            className="md:hidden flex-none w-6 flex items-center justify-center rounded-lg bg-soren-card border border-soren-border text-soren-muted disabled:opacity-25 active:bg-soren-elevated transition-colors">
+            <ChevronLeft size={15} />
+          </button>
+        )}
+        <div {...listeners} onClick={() => { if (!wasDragged.current) onCardClick() }} className="flex-1 min-w-0 cursor-grab active:cursor-grabbing">
+          <OppCard opp={opp} hideValue />
         </div>
-      )}
+        {onMove && (
+          <button type="button" disabled={!canNext} aria-label="Étape suivante"
+            onPointerDown={stop} onClick={e => { stop(e); onMove(opp, 1) }}
+            className="md:hidden flex-none w-6 flex items-center justify-center rounded-lg bg-soren-card border border-soren-border text-soren-muted disabled:opacity-25 active:bg-soren-elevated transition-colors">
+            <ChevronRight size={15} />
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -186,9 +185,10 @@ interface KanbanColumnProps {
 
 function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, isLostOver, isLastStage, onReopen, mobileActive = true, stageIndex = 0, stageCount = 1, onMove }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id: stage.id })
+  const isFirstStage = stageIndex === 0   // Nouveau lead → pas de zone perdu
 
   return (
-    <div className={`${mobileActive ? 'flex w-full' : 'hidden md:flex'} flex-col md:w-56 flex-shrink-0 h-full`}>
+    <div className="flex flex-col w-[200px] md:w-48 flex-shrink-0 h-full">
       <div className={`flex items-center justify-between mb-2 px-0.5 transition-opacity ${showLost ? 'opacity-50' : ''}`}>
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: isLastStage ? '#22C55E' : stage.color }} />
@@ -243,9 +243,10 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
           </SortableContext>
         )}
 
-        {!showLost && !isLastStage && <LostZone stageId={stage.id} isOver={isLostOver} />}
-        {/* Last stage has no lost zone — reserve the same space so its column matches the others */}
-        {!showLost && isLastStage && (
+        {!showLost && !isLastStage && !isFirstStage && <LostZone stageId={stage.id} isOver={isLostOver} />}
+        {/* 1ʳᵉ étape (Nouveau lead) et dernière étape : pas de zone perdu — un nouveau lead ne peut pas être perdu.
+            On réserve la même hauteur pour garder les colonnes alignées. */}
+        {!showLost && (isLastStage || isFirstStage) && (
           <div aria-hidden className="mt-1.5 flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-transparent py-1.5 pointer-events-none select-none">
             <span className="text-[10px] font-semibold opacity-0">·</span>
           </div>
@@ -258,27 +259,72 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
 // ─── Trash Zone ──────────────────────────────────────────────
 const TRASH_ID = '__trash__'
 
-function TrashZone({ isOver, visible }: { isOver: boolean; visible: boolean }) {
+// Zone de suppression inline (dans le header, à gauche de « Voir perdus ») — visible pendant un drag.
+function TrashZone({ isOver }: { isOver: boolean }) {
   const { setNodeRef } = useDroppable({ id: TRASH_ID })
   return (
     <div
       ref={setNodeRef}
-      className={`
-        fixed bottom-6 left-1/2 -translate-x-1/2 z-50
-        flex items-center gap-2 px-5 h-11 rounded-2xl border-2 transition-all duration-200 cursor-default select-none
-        ${visible ? 'opacity-100 pointer-events-auto translate-y-0' : 'opacity-0 pointer-events-none translate-y-4'}
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 border-dashed text-[11px] font-semibold whitespace-nowrap transition-all cursor-default select-none
         ${isOver
-          ? 'bg-red-500 border-red-400 scale-105 shadow-[0_0_0_4px_rgba(239,68,68,0.25),0_8px_24px_rgba(239,68,68,0.3)]'
-          : 'bg-soren-card border-dashed border-red-300 shadow-lg'
-        }
-      `}
+          ? 'bg-red-500 border-red-400 text-white scale-105 shadow-[0_0_0_3px_rgba(239,68,68,0.2)]'
+          : 'bg-soren-card border-red-300 text-red-400'
+        }`}
     >
-      <Trash2 size={14} className={isOver ? 'text-white' : 'text-red-400'} />
-      <span className={`text-[12px] font-semibold whitespace-nowrap transition-colors ${isOver ? 'text-white' : 'text-red-400'}`}>
-        {isOver ? 'Relâcher pour supprimer' : 'Glisser ici pour supprimer'}
-      </span>
+      <Trash2 size={13} className={isOver ? 'text-white' : 'text-red-400'} />
+      {isOver ? 'Relâcher pour supprimer' : 'Glisser ici pour supprimer'}
     </div>
   )
+}
+
+// ─── Modale Non-vente (perte en R1/R2) — étape raison → étape objection ───
+function NonVenteModal({
+  contactName, step, onPickReason, onPickObjection, onBack, onCancel,
+}: {
+  contactName: string
+  step: 'reason' | 'objection'
+  onPickReason: (code: string) => void
+  onPickObjection: (code: string) => void
+  onBack: () => void
+  onCancel: () => void
+}) {
+  if (typeof document === 'undefined') return null
+  const isReason = step === 'reason'
+  return createPortal((
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative w-full max-w-md bg-soren-card rounded-2xl shadow-2xl p-6 flex flex-col gap-4">
+        <div className="flex items-start gap-3">
+          {!isReason && (
+            <button onClick={onBack} className="w-7 h-7 -ml-1 rounded-lg flex items-center justify-center text-soren-subtle hover:text-soren-text hover:bg-soren-elevated transition-colors flex-shrink-0"><ArrowLeft size={15} /></button>
+          )}
+          <div className="flex-1 text-center">
+            <p className="text-[15px] font-bold text-soren-text">
+              {isReason ? 'Veuillez sélectionner la raison de la non-vente' : "Quelle objection n'avez-vous pas pu surmonter ?"}
+            </p>
+            <p className="text-[12px] text-soren-muted mt-1"><span className="font-semibold text-soren-text">{contactName}</span></p>
+          </div>
+          <button onClick={onCancel} className="w-7 h-7 -mr-1 rounded-lg flex items-center justify-center text-soren-subtle hover:text-soren-text hover:bg-soren-elevated transition-colors flex-shrink-0"><X size={15} /></button>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {(isReason ? NONVENTE_REASONS : NONVENTE_OBJECTIONS).map(o => {
+            const Icon = o.icon
+            return (
+              <button key={o.code} onClick={() => (isReason ? onPickReason(o.code) : onPickObjection(o.code))}
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border border-soren-border bg-soren-card text-left hover:border-[#DC2626] hover:bg-[#FEE2E2]/40 transition-colors">
+                <Icon size={18} className="text-[#DC2626] flex-shrink-0" />
+                <span className="min-w-0">
+                  <span className="block text-[13px] font-semibold text-soren-text">{o.label}</span>
+                  <span className="block text-[11px] text-soren-muted truncate">{o.desc}</span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  ), document.body)
 }
 
 // ─── Main Board ───────────────────────────────────────────────
@@ -293,6 +339,8 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   const [showLost,       setShowLost]       = useState(false)
   const [selectedOpp,    setSelectedOpp]    = useState<Opportunity | null>(null)
   const [editContact,    setEditContact]    = useState<Record<string, unknown> | null>(null)
+  // Flux "non-vente" (perte en R1/R2) : modale raison → (si non qualifié) objection.
+  const [lostFlow,       setLostFlow]       = useState<{ opp: Opportunity; stageId: string; step: 'reason' | 'objection'; reason?: string } | null>(null)
   const draggingRef = useRef(false)
 
   // Reactive live leads + contacts — la card DÉRIVE de la fiche contact (source unique).
@@ -367,10 +415,36 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     }
   }, [toast])
 
+  // Marque un lead perdu (optimiste + persistance). lostReason/lostObjection : seulement pour R1/R2 (non-vente).
+  const markLost = useCallback((opp: Opportunity, stageId: string, lostReason?: string, lostObjection?: string) => {
+    const lostOpp = { ...opp, stageId, status: 'lost' as const }
+    setOpps(prev => prev.filter(o => o.id !== opp.id))
+    setLostOpps(prev => [...prev.filter(o => o.id !== opp.id), lostOpp])
+    toast('Lead marqué comme perdu', 'success')
+    fetch(`/api/crm/leads/${opp.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'lost' }),
+    }).then(() => {
+      // Contact = source de vérité : statut + COLONNE EXACTE au moment de la perte + raison/objection.
+      const lostStage = stageId
+      if (opp.contactId) return fetch(`/api/contact/${opp.contactId}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statut: 'perdu', lostStage, lostReason: lostReason ?? '', lostObjection: lostObjection ?? '' }),
+      })
+    }).catch(() => {
+      setLostOpps(prev => prev.filter(o => o.id !== opp.id))
+      setOpps(prev => [opp, ...prev])
+      toast('Erreur — statut non sauvegardé', 'error')
+    })
+  }, [toast])
+
   const [activeId,          setActiveId]          = useState<string | null>(null)
   const [overId,            setOverId]            = useState<string | null>(null)
   const [pendingConversion, setPendingConversion] = useState<Opportunity | null>(null)
   const [dealValue,         setDealValue]         = useState('')
+  // Conversion en client (2 étapes) : objection surmontée (vert) → montant + date.
+  const [convStep,          setConvStep]          = useState<'objection' | 'deal'>('objection')
+  const [wonObjection,      setWonObjection]      = useState('')
+  const [dealDate,          setDealDate]          = useState('')
   const [pipelineIdx, setPipelineIdx] = useState(() => {
     const pid = searchParams?.get('pipelineId')
     if (!pid) return 0
@@ -443,7 +517,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     }
   }, [])
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 10 } }))
+  const sensors = useKanbanSensors()
 
   const pipeline     = initialPipelines[pipelineIdx] ?? initialPipelines[0]
   const stages       = pipeline?.stages ?? []
@@ -516,22 +590,13 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     // Dropped on lost zone
     if (overId.startsWith(LOST_PREFIX)) {
       const targetStageId = overId.slice(LOST_PREFIX.length)
-      const lostOpp = { ...activeOpp, stageId: targetStageId, status: 'lost' as const }
-      setOpps(prev => prev.filter(o => o.id !== activeId))
-      setLostOpps(prev => [...prev.filter(o => o.id !== activeId), lostOpp])
-      toast('Lead marqué comme perdu', 'success')
-      fetch(`/api/crm/leads/${activeId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'lost' }),
-      }).then(() => {
-        // Keep contact statut in sync (source of truth)
-        if (activeOpp.contactId) return fetch(`/api/contact/${activeOpp.contactId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statut: 'perdu' }) })
-      }).catch(() => {
-        setLostOpps(prev => prev.filter(o => o.id !== activeId))
-        setOpps(prev => [activeOpp, ...prev])
-        toast('Erreur — statut non sauvegardé', 'error')
-      })
+      // R1/R2 → on demande d'abord la raison de non-vente (et l'objection si "Non qualifié").
+      // La carte n'est marquée perdue qu'après confirmation ; sinon elle reste en place.
+      if (targetStageId === 'r1' || targetStageId === 'r2') {
+        setLostFlow({ opp: activeOpp, stageId: targetStageId, step: 'reason' })
+        return
+      }
+      markLost(activeOpp, targetStageId)
       return
     }
 
@@ -542,7 +607,8 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
       if (isLast) {
         setOpps(prev => prev.filter(o => o.id !== activeId))
         setPendingConversion(activeOpp)
-        setDealValue('')
+        setDealValue(''); setWonObjection(''); setConvStep('objection')
+        setDealDate(new Date().toISOString().slice(0, 10))
         return
       }
       if (activeOpp.stageId !== targetStage.id) {
@@ -593,13 +659,15 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     if (!pendingConversion) return
     const value = parseFloat(dealValue.replace(',', '.')) || 0
     const contactId = pendingConversion.contactId
+    const date = dealDate || new Date().toISOString().slice(0, 10)
+    const objection = wonObjection
     setPendingConversion(null)
-    setDealValue('')
+    setDealValue(''); setWonObjection(''); setConvStep('objection')
     toast('Deal clôturé — bienvenue au client !', 'success')
     if (!contactId) return
-    // Source of truth = contact statut. Set to client, then sync (creates client row, removes lead).
+    // Source of truth = contact statut. Set to client (+ date/objection), then sync (crée la fiche client, valeur).
     try {
-      await fetch(`/api/contact/${contactId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statut: 'client' }) })
+      await fetch(`/api/contact/${contactId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statut: 'client', dealDate: date, wonObjection: objection || '' }) })
       await fetch('/api/crm/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contactId, dealValue: value }) })
     } catch {}
   }
@@ -608,7 +676,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     if (!pendingConversion) return
     setOpps(prev => [pendingConversion, ...prev])
     setPendingConversion(null)
-    setDealValue('')
+    setDealValue(''); setWonObjection(''); setConvStep('objection')
   }
 
   function handleAddOpp(lead: Opportunity | Lead) {
@@ -677,6 +745,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
             )}
           </div>
           <div className="flex items-center gap-2">
+            {!showLost && activeId && <TrashZone isOver={overId === TRASH_ID} />}
             <button
               onClick={() => setShowLost(s => !s)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all border ${
@@ -698,9 +767,9 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
           </div>
         </div>
 
-        {/* Sélecteur d'étapes — mobile (une colonne à la fois) */}
-        {stages.length > 0 && (
-          <div className="md:hidden flex gap-1.5 overflow-x-auto px-3 pb-2.5 kanban-scroll">
+        {/* Board mobile dézoomé : colonnes étroites scrollables (comme Prospection) → sélecteur de pastilles masqué */}
+        {false && stages.length > 0 && (
+          <div className="hidden">
             {stages.map((stage) => {
               const on = stage.id === activeMobileStage
               return (
@@ -727,7 +796,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
             className="pointer-events-none absolute right-0 top-0 bottom-4 w-8 z-10"
             style={{ background: 'linear-gradient(to left, var(--bg-app) 40%, transparent)' }}
           />
-          <div ref={boardRef} className="flex gap-4 overflow-x-auto px-3 md:px-6 pb-4 snap-x snap-mandatory md:snap-none kanban-scroll kanban-board-row">
+          <div ref={boardRef} className="flex gap-3 overflow-x-auto px-3 md:px-6 pb-4 kanban-scroll kanban-board-row">
             {stages.map((stage, i) => (
               <KanbanColumn
                 key={stage.id}
@@ -749,7 +818,21 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
           </div>
         </div>
 
-        {!showLost && <TrashZone visible={!!activeId} isOver={overId === TRASH_ID} />}
+
+        {lostFlow && (
+          <NonVenteModal
+            contactName={lostFlow.opp.name}
+            step={lostFlow.step}
+            onPickReason={code => {
+              if (code === 'non_qualifie') { setLostFlow(prev => prev && { ...prev, step: 'objection', reason: code }); return }
+              markLost(lostFlow.opp, lostFlow.stageId, code)
+              setLostFlow(null)
+            }}
+            onPickObjection={code => { markLost(lostFlow.opp, lostFlow.stageId, 'non_qualifie', code); setLostFlow(null) }}
+            onBack={() => setLostFlow(prev => prev && { ...prev, step: 'reason', reason: undefined })}
+            onCancel={() => setLostFlow(null)}
+          />
+        )}
 
         <DragOverlay dropAnimation={dropAnimation}>
           {activeOpp && <OppCard opp={activeOpp} isDragging hideValue />}
@@ -764,37 +847,71 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
             <div>
               <h2 className="text-lg font-black text-[#111]">Félicitations !</h2>
               <p className="text-sm text-[#6B7280] mt-1">
-                <span className="font-semibold text-[#111]">{pendingConversion.name}</span> devient client !
+                {convStep === 'objection'
+                  ? 'Quelle objection avez-vous surmontée ?'
+                  : <><span className="font-semibold text-[#111]">{pendingConversion.name}</span> devient client !</>}
               </p>
             </div>
-            <div className="w-full">
-              <label className="block text-xs font-semibold text-[#374151] mb-2 text-left">Montant du deal (CHF)</label>
-              <input
-                autoFocus
-                type="number"
-                placeholder="ex: 3500"
-                value={dealValue}
-                onChange={e => setDealValue(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && confirmConversion()}
-                className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-3 text-lg font-bold text-[#111] placeholder-[#D1D5DB] outline-none focus:ring-2 focus:ring-[#10B981]/40 focus:border-[#10B981] transition-all text-center"
-              />
-            </div>
-            <div className="flex gap-2 w-full">
-              <button
-                type="button"
-                onClick={cancelConversion}
-                className="flex-1 py-2.5 rounded-full border border-[#E5E7EB] text-sm text-[#6B7280] hover:bg-[#F9FAFB] transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                onClick={confirmConversion}
-                className="flex-1 py-2.5 rounded-full bg-[#10B981] hover:bg-[#059669] text-white text-sm font-bold transition-colors shadow-sm"
-              >
-                Confirmer le deal
-              </button>
-            </div>
+
+            {convStep === 'objection' ? (
+              <div className="w-full flex flex-col gap-2">
+                {NONVENTE_OBJECTIONS.map(o => {
+                  const Icon = o.icon
+                  return (
+                    <button key={o.code} type="button"
+                      onClick={() => { setWonObjection(o.code); setConvStep('deal') }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-left hover:border-[#10B981] hover:bg-[#10B981]/10 transition-colors">
+                      <Icon size={18} className="text-[#10B981] flex-shrink-0" />
+                      <span className="min-w-0">
+                        <span className="block text-[13px] font-semibold text-[#111]">{o.label}</span>
+                        <span className="block text-[11px] text-[#6B7280] truncate">{o.desc}</span>
+                      </span>
+                    </button>
+                  )
+                })}
+                <button type="button" onClick={cancelConversion} className="mt-1 text-[11px] font-semibold text-[#9CA3AF] hover:text-[#6B7280]">Annuler</button>
+              </div>
+            ) : (
+              <>
+                <div className="w-full">
+                  <label className="block text-xs font-semibold text-[#374151] mb-2 text-left">Montant du deal (CHF)</label>
+                  <input
+                    autoFocus
+                    type="number"
+                    placeholder="ex: 3500"
+                    value={dealValue}
+                    onChange={e => setDealValue(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && confirmConversion()}
+                    className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-3 text-lg font-bold text-[#111] placeholder-[#D1D5DB] outline-none focus:ring-2 focus:ring-[#10B981]/40 focus:border-[#10B981] transition-all text-center"
+                  />
+                </div>
+                <div className="w-full">
+                  <label className="block text-xs font-semibold text-[#374151] mb-2 text-left">Date de la transaction</label>
+                  <input
+                    type="date"
+                    value={dealDate}
+                    onChange={e => setDealDate(e.target.value)}
+                    className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-3 text-sm font-semibold text-[#111] outline-none focus:ring-2 focus:ring-[#10B981]/40 focus:border-[#10B981] transition-all text-center"
+                  />
+                </div>
+                <div className="flex gap-2 w-full">
+                  <button
+                    type="button"
+                    onClick={() => setConvStep('objection')}
+                    className="flex-1 py-2.5 rounded-full border border-[#E5E7EB] text-sm text-[#6B7280] hover:bg-[#F9FAFB] transition-colors"
+                  >
+                    Retour
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmConversion}
+                    className="flex-1 py-2.5 rounded-full bg-[#10B981] hover:bg-[#059669] text-white text-sm font-bold transition-colors shadow-sm"
+                  >
+                    Confirmer le deal
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>,
         document.body

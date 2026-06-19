@@ -6,12 +6,10 @@ import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 const NewLeadWidget = dynamic(() => import('@/components/shared/NewLeadWidget'), { ssr: false })
 const NewContactModal = dynamic(() => import('@/components/contacts/NewContactModal'), { ssr: false })
+import { useKanbanSensors } from '@/hooks/useKanbanSensors'
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
-  useSensor,
-  useSensors,
   closestCenter,
   defaultDropAnimationSideEffects,
   type DropAnimation,
@@ -28,7 +26,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus } from 'lucide-react' // kept for potential future use
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getAvatarColor } from '@/components/contacts/types'
 import { useToast } from '@/hooks/useToast'
 import { Toaster } from '@/components/shared/Toaster'
@@ -83,11 +81,11 @@ function ClientCard({ client, isDragging = false }: { client: Client; isDragging
       }
     `}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] font-normal text-soren-text leading-tight truncate">{client.name}</p>
+        <p className="flex-1 min-w-0 text-[10.5px] font-normal text-soren-text leading-tight truncate">{client.name}</p>
         <span className="text-[10px] text-soren-subtle shrink-0">{date}</span>
       </div>
       <div className="flex items-center justify-between gap-1">
-        <span className="text-xs font-bold text-soren-text">
+        <span className="text-[11px] font-bold text-soren-text truncate min-w-0">
           {client.value > 0 ? `${client.value.toLocaleString('fr-FR')} CHF` : '—'}
         </span>
         <Avatar initials={client.initials} />
@@ -96,37 +94,58 @@ function ClientCard({ client, isDragging = false }: { client: Client; isDragging
   )
 }
 
-function SortableClientCard({ client, wasDragged, onCardClick }: { client: Client; wasDragged: React.MutableRefObject<boolean>; onCardClick: () => void }) {
+function SortableClientCard({ client, wasDragged, onCardClick, onMove, canPrev = false, canNext = false }: { client: Client; wasDragged: React.MutableRefObject<boolean>; onCardClick: () => void; onMove?: (client: Client, dir: number) => void; canPrev?: boolean; canNext?: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging, transform, transition } = useSortable({
     id: client.id,
     transition: { duration: 200, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' },
   })
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation()
   return (
     <div
       ref={setNodeRef}
-      {...listeners}
       {...attributes}
-      onClick={() => { if (!wasDragged.current) onCardClick() }}
       style={{ opacity: isDragging ? 0.3 : 1, transform: CSS.Transform.toString(transform), transition }}
     >
-      <ClientCard client={client} />
+      {/* mobile : flèches latérales pour déplacer la carte de colonne en colonne (sans drag) */}
+      <div className="flex items-stretch gap-1">
+        {onMove && (
+          <button type="button" disabled={!canPrev} aria-label="Étape précédente"
+            onPointerDown={stop} onClick={e => { stop(e); onMove(client, -1) }}
+            className="md:hidden flex-none w-6 flex items-center justify-center rounded-lg bg-soren-card border border-soren-border text-soren-muted disabled:opacity-25 active:bg-soren-elevated transition-colors">
+            <ChevronLeft size={15} />
+          </button>
+        )}
+        <div {...listeners} onClick={() => { if (!wasDragged.current) onCardClick() }} className="flex-1 min-w-0 cursor-grab active:cursor-grabbing">
+          <ClientCard client={client} />
+        </div>
+        {onMove && (
+          <button type="button" disabled={!canNext} aria-label="Étape suivante"
+            onPointerDown={stop} onClick={e => { stop(e); onMove(client, 1) }}
+            className="md:hidden flex-none w-6 flex items-center justify-center rounded-lg bg-soren-card border border-soren-border text-soren-muted disabled:opacity-25 active:bg-soren-elevated transition-colors">
+            <ChevronRight size={15} />
+          </button>
+        )}
+      </div>
     </div>
   )
 }
 
-function ClientColumn({ stage, clients, isOver, wasDragged, onCardClick, mobileActive = true }: {
+function ClientColumn({ stage, clients, isOver, wasDragged, onCardClick, mobileActive = true, onMove, stageIndex = 0, stageCount = 1 }: {
   stage: ClientStage
   clients: Client[]
   isOver: boolean
   wasDragged: React.MutableRefObject<boolean>
   onCardClick: (c: Client) => void
   mobileActive?: boolean
+  onMove?: (client: Client, dir: number) => void
+  stageIndex?: number
+  stageCount?: number
 }) {
   const { setNodeRef } = useDroppable({ id: stage.id })
   const total = clients.reduce((sum, c) => sum + c.value, 0)
 
   return (
-    <div className={`${mobileActive ? 'flex w-full' : 'hidden md:flex'} flex-col md:w-56 flex-shrink-0 h-full`}>
+    <div className="flex flex-col w-[200px] md:w-48 flex-shrink-0 h-full">
       <div className="flex items-center justify-between mb-2 px-0.5">
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
@@ -149,7 +168,8 @@ function ClientColumn({ stage, clients, isOver, wasDragged, onCardClick, mobileA
         <SortableContext items={clients.map(c => c.id)} strategy={verticalListSortingStrategy}>
           <div className="flex-1 min-h-0 overflow-y-auto kanban-col flex flex-col gap-1.5">
             {clients.map(client => (
-              <SortableClientCard key={client.id} client={client} wasDragged={wasDragged} onCardClick={() => onCardClick(client)} />
+              <SortableClientCard key={client.id} client={client} wasDragged={wasDragged} onCardClick={() => onCardClick(client)}
+                onMove={onMove} canPrev={stageIndex > 0} canNext={stageIndex < stageCount - 1} />
             ))}
             {clients.length === 0 && (
               <div className="h-full flex items-center justify-center">
@@ -256,7 +276,7 @@ export default function ClientsBoard() {
     }
   }, [])
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+  const sensors = useKanbanSensors()
 
   const collisionDetection: CollisionDetection = useCallback((args) => {
     return closestCenter(args)
@@ -327,6 +347,19 @@ export default function ClientsBoard() {
     }
   }
 
+  // Déplacement par flèches (mobile) : carte → étape adjacente du board Clients (persiste comme un drag).
+  const moveClient = useCallback((client: Client, dir: number) => {
+    const idx = CLIENT_STAGES.findIndex(s => s.id === client.stageId)
+    const target = CLIENT_STAGES[idx + dir]
+    if (!target) return
+    setMobileStageId(target.id)
+    setClients(prev => prev.map(c => c.id === client.id ? { ...c, stageId: target.id } : c))
+    fetch(`/api/pipeline/clients/${client.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stageId: target.id }),
+    }).catch(() => setClients(prev => prev.map(c => c.id === client.id ? { ...c, stageId: client.stageId } : c)))
+  }, [])
+
   const totalValue = clients.reduce((sum, c) => sum + c.value, 0)
 
   return (
@@ -355,7 +388,7 @@ export default function ClientsBoard() {
             className="pointer-events-none absolute right-0 top-0 bottom-4 w-8 z-10"
             style={{ background: 'linear-gradient(to left, var(--bg-app) 40%, transparent)' }}
           />
-          <div className="md:hidden flex gap-2 overflow-x-auto px-3 pb-3 kanban-scroll">
+          <div className="hidden">
             {CLIENT_STAGES.map(stage => {
               const on = stage.id === mobileStageId
               return (
@@ -367,7 +400,7 @@ export default function ClientsBoard() {
               )
             })}
           </div>
-          <div ref={boardRef} className="flex gap-4 overflow-x-auto px-3 md:px-6 pb-4 kanban-scroll kanban-board-row">
+          <div ref={boardRef} className="flex gap-3 overflow-x-auto px-3 md:px-6 pb-4 kanban-scroll kanban-board-row">
             {CLIENT_STAGES.map(stage => (
               <ClientColumn
                 key={stage.id}
@@ -377,6 +410,9 @@ export default function ClientsBoard() {
                 wasDragged={wasDragged}
                 onCardClick={openClientEdit}
                 mobileActive={stage.id === mobileStageId}
+                onMove={moveClient}
+                stageIndex={CLIENT_STAGES.findIndex(s => s.id === stage.id)}
+                stageCount={CLIENT_STAGES.length}
               />
             ))}
           </div>
