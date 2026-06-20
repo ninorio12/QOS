@@ -13,7 +13,9 @@ const MODULES: { href: string; label: string }[] = [
   { href: '/pipeline',            label: 'Pipeline' },
   { href: '/contacts',            label: 'Contacts' },
   { href: '/prospection',         label: 'Prospection' },
-  { href: '/performance',         label: 'Performance' },
+  { href: '/closing',             label: 'Closing' },
+  { href: '/performance',         label: 'Cockpit Setter' },
+  { href: '/media-buyer',         label: 'Media Buyer' },
   { href: '/onboarding',          label: 'Onboarding' },
   { href: '/paiement',            label: 'Paiement' },
   { href: '/calendrier',          label: 'Calendrier' },
@@ -95,7 +97,10 @@ export default function UserManagementCard() {
   const [invPrenom, setInvPrenom] = useState('')
   const [invNom, setInvNom] = useState('')
   const [invRole, setInvRole] = useState<string>('setter')
-  const [invModules, setInvModules] = useState<string[]>(['/dashboard'])
+  // Aucun module pré-coché : l'admin accorde explicitement les accès (le Tableau de bord
+  // n'est plus offert par défaut — ses KPI sont sensibles).
+  const [invModules, setInvModules] = useState<string[]>([])
+  const [invMessage, setInvMessage] = useState('')
   const [invSending, setInvSending] = useState(false)
   const [invNote, setInvNote] = useState<{ ok: boolean; msg: string } | null>(null)
 
@@ -124,11 +129,12 @@ export default function UserManagementCard() {
           lastName: invNom.trim() || undefined,
           role: invRole,
           allowedModules: invRole === 'admin' ? MODULES.map(m => m.href) : invModules,
+          message: invMessage.trim() || undefined,
         }),
       })
       if (!res.ok) throw new Error()
       setInvNote({ ok: true, msg: 'Invitation envoyée' })
-      setInvEmail(''); setInvPrenom(''); setInvNom(''); setInvRole('setter'); setInvModules(['/dashboard'])
+      setInvEmail(''); setInvPrenom(''); setInvNom(''); setInvRole('setter'); setInvModules([]); setInvMessage('')
     } catch {
       setInvNote({ ok: false, msg: 'Erreur lors de l’invitation' })
     } finally {
@@ -229,6 +235,13 @@ export default function UserManagementCard() {
             {invSending ? 'Envoi…' : 'Inviter'}
           </button>
         </div>
+        <textarea
+          value={invMessage}
+          onChange={e => setInvMessage(e.target.value)}
+          placeholder="Message personnalisé (optionnel) — ajouté à l'email d'invitation. Ex : « Hâte de t'avoir dans l'équipe ! »"
+          rows={2}
+          className={`${inputCls} w-full resize-none`}
+        />
         {invNote && (
           <p className={`text-xs ${invNote.ok ? 'text-green-600' : 'text-red-500'}`}>{invNote.msg}</p>
         )}

@@ -4,15 +4,17 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useSWRConfig } from 'swr'
-import { useClerk } from '@clerk/nextjs'
+import { useSafeClerk } from '@/lib/clerkSafe'
 import {
   LayoutDashboard, GitMerge, Users, MessageSquare, CalendarDays,
   TrendingUp, BotMessageSquare, CheckSquare,
   ScrollText, Database, Wallet, Settings, LogOut, GitBranch, FileText,
   Radio, ChevronDown, Library, FolderOpen, HardDrive, ListChecks, Users2, CreditCard, Rocket, Plug, PhoneCall,
+  PhoneOutgoing, Megaphone,
 } from 'lucide-react'
 import Image from 'next/image'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { firstAllowedRoute } from '@/components/nav/modules'
 
 type NavItem = { href: string; icon: React.ElementType; label: string; also?: string[] }
 
@@ -47,7 +49,9 @@ const ACQUISITION_PRE: NavItem[] = [
 const ACQUISITION_POST: NavItem[] = [
   { href: '/contacts',      icon: Users,           label: 'Contacts' },
   { href: '/prospection',   icon: PhoneCall,       label: 'Prospection' },
-  { href: '/performance',   icon: TrendingUp,      label: 'Performance' },
+  { href: '/closing',       icon: PhoneOutgoing,   label: 'Closing' },
+  { href: '/performance',   icon: TrendingUp,      label: 'Cockpit Setter' },
+  { href: '/media-buyer',   icon: Megaphone,       label: 'Meta Ads' },
   { href: '/onboarding',    icon: Rocket,          label: 'Onboarding' },
   { href: '/paiement',      icon: CreditCard,      label: 'Paiement' },
   { href: '/calendrier',    icon: CalendarDays,    label: 'Calendrier' },
@@ -234,12 +238,14 @@ export default function Sidebar() {
   const pathname = usePathname()
   const navRef = useRef<HTMLElement>(null)
   const { me, isAdmin, isLoaded } = useCurrentUser()
-  const { signOut } = useClerk()
+  const { signOut } = useSafeClerk()
 
   const displayName = me?.name || 'Utilisateur'
   const avatarUrl = me?.avatarUrl
   const canSee = (href: string) => isAdmin || (me?.allowedModules ?? []).includes(href)
   const visible = (items: NavItem[]) => items.filter(i => canSee(i.href))
+  // Logo → 1ʳᵉ page accessible (jamais /dashboard si le compte ne l'a pas).
+  const homeHref = firstAllowedRoute(isAdmin, me?.allowedModules)
 
   const acquisitionPre = visible(ACQUISITION_PRE)
   const acquisitionPost = visible(ACQUISITION_POST)
@@ -253,7 +259,7 @@ export default function Sidebar() {
   // "pas chargé". La transition vers les vrais liens est alors invisible.
   if (!isLoaded || me === undefined) return (
     <aside className="fixed left-3 top-3 bottom-3 w-56 bg-soren-sidebar rounded-2xl flex flex-col z-50 overflow-hidden shadow-xl">
-      <Link href="/dashboard" className="flex items-center gap-2.5 px-4 pt-4 pb-2.5 flex-shrink-0">
+      <Link href={homeHref} className="flex items-center gap-2.5 px-4 pt-4 pb-2.5 flex-shrink-0">
         <Image src="/vividflow-logo.png" alt="VividFlow" width={32} height={32} priority className="object-contain rounded-xl flex-shrink-0 shadow-md" />
         <span className="text-white font-sans font-bold text-[16px] tracking-[-0.01em]">VividFlow</span>
       </Link>
@@ -269,7 +275,7 @@ export default function Sidebar() {
   return (
     <aside className="fixed left-3 top-3 bottom-3 w-56 bg-soren-sidebar rounded-2xl flex flex-col z-50 overflow-hidden shadow-xl">
       {/* Logo */}
-      <Link href="/dashboard" className="flex items-center gap-2.5 px-4 pt-4 pb-2.5 flex-shrink-0">
+      <Link href={homeHref} className="flex items-center gap-2.5 px-4 pt-4 pb-2.5 flex-shrink-0">
         <Image
           src="/vividflow-logo.png"
           alt="VividFlow"
@@ -284,7 +290,8 @@ export default function Sidebar() {
       <div className="mx-3 h-px bg-soren-card/8 flex-shrink-0" />
 
       {/* Nav */}
-      <nav ref={navRef} className="flex flex-col flex-1 px-2 pt-1 pb-10 overflow-y-auto sidebar-nav">
+      <div className="relative flex-1 min-h-0 flex flex-col">
+      <nav ref={navRef} className="flex flex-col flex-1 px-2 pt-1 pb-8 overflow-y-auto sidebar-nav">
         {showAcquisition && <SectionLabel label="Acquisition" />}
         {acquisitionPre.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
         {canSee('/pipeline') && <PipelineNav pathname={pathname} />}
@@ -316,12 +323,12 @@ export default function Sidebar() {
           </>
         )}
       </nav>
-
-      {/* Bottom fade */}
+      {/* Bottom fade — couleur exacte de la sidebar, ancré au bas de la zone scrollable (pas de décalage) */}
       <div
-        className="pointer-events-none absolute bottom-14 left-0 right-0 h-8"
-        style={{ background: 'linear-gradient(to bottom, transparent, #111111)' }}
+        className="pointer-events-none absolute bottom-0 left-0 right-0 h-10"
+        style={{ background: 'linear-gradient(to bottom, transparent, var(--bg-sidebar))' }}
       />
+      </div>
 
       {/* Avatar + Logout */}
       <div className="mx-3 h-px bg-soren-card/8 flex-shrink-0" />

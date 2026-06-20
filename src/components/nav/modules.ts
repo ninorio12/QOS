@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, GitMerge, Users, PhoneCall, TrendingUp, Rocket, CreditCard,
-  CalendarDays, Library, BotMessageSquare, CheckSquare, ScrollText, Database,
-  Wallet, Plug, Settings, type LucideIcon,
+  CalendarDays, HardDrive, FolderOpen, ListChecks, BotMessageSquare, CheckSquare,
+  ScrollText, Database, Wallet, Plug, Settings, PhoneOutgoing, Megaphone, type LucideIcon,
 } from 'lucide-react'
 
 export type ModuleDef = { href: string; label: string; icon: LucideIcon; group: string }
@@ -13,11 +13,15 @@ export const MODULES: ModuleDef[] = [
   { href: '/pipeline',           label: 'Pipeline',             icon: GitMerge,         group: 'Acquisition' },
   { href: '/contacts',           label: 'Contacts',             icon: Users,            group: 'Acquisition' },
   { href: '/prospection',        label: 'Prospection',          icon: PhoneCall,        group: 'Acquisition' },
-  { href: '/performance',        label: 'Performance',          icon: TrendingUp,       group: 'Acquisition' },
+  { href: '/closing',            label: 'Closing',              icon: PhoneOutgoing,    group: 'Acquisition' },
+  { href: '/performance',        label: 'Cockpit Setter',       icon: TrendingUp,       group: 'Acquisition' },
+  { href: '/media-buyer',        label: 'Meta Ads',             icon: Megaphone,        group: 'Acquisition' },
   { href: '/onboarding',         label: 'Onboarding',           icon: Rocket,           group: 'Acquisition' },
   { href: '/paiement',           label: 'Paiement',             icon: CreditCard,       group: 'Acquisition' },
   { href: '/calendrier',         label: 'Calendrier',           icon: CalendarDays,     group: 'Acquisition' },
-  { href: '/bibliotheque/data',  label: 'Bibliothèque',         icon: Library,          group: 'Acquisition' },
+  { href: '/bibliotheque/data',    label: 'Data',               icon: HardDrive,        group: 'Bibliothèque' },
+  { href: '/bibliotheque/records', label: 'Records',            icon: FolderOpen,       group: 'Bibliothèque' },
+  { href: '/bibliotheque/process', label: 'Process',            icon: ListChecks,       group: 'Bibliothèque' },
   { href: '/equipe',             label: 'Équipe IA',            icon: BotMessageSquare, group: 'Agentique' },
   { href: '/taches',             label: 'Tâches',               icon: CheckSquare,      group: 'Agentique' },
   { href: '/logs',               label: 'Activités',            icon: ScrollText,       group: 'Agentique' },
@@ -27,7 +31,7 @@ export const MODULES: ModuleDef[] = [
   { href: '/parametres',         label: 'Paramètres',           icon: Settings,         group: 'Configuration' },
 ]
 
-export const GROUP_ORDER = ['Acquisition', 'Agentique', 'Configuration'] as const
+export const GROUP_ORDER = ['Acquisition', 'Bibliothèque', 'Agentique', 'Configuration'] as const
 
 export const DEFAULT_FAVORITES = ['/dashboard', '/pipeline', '/contacts', '/prospection']
 export const FAV_KEY = 'dataos:navFavorites'
@@ -53,12 +57,28 @@ export function writeFavorites(hrefs: string[]) {
 
 export const moduleByHref = (href: string) => MODULES.find(m => m.href === href)
 
-// Permission par module — miroir du `canSee` de la sidebar web (comptes restreints).
-// Paramètres reste toujours accessible ; Bibliothèque visible si une sous-route l'est.
+// Permission par module — miroir EXACT du `canSee` de la sidebar web et de ModuleGuard.
+// Chaque sous-module Bibliothèque (Data/Records/Process) est gardé individuellement :
+// un compte n'ayant que /bibliotheque/process ne voit QUE Process (et son lien y mène,
+// pas vers /bibliotheque/data qui le ferait rebondir). Paramètres toujours accessible.
 export function canSeeModule(href: string, isAdmin: boolean, allowedModules?: string[]): boolean {
   if (isAdmin) return true
   if (href === '/parametres') return true
-  const allowed = allowedModules ?? []
-  if (href.startsWith('/bibliotheque')) return allowed.some(a => a.startsWith('/bibliotheque'))
-  return allowed.includes(href)
+  return (allowedModules ?? []).includes(href)
+}
+
+// Première route accessible pour un compte — cible d'atterrissage (post-login, logo,
+// redirection du garde). Admin OU compte non-restreint (allowedModules ABSENT/non-tableau
+// = ligne héritée sans restriction, cf. ModuleGuard) → accès complet → /dashboard.
+// IMPORTANT : la cible doit être *exactement* présente dans allowedModules (le garde
+// fait un includes exact) — sinon /bibliotheque/data renverrait vers lui-même en boucle
+// pour un compte n'ayant que /bibliotheque/records. On ne passe donc PAS par canSeeModule
+// (qui élargit via startsWith). Repli /parametres (toujours accessible).
+export function firstAllowedRoute(isAdmin: boolean, allowedModules?: string[]): string {
+  if (isAdmin || !Array.isArray(allowedModules)) return '/dashboard'
+  const ordered = MODULES.find(m => allowedModules.includes(m.href))
+  if (ordered) return ordered.href
+  const biblio = allowedModules.find(h => h.startsWith('/bibliotheque'))
+  if (biblio) return biblio
+  return '/parametres'
 }

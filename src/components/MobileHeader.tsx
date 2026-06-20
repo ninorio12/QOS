@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Settings, LogOut, LayoutGrid, Sun, Moon } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
-import { useClerk } from '@clerk/nextjs'
+import { useSafeClerk } from '@/lib/clerkSafe'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 // Doit rester aligné avec la nav web (Sidebar) et le registre @/components/nav/modules.
@@ -15,7 +15,9 @@ const PAGE_LABELS: Record<string, string> = {
   '/pipeline':      'Pipeline',
   '/contacts':      'Contacts',
   '/prospection':   'Prospection',
-  '/performance':   'Performance',
+  '/closing':       'Closing',
+  '/performance':   'Cockpit Setter',
+  '/media-buyer':   'Meta Ads',
   '/onboarding':    'Onboarding',
   '/paiement':      'Paiement',
   '/calendrier':    'Calendrier',
@@ -35,7 +37,7 @@ export default function MobileHeader() {
   const label = PAGE_LABELS[base] ?? 'VividFlow'
 
   const { me, clerkUser } = useCurrentUser()
-  const { signOut } = useClerk()
+  const { signOut } = useSafeClerk()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
