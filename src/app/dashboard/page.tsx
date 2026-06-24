@@ -17,7 +17,7 @@ export type DashData = {
   clientTimeline:     { date: string; value: number; ca: number }[]
   metierBreakdown:    { label: string; niche: string; count: number; pct: number; color: string; contacts: { name: string; company: string }[] }[]
   nicheBreakdown:     { niche: string; metiers: { metier: string; count: number; contacts: { name: string; company: string }[] }[] }[]
-  recentLeads:        { id: string; name: string; stageId: string; createdAt: string; value: number; source: string }[]
+  recentLeads:        { id: string; name: string; stageId: string; createdAt: string; value: number; source: string | null }[]
   totalContactsCount: number
 }
 
@@ -38,6 +38,7 @@ const EMPTY: DashData = {
 
 const fetcher = async (url: string) => {
   const res  = await fetch(url)
+  if (!res.ok) throw new Error(`Dashboard ${res.status}`)
   const json = await res.json() as Partial<DashData>
   return { ...EMPTY, ...json }
 }

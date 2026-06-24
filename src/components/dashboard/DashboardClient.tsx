@@ -59,7 +59,7 @@ interface DashboardProps {
   clientTimeline:     { date: string; value: number; ca: number }[]
   metierBreakdown:    { label: string; niche: string; count: number; pct: number; color: string; contacts: { name: string; company: string }[] }[]
   nicheBreakdown:     { niche: string; metiers: { metier: string; count: number; contacts: { name: string; company: string }[] }[] }[]
-  recentLeads:        { id: string; name: string; stageId: string; createdAt: string; value: number; source: string }[]
+  recentLeads:        { id: string; name: string; stageId: string; createdAt: string; value: number; source: string | null }[]
   totalContactsCount: number
   rangeFrom:          string
   rangeTo:            string

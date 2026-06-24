@@ -184,7 +184,7 @@ export const getMetrics = query({
     const recentLeads = [...allLeads]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, 6)
-      .map(l => ({ id: l._id, name: l.name, stageId: l.status === 'lost' ? 'perdu' : l.stageId, createdAt: dateOf(l.createdAt), value: l.value, source: l.source ?? 'inbound' }))
+      .map(l => ({ id: l._id, name: l.name, stageId: l.status === 'lost' ? 'perdu' : l.stageId, createdAt: dateOf(l.createdAt), value: l.value, source: l.source ?? null }))
 
     return {
       clientsCount, caEncaisse, caACollecter, rembourse, leadsCount, r1Count, r2Count,

@@ -23,7 +23,8 @@ const USD_TO_CHF = 0.7961
 const toChf = (usd: number) => Math.round(usd * USD_TO_CHF)
 const chf = (chfAmount: number) => `${chfAmount.toLocaleString('fr-FR')} CHF`
 
-const TOTAL = PAID.reduce((s, x) => s + toChf(x.cost), 0)
+// Total = arrondi UNE SEULE FOIS sur la somme brute (pas un arrondi par ligne puis somme).
+const TOTAL = Math.round(PAID.reduce((s, x) => s + x.cost * USD_TO_CHF, 0))
 
 function ServiceCard({ s }: { s: Service }) {
   return (

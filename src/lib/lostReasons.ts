@@ -27,7 +27,7 @@ export const NONVENTE_OBJECTIONS: { code: string; label: string; desc: string; i
   { code: 'logistique',    label: 'La logistique',   desc: 'Il faut trouver une solution',         icon: Truck },
   { code: 'partenaire',    label: 'Partenaire',      desc: 'Je dois parler à mon partenaire',      icon: Users },
   { code: 'peur',          label: 'Peur',            desc: 'Je ne sais pas si vous pouvez aider',  icon: ShieldQuestion },
-  { code: 'ecran_fumee',   label: 'Écran de fumée',  desc: "J'ai poney demain",                    icon: Cloud },
+  { code: 'ecran_fumee',   label: 'Écran de fumée',  desc: 'Objection de surface ou faux prétexte', icon: Cloud },
   { code: 'pas_objection', label: "Pas d'objection", desc: 'Aucune objection restante',            icon: CircleCheck },
 ]
 

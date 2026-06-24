@@ -1,5 +1,9 @@
 import Stripe from 'stripe'
 import { Logger } from './logger'
+import { DEFAULT_CURRENCY } from './money'
+
+// Stripe attend un code devise ISO en minuscules. Source unique : money.ts (mono-devise CHF).
+const STRIPE_DEFAULT_CURRENCY = DEFAULT_CURRENCY.toLowerCase()
 
 // apiVersion omis → suit la version par défaut du SDK installé (évite le mismatch de types).
 // Placeholder non-vide pour que `new Stripe()` ne lève pas au build (env absent) ;
@@ -41,7 +45,7 @@ export class PaymentService {
   }
 
   // Créer un paiement unique
-  static async createPaymentIntent(amount: number, currency = 'eur', customerId?: string) {
+  static async createPaymentIntent(amount: number, currency = STRIPE_DEFAULT_CURRENCY, customerId?: string) {
     try {
       return await stripe.paymentIntents.create({
         amount: amount * 100, // Stripe utilise les centimes
@@ -80,7 +84,7 @@ export class PaymentService {
       } else {
         sessionData.line_items = [{
           price_data: {
-            currency: params.currency || 'eur',
+            currency: params.currency || STRIPE_DEFAULT_CURRENCY,
             product_data: { name: 'Paiement VividFlow' },
             unit_amount: (params.amount || 0) * 100
           },

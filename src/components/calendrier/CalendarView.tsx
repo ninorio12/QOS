@@ -1219,6 +1219,8 @@ export default function CalendarView({
 
   // ── Delete appointment ─────────────────────────────────────
   function handleDelete(id: string, source?: 'ghl' | 'google') {
+    // Confirmation destructive : un RDV peut déclencher une notification externe (invité, agenda).
+    if (typeof window !== 'undefined' && !window.confirm('Supprimer ce rendez-vous ? Cette action est définitive et peut notifier les invités.')) return
     // Optimistic remove
     setAppointments(prev => prev.filter(a => a.id !== id))
     setSelectedAppt(null)

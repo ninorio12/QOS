@@ -125,7 +125,8 @@ export default function ProspectionCockpit() {
   // ROI = CA encaissé ÷ (dépense pub Meta + coûts du module Budget). null si aucun coût → affiché "—".
   const coutTotal = spend + budgetCost
   const roi: number | null = coutTotal > 0 ? ca / coutTotal : null
-  const roiStr = roi === null ? '—' : `×${fmt(roi)}`
+  // ROI affiché à 1 décimale façon fr-CH (ex ×4,8). Les montants CHF gardent leur arrondi entier.
+  const roiStr = roi === null ? '-' : `×${roi.toLocaleString('fr-CH', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`
   const roiOk = roi !== null && roi >= (obj?.roi ?? 5)
   const o = obj ?? { leadsR1: 30, tauxShow: 75, tauxClose: 30, ca: 30000, roi: 5, ventes: 30, cashContracte: 30000, panierMoyen: 2000 }
   const f = funnel ?? { leadsATraiter: 0, leadsTotal: 0, leadsInbound: 0, leadsOutbound: 0, r1Booked: 0, noShows: 0, shows: 0, ventes: 0, tauxLeadsR1: 0, tauxShow: 0, tauxClose: 0 }
