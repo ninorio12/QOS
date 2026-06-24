@@ -462,6 +462,8 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   const [convStep,          setConvStep]          = useState<'objection' | 'deal'>('objection')
   const [wonObjection,      setWonObjection]      = useState('')
   const [dealDate,          setDealDate]          = useState('')
+  // "Montant à définir" : convertit en client sans montant connu (value=0 assumée, pas le bug 0 CHF muet).
+  const [amountTbd,         setAmountTbd]         = useState(false)
   const [pipelineIdx, setPipelineIdx] = useState(() => {
     const pid = searchParams?.get('pipelineId')
     if (!pid) return 0
@@ -650,7 +652,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
       if (isLast) {
         setOpps(prev => prev.filter(o => o.id !== activeId))
         setPendingConversion(activeOpp)
-        setDealValue(''); setWonObjection(''); setConvStep('objection')
+        setDealValue(''); setWonObjection(''); setConvStep('objection'); setAmountTbd(false)
         setDealDate(new Date().toISOString().slice(0, 10))
         return
       }
@@ -706,21 +708,28 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
 
   async function confirmConversion() {
     if (!pendingConversion) return
-    const value = parseFloat(dealValue.replace(',', '.')) || 0
+    const raw = dealValue.replace(',', '.').trim()
+    const parsed = parseFloat(raw)
+    const hasValue = raw !== '' && Number.isFinite(parsed) && parsed > 0
+    // Anti "client à 0 CHF" : montant > 0 OBLIGATOIRE, sauf si "Montant à définir" coché. On n'envoie jamais 0 muet.
+    if (!hasValue && !amountTbd) { toast('Indiquez un montant supérieur à 0 CHF, ou cochez « Montant à définir ».', 'error'); return }
+    const value = hasValue ? parsed : undefined
     const contactId = pendingConversion.contactId
     const date = dealDate || new Date().toISOString().slice(0, 10)
     const objection = wonObjection
+    const tbd = amountTbd
     const snapshot = pendingConversion
     setPendingConversion(null)
-    setDealValue(''); setWonObjection(''); setConvStep('objection')
+    setDealValue(''); setWonObjection(''); setConvStep('objection'); setAmountTbd(false)
     if (!contactId) { toast('Deal clôturé : bienvenue au client !', 'success'); return }
-    // Source of truth = contact statut. Set to client (+ date/objection), then sync (crée la fiche client, valeur).
+    // UN SEUL appel atomique → sync.convertToClient (statut + date/objection + value + historique + onboarding).
     // Toast de succès SEULEMENT après confirmation serveur ; rollback de la carte si échec.
     try {
-      const r1 = await fetch(`/api/contact/${contactId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statut: 'client', dealDate: date, wonObjection: objection || '' }) })
-      if (!r1.ok) throw new Error('contact')
-      const r2 = await fetch('/api/crm/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contactId, dealValue: value }) })
-      if (!r2.ok) throw new Error('sync')
+      const res = await fetch('/api/crm/convert', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactId, dealValue: value, dealDate: date, wonObjection: objection || '', amountTbd: tbd }),
+      })
+      if (!res.ok) throw new Error('convert')
       toast('Deal clôturé : bienvenue au client !', 'success')
     } catch {
       setOpps(prev => [snapshot, ...prev.filter(o => o.id !== snapshot.id)])
@@ -732,7 +741,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     if (!pendingConversion) return
     setOpps(prev => [pendingConversion, ...prev])
     setPendingConversion(null)
-    setDealValue(''); setWonObjection(''); setConvStep('objection')
+    setDealValue(''); setWonObjection(''); setConvStep('objection'); setAmountTbd(false)
   }
 
   // Booking iClosed (R1/R2) : la carte passe en R1/R2 uniquement quand on clique « Ouvrir iClosed ».
@@ -1005,10 +1014,21 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
                     type="number"
                     placeholder="ex: 3500"
                     value={dealValue}
+                    disabled={amountTbd}
                     onChange={e => setDealValue(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && confirmConversion()}
-                    className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-3 text-lg font-bold text-[#111] placeholder-[#D1D5DB] outline-none focus:ring-2 focus:ring-[#10B981]/40 focus:border-[#10B981] transition-all text-center"
+                    className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-3 text-lg font-bold text-[#111] placeholder-[#D1D5DB] outline-none focus:ring-2 focus:ring-[#10B981]/40 focus:border-[#10B981] transition-all text-center disabled:opacity-40"
                   />
+                  {/* "Montant à définir" : convertit sans montant connu (évite le client à 0 CHF fantôme). */}
+                  <label className="mt-2 flex items-center gap-2 text-[12px] font-medium text-[#374151] cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={amountTbd}
+                      onChange={e => { setAmountTbd(e.target.checked); if (e.target.checked) setDealValue('') }}
+                      className="w-4 h-4 rounded accent-[#10B981]"
+                    />
+                    Montant à définir
+                  </label>
                 </div>
                 <div className="w-full">
                   <label className="block text-xs font-semibold text-[#374151] mb-2 text-left">Date de la transaction</label>

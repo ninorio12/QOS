@@ -116,6 +116,7 @@ export default defineSchema({
     lostObjection:v.optional(v.string()),  // objection non surmontée (uniquement si lostReason = non_qualifie en R1/R2)
     wonObjection: v.optional(v.string()),  // objection surmontée à la conversion en client
     dealDate:     v.optional(v.string()),  // date de la transaction (conversion en client)
+    amountTbd:    v.optional(v.boolean()), // montant du deal à définir (client converti sans montant connu)
     leadStatus:  v.optional(v.string()),  // active | handoff | non_qualifie | dormant
     linkedinUrl: v.optional(v.string()),
     country:     v.optional(v.string()),  // pays (adresse) — Suisse/France/… pour le champ Canton/Région

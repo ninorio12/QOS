@@ -136,13 +136,9 @@ const TOOLS: Tool[] = [
     log: (a) => ({ eventType: 'lead.updated', summary: 'Lead mis à jour', entityType: 'lead', entityId: a.id }),
   },
   {
-    name: 'leads_convert_to_client', description: "Convertit un lead en client : passe le contact en statut 'client' et synchronise le pipeline Clients. contactId requis, dealValue optionnel.",
-    inputSchema: obj({ contactId: Sx.string, dealValue: Sx.number }, ['contactId']),
-    run: async (a) => {
-      const c = cx()
-      await c.mutation(api.crm_contacts.update, { id: a.contactId, statut: 'client' })
-      return await c.mutation(api.sync.syncContactToPipeline, { contactId: a.contactId, dealValue: a.dealValue })
-    },
+    name: 'leads_convert_to_client', description: "Convertit un lead en client (passage UNIFIÉ) : statut 'client', pipeline Clients, historique 'Gagné', shell onboarding. contactId requis. MONTANT REQUIS : dealValue > 0, SAUF si amountTbd=true (montant à définir).",
+    inputSchema: obj({ contactId: Sx.string, dealValue: Sx.number, dealDate: Sx.string, wonObjection: Sx.string, amountTbd: Sx.bool }, ['contactId']),
+    run: (a, actor) => cx().mutation(api.sync.convertToClient, { contactId: a.contactId, dealValue: a.dealValue, dealDate: a.dealDate, wonObjection: a.wonObjection, amountTbd: a.amountTbd, by: actor }),
     log: (a) => ({ eventType: 'lead.converted', summary: 'Lead converti en client', entityType: 'contact', entityId: a.contactId }),
   },
   {
@@ -160,14 +156,13 @@ const TOOLS: Tool[] = [
     run: async (a) => { const all = await cx().query(api.pipeline_clients.list, {}) as any[]; return all.find(c => c._id === a.id || c.ghl_contact_id === a.id) ?? null },
   },
   {
-    name: 'clients_create_or_convert', description: "Crée ou convertit un client. Si contactId fourni → conversion (sync). Sinon crée directement (name, value, company, email, phone).",
-    inputSchema: obj({ contactId: Sx.string, name: Sx.string, value: Sx.number, company: Sx.string, email: Sx.string, phone: Sx.string }),
-    run: async (a) => {
-      const c = cx()
-      if (a.contactId) { await c.mutation(api.crm_contacts.update, { id: a.contactId, statut: 'client' }); return await c.mutation(api.sync.syncContactToPipeline, { contactId: a.contactId, dealValue: a.value }) }
-      return await c.mutation(api.pipeline_clients.create, { name: a.name, company: a.company, email: a.email, phone: a.phone, value: a.value ?? 0, stageId: 'nouveau-client', initials: initials(a.name), createdAt: new Date().toISOString() })
+    name: 'clients_create_or_convert', description: "Convertit un CONTACT en client (passage UNIFIÉ). contactId REQUIS (un client naît toujours d'un contact). MONTANT REQUIS : value > 0, SAUF si amountTbd=true (montant à définir).",
+    inputSchema: obj({ contactId: Sx.string, value: Sx.number, amountTbd: Sx.bool }, ['contactId']),
+    run: (a, actor) => {
+      if (!a.contactId) throw new Error("contactId requis : un client se crée toujours à partir d'un contact (utilise contacts_create d'abord).")
+      return cx().mutation(api.sync.convertToClient, { contactId: a.contactId, dealValue: a.value, amountTbd: a.amountTbd, by: actor })
     },
-    log: (a) => ({ eventType: 'client.created', summary: `Client : ${a.name ?? a.contactId}`, entityType: 'client' }),
+    log: (a) => ({ eventType: 'client.created', summary: `Client : ${a.contactId}`, entityType: 'client', entityId: a.contactId }),
   },
   {
     name: 'clients_update', description: 'Met à jour un client. id requis + value et/ou stageId.',

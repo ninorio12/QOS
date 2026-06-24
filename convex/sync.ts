@@ -1,6 +1,7 @@
 import { v } from "convex/values"
 import { mutation } from "./_generated/server"
 import { LEAD_STAGE_FOR_COLUMN } from "./leadSync"
+import { logActivity } from "./osLib"
 
 // Colonne réelle d'un record prospection (boardColumn fait foi ; dérivé du status sinon).
 const BOARD_COLUMNS = ["leads_a_traiter", "nrp1", "nrp2", "nrp3", "nrp4", "rdv_booke", "perdu"]
@@ -116,6 +117,68 @@ export async function enforce(ctx: any, contactId: any, opts?: { dealValue?: num
 export const syncContactToPipeline = mutation({
   args: { contactId: v.id("crm_contacts"), dealValue: v.optional(v.number()) },
   handler: async (ctx, args) => enforce(ctx, args.contactId, { dealValue: args.dealValue }),
+})
+
+// Passage en client UNIFIÉ (source unique). Tous les chemins (Pipeline, Contacts, MCP, route /api/crm/convert)
+// passent ici → un seul endroit qui tue le bug "client à 0 CHF".
+//  - GARDE : montant > 0 OBLIGATOIRE, sauf si amountTbd (case "Montant à définir") explicitement coché.
+//  - Réutilise enforce() pour l'upsert pipeline_clients + suppression du lead + réconciliation prospection.
+//  - Écrit l'historique "Gagné - Client" sur le lead AVANT sa suppression (preuve de l'étape de conversion).
+//  - Shell onboarding minimal (idempotent) pour que le client apparaisse dans le module Onboarding.
+//  - Idempotent : ré-exécuter sur un client déjà client ne duplique ni historique ni onboarding.
+export const convertToClient = mutation({
+  args: {
+    contactId:    v.id("crm_contacts"),
+    dealValue:    v.optional(v.number()),
+    dealDate:     v.optional(v.string()),
+    wonObjection: v.optional(v.string()),
+    amountTbd:    v.optional(v.boolean()),
+    by:           v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { contactId } = args
+    // GARDE anti "client à 0 CHF" : montant requis sauf si "Montant à définir" coché.
+    if ((args.dealValue == null || args.dealValue <= 0) && args.amountTbd !== true) {
+      throw new Error("Montant requis : indiquez un montant supérieur à 0 CHF, ou cochez Montant à définir.")
+    }
+    const finalValue = args.amountTbd ? 0 : (args.dealValue as number)
+    const dealDate = args.dealDate ?? new Date().toISOString().split("T")[0]
+    const by = args.by ?? "human:thomas"
+
+    // Patch fiche contact (source de vérité) : statut client + champs de conversion.
+    const contactPatch: Record<string, unknown> = {
+      statut: "client", leadStatus: "active", dealDate, amountTbd: !!args.amountTbd, updatedAt: new Date().toISOString(),
+    }
+    if (args.wonObjection !== undefined) contactPatch.wonObjection = args.wonObjection
+    await ctx.db.patch(contactId, contactPatch)
+
+    // AVANT qu'enforce ne supprime le lead : écrire l'historique "Gagné - Client" si pas déjà la dernière étape.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const openLead = await ctx.db.query("crm_leads").withIndex("by_contact", (q: any) => q.eq("contactId", contactId)).first()
+    if (openLead) {
+      const history = await ctx.db.query("lead_stage_history").withIndex("by_lead", (q: any) => q.eq("leadId", openLead._id)).collect()
+      const last = history.length ? history[history.length - 1] : null
+      if (!last || last.stageId !== "nouveau-client") {
+        await ctx.db.insert("lead_stage_history", { leadId: openLead._id, stageId: "nouveau-client", stageName: "Gagné - Client", enteredAt: dealDate })
+      }
+    }
+
+    // Upsert client + suppression lead + réconciliation prospection (logique réutilisée, jamais dupliquée).
+    const res = await enforce(ctx, contactId, { dealValue: finalValue })
+
+    // Shell onboarding minimal (idempotent) : le client doit apparaître dans le module Onboarding "à rattacher".
+    const cid = contactId.toString()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existingOb = await ctx.db.query("onboarding").withIndex("by_contact", (q: any) => q.eq("contactId", cid)).first()
+    if (!existingOb) await ctx.db.insert("onboarding", { contactId: cid, updatedAt: new Date().toISOString() } as never)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const c = await ctx.db.get(contactId) as any
+    const cName = c ? `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() : "contact"
+    await logActivity(ctx, { actorType: by.startsWith("agent") ? "agent" : "human", actorId: by, eventType: "lead.converted", summary: `Converti en client : ${cName}`, entityType: "contact", entityId: cid, source: "sync" })
+
+    return { ...res, ok: true, value: finalValue, dealDate }
+  },
 })
 
 // Re-sync ALL contacts: enforce single membership + clean stale rows.

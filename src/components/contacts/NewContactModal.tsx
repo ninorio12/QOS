@@ -487,12 +487,24 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
         }
 
-        // Sync to the right pipeline based on statut (lead → Leads, client → Clients)
-        await fetch('/api/crm/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contactId: contact.id, dealValue: statut === 'client' ? (parseFloat(clientValue.replace(',', '.')) || 0) : undefined }),
-        }).catch(() => {})
+        // Passage en client → endpoint UNIFIÉ convertToClient (montant requis sauf "à définir").
+        // Lead / perdu → sync normal.
+        if (statut === 'client') {
+          const raw = clientValue.replace(',', '.').trim()
+          const parsed = parseFloat(raw)
+          const hasValue = raw !== '' && Number.isFinite(parsed) && parsed > 0
+          const res = await fetch('/api/crm/convert', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contactId: contact.id, dealValue: hasValue ? parsed : undefined, amountTbd: !hasValue }),
+          })
+          if (!res.ok) { const d = await res.json().catch(() => ({})) as { error?: string }; throw new Error(friendlyError(d.error ?? `Erreur ${res.status}`)) }
+        } else {
+          await fetch('/api/crm/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contactId: contact.id, dealValue: undefined }),
+          }).catch(() => {})
+        }
 
         const updated: GHLContact = {
           ...contact,
@@ -535,11 +547,23 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
         const data = await res.json().catch(() => ({})) as { contact?: { id: string; _id: string }; error?: string }
         if (!res.ok || data.error) throw new Error(friendlyError(data.error ?? `Erreur ${res.status}`))
         const newId = data.contact!._id ?? data.contact!.id
-        await fetch('/api/crm/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contactId: newId, dealValue: statut === 'client' ? (parseFloat(clientValue.replace(',', '.')) || 0) : undefined }),
-        }).catch(() => {})
+        // Passage en client → endpoint UNIFIÉ convertToClient (montant requis sauf "à définir") ; sinon sync normal.
+        if (statut === 'client') {
+          const raw = clientValue.replace(',', '.').trim()
+          const parsed = parseFloat(raw)
+          const hasValue = raw !== '' && Number.isFinite(parsed) && parsed > 0
+          const res = await fetch('/api/crm/convert', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contactId: newId, dealValue: hasValue ? parsed : undefined, amountTbd: !hasValue }),
+          })
+          if (!res.ok) { const d = await res.json().catch(() => ({})) as { error?: string }; throw new Error(friendlyError(d.error ?? `Erreur ${res.status}`)) }
+        } else {
+          await fetch('/api/crm/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contactId: newId, dealValue: undefined }),
+          }).catch(() => {})
+        }
         const newContact: GHLContact = {
           id: newId, contactName,
           firstName: form.firstName || null, lastName: form.lastName || null,

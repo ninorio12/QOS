@@ -143,6 +143,8 @@ export const intakeSubmit = mutation({
     const now = new Date().toISOString()
 
     // 1. Match contact by email — create one if unknown.
+    //    Le formulaire public NE CRÉE PLUS DE CLIENT : un contact inconnu entre en 'lead' (à rattacher).
+    //    La conversion réelle en client reste MANUELLE via sync.convertToClient (montant requis).
     let contact = await ctx.db
       .query("crm_contacts")
       .withIndex("by_email", q => q.eq("email", normEmail))
@@ -157,7 +159,7 @@ export const intakeSubmit = mutation({
         companyName: profile?.companyName,
         website:     profile?.website,
         source:      'onboarding',
-        statut:      'client',
+        statut:      'lead',
         tags:        [],
         createdAt:   now,
         updatedAt:   now,
@@ -167,30 +169,16 @@ export const intakeSubmit = mutation({
     }
     const contactId = contact!._id.toString()
 
-    // 2. Ensure a pipeline_clients row exists so the submission shows in the onboarding module.
+    // 2. (Plus de pipeline_clients ici.) Le doc onboarding (étape 3) suffit à faire apparaître
+    //    la soumission en "à rattacher". La carte client n'existe qu'après convertToClient.
+    // Si une carte client existe DÉJÀ (contact déjà converti), on avance son étape onboarding.
     const existingClient = await ctx.db
       .query("pipeline_clients")
       .withIndex("by_ghl_contact", q => q.eq("ghl_contact_id", contactId))
       .first()
-    // Le client a SOUMIS le formulaire → colonne "Onboarding complété" du board Clients.
-    // (On ne fait pas reculer un client déjà plus avancé : kickoff, setup, consulting…)
     const COMPLETE_ID = 'onboarding-complet'
     const PRE_COMPLETE = new Set(['nouveau-client', 'onboarding-envoye'])
-    if (!existingClient) {
-      const name = `${contact!.firstName ?? ''} ${contact!.lastName ?? ''}`.trim() || normEmail
-      const initials = name.split(/\s+/).map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?'
-      await ctx.db.insert("pipeline_clients", {
-        ghl_contact_id: contactId,
-        name,
-        company: contact!.companyName,
-        email:   normEmail,
-        phone:   contact!.phone,
-        value:   0,
-        stageId: COMPLETE_ID,
-        initials,
-        createdAt: now,
-      })
-    } else if (PRE_COMPLETE.has(existingClient.stageId)) {
+    if (existingClient && PRE_COMPLETE.has(existingClient.stageId)) {
       await ctx.db.patch(existingClient._id, { stageId: COMPLETE_ID })
     }
 
