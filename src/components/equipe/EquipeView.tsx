@@ -12,9 +12,6 @@ import AgentSheet from '@/components/agentic/AgentSheet'
 import OrgChart, { type OrgNode } from '@/components/agentic/OrgChart'
 import { Chip } from '@/components/agentic/ui'
 
-const fmtDate = (iso?: string) =>
-  iso ? new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
-
 function MicroLabel({ children }: { children: React.ReactNode }) {
   return <span className="text-[9px] uppercase tracking-wide font-bold text-soren-subtle">{children}</span>
 }
@@ -141,7 +138,6 @@ export default function EquipeView() {
             )
           })}
         </div>
-        <p className="text-[10px] text-soren-subtle">Dernière synchro : statut persistant (local) · {fmtDate(coordinator?.health.lastRun)}</p>
       </div>
 
       {/* Fiche agent — SOUL OS */}

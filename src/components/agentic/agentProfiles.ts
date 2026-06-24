@@ -41,7 +41,7 @@ export type AgentProfile = {
   }
   linkedTaskIds: string[]
   linkedActivityIds: string[]
-  health: { lastRun?: string; lastError?: string; pendingValidations?: number; currentBlocker?: string; costToday?: string }
+  health: { lastRun?: string; lastError?: string; pendingValidations?: number; currentBlocker?: string }
   updatedAt: string
 }
 
@@ -89,7 +89,7 @@ export const AGENT_PROFILES: AgentProfile[] = [
       executionChannels: ['wrapper orchestrator:plan', 'mode plan'], riskLevel: 'medium',
     },
     linkedTaskIds: [], linkedActivityIds: [],
-    health: { lastRun: '2026-06-06T08:12:00Z', pendingValidations: 2, costToday: '1,84 CHF' },
+    health: { lastRun: '2026-06-06T08:12:00Z', pendingValidations: 2 },
     updatedAt: '2026-06-06',
   },
   {
@@ -137,7 +137,7 @@ export const AGENT_PROFILES: AgentProfile[] = [
       executionChannels: ['wrapper researcher:quick', 'modes quick/autoresearch'], riskLevel: 'low',
     },
     linkedTaskIds: [], linkedActivityIds: [],
-    health: { lastRun: '2026-06-04T12:00:00Z', pendingValidations: 0, costToday: '0,29 CHF' },
+    health: { lastRun: '2026-06-04T12:00:00Z', pendingValidations: 0 },
     updatedAt: '2026-06-04',
   },
   {
@@ -181,7 +181,7 @@ export const AGENT_PROFILES: AgentProfile[] = [
       executionChannels: ['wrapper inbox:triage', 'mode triage'], riskLevel: 'medium',
     },
     linkedTaskIds: [], linkedActivityIds: [],
-    health: { lastRun: '2026-06-06T07:05:00Z', pendingValidations: 0, costToday: '0,41 CHF' },
+    health: { lastRun: '2026-06-06T07:05:00Z', pendingValidations: 0 },
     updatedAt: '2026-06-06',
   },
   {
@@ -226,7 +226,7 @@ export const AGENT_PROFILES: AgentProfile[] = [
       executionChannels: ['wrapper builder:task', 'mode task'], riskLevel: 'high',
     },
     linkedTaskIds: [], linkedActivityIds: [],
-    health: { lastRun: '2026-06-05T17:40:00Z', pendingValidations: 1, currentBlocker: 'Relance en attente de validation', costToday: '0,55 CHF' },
+    health: { lastRun: '2026-06-05T17:40:00Z', pendingValidations: 1, currentBlocker: 'Relance en attente de validation' },
     updatedAt: '2026-06-05',
   },
   {
@@ -271,7 +271,7 @@ export const AGENT_PROFILES: AgentProfile[] = [
       executionChannels: ['wrapper km:health', 'modes health/curate'], riskLevel: 'low',
     },
     linkedTaskIds: [], linkedActivityIds: [],
-    health: { lastRun: '2026-06-06T06:30:00Z', pendingValidations: 1, costToday: '0,63 CHF' },
+    health: { lastRun: '2026-06-06T06:30:00Z', pendingValidations: 1 },
     updatedAt: '2026-06-06',
   },
   {
@@ -313,7 +313,7 @@ export const AGENT_PROFILES: AgentProfile[] = [
       executionChannels: ['wrapper media-buyer', 'Slack'], riskLevel: 'medium',
     },
     linkedTaskIds: [], linkedActivityIds: [],
-    health: { lastRun: '2026-06-15T09:00:00Z', pendingValidations: 0, costToday: '0,00 CHF' },
+    health: { lastRun: '2026-06-15T09:00:00Z', pendingValidations: 0 },
     updatedAt: '2026-06-15',
   },
   {
@@ -357,42 +357,13 @@ export const AGENT_PROFILES: AgentProfile[] = [
       executionChannels: ['wrapper debug', 'Slack'], riskLevel: 'high',
     },
     linkedTaskIds: [], linkedActivityIds: [],
-    health: { lastRun: '2026-06-15T09:00:00Z', pendingValidations: 0, costToday: '0,00 CHF' },
+    health: { lastRun: '2026-06-15T09:00:00Z', pendingValidations: 0 },
     updatedAt: '2026-06-15',
   },
 ]
 
 export const profileById = (id: string) => AGENT_PROFILES.find(p => p.id === id)
 export const CHANNEL_LABEL: Record<string, string> = { slack: 'Slack', telegram: 'Telegram', dataos: 'Data OS' }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Heartbeats (crons des agents) — seeds + crons demandés (persistés localStorage)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export type Heartbeat = { id: string; when: string; request: string; status: 'actif' | 'proposé' }
-
-/** Crons en cours par agent (seed). */
-export const SEED_HEARTBEATS: Record<string, Heartbeat[]> = {
-  'coo':                   [{ id: 'hb-coo-1', when: 'Tous les jours · 07:00', request: 'Brief quotidien (priorités, risques, blocages)', status: 'actif' }, { id: 'hb-coo-2', when: 'Lundi · 09:00', request: 'Revue hebdo des priorités', status: 'actif' }],
-  'agent-analyse':         [{ id: 'hb-an-1', when: 'Tous les jours · 08:00', request: 'Veille marché & signaux', status: 'actif' }],
-  'agent-support-client':  [{ id: 'hb-sc-1', when: 'Tous les jours · 09:00', request: 'Check des risques clients', status: 'actif' }],
-  'agent-operations':      [{ id: 'hb-op-1', when: 'Toutes les heures', request: 'Traiter les relances dues', status: 'actif' }],
-  'agent-kb':              [{ id: 'hb-kb-1', when: 'Tous les jours · 06:30', request: 'Qualifier les nouvelles notes', status: 'actif' }],
-  'agent-media-buyer':     [{ id: 'hb-mb-1', when: 'Tous les jours · 08:30', request: 'Reporting acquisition (CAC / ROAS) & alertes budget', status: 'actif' }],
-  'agent-debug':           [{ id: 'hb-dbg-1', when: 'Toutes les heures', request: 'Scan des erreurs/incidents récents', status: 'actif' }],
-}
-
-const HEARTBEATS_KEY = 'vf:agentHeartbeats:v1'
-export function loadHeartbeats(): Record<string, Heartbeat[]> {
-  if (typeof window === 'undefined') return {}
-  try { return JSON.parse(window.localStorage.getItem(HEARTBEATS_KEY) || '{}') } catch { return {} }
-}
-export function addHeartbeat(id: string, hb: Heartbeat) {
-  if (typeof window === 'undefined') return
-  const all = loadHeartbeats()
-  all[id] = [...(all[id] ?? []), hb]
-  try { window.localStorage.setItem(HEARTBEATS_KEY, JSON.stringify(all)) } catch { /* quota */ }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // État runtime persistant (localStorage) — statut + canaux. Survit module/refresh.

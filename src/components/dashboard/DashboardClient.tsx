@@ -2,13 +2,11 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import {
-  Settings, BotMessageSquare,
-  GitMerge, Users, CalendarDays,
+  Users, CalendarDays,
   ArrowUpRight, X,
-  CheckSquare, ScrollText, Database, Wallet,
+  Wallet,
   Clock, UserPlus, CalendarCheck,
 } from 'lucide-react'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
@@ -112,29 +110,6 @@ export default function DashboardClient({
   const MONTH_LABEL = activeRange?.label ?? '30 derniers jours'   // libellé du calendrier du graphe (local au graphe)
 
   // clientTimeline already filtered by period from API
-
-  const ALL_MODULES = [
-    { href: '/pipeline',      Icon: GitMerge,         label: 'Pipeline' },
-    { href: '/contacts',      Icon: Users,            label: 'Contacts' },
-    { href: '/calendrier',    Icon: CalendarDays,     label: 'Calendrier' },
-    { href: '/equipe',        Icon: BotMessageSquare, label: 'Équipe IA' },
-    { href: '/taches',        Icon: CheckSquare,      label: 'Tâches' },
-    { href: '/logs',          Icon: ScrollText,       label: 'Logs' },
-    { href: '/knowledge',     Icon: Database,         label: 'Knowledge Base' },
-    { href: '/budget',        Icon: Wallet,           label: 'Budget' },
-    { href: '/parametres',    Icon: Settings,         label: 'Paramètres' },
-  ]
-
-  const pathname = usePathname()
-
-  useEffect(() => {
-    const match = ALL_MODULES.find(m => pathname.startsWith(m.href))
-    if (!match) return
-    const key = 'vividflow_recent_modules'
-    const prev: string[] = JSON.parse(localStorage.getItem(key) ?? '[]')
-    const next = [match.href, ...prev.filter(h => h !== match.href)].slice(0, 6)
-    localStorage.setItem(key, JSON.stringify(next))
-  }, [pathname])
 
   return (
     <>
