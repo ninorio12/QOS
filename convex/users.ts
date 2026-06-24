@@ -49,11 +49,15 @@ export const remove = mutation({
 
 // Utilisateur courant (mirror Clerk) par clerkUserId — renvoie la ligne complète ou null.
 export const getCurrent = query({
-  args: { clerkUserId: v.string() },
-  handler: async (ctx, { clerkUserId }) => {
+  // Securite anti-IDOR: l'identite vient du token Clerk (ctx.auth), pas de l'argument client.
+  // L'arg clerkUserId reste accepte pour compat des appelants mais est ignore.
+  args: { clerkUserId: v.optional(v.string()) },
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
     return await ctx.db
       .query("users")
-      .withIndex("by_clerk", q => q.eq("clerkUserId", clerkUserId))
+      .withIndex("by_clerk", q => q.eq("clerkUserId", identity.subject))
       .first()
   },
 })
@@ -68,21 +72,28 @@ export const syncFromClerk = mutation({
     avatarUrl:   v.optional(v.string()),
   },
   handler: async (ctx, a) => {
+    // Securite anti-escalade: clerkUserId ET email viennent du token Clerk verifie (ctx.auth),
+    // jamais des arguments client. Sinon on pourrait reclamer le compte pre-cree d'un admin via son email.
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error("Authentification requise")
+    const clerkUserId = identity.subject
+    const email = identity.email ?? a.email
+
     // 1) Recherche par clerkUserId
     let user = await ctx.db
       .query("users")
-      .withIndex("by_clerk", q => q.eq("clerkUserId", a.clerkUserId))
+      .withIndex("by_clerk", q => q.eq("clerkUserId", clerkUserId))
       .first()
 
     // 2) Sinon, recherche par email (case-insensitive) — lie un compte invité/pré-créé
     if (!user) {
       const all = await ctx.db.query("users").collect()
-      user = all.find(u => u.email.toLowerCase() === a.email.toLowerCase()) ?? null
+      user = all.find(u => u.email.toLowerCase() === email.toLowerCase()) ?? null
     }
 
     if (user) {
       const patch: Record<string, unknown> = {
-        clerkUserId: a.clerkUserId,
+        clerkUserId,
         lastSeenAt:  Date.now(),
       }
       // Remplit firstName/lastName/avatarUrl/name uniquement si vides
@@ -91,11 +102,11 @@ export const syncFromClerk = mutation({
       // Avatar : Clerk fait foi → on synchronise dès que l'image change (pas seulement si vide).
       if (a.avatarUrl && a.avatarUrl !== user.avatarUrl) patch.avatarUrl = a.avatarUrl
       if (!user.name || user.name.trim() === "") {
-        const computed = `${a.firstName ?? ""} ${a.lastName ?? ""}`.trim() || a.email
+        const computed = `${a.firstName ?? ""} ${a.lastName ?? ""}`.trim() || email
         patch.name = computed
       }
       // email si changé
-      if (a.email && a.email.toLowerCase() !== user.email.toLowerCase()) patch.email = a.email
+      if (email && email.toLowerCase() !== user.email.toLowerCase()) patch.email = email
       // NE PAS écraser role/allowedModules/status/theme
       await ctx.db.patch(user._id, patch)
       return await ctx.db.get(user._id)
@@ -103,18 +114,18 @@ export const syncFromClerk = mutation({
 
     // 3) Création — le tout premier utilisateur devient admin avec tous les modules
     const isFirst = (await ctx.db.query("users").collect()).length === 0
-    const name = `${a.firstName ?? ""} ${a.lastName ?? ""}`.trim() || a.email
+    const name = `${a.firstName ?? ""} ${a.lastName ?? ""}`.trim() || email
     const now = Date.now()
     const id = await ctx.db.insert("users", {
       name,
-      email:          a.email,
+      email,
       role:           isFirst ? "admin" : "viewer",
       status:         "active",
       allowedModules: isFirst ? ALL_MODULES : ["/dashboard"],
       avatarUrl:      a.avatarUrl,
       firstName:      a.firstName,
       lastName:       a.lastName,
-      clerkUserId:    a.clerkUserId,
+      clerkUserId,
       createdAt:      now,
       lastSeenAt:     now,
     })
@@ -215,16 +226,19 @@ export const adminRemove = mutation({
 // Édition de son propre profil. Patch seulement les champs fournis, recalcule name si first/last change.
 export const updateProfile = mutation({
   args: {
-    clerkUserId: v.string(),
+    clerkUserId: v.optional(v.string()),
     firstName:   v.optional(v.string()),
     lastName:    v.optional(v.string()),
     avatarUrl:   v.optional(v.string()),
     theme:       v.optional(v.string()),
   },
   handler: async (ctx, a) => {
+    // Securite anti-IDOR: on edite UNIQUEMENT son propre profil (identite Clerk serveur).
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error("Authentification requise")
     const user = await ctx.db
       .query("users")
-      .withIndex("by_clerk", q => q.eq("clerkUserId", a.clerkUserId))
+      .withIndex("by_clerk", q => q.eq("clerkUserId", identity.subject))
       .first()
     if (!user) return
 

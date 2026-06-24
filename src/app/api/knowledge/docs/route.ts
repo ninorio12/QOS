@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isApiCallerAdmin } from '@/lib/apiAuth'
 
 // GET /api/knowledge/docs → list all
 // GET /api/knowledge/docs?slug=xxx → get one
@@ -32,6 +33,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/knowledge/docs → upsert { slug, title, content }
 export async function POST(req: NextRequest) {
+  if (!(await isApiCallerAdmin())) return NextResponse.json({ error: 'Réservé aux administrateurs.' }, { status: 403 })
   const supabase = createAdminClient()
   const body = await req.json() as { slug: string; title: string; content: string; updated_by?: string }
 
@@ -53,6 +55,7 @@ export async function POST(req: NextRequest) {
 
 // DELETE /api/knowledge/docs → delete by slug in body
 export async function DELETE(req: NextRequest) {
+  if (!(await isApiCallerAdmin())) return NextResponse.json({ error: 'Réservé aux administrateurs.' }, { status: 403 })
   const supabase = createAdminClient()
   const { slug } = await req.json() as { slug: string }
   if (!slug) return NextResponse.json({ error: 'slug requis' }, { status: 400 })

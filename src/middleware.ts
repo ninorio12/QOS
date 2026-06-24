@@ -34,6 +34,8 @@ const isProtectedApi = createRouteMatcher([
   '/api/settings/(.*)',
   '/api/knowledge/(.*)',
   '/api/integrations',
+  '/api/whatsapp/send',
+  '/api/send-message',
   '/api/tldv/(.*)',
   '/api/fathom/(.*)',
 ])
