@@ -125,7 +125,7 @@ describe("convertToClient : parcours de passage en client", () => {
 
     // Contact passé en client.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const contact = await t.run((ctx: any) => ctx.db.get(contactId))
+    const contact = await t.run((ctx: any) => ctx.db.get(contactId)) as any
     expect(contact.statut).toBe("client")
 
     // Une ligne pipeline_clients avec value 3500 (PAS 0).
@@ -152,7 +152,7 @@ describe("convertToClient : parcours de passage en client", () => {
     await t.mutation(api.sync.convertToClient, { contactId, amountTbd: true })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const contact = await t.run((ctx: any) => ctx.db.get(contactId))
+    const contact = await t.run((ctx: any) => ctx.db.get(contactId)) as any
     expect(contact.statut).toBe("client")
     expect(contact.amountTbd).toBe(true)
 
@@ -205,7 +205,7 @@ describe("convertToClient : parcours de passage en client", () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .withIndex("by_email", (q: any) => q.eq("email", email))
         .first(),
-    )
+    ) as any
     expect(contact).not.toBeNull()
     expect(contact.statut).toBe("lead")
 
@@ -213,7 +213,7 @@ describe("convertToClient : parcours de passage en client", () => {
 
     // AUCUNE ligne pipeline_clients pour ce contact (ni par contactId typé ni par ghl_contact_id).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const clientRows = await t.run((ctx: any) => ctx.db.query("pipeline_clients").collect())
+    const clientRows = await t.run((ctx: any) => ctx.db.query("pipeline_clients").collect()) as any[]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mine = clientRows.filter(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
