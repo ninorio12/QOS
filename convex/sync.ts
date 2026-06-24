@@ -126,16 +126,17 @@ export const syncContactToPipeline = mutation({
 //  - Écrit l'historique "Gagné - Client" sur le lead AVANT sa suppression (preuve de l'étape de conversion).
 //  - Shell onboarding minimal (idempotent) pour que le client apparaisse dans le module Onboarding.
 //  - Idempotent : ré-exécuter sur un client déjà client ne duplique ni historique ni onboarding.
-export const convertToClient = mutation({
-  args: {
-    contactId:    v.id("crm_contacts"),
-    dealValue:    v.optional(v.number()),
-    dealDate:     v.optional(v.string()),
-    wonObjection: v.optional(v.string()),
-    amountTbd:    v.optional(v.boolean()),
-    by:           v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
+// Logique partagée du passage en client (réutilisée par la mutation convertToClient ET par
+// closing.recordOutcome issue "gagné"). Même garde, même upsert, même historique, même onboarding.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function convertToClientLogic(ctx: any, args: {
+  contactId: any
+  dealValue?: number
+  dealDate?: string
+  wonObjection?: string
+  amountTbd?: boolean
+  by?: string
+}) {
     const { contactId } = args
     // GARDE anti "client à 0 CHF" : montant requis sauf si "Montant à définir" coché.
     if ((args.dealValue == null || args.dealValue <= 0) && args.amountTbd !== true) {
@@ -178,7 +179,20 @@ export const convertToClient = mutation({
     await logActivity(ctx, { actorType: by.startsWith("agent") ? "agent" : "human", actorId: by, eventType: "lead.converted", summary: `Converti en client : ${cName}`, entityType: "contact", entityId: cid, source: "sync" })
 
     return { ...res, ok: true, value: finalValue, dealDate }
+}
+
+// Passage en client UNIFIÉ (source unique). Wrapper mince autour de convertToClientLogic :
+// MÊME nom/signature/export (le MCP, /api/crm/convert et le test l'appellent).
+export const convertToClient = mutation({
+  args: {
+    contactId:    v.id("crm_contacts"),
+    dealValue:    v.optional(v.number()),
+    dealDate:     v.optional(v.string()),
+    wonObjection: v.optional(v.string()),
+    amountTbd:    v.optional(v.boolean()),
+    by:           v.optional(v.string()),
   },
+  handler: async (ctx, args) => convertToClientLogic(ctx, args),
 })
 
 // Re-sync ALL contacts: enforce single membership + clean stale rows.

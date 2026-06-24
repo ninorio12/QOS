@@ -4,7 +4,8 @@ import { useMemo, useState, useEffect, type ReactNode } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { Save, Phone, FileText, ShieldAlert, MessageSquareQuote, List, CalendarDays, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Search, Check } from 'lucide-react'
+import { Save, Phone, FileText, ShieldAlert, MessageSquareQuote, List, CalendarDays, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Search, Check, Trophy, XCircle, UserMinus, CalendarClock } from 'lucide-react'
+import { NONVENTE_REASONS } from '@/lib/lostReasons'
 
 // Date du RDV : « 25 juin » ou « 25 juin 14:30 » si l'heure est présente.
 function fmtRdv(d?: string | null): string {
@@ -222,6 +223,109 @@ function CalendarAgenda({ calls, onPick }: { calls: Call[]; onPick: (id: string)
   )
 }
 
+// Issue de l'appel (clôture R1/R2) : 4 boutons. Gagné ouvre le mini-form montant (même garde que le pipeline),
+// Perdu un select de raison (mêmes raisons de non-vente que le reste du repo), No-show une confirmation simple,
+// Reprogrammer un champ date. Réutilise la mutation Convex closing.recordOutcome.
+function OutcomePanel({ call }: { call: Call }) {
+  const recordOutcome = useMutation(api.closing.recordOutcome)
+  const [mode, setMode] = useState<null | 'gagne' | 'perdu' | 'reprogrammer'>(null)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  // Gagné
+  const [dealValue, setDealValue] = useState('')
+  const [amountTbd, setAmountTbd] = useState(false)
+  const [wonObjection, setWonObjection] = useState('')
+  // Reprogrammer
+  const [newDate, setNewDate] = useState('')
+
+  const reset = () => { setMode(null); setErr(''); setDealValue(''); setAmountTbd(false); setWonObjection(''); setNewDate('') }
+
+  async function submit(args: Parameters<typeof recordOutcome>[0]) {
+    setBusy(true); setErr('')
+    try { await recordOutcome(args); reset() }
+    catch (e) { setErr(e instanceof Error ? e.message : "Erreur : issue non enregistrée.") }
+    finally { setBusy(false) }
+  }
+
+  function confirmGagne() {
+    const raw = dealValue.replace(',', '.').trim()
+    const parsed = parseFloat(raw)
+    const hasValue = raw !== '' && Number.isFinite(parsed) && parsed > 0
+    // Anti "client à 0 CHF" : montant > 0 OBLIGATOIRE sauf si « Montant à définir » coché. On n'envoie jamais 0 muet.
+    if (!hasValue && !amountTbd) { setErr('Indiquez un montant supérieur à 0 CHF, ou cochez « Montant à définir ».'); return }
+    submit({ callId: call.id as never, outcome: 'gagne', dealValue: hasValue ? parsed : undefined, amountTbd, wonObjection: wonObjection || undefined })
+  }
+
+  const btn = (active: boolean, color: string) =>
+    `flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold border transition-colors ${active ? `${color} text-white border-transparent` : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text hover:border-[#C8CBD0]'}`
+
+  return (
+    <div className="mt-6">
+      <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide text-soren-muted mb-3">Issue de l&apos;appel<span className="flex-1 h-px bg-soren-border" /></div>
+      <div className="flex gap-2">
+        <button disabled={busy} onClick={() => { setErr(''); setMode(m => m === 'gagne' ? null : 'gagne') }} className={btn(mode === 'gagne', 'bg-[#16A34A]')}><Trophy size={14} />Gagné</button>
+        <button disabled={busy} onClick={() => { setErr(''); setMode(m => m === 'perdu' ? null : 'perdu') }} className={btn(mode === 'perdu', 'bg-[#DC2626]')}><XCircle size={14} />Perdu</button>
+        <button disabled={busy} onClick={() => submit({ callId: call.id as never, outcome: 'no_show' })} className={btn(false, '')}><UserMinus size={14} />No-show</button>
+        <button disabled={busy} onClick={() => { setErr(''); setMode(m => m === 'reprogrammer' ? null : 'reprogrammer') }} className={btn(mode === 'reprogrammer', 'bg-[#2563EB]')}><CalendarClock size={14} />Reprogrammer</button>
+      </div>
+
+      {err && <div className="mt-3 text-[12px] font-medium text-[#DC2626] bg-[#FEE2E2]/50 border border-[#FECACA] rounded-lg px-3 py-2">{err}</div>}
+
+      {mode === 'gagne' && (
+        <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4 flex flex-col gap-3">
+          <div>
+            <label className="block text-[11px] font-semibold text-soren-muted mb-1.5">Montant du deal (CHF)</label>
+            <input type="number" autoFocus placeholder="ex: 3500" value={dealValue} disabled={amountTbd}
+              onChange={e => setDealValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && confirmGagne()}
+              className="w-full bg-soren-card border border-soren-border rounded-xl px-3 py-2.5 text-[15px] font-bold text-soren-text outline-none focus:border-[#16A34A] disabled:opacity-40" />
+            <label className="mt-2 flex items-center gap-2 text-[12px] font-medium text-soren-text cursor-pointer select-none">
+              <input type="checkbox" checked={amountTbd} onChange={e => { setAmountTbd(e.target.checked); if (e.target.checked) setDealValue('') }} className="w-4 h-4 rounded accent-[#16A34A]" />
+              Montant à définir
+            </label>
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-soren-muted mb-1.5">Objection surmontée (optionnel)</label>
+            <input type="text" placeholder="ex: argent, partenaire…" value={wonObjection} onChange={e => setWonObjection(e.target.value)}
+              className="w-full bg-soren-card border border-soren-border rounded-xl px-3 py-2.5 text-[13px] text-soren-text outline-none focus:border-[#16A34A]" />
+          </div>
+          <button disabled={busy} onClick={confirmGagne} className="w-full py-2.5 rounded-xl bg-[#16A34A] hover:brightness-110 text-white text-[13px] font-bold transition-colors">Clôturer : gagné</button>
+        </div>
+      )}
+
+      {mode === 'perdu' && (
+        <div className="mt-3 rounded-2xl border border-red-200 bg-red-50/40 p-4 flex flex-col gap-2">
+          <div className="text-[11px] font-semibold text-soren-muted mb-0.5">Raison de la non-vente</div>
+          {NONVENTE_REASONS.map(r => {
+            const Icon = r.icon
+            return (
+              <button key={r.code} disabled={busy} onClick={() => submit({ callId: call.id as never, outcome: 'perdu', lostReason: r.code })}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl border border-soren-border bg-soren-card text-left hover:border-[#DC2626] hover:bg-[#FEE2E2]/40 transition-colors">
+                <Icon size={16} className="text-[#DC2626] flex-shrink-0" />
+                <span className="min-w-0">
+                  <span className="block text-[12.5px] font-semibold text-soren-text">{r.label}</span>
+                  <span className="block text-[10.5px] text-soren-muted truncate">{r.desc}</span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {mode === 'reprogrammer' && (
+        <div className="mt-3 rounded-2xl border border-blue-200 bg-blue-50/40 p-4 flex flex-col gap-3">
+          <div>
+            <label className="block text-[11px] font-semibold text-soren-muted mb-1.5">Nouvelle date</label>
+            <input type="datetime-local" value={newDate} onChange={e => setNewDate(e.target.value)}
+              className="w-full bg-soren-card border border-soren-border rounded-xl px-3 py-2.5 text-[13px] font-semibold text-soren-text outline-none focus:border-[#2563EB]" />
+          </div>
+          <button disabled={busy || !newDate} onClick={() => submit({ callId: call.id as never, outcome: 'reprogrammer', newDate })}
+            className="w-full py-2.5 rounded-xl bg-[#2563EB] hover:brightness-110 text-white text-[13px] font-bold transition-colors disabled:opacity-40">Reprogrammer l&apos;appel</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ClosingView() {
   const calls = (useQuery(api.closing.upcomingCalls, {}) ?? null) as Call[] | null
   const [openId, setOpenId] = useState<string | null>(null)
@@ -409,6 +513,9 @@ export default function ClosingView() {
                 <button onClick={() => selected && saveNote({ id: selected.id as never, notes: note })}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] font-semibold bg-[#FF4D00] text-white hover:brightness-110"><Save size={12} />Enregistrer</button>
               </div>
+
+              {/* Issue de l'appel : clôture R1/R2 (gagné / perdu / no-show / reprogrammer). */}
+              <OutcomePanel key={selected.id} call={selected} />
               <div className="h-6" />
             </>
           )}

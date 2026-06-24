@@ -1,6 +1,8 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
-import { WORKSPACE } from "./osLib"
+import { WORKSPACE, logActivity } from "./osLib"
+import { convertToClientLogic } from "./sync"
+import { markLost } from "./leadSync"
 
 // Closing — file de préparation d'appel (cockpit closer). Source = os_sales_calls (R1/R2 planifiés,
 // créés par le webhook iClosed). Chaque appel est enrichi : fiche contact, réponses du quiz de
@@ -211,5 +213,66 @@ export const saveCallNote = mutation({
     if (nextStep !== undefined) patch.nextStep = nextStep
     await ctx.db.patch(id, patch)
     return { ok: true }
+  },
+})
+
+// Issue d'un appel R1/R2 (cloture depuis le module Closing). Une seule porte → réutilise les chemins existants.
+//  - "gagne"       : convertToClientLogic (garde montant : rejet si pas de montant ni amountTbd), puis appel done.
+//  - "perdu"       : markLost (chemin perdu le plus complet : lead + contact + prospection + event), appel done. Pas de conversion.
+//  - "no_show"     : appel outcome='no_show' / status='no_show'. NE FAIT PAS reculer le lead (aucune régression d'étape).
+//  - "reprogrammer": appel re-daté (newDate), status reste 'planned'. Ne clôt rien d'autre.
+export const recordOutcome = mutation({
+  args: {
+    callId:       v.id("os_sales_calls"),
+    outcome:      v.string(),               // gagne | perdu | no_show | reprogrammer
+    dealValue:    v.optional(v.number()),
+    amountTbd:    v.optional(v.boolean()),
+    wonObjection: v.optional(v.string()),
+    lostReason:   v.optional(v.string()),
+    newDate:      v.optional(v.string()),
+    by:           v.optional(v.string()),
+  },
+  handler: async (ctx, a) => {
+    const call = await ctx.db.get(a.callId)
+    if (!call) throw new Error("Appel introuvable.")
+    const contactId = call.contactId
+    const by = a.by ?? "human:thomas"
+    const now = new Date().toISOString()
+    const lostStage = String(call.stage ?? "").toUpperCase() === "R2" ? "r2" : "r1"
+
+    if (a.outcome === "gagne") {
+      if (!contactId) throw new Error("Appel sans contact lié : impossible de convertir en client.")
+      // La garde montant (rejet si pas de montant ni amountTbd) s'applique dans convertToClientLogic.
+      await convertToClientLogic(ctx, { contactId, dealValue: a.dealValue, amountTbd: a.amountTbd, wonObjection: a.wonObjection, by })
+      await ctx.db.patch(a.callId, { status: "done", outcome: "gagne", updatedAt: now })
+      await logActivity(ctx, { actorType: by.startsWith("agent") ? "agent" : "human", actorId: by, eventType: "call.outcome", summary: `Appel ${lostStage.toUpperCase()} clôturé : gagné`, entityType: "call", entityId: String(a.callId), source: "closing" })
+      return { ok: true, outcome: "gagne" }
+    }
+
+    if (a.outcome === "perdu") {
+      // Chemin perdu le plus complet (lead + contact + record prospection + event), avec l'étape réelle de l'appel.
+      if (contactId) await markLost(ctx, contactId, { reason: a.lostReason ?? "autre", stage: lostStage, by })
+      await ctx.db.patch(a.callId, { status: "done", outcome: "perdu", updatedAt: now })
+      await logActivity(ctx, { actorType: by.startsWith("agent") ? "agent" : "human", actorId: by, eventType: "call.outcome", summary: `Appel ${lostStage.toUpperCase()} clôturé : perdu`, entityType: "call", entityId: String(a.callId), source: "closing" })
+      return { ok: true, outcome: "perdu" }
+    }
+
+    if (a.outcome === "no_show") {
+      // Non-présentation : on marque l'appel, on NE touche PAS au lead (pas de régression d'étape).
+      await ctx.db.patch(a.callId, { status: "no_show", outcome: "no_show", updatedAt: now })
+      await logActivity(ctx, { actorType: by.startsWith("agent") ? "agent" : "human", actorId: by, eventType: "call.outcome", summary: `Appel ${lostStage.toUpperCase()} : non-présentation`, entityType: "call", entityId: String(a.callId), source: "closing" })
+      return { ok: true, outcome: "no_show" }
+    }
+
+    if (a.outcome === "reprogrammer") {
+      // Reprogrammé : nouvelle date, l'appel reste planifié. Ne clôt rien d'autre.
+      const patch: Record<string, unknown> = { status: "planned", outcome: "reprogramme", updatedAt: now }
+      if (a.newDate) patch.date = a.newDate
+      await ctx.db.patch(a.callId, patch)
+      await logActivity(ctx, { actorType: by.startsWith("agent") ? "agent" : "human", actorId: by, eventType: "call.outcome", summary: `Appel ${lostStage.toUpperCase()} reprogrammé${a.newDate ? " au " + a.newDate : ""}`, entityType: "call", entityId: String(a.callId), source: "closing" })
+      return { ok: true, outcome: "reprogramme" }
+    }
+
+    throw new Error(`Issue d'appel inconnue : ${a.outcome}`)
   },
 })
