@@ -1,0 +1,960 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260520_105456_47e97d
+source_file: /home/hermes/.hermes/sessions/20260520_105456_47e97d.jsonl
+source_sha256_16: 9f8f9f5ff1282c18
+date: 2026-05-20
+---
+
+# Recovered session root/20260520_105456_47e97d
+
+
+## user — 2026-05-20T10:57:22.120411
+
+ok ca marche et concernant les CPU ca permet quoi d'augmenter les CPU ?
+
+## assistant — 2026-05-20T10:57:22.120411
+
+Augmenter les CPU, ça sert surtout à **faire plus de choses en parallèle** et à réduire les ralentissements quand plusieurs processus tournent.
+
+Concrètement pour notre setup Hermes / agents / SaaS :
+
+- **Plus d’agents en parallèle** 
+ Plusieurs bots, cron jobs, sous-agents, scripts, tâches de veille, etc. peuvent tourner sans se bloquer.
+
+- **Moins de latence sur les actions locales** 
+ Parsing de fichiers, génération de rapports, traitement de données, indexation mémoire, exécution de scripts → plus fluide.
+
+- **Meilleure stabilité quand il y a plusieurs users / conversations** 
+ Si Jonathan + toi + des sous-agents utilisent le système en même temps, plus de CPU évite que tout se mette à ramer.
+
+- **Builds / installs / tests plus rapides** 
+ Next.js, npm install, pnpm build, tests, lint, Playwright, etc. profitent souvent de plusieurs cœurs.
+
+- **Moins de risque de saturation** 
+ Si le CPU est à 100%, les bots répondent lentement, les cron peuvent prendre du retard, et certains processus peuvent timeout.
+
+Par contre, important :
+
+- **Ça n’augmente pas directement la “mémoire” de l’IA** → ça c’est RAM / stockage / contexte modèle.
+- **Ça ne rend pas le modèle LLM plus intelligent** → l’intelligence vient du modèle utilisé.
+- **Ça ne booste pas forcément les réponses API OpenAI/Claude** → là, le temps dépend surtout du provider externe.
+- **Ça aide surtout tout ce qui tourne sur le serveur localement** : Hermes, gateway Telegram, scripts, agents, navigateur, builds, traitements.
+
+En résumé : 
+**RAM = tenir plus de choses ouvertes.** 
+**CPU = faire plus de choses plus vite / en parallèle.** 
+**Stockage = garder plus de données.**
+
+Pour un système multi-agents VividFlow, augmenter les CPU devient utile dès qu’on veut faire tourner plusieurs agents autonomes, heartbeats, crawlers, tâches de dev et automatisations sans que le serveur rame.
+
+## user — 2026-05-20T10:57:22.120411
+
+j'ai ca ca vaut le coup ?
+
+[Image attached at: /home/hermes/.hermes/image_cache/img_1e0f74a27f10.jpg]
+[screenshot]
+
+## assistant — 2026-05-20T10:57:22.120411
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+Summary generation was unavailable. 88 message(s) were removed to free context space but could not be summarized. The removed messages contained earlier work in this session. Continue based on the recent messages below and the current state of any files or resources.
+
+## user — 2026-05-20T10:57:22.120411
+
+pourquoi smartlink la page ne marche plus, ca fonctionnait aussi avec ca ouvre pas
+
+## assistant — 2026-05-20T10:57:22.120411
+
+C’était lié à mon déploiement Convex pour couper le scraping Radar.
+
+## Cause
+
+La page `/smart-links` ne cassait pas à cause du frontend.
+
+Elle appelait une fonction Convex :
+
+```txt
+businessHandle:getMyHandle
+```
+
+Mais après le deploy Convex, cette fonction n’existait plus côté backend live. Résultat :
+
+```txt
+Server Error Convex
+→ ErrorBoundary
+→ “Cette page rencontre un souci”
+```
+
+Donc la page s’ouvrait bien côté Vercel, mais plantait au chargement des données Convex.
+
+## Ce que j’ai corrigé
+
+J’ai restauré/déployé les fonctions backend attendues par Smart Links :
+
+- `businessHandle.getMyHandle`
+- `businessHandle.suggestHandle`
+- `businessHandle.checkHandleAvailability`
+- `businessHandle.sealBusinessHandle`
+- `tracking.createLinksMulti`
+- `tracking.listGroupedByPlatform`
+
+Et j’ai redéployé Convex en prod.
+
+## Vérification faite
+
+J’ai testé :
+
+```txt
+https://app.brvndlab.com/smart-links
+```
+
+Résultat : la page s’ouvre à nouveau.
+
+J’ai aussi testé :
+
+```txt
+https://app.brvndlab.com/smart-links/domain
+```
+
+Résultat : la page de configuration handle/domaine s’ouvre aussi.
+
+Console navigateur : zéro erreur après correction.
+
+## État actuel
+
+```txt
+Smart Links : réparé
+Page domaine : réparée
+Scraping continu Radar : toujours coupé
+Crons Radar automatiques : toujours désactivés
+Cron Instagram Hermes : toujours paused
+```
+
+Donc le fix Smart Links n’a pas réactivé le scraping.
+
+## user — 2026-05-20T10:57:22.120411
+
+[The user sent a voice message~ Here's what they said: "Ok donc c'est une tâche très importante que je vais t'aider mais je veux que tu ailles modules par module dans le sas et que tu analyses tous les coups, toutes les appels à pays, tous les crônes qui a derrière etc. c'est à dire que toute l'architecture, tu l'analyse bien comme il faut et tu me freins à contrandu et qu'il y a des charges, c'est à dire de la consommation parce que aujourd'hui, j'en attend, il consomme beaucoup beaucoup trop. D'ailleurs qu'il est quasiment à $10 par jour, c'est énorme et il me semble que c'est beaucoup à cause de radar et de scouts derrière. Je veux que tu fais ce complet de tout, des coups, de tous les crônes, de toutes les appels et de tout et d'ailleurs, je trouve une solution, c'est à dire, tu trouves une solution, bien moins coûteuse et bien plus ROI pour nous, mais tout en gardant la qualité, ok?"]
+
+## user — 2026-05-20T10:57:22.120411
+
+[Your active task list was preserved across context compression]
+- [>] 1. Cartographier modules, routes API, actions Convex, crons et providers externes Brvndlab (in_progress)
+- [ ] 2. Identifier les sources probables de coût élevé: Radar/Scout, LLM, SearchAPI/kome, crons Hermes/Convex (pending)
+- [ ] 3. Produire un rapport avec risques, coût probable et architecture moins coûteuse/plus ROI (pending)
+- [ ] 4. Écrire un plan d’action immédiat: couper/limiter/logguer/router sans perdre qualité (pending)
+
+## assistant — 2026-05-20T10:57:22.120411
+
+J’ai fait le premier audit complet et j’ai écrit le rapport ici :
+
+`/home/hermes/workspace/brvndlab/brvndlab-app/docs/cost-audit-2026-05-20.md`
+
+## Verdict rapide
+
+Le coût tracé dans Brvndlab est **beaucoup trop faible** pour expliquer les **~10 $/jour**.
+
+Dans la table `aiUsage`, j’ai trouvé :
+
+- **88 appels IA tracés**
+- période : 11/05 → 20/05
+- total : **0,8894 €**
+- majorité : Radar
+
+Donc soit :
+
+1. le coût vient de routes **non loggées** dans Brvndlab ;
+2. le coût vient d’Hermes / crons externes / Scout hors app ;
+3. le coût vient d’un provider externe non inclus dans `aiUsage` ;
+4. ou le dashboard Anthropic inclut d’autres usages que Brvndlab.
+
+## Ce qui coûte le plus côté Brvndlab tracé
+
+Dans `aiUsage` :
+
+- `radar_themes_analysis` : **0,5695 €**
+- `radar_market_alerts` : **0,1659 €**
+- `radar_weekly_summary` : **0,1131 €**
+- `ig_market_detection` : **0,0204 €**
+
+Donc oui, **Radar est bien le gros poste dans les logs Brvndlab**, mais il ne représente pas les 10 $/jour.
+
+## Problème critique trouvé
+
+Les routes Next.js appellent Anthropic directement mais **ne loggent pas dans `aiUsage`**.
+
+Routes à risque :
+
+- `/api/generate-script`
+ - utilise **Opus**
+ - max tokens jusqu’à 4000
+ - c’est le suspect n°1 côté app
+- `/api/analyze-video`
+ - Sonnet
+ - max tokens 4000 à 8000
+- `/api/analyze-pdf`
+ - Sonnet
+ - max tokens 4000
+- `/api/generate-carousel`
+ - Sonnet
+ - max tokens 3000
+- `/api/brainstorm`
+ - Sonnet
+ - max tokens 2500
+- `/api/generate-story`
+ - Sonnet
+ - max tokens 3000
+
+Donc aujourd’hui, on peut consommer sans que le dashboard interne Brvndlab le voie.
+
+## Deuxième problème critique
+
+La route propre `/api/get-transcript` est bien clean :
+
+```txt
+kome.ai → SearchAPI.io
+pas d’Apify
+```
+
+Mais dans `convex/radarActions.ts`, j’ai encore trouvé :
+
+- fallback Apify direct via `APIFY_API_TOKEN`
+- fallback SearchAPI
+- appels Opus Radar
+- route Vercel mentionnée avec Apify/SearchAPI
+
+Donc le retrait Apify n’est pas complet. Il reste des chemins morts ou actifs dans Radar Actions.
+
+## Crons actuels
+
+### Convex actifs
+
+- `youtube metrics daily refresh`
+ - coût faible, YouTube Data API quota uniquement
+- `custom domains verify pending`
+ - toutes les minutes
+ - pas très cher, mais trop fréquent pour rien
+
+### Convex coupés
+
+- `radar daily scan` : coupé
+- `radar orbit heartbeat` : coupé
+- `radar insights generation` : coupé
+
+### Hermes actifs
+
+- veille IA agentique quotidienne
+- veille immobilier Suisse quotidienne
+- veille X quotidienne, dernier run en erreur
+- rappel calendrier toutes les 5 min, dernier run en erreur
+- rappel Rafaela toutes les 10 min
+
+### Hermes pausés
+
+- Radar Instagram pilote : paused
+- tracker watchdog : paused
+
+## Solution recommandée
+
+On doit mettre une couche **AI Profit Layer** avant de relancer Radar/Scout.
+
+Priorité :
+
+1. **Interdire Opus par défaut**
+ - surtout dans `/api/generate-script`
+ - Opus seulement pour action premium/manuelle/crédits
+
+2. **Forcer toutes les routes IA à passer par un wrapper unique**
+ - log `aiUsage`
+ - coût estimé
+ - budget journalier
+ - model router
+ - cache
+ - kill switch
+
+3. **Ajouter des kill switches**
+ - `AI_GLOBAL_DAILY_BUDGET_EUR`
+ - `AI_RADAR_ENABLED`
+ - `AI_OPUS_ENABLED`
+ - `AI_SEARCHAPI_ENABLED`
+
+4. **Retirer vraiment Apify**
+ - pas juste dans `/api/get-transcript`
+ - aussi dans `convex/radarActions.ts`
+
+5. **Radar uniquement on-demand**
+ - pas de scan automatique massif
+ - cache transcripts 30–90 jours
+ - SearchAPI seulement si kome échoue et action utilisateur explicite
+ - Haiku/Sonnet uniquement sur top contenus scorés
+
+6. **Scout low-cost**
+ - collecte metadata sans LLM
+ - scoring heuristique
+ - Haiku sur top 5
+ - Sonnet sur top 1–3 seulement
+ - jamais Opus en automatique
+
+## Mon diagnostic business
+
+Le problème n’est pas juste “Radar coûte trop”.
+
+Le vrai problème est :
+
+```txt
+pas de contrôle centralisé des appels IA
++ Opus accessible dans des routes produit
++ logs incomplets
++ anciens fallbacks scraping encore présents
+```
+
+Donc on ne peut pas piloter la marge.
+
+Le bon objectif : 
+**passer de “LLM partout” à “LLM seulement quand ROI clair”.**
+
+Répartition cible :
+
+- 80% : heuristiques + cache + Haiku
+- 18% : Sonnet
+- 2% : Opus manuel/premium uniquement
+
+## Action immédiate recommandée
+
+Je recommande de faire maintenant un patch en 4 blocs :
+
+1. wrapper IA global + logging `aiUsage` sur toutes les routes Next.js ;
+2. remplacement Opus → Sonnet par défaut sur `/api/generate-script` ;
+3. hard-block Apify dans `convex/radarActions.ts` ;
+4. budgets/killswitchs par feature pour éviter qu’on dépasse un plafond journalier.
+
+## user — 2026-05-20T11:01:47.200760
+
+[The user sent a voice message~ Here's what they said: "concrètement, qu'est-ce qu'il faut que je fasse et qu'est-ce qu'elle va avec l'avant et après."]
+
+## assistant — 2026-05-20T11:01:47.200760
+
+Concrètement, toi tu n’as presque rien à faire côté technique. C’est surtout une décision de pilotage.
+
+## Ce que tu dois décider
+
+Tu dois valider 3 règles :
+
+### 1. **Opus interdit par défaut**
+Avant : certaines routes pouvaient appeler Opus directement. 
+Après : Opus uniquement si action premium/manuelle/crédits.
+
+Décision : **oui/non** pour couper Opus par défaut.
+
+Ma reco : **oui direct**.
+
+---
+
+### 2. **Radar / Scout en mode on-demand**
+Avant : logique orientée veille/scraping/enrichissement potentiellement automatique. 
+Après : Radar ne consomme que quand l’utilisateur demande une analyse ou quand on a un signal vraiment fort.
+
+Décision : Radar doit-il rester :
+- **manuel/on-demand** pour l’instant ;
+- ou semi-auto avec petit budget quotidien ?
+
+Ma reco : **manuel/on-demand jusqu’à instrumentation complète**.
+
+---
+
+### 3. **Budget IA journalier**
+Avant : pas de plafond dur, donc impossible de contrôler la marge. 
+Après : si on dépasse le budget, les appels IA non critiques sont bloqués.
+
+Décision : définir un plafond.
+
+Ma reco lancement :
+- **Brvndlab global : 2 €/jour max**
+- **Radar : 0,50 €/jour max**
+- **Opus : 0 €/jour par défaut**
+- **SearchAPI : 0,25 €/jour max**
+
+---
+
+## Ce que moi je dois faire techniquement
+
+### Bloc 1 — Couper l’hémorragie
+
+Je patch :
+
+- `/api/generate-script`
+ - Opus → Sonnet par défaut
+ - Opus désactivé sauf env `AI_OPUS_ENABLED=true`
+
+- `convex/radarActions.ts`
+ - hard-block Apify
+ - SearchAPI désactivable avec `AI_SEARCHAPI_ENABLED=false`
+ - Radar deep analysis désactivable avec `AI_RADAR_ENABLED=false`
+
+- crons :
+ - Radar reste coupé
+ - Instagram pilote reste paused
+ - custom domain check passe de 1 min à 10 min
+
+Résultat : **réduction immédiate du risque de coût**.
+
+---
+
+### Bloc 2 — Rendre les coûts visibles
+
+Je crée un wrapper IA unique.
+
+Avant :
+
+```txt
+route API → Anthropic direct → coût invisible
+```
+
+Après :
+
+```txt
+route API → aiGateway → Anthropic → log aiUsage → budget check
+```
+
+Chaque appel aura :
+
+- feature
+- user
+- modèle
+- tokens in/out
+- coût estimé
+- succès/erreur
+- date
+- cache hit ou non
+
+Résultat : on saura exactement **qui consomme quoi**.
+
+---
+
+### Bloc 3 — Ajouter les budgets
+
+Avant :
+
+```txt
+si un bouton est spam, ça consomme
+```
+
+Après :
+
+```txt
+si budget dépassé → appel bloqué ou downgrade modèle
+```
+
+Exemple :
+
+- Opus demandé mais désactivé → fallback Sonnet
+- Sonnet trop cher sur Radar → fallback Haiku ou “analyse profonde indisponible”
+- budget jour dépassé → on coupe les features non critiques
+
+Résultat : **plus jamais de surprise à 10 $/jour sans savoir pourquoi**.
+
+---
+
+### Bloc 4 — Repenser Radar / Scout
+
+Avant :
+
+```txt
+scraping/transcripts/analyse IA = trop liés
+```
+
+Après :
+
+```txt
+1. collecte metadata cheap
+2. score heuristique
+3. Haiku sur top 5
+4. Sonnet sur top 1-3
+5. cache transcript/analyse
+6. SearchAPI seulement si nécessaire
+```
+
+Résultat : même qualité perçue, mais coût beaucoup plus bas.
+
+---
+
+## Avant / après simple
+
+### Avant
+
+- Opus peut être appelé dans des routes produit.
+- Beaucoup d’appels IA ne sont pas loggés.
+- Radar contient encore des vieux chemins Apify/SearchAPI.
+- Pas de plafond journalier.
+- Pas de kill switch propre.
+- Impossible de dire précisément pourquoi Anthropic facture autant.
+- Le système peut coûter même si la valeur utilisateur est faible.
+
+### Après
+
+- Opus coupé par défaut.
+- Tous les appels IA passent par un gateway.
+- Chaque coût est loggé.
+- Budget dur par jour/feature/user.
+- Radar on-demand.
+- Apify bloqué.
+- SearchAPI contrôlé.
+- Haiku/Sonnet utilisés selon ROI.
+- Si un module consomme trop, on le voit et on le coupe.
+- On protège la marge.
+
+---
+
+## Ce que tu dois faire maintenant
+
+Tu me valides juste ça :
+
+```txt
+Go pour :
+1. couper Opus par défaut
+2. bloquer Apify partout
+3. mettre Radar/Scout en on-demand
+4. ajouter budgets IA + logs complets
+5. viser 2 €/jour max au départ
+```
+
+Si tu me dis “go”, je fais le patch technique.
+
+## user — 2026-05-20T11:06:14.759890
+
+[The user sent a voice message~ Here's what they said: "Est-ce que pour toute Scrappling parce que le radar, c'est très important, parce que tu penses qu'on peut payer une solution à l'année et éviter de passer par un coup à pays ? Est-ce que c'est possible ? Est-ce que tout passe par des clés à pays aujourd'hui, quand on est en mode ça, ou on peut payer des abonnements ?"]
+
+## assistant — 2026-05-20T11:06:14.759890
+
+Oui, c’est possible de payer **des abonnements fixes** au lieu d’un coût API variable. Mais il faut distinguer 3 choses :
+
+1. **collecte/scraping**
+2. **transcripts**
+3. **analyse IA**
+
+Aujourd’hui, le vrai risque de coût vient surtout du combo :
+
+```txt
+scraping/transcript/API variable + LLM derrière
+```
+
+Pas juste du scraping.
+
+## 1. Scraping : oui, on peut passer en abonnement
+
+Pour Radar/Scout, on peut utiliser des providers avec abonnement mensuel/annuel.
+
+Exemples de familles :
+
+- **scraping browser/cloud** 
+ Browserless, Browserbase, Apify plans, ScrapingBee, Bright Data, Oxylabs
+
+- **social/search APIs packagées** 
+ RapidAPI, SearchAPI, SerpAPI, DataForSEO
+
+- **dataset/social intelligence tools** 
+ Phyllo, Modash, Favikon, HypeAuditor, SocialBlade-like, Exolyt, etc.
+
+Le principe : tu payes un plan fixe avec quotas inclus.
+
+Avantage :
+- coût prévisible
+- moins de surprise
+- parfois meilleure fiabilité
+- plus simple à budgéter
+
+Inconvénient :
+- si on utilise peu, tu paies quand même
+- certains providers interdisent certains usages
+- qualité variable selon plateformes
+- quotas quand même limités
+
+Donc oui, **abonnement possible**, mais pas magique : c’est souvent “quota fixe” plutôt que “illimité”.
+
+---
+
+## 2. Tout ne passe pas forcément par API pay-per-call
+
+Il y a 4 modèles possibles :
+
+### Modèle A — API officielle
+
+Exemples :
+- YouTube Data API
+- Instagram Graph API
+- TikTok API
+
+Coût :
+- souvent gratuit ou inclus
+- mais quotas stricts
+- données limitées
+
+Qualité :
+- légal/propre
+- stable
+- mais pas toutes les données publiques disponibles
+
+Pour Brvndlab :
+- YouTube : très bien via API officielle
+- Instagram/TikTok : plus limité pour analyse concurrente publique
+
+---
+
+### Modèle B — API scraping pay-per-call
+
+Exemples :
+- SearchAPI
+- SerpAPI
+- Apify actors à l’usage
+- scraping transcript à la requête
+
+Coût :
+- variable
+- pratique au début
+- dangereux si automatisé
+
+Pour Brvndlab :
+- bien en fallback manuel
+- mauvais pour cron massif
+
+---
+
+### Modèle C — abonnement avec quota
+
+Exemples :
+- Apify plan mensuel
+- Browserless
+- ScrapingBee
+- DataForSEO
+- Bright Data
+- services social data
+
+Coût :
+- fixe ou semi-fixe
+- quotas inclus
+- dépassement possible
+
+Pour Brvndlab :
+- bon si Radar devient un vrai module central
+- il faut choisir selon coût par créateur monitoré / jour
+
+---
+
+### Modèle D — scraping interne sur notre VPS
+
+On fait tourner nous-mêmes :
+- navigateur headless
+- cookies/session
+- workers
+- proxy éventuel
+- cache
+- rate limiting
+
+Coût :
+- serveur/proxy fixe
+- pas API par appel
+
+Mais :
+- maintenance plus lourde
+- risques de blocage
+- plateformes changent souvent
+- proxies peuvent coûter cher
+- risque légal/ToS plus élevé
+
+Pour Brvndlab :
+- OK pour petits tests contrôlés
+- pas idéal comme fondation SaaS stable sans vraie infra
+
+---
+
+## Ma recommandation pour Brvndlab
+
+Je ne choisirais pas “tout abonnement” tout de suite.
+
+Je ferais une architecture hybride :
+
+```txt
+API officielle quand possible
++ abonnement fixe pour collecte/social data si ROI validé
++ SearchAPI/kome en fallback contrôlé
++ LLM seulement après scoring
+```
+
+## Pour Radar précisément
+
+### YouTube
+
+À garder :
+- YouTube Data API officielle
+- coût bas
+- quota clair
+- très bon pour titres/stats/vidéos
+
+Transcripts :
+- priorité `kome.ai` gratuit
+- fallback SearchAPI seulement si action manuelle
+- cache transcript 30–90 jours
+
+Pas besoin d’abonnement lourd au début pour YouTube.
+
+---
+
+### Instagram
+
+Là, c’est plus compliqué.
+
+Options :
+
+1. **API officielle Instagram Graph**
+ - propre
+ - mais surtout pour comptes connectés, pas concurrents publics
+
+2. **provider social data en abonnement**
+ - meilleur pour Radar concurrentiel
+ - coût prévisible
+ - à benchmarker
+
+3. **scraping Hermes/VPS**
+ - moins cher au départ
+ - mais maintenance + blocages
+
+Pour Instagram Radar, je recommanderais plutôt un provider avec abonnement/quota si on veut en faire une feature sérieuse.
+
+---
+
+### TikTok
+
+Même logique qu’Instagram :
+- API officielle limitée
+- scraping fragile
+- provider social data souvent plus fiable
+
+---
+
+## Ce que ça change avant/après
+
+### Avant
+
+```txt
+on scrape / récupère transcript
+→ fallback API payante
+→ LLM parfois cher
+→ coût variable
+→ pas toujours loggé
+```
+
+### Après
+
+```txt
+on collecte metadata cheap/fixe
+→ on score sans LLM
+→ on enrichit seulement les meilleurs signaux
+→ transcript payant uniquement si nécessaire
+→ LLM contrôlé
+→ coût prévisible
+```
+
+## Le vrai choix business
+
+Il ne faut pas choisir un provider “par confort”. 
+Il faut choisir selon cette métrique :
+
+```txt
+coût par insight actionnable
+```
+
+Pas coût par scrape.
+
+Exemple :
+
+- Scraper 1000 posts à 20 $ ne vaut rien si on sort 2 idées moyennes.
+- Scraper 50 contenus à 5 $ peut être rentable si on sort 10 angles actionnables pour un coach.
+
+Donc la question n’est pas :
+“Quel outil est le moins cher ?”
+
+La vraie question :
+“Quel pipeline donne un bon insight Radar pour moins de X centimes ?”
+
+---
+
+## Ma reco concrète
+
+Phase 1 — maintenant :
+- on garde Radar coupé en automatique ;
+- on nettoie Apify ;
+- on met logs + budgets ;
+- on utilise YouTube officiel + kome/SearchAPI contrôlé.
+
+Phase 2 — benchmark providers :
+- je compare 5–8 solutions abonnement pour Instagram/TikTok/YouTube transcripts ;
+- critères : prix annuel, quotas, plateformes, fiabilité, ToS, coût par créateur monitoré.
+
+Phase 3 — décision :
+- si provider fiable à coût fixe acceptable → abonnement ;
+- sinon pipeline hybride avec cache + on-demand.
+
+Pour moi, oui : **un abonnement fixe peut être meilleur qu’un coût API variable**, surtout pour Radar. 
+Mais il faut éviter de payer un outil annuel avant d’avoir mesuré précisément : coût par créateur, coût par insight, et qualité de données.
+
+## user — 2026-05-20T11:19:02.800766
+
+ok fait moi le listing LLM les poviders et abonnement a prendre stp
+
+## assistant — 2026-05-20T11:19:02.800766
+
+J’ai fait le listing complet et je l’ai mis ici :
+
+`/home/hermes/workspace/brvndlab/brvndlab-app/docs/providers-abonnements-recommandes-2026-05-20.md`
+
+## Reco courte
+
+Pour Brvndlab, je ne prendrais **pas** tout de suite un gros abonnement type Modash/HypeAuditor/Exolyt.
+
+Je prendrais une stack lean :
+
+### À prendre maintenant
+
+1. **Anthropic API**
+ - Déjà en place.
+ - À garder pour la qualité.
+ - Mais avec budget, logs, kill switch.
+ - **Opus coupé par défaut.**
+
+2. **Google Gemini API**
+ - À ajouter pour les tâches cheap.
+ - Très bon pour volume : scoring, extraction, résumés, pré-analyse.
+ - Beaucoup moins cher que Sonnet/Opus.
+
+3. **OpenRouter**
+ - À garder pour benchmark/fallback multi-modèles.
+ - Pas forcément comme provider principal prod.
+
+4. **Supadata**
+ - Pour transcripts YouTube.
+ - Plus prévisible que SearchAPI au coup par coup.
+ - Reco départ :
+ - **Pro : $17/mois / 3 000 crédits**
+ - ou **Mega : $47/mois / 30 000 crédits**
+ - Pour MVP Radar, je commencerais par **Pro $17/mois**.
+
+5. **DataForSEO**
+ - Pour search/SERP à bas coût.
+ - Reco si on veut Radar/Scout régulier.
+ - Minimum recharge : environ **$50**.
+ - Coût beaucoup plus bas que SearchAPI/SerpAPI à volume.
+
+## À ne pas prendre maintenant
+
+### Modash
+
+Très bon pour creator intelligence Instagram/TikTok/YouTube, mais :
+
+- API Discovery : environ **$16 200/an**
+- Raw API : environ **$10 000/an**
+
+Donc trop tôt tant que Radar n’a pas prouvé son ROI.
+
+### Exolyt
+
+Très bon pour TikTok, mais :
+
+- Essentials : **210–250 €/mois**
+- Advanced : **500–600 €/mois**
+
+À prendre seulement si TikTok devient un axe central.
+
+### Favikon
+
+Bon outil benchmark, mais API custom.
+
+- Starter : ~$99/mois
+- Standard : ~$199/mois
+- Pro : ~$449/mois
+
+Pas prioritaire pour notre backend.
+
+### Phyllo
+
+Très bon pour données de créateurs connectés/consentis, mais pas pour discovery public.
+
+À garder pour plus tard si Brvndlab gère des campagnes/créateurs connectés.
+
+### Browserbase / Browserless / ScrapingBee
+
+Utile seulement en fallback browser scraping.
+
+Pas à utiliser comme cœur Radar.
+
+### Bright Data / Oxylabs
+
+Trop lourd maintenant. Plutôt enterprise/proxy massif.
+
+## Stack recommandée maintenant
+
+```txt
+LLM qualité : Anthropic Sonnet
+LLM cheap : Gemini Flash / Flash-Lite
+Fallback modèles : OpenRouter
+Transcripts YouTube : Supadata Pro
+Search/Radar : DataForSEO recharge $50
+Scraping browser : rien pour l’instant
+Creator intelligence premium : pas encore
+```
+
+## Budget MVP conseillé
+
+### Option lean
+
+- Supadata Pro : **$17/mois**
+- DataForSEO : **$50 prépayé**
+- Gemini : usage API très faible
+- Anthropic : budget dur, ex. **2 €/jour max**
+
+Donc on passe d’un risque flou à :
+
+```txt
+~$17/mois fixe
++ $50 prépayé search
++ LLM plafonné
+```
+
+### Option Radar plus sérieux
+
+- Supadata Mega : **$47/mois**
+- DataForSEO : **$50–100 prépayé**
+- Anthropic/Gemini avec budgets
+
+Budget fixe :
+
+```txt
+~$47/mois
++ search prépayé
++ IA plafonnée
+```
+
+## Ma recommandation décisionnelle
+
+Pour maintenant :
+
+```txt
+1. Ajouter Gemini API
+2. Prendre Supadata Pro à $17/mois
+3. Prendre DataForSEO avec $50 de crédit
+4. Garder Anthropic mais couper Opus par défaut
+5. Ne pas prendre Modash/Exolyt/Favikon maintenant
+```
+
+Ensuite, quand Radar prouve qu’il apporte vraiment de la valeur :
+
+```txt
+Si Instagram/TikTok devient central → benchmark Modash
+Si TikTok devient central → benchmark Exolyt
+Si créateurs connectés/campagnes → benchmark Phyllo
+```
+
+Le plus important : **ne pas acheter un abonnement annuel cher avant d’avoir le coût par insight actionnable.**

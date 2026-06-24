@@ -108,6 +108,133 @@ function buildEmailHtml(p: SendDevisEmailParams): string {
 </html>`
 }
 
+// ─── Email d'invitation (compte Data OS) ───────────────────────────────────────
+
+export interface SendInviteEmailParams {
+  to:         string
+  firstName:  string | null
+  message:    string | null   // message personnalisé libre saisi par l'admin
+  inviteUrl:  string
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+function buildInviteHtml(p: SendInviteEmailParams): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://data-os.vividflow.co'
+  const logoUrl = `${appUrl}/vividflow-logo.png`
+  const greeting = p.firstName ? `👋 Bonjour ${escapeHtml(p.firstName)},` : '👋 Bonjour,'
+  const msgBlock = p.message
+    ? `<table width="100%" cellpadding="0" cellspacing="0" style="background:#fff5f0;border-left:3px solid #FF4D00;border-radius:8px;margin:0 0 24px;">
+         <tr><td style="padding:16px 20px;font-size:14px;color:#374151;line-height:1.6;font-style:italic;">${escapeHtml(p.message).replace(/\n/g, '<br/>')}</td></tr>
+       </table>`
+    : ''
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Invitation VividFlow</title></head>
+<body style="margin:0;padding:0;background:#f5f5f0;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.07);">
+        <tr><td style="background:#FF4D00;height:4px;line-height:4px;font-size:0;">&nbsp;</td></tr>
+        <tr><td style="background:#ffffff;padding:24px 36px;border-bottom:1px solid #f0f0ee;">
+          <table cellpadding="0" cellspacing="0"><tr>
+            <td style="padding-right:12px;vertical-align:middle;"><img src="${logoUrl}" width="40" height="40" alt="VividFlow" style="display:block;border-radius:10px;" /></td>
+            <td style="vertical-align:middle;font-size:18px;font-weight:800;color:#111111;letter-spacing:-.3px;">VividFlow</td>
+          </tr></table>
+        </td></tr>
+        <tr><td style="padding:36px 36px 28px;">
+          <p style="margin:0 0 16px;font-size:15px;color:#374151;">${greeting}</p>
+          <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
+            Vous êtes invité·e à rejoindre l'espace <strong>VividFlow</strong>. Cliquez ci-dessous pour créer votre compte et accéder à votre tableau de bord.
+          </p>
+          ${msgBlock}
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;"><tr><td align="center">
+            <a href="${p.inviteUrl}" style="display:inline-block;background:#111111;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;padding:14px 32px;border-radius:12px;letter-spacing:.3px;">
+              Rejoindre VividFlow
+            </a>
+          </td></tr></table>
+          <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.6;">
+            Le bouton ne fonctionne pas ?
+            <a href="${p.inviteUrl}" style="color:#3462EE;text-decoration:underline;">Ouvrez votre lien d'invitation ici</a>.
+          </p>
+        </td></tr>
+        <tr><td style="background:#f9f9f7;padding:20px 36px;border-top:1px solid #f0f0ee;">
+          <p style="margin:0;font-size:11px;color:#9ca3af;line-height:1.6;">VividFlow · Cette invitation vous a été envoyée par un administrateur de l'espace.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
+export async function sendInviteEmail(p: SendInviteEmailParams): Promise<void> {
+  const from = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev'
+  await getResend().emails.send({
+    from,
+    to: p.to,
+    subject: 'Vous êtes invité·e sur VividFlow',
+    html: buildInviteHtml(p),
+  })
+}
+
+// ── Email d'onboarding : invite le client à remplir son formulaire (lien public). ──
+function buildOnboardingFormHtml(p: { firstName?: string | null; formUrl: string }): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://data-os.vividflow.co'
+  const logoUrl = `${appUrl}/vividflow-logo.png`
+  const greeting = p.firstName ? `👋 Bonjour ${escapeHtml(p.firstName)},` : '👋 Bonjour,'
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Formulaire d'onboarding VividFlow</title></head>
+<body style="margin:0;padding:0;background:#f5f5f0;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.07);">
+        <tr><td style="background:#FF4D00;height:4px;line-height:4px;font-size:0;">&nbsp;</td></tr>
+        <tr><td style="background:#ffffff;padding:24px 36px;border-bottom:1px solid #f0f0ee;">
+          <table cellpadding="0" cellspacing="0"><tr>
+            <td style="padding-right:12px;vertical-align:middle;"><img src="${logoUrl}" width="40" height="40" alt="VividFlow" style="display:block;border-radius:10px;" /></td>
+            <td style="vertical-align:middle;font-size:18px;font-weight:800;color:#111111;letter-spacing:-.3px;">VividFlow</td>
+          </tr></table>
+        </td></tr>
+        <tr><td style="padding:36px 36px 28px;">
+          <p style="margin:0 0 16px;font-size:15px;color:#374151;">${greeting}</p>
+          <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">
+            Bienvenue chez <strong>VividFlow</strong> ! Pour démarrer votre accompagnement, merci de remplir votre <strong>formulaire d'onboarding</strong> (quelques minutes). Vos réponses nous permettent de tout préparer pour votre kickoff.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;"><tr><td align="center">
+            <a href="${p.formUrl}" style="display:inline-block;background:#FF4D00;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;padding:14px 32px;border-radius:12px;letter-spacing:.3px;">
+              Remplir mon formulaire
+            </a>
+          </td></tr></table>
+          <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.6;">
+            Le bouton ne fonctionne pas ?
+            <a href="${p.formUrl}" style="color:#3462EE;text-decoration:underline;">Ouvrez votre formulaire ici</a>.
+          </p>
+        </td></tr>
+        <tr><td style="background:#f9f9f7;padding:20px 36px;border-top:1px solid #f0f0ee;">
+          <p style="margin:0;font-size:11px;color:#9ca3af;line-height:1.6;">VividFlow · Votre équipe vous accompagne à chaque étape.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
+export async function sendOnboardingFormEmail(p: { to: string; firstName?: string | null; formUrl: string }): Promise<void> {
+  const from = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev'
+  await getResend().emails.send({
+    from,
+    to: p.to,
+    subject: "Votre formulaire d'onboarding VividFlow",
+    html: buildOnboardingFormHtml(p),
+  })
+}
+
 export async function sendDevisEmail(params: SendDevisEmailParams): Promise<void> {
   const html = buildEmailHtml(params)
 

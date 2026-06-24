@@ -1,5 +1,6 @@
-import { redirect } from 'next/navigation'
+import LandingRedirect from '@/components/LandingRedirect'
 
+// Atterrissage selon les droits du compte (jamais /dashboard en dur — cf. LandingRedirect).
 export default function Home() {
-  redirect('/dashboard')
+  return <LandingRedirect />
 }

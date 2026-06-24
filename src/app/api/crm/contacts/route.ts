@@ -23,7 +23,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const id = await convex().mutation(api.crm_contacts.create, body)
+    // Champs optionnels Convex = string|undefined (pas nullable) : on retire les null (champ vide = omis).
+    const clean = Object.fromEntries(Object.entries(body).filter(([, v]) => v !== null))
+    const id = await convex().mutation(api.crm_contacts.create, clean)
     const contact = await convex().query(api.crm_contacts.get, { id })
     return NextResponse.json({ contact: { ...contact, id: contact!._id } })
   } catch (err) {

@@ -142,6 +142,13 @@ export default function NewAppointmentModal({ calendars, onClose, onCreated, ini
     return () => clearTimeout(t)
   }, [success, onClose])
 
+  // Fermeture clavier (Échap).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   const clientItems: PickItem[] = contacts.map(c => ({
     id:    c.id,
     kind:  'client',

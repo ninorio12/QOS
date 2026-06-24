@@ -1,0 +1,148 @@
+---
+type: process
+status: active
+updated: 2026-06-16
+sources:
+  - raw/messages/20260615-163404_telegram-session_e06b8e98.md
+  - raw/messages/20260615-170408_telegram-session_1eb189da.md
+  - raw/messages/20260615-173412_telegram-session_61a79efa.md
+  - raw/messages/20260615-183634_telegram-session_45467de6.md
+  - raw/messages/20260615-190639_telegram-session_ee3c776a.md
+  - raw/messages/20260615-193711_telegram-session_50444fbf.md
+  - raw/messages/20260615-193711_telegram-session_2e1bae8e.md
+  - raw/messages/20260615-200857_telegram-session_f041e0da.md
+  - raw/messages/20260616-093559_telegram-session_ebca4f24.md
+  - raw/messages/20260616-093559_telegram-session_ba4409e3.md
+  - raw/messages/20260616-100604_telegram-session_de203756.md
+  - raw/messages/20260616-123718_telegram-session_c6799216.md
+  - raw/messages/20260616-123718_telegram-session_40eaf164.md
+
+  - raw/messages/20260616-153820_telegram-session_6cdeb4fb.md
+  - raw/messages/20260616-153820_telegram-session_e80ac595.md
+  - raw/messages/20260616-160905_telegram-session_fdad939c.md
+  - raw/messages/20260616-160905_telegram-session_f276d260.md
+  - raw/messages/20260616-160905_telegram-session_cc25a6d4.md---
+
+# Lead scraping B2B — dirigeants Suisse romande
+
+## Décision opérationnelle
+
+Le scraping de leads VividFlow doit viser une prospection B2B nominative propre, pas une aspiration massive d’Internet.
+
+Cible MVP : dirigeants/fondateurs/gérants/directeurs en Suisse romande, niche et canton à choisir avant lancement, volume limité à 50 leads pour privilégier la qualité.
+
+## Données autorisées / attendues
+
+- prénom, nom ;
+- entreprise, poste ;
+- canton, ville ;
+- email professionnel ;
+- téléphone professionnel uniquement ;
+- site web / LinkedIn ;
+- source URL ;
+- preuve de provenance ;
+- statut, qualité, notes ;
+- état d’import Data OS.
+
+## Garde-fous
+
+- Pas de numéros personnels.
+- Pas de scraping agressif LinkedIn.
+- Pas de données sensibles.
+- Pas d’import automatique sans source/preuve.
+- Si email ou téléphone est incertain : statut `needs_review`, pas contactable direct.
+- Déduplication et validation avant outreach.
+
+## Répartition agents
+
+- Agent Operations : scrape et remplit le fichier source.
+- Data Analyst : contrôle qualité, filtres, doublons, scoring.
+- Agent CSM : intervient après validation pour le suivi relationnel/outreach.
+
+Si un seul agent démarre le MVP : Agent Operations.
+
+## Support opérationnel
+
+Un Google Sheet simple a été créé dans le dossier commun Process pour servir de base de leads. Le lien privé n’est pas recopié dans le wiki public : utiliser le Drive commun / dossier Process.
+
+
+## Loop quotidienne validée — 2026-06-15
+Sources : `raw/messages/20260615-183634_telegram-session_45467de6.md`, `raw/messages/20260615-190639_telegram-session_ee3c776a.md`, `raw/messages/20260615-193711_telegram-session_50444fbf.md`, `raw/messages/20260615-193711_telegram-session_2e1bae8e.md`.
+
+Cadence opérationnelle :
+- 08:00 : ordre visible Telegram + Slack avec mention native du Data Analyst dans `#recherche-developpement` et ordre Agent KB dans `#knowledge-base` quand la base/knowledge doit être vérifiée ;
+- 08:05 : scraping/remplissage du Google Sheet ;
+- 08:30 : QA Coordinateur, contrôle du scoring, lignes suspectes marquées en rouge ;
+- 08:50 : import Data OS uniquement pour les contacts validés, source obligatoire `leads outbound`.
+
+Cadence cible : 100 leads/jour ouvré maximum, répartis en 25 cabinets de conseil/services B2B, 25 agences marketing, 25 agences immobilières/courtiers, 25 meilleurs profils additionnels dans ces trois niches.
+
+Critère économique : CA mensuel estimé entre 10’000 CHF et 1’000’000 CHF uniquement si l’estimation est défendable par signaux publics ; sinon ligne `Qualité C / à vérifier`.
+
+Colonnes clés du Sheet : date scraping, niche, CA mensuel estimé CHF, prénom, nom, email pro, téléphone pro, entreprise, LinkedIn, page site, poste, canton, ville, source URL, preuve, notes, statut, qualité, import Data OS. Les lignes d’un même jour doivent être colorées visuellement par date de scraping.
+
+Règle de qualité : les lignes rouges, Qualité C, contact personnel, source absente ou données non fonctionnelles ne passent pas dans Data OS. Les 6 premières lignes de test sont explicitement Qualité C / à vérifier et ne doivent pas être importées.
+
+
+## Scraping qualité-first et enrichissement web — 2026-06-15
+Sources : `raw/messages/20260615-200857_telegram-session_f041e0da.md`, `raw/messages/20260615-203902_telegram-session_f041e0da.md`, `raw/messages/20260615-210912_telegram-session_12b039fe.md`, `raw/messages/20260615-213918_telegram-session_e984d1ec.md`.
+
+Règle durable : le scraping ne scale pas tant que l’échantillon n’est pas bon. Le job doit produire 10 lignes test maximum; si l’échantillon est faible, il s’arrête. Qualité C, source absente, contact personnel ou donnée incertaine = jamais importé Data OS.
+
+Pipeline recommandé : `local.ch` / annuaires suisses comme base entreprises Suisse romande, Google Maps pour enrichir activité/téléphone/site/adresse, site officiel pour preuve métier/contact, Apollo en couche d’enrichissement décisionnaire/email, puis scoring strict avant Data OS.
+
+Browser Use est le cœur recommandé pour l’enrichissement récurrent sur pages dynamiques; Browser Harness sert au debug/QA visuel quand extraction ou navigation casse.
+
+
+## Correctif qualité — dirigeants nominatifs uniquement — 2026-06-16
+Sources : `raw/messages/20260616-093559_telegram-session_ebca4f24.md`, `raw/messages/20260616-093559_telegram-session_ba4409e3.md`, `raw/messages/20260616-100604_telegram-session_de203756.md`.
+
+Incident constaté : l’ancien scraping a produit une base non exploitable car il cherchait surtout des entreprises, pas des personnes décideuses contactables. Le flux quotidien et l’import Data OS doivent rester stoppés tant que le batch test n’est pas validé.
+
+ICP corrigé :
+- Immobilier Suisse romande : mandataires, agents immobiliers, courtiers.
+- Cabinets de conseil Suisse romande : juridique, marketing, stratégie.
+
+Règles non négociables :
+- Un lead = une personne dirigeante/décideuse nominative, jamais seulement une entreprise.
+- Champs obligatoires : prénom, nom, rôle dirigeant, entreprise, canton/ville, source entreprise, source décisionnaire, contact principal sourcé.
+- Contact principal autorisé : email nominatif professionnel sourcé ou téléphone pro direct clairement lié au dirigeant.
+- Contact principal interdit : `info@`, `contact@`, `hello@`, `admin@`, `office@`, `reception@`, formulaire seul ou mail générique d’entreprise.
+- Apollo sert uniquement à confirmer/enrichir, jamais comme source primaire unique.
+- Sources primaires : local.ch, Google Maps, sites officiels, pages équipe, mentions légales, annuaires suisses.
+- Pas d’email deviné, pas d’invention, pas de LinkedIn scrapé agressivement.
+
+Scoring corrigé :
+- Qualité A : dirigeant identifié + email nominatif professionnel sourcé.
+- Qualité B : dirigeant identifié + téléphone pro direct ou source forte, email manquant.
+- Qualité C : entreprise intéressante mais contact générique seulement.
+- Rejet : pas de dirigeant identifié.
+
+Résultat du batch test relancé : 10 leads ajoutés en lignes 18–27 du Sheet, 10/10 Qualité A, 0 mail générique, import Data OS = non. Limite détectée : concentration trop forte par entreprise (5 Naef, 2 Rhône Avocats, 3 TECHFIRM). Nouvelle règle de scale : maximum 1 à 2 dirigeants par entreprise pour éviter de gonfler artificiellement la qualité.
+
+## Scale ICP — 1 dirigeant par PME, niches pivotables — 2026-06-16
+Sources : `raw/messages/20260616-123718_telegram-session_c6799216.md`, `raw/messages/20260616-123718_telegram-session_40eaf164.md`.
+
+Correction durable après batch test : le batch `10/10 Qualité A` n’est qu’un test technique, pas un batch commercial validé, car il était trop concentré sur de grosses structures.
+
+Règles de scale :
+- 1 seul contact par entreprise.
+- Contact cible = dirigeant principal / fondateur / gérant, pas manager secondaire.
+- Taille cible = petites structures premium de 5 à 20 salariés.
+- Exclure les grosses entreprises type Naef / TECHFIRM pour ce mouvement outbound.
+- Aucun doublon entreprise.
+- Si la taille ou l’identité dirigeante n’est pas vérifiable : `à enrichir`, pas importable.
+
+Règle de pivot niche : l’agent ne doit pas rester prisonnier d’une niche demandée si le terrain est mauvais. Il teste la niche, mesure le taux réel A/B, puis propose 2–3 niches alternatives si les signaux sont faibles : dirigeants difficiles à identifier, trop de mails génériques, entreprises trop grosses, sources publiques pauvres, douleur opérationnelle peu visible ou faible potentiel VividFlow.
+
+
+## Sheet outbound — deck links et validation visuelle — 2026-06-16
+
+Sources : `raw/messages/20260616-153820_telegram-session_6cdeb4fb.md`, `raw/messages/20260616-153820_telegram-session_e80ac595.md`, `raw/messages/20260616-160905_telegram-session_fdad939c.md`, `raw/messages/20260616-160905_telegram-session_f276d260.md`, `raw/messages/20260616-160905_telegram-session_cc25a6d4.md`.
+
+Règle Sheet : ajouter/surveiller une colonne `Lien deck outbound` pour suivre les présentations outbound créées selon le SOP. Un deck n’est créé que pour un lead A/B validé, complet, non doublon, avec prénom, nom, email professionnel sourcé et données vérifiées.
+
+Validation visuelle : lors de la QA du Google Sheet, les lignes problématiques doivent être marquées en rouge; les leads OK avec lien deck valide doivent être marqués en vert. Les cas douteux restent rouges ou à enrichir, jamais importés/envoyés.
+
+Cible de scraping corrigée : PME Suisse romande de 5 à 25 salariés, signal sérieux de CA supérieur à 10’000 CHF/mois. Exclure grosses SA/groupes/holdings, contacts non dirigeants, emails génériques et doublons. Pour une campagne de 50 leads, Data Analyst exécute le scraping, Coordinateur QA, puis seulement les leads validés avancent vers deck/import/outreach.
+

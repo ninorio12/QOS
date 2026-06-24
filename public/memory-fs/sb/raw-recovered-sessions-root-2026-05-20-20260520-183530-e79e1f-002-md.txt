@@ -1,0 +1,1009 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260520_183530_e79e1f
+source_file: /home/hermes/.hermes/sessions/20260520_183530_e79e1f.jsonl
+source_sha256_16: 368d31b06a392304
+date: 2026-05-20
+---
+
+# Recovered session root/20260520_183530_e79e1f
+
+
+## assistant — 2026-05-20T18:36:52.488921
+
+Oui, problème classique : **les bots sont ajoutés, mais pas encore “routés”**.
+
+J’ai checké les logs : le groupe **VividFlow** est :
+
+```txt
+chat_id = -1003845223802
+Général = thread_id 1
+```
+
+Et là, le bot principal a répondu même quand Jo a mentionné :
+
+```txt
+@Vision_architekt_bot salut
+```
+
+Donc le souci est clair :
+
+- les bots voient trop de messages
+- `require_mention` n’est pas activé
+- pas de whitelist stricte par groupe/topic
+- probablement BotFather privacy désactivée sur tous les bots
+
+## Solution rapide
+
+Donne ça à Claude Code / Jo :
+
+```txt
+Les bots répondent tous parce qu’ils ne sont pas encore filtrés.
+
+Il faut configurer chaque bot/profil pour :
+1. répondre seulement quand il est mentionné
+2. être autorisé uniquement dans le groupe VividFlow
+3. idéalement uniquement dans le topic Général si possible
+4. ne pas répondre aux mentions des autres bots
+```
+
+## Config à mettre côté Hermes
+
+Pour chaque profil/bot VividFlow, ajouter dans son `config.yaml` :
+
+```yaml
+telegram:
+ require_mention: true
+ group_allowed_chats:
+ - "-1003845223802"
+```
+
+Minimum vital :
+
+```yaml
+telegram:
+ require_mention: true
+```
+
+Ça évite qu’ils répondent à tous les messages normaux du groupe.
+
+## Mapping recommandé
+
+```txt
+COO / Hermes → VividFlow Général uniquement
+KB / Mia → VividFlow Général uniquement, répond si @KB
+Vision / Soren → VividFlow Général uniquement, répond si @Vision
+Dev / Atlas → VividFlow Général uniquement, répond si @Atlas
+```
+
+## Commandes utiles
+
+Pour vérifier le groupe/topic depuis les logs :
+
+```bash
+grep "chat=-1003845223802" ~/.hermes/logs/gateway.log | tail -20
+```
+
+Pour redémarrer après config :
+
+```bash
+hermes gateway restart
+```
+
+Ou par profil si les bots ont chacun leur gateway :
+
+```bash
+hermes --profile kb_ops gateway restart
+hermes --profile vision_architekt gateway restart
+hermes --profile atlas_dev gateway restart
+hermes --profile coordinateur gateway restart
+```
+
+## Côté BotFather
+
+Pour l’instant, je ferais :
+
+```txt
+/setprivacy → Enable
+```
+
+sur chaque bot, le temps que le routing soit propre.
+
+Avec privacy **Enable**, un bot ne voit que :
+- ses mentions
+- ses commandes
+- les replies à lui
+
+Ça évite le chaos immédiat.
+
+Plus tard, si on veut qu’un bot lise tout le groupe pour faire de la mémoire/veille, on désactive privacy uniquement pour ce bot-là, avec un filtrage Hermes strict.
+
+## Message exact à envoyer à Claude Code
+
+```txt
+Les bots répondent tous car il manque le filtrage Telegram.
+
+Groupe VividFlow :
+chat_id = -1003845223802
+Général = thread_id 1
+
+Configure chaque profil/bot avec :
+
+telegram:
+ require_mention: true
+ group_allowed_chats:
+ - "-1003845223802"
+
+Puis restart les gateways.
+
+Ne laisse pas les bots répondre librement dans tous les groupes.
+Chaque bot doit répondre seulement à sa propre mention.
+
+Si besoin immédiat côté Telegram :
+BotFather → /setprivacy → Enable pour chaque bot.
+```
+
+En clair : **ce n’est pas un problème de bots**, c’est un problème de routing/permissions. 
+On doit verrouiller : *un bot = un rôle = un groupe autorisé = réponse uniquement sur mention*.
+
+## user — 2026-05-20T18:36:52.488921
+
+ok regarde chaque topics et identifie qui doit répondre qui doit etre muet mais passif et qui doit etre absent
+
+## assistant — 2026-05-20T18:36:52.488921
+
+J’ai regardé les topics VividFlow visibles côté Hermes.
+
+Groupe VividFlow :
+
+```txt
+chat_id = -1003845223802
+```
+
+Topics détectés :
+
+```txt
+1, 5, 10, 13, 128, 153, 762, 769, 861, 943, 1021, 1786, 2024, 6261
+```
+
+⚠️ Je n’ai pas les noms Telegram exacts de tous les topics via l’API, seulement les IDs + l’historique/logs. Donc je te fais le routing basé sur ce qu’on voit.
+
+## Règle globale
+
+- **COO / Hermes** : répond uniquement dans Général + quand mentionné ailleurs.
+- **KB / Mia** : passif partout, répond uniquement si mentionné.
+- **Vision / Soren** : répond dans topics visuels/DA/contenu, sinon muet.
+- **Dev / Atlas** : répond dans topics dev/produit/Data OS, sinon muet.
+- **Chief of Staff** : absent de VividFlow.
+- **Brvndlab bots** : absents de VividFlow.
+
+## Routing recommandé par topic
+
+### Topic `1` — Général VividFlow
+
+Vu : test `@Vision_architekt_bot salut`.
+
+- **COO** : répond
+- **KB** : passif
+- **Vision** : répond seulement si mentionné
+- **Dev** : répond seulement si mentionné
+- **R&D** : muet sauf mention
+- **Chief of Staff** : absent
+
+Objectif : hub de coordination, pas exécution lourde.
+
+---
+
+### Topic `13` — Dev / exécution produit principale
+
+Vu : beaucoup de demandes UI, header, modules, feedback, CDC, modifications produit.
+
+- **Dev / Atlas** : répond
+- **COO** : passif, intervient si arbitrage/blocage
+- **KB** : passif, capture décisions/tâches
+- **Vision** : muet sauf demande design explicite
+- **R&D** : absent
+
+---
+
+### Topic `128` — CMO / DA Production
+
+Config existante dit : CMO / DA Production VividFlow.
+
+- **Vision / Soren** : répond
+- **COO** : passif
+- **KB** : passif
+- **Dev / Atlas** : muet sauf besoin technique
+- **R&D** : muet
+
+---
+
+### Topic `153` — R&D / concepts / architecture agents
+
+Vu : réflexions agents, Hermes Design, workflows, projets, architecture.
+
+- **R&D** : répond
+- **COO** : répond si arbitrage stratégique
+- **KB** : passif
+- **Dev** : passif ou répond si implémentation demandée
+- **Vision** : muet sauf visuel/deck
+
+---
+
+### Topic `769` — Data OS / module execution
+
+Vu : prod Vercel, Data OS, fiches clients, bibliothèque, rollback UI.
+
+- **Dev / Atlas** : répond
+- **COO** : passif
+- **KB** : passif
+- **Vision** : muet sauf UI/DA explicite
+- **R&D** : absent
+
+---
+
+### Topic `861` — Stratégie / Jonathan / vision business
+
+Vu : deck, copy, vocabulaire, messages stratégiques, parfois demandes perso perdues.
+
+- **COO** : répond
+- **KB** : passif
+- **Vision** : répond si deck/copy/DA
+- **Dev** : muet
+- **R&D** : passif si stratégie produit/IA
+- **Chief of Staff** : absent, même si Jonathan parle perso ici
+
+---
+
+### Topic `1021` — Data OS / agents simultanés / modules
+
+Vu : Data OS, fiches clients, kanban, filtres, Vercel.
+
+- **Dev / Atlas** : répond
+- **COO** : passif
+- **KB** : passif
+- **Vision** : muet sauf design
+- **R&D** : absent
+
+---
+
+### Topic `1786` — Pipeline client / intégrations / Vercel repos
+
+Vu : pipeline client, projets Vercel/GitHub, tl;dv, tokens, Data OS.
+
+- **Dev / Atlas** : répond
+- **KB** : passif
+- **COO** : passif, répond si décision/secret/access
+- **Vision** : absent
+- **R&D** : muet
+
+---
+
+### Topic `6261` — Dev Fast VividFlow
+
+Vu : profil “Dev Fast VividFlow”, OpenRouter.
+
+- **Dev / Atlas** : répond
+- **COO** : passif
+- **KB** : passif
+- **Vision** : absent
+- **R&D** : absent
+
+---
+
+### Topics `5`, `10`, `762`, `943`, `2024`
+
+Pas assez de logs exploitables pour identifier proprement.
+
+Par défaut je mettrais :
+
+- **COO** : muet sauf mention
+- **KB** : passif
+- **Vision** : muet sauf mention
+- **Dev** : muet sauf mention
+- **R&D** : muet sauf mention
+
+Il faut que tu m’envoies les noms Telegram de ces topics pour les mapper précisément.
+
+## Règle de config immédiate
+
+Chaque bot doit avoir :
+
+```yaml
+telegram:
+ require_mention: true
+ group_allowed_chats:
+ - "-1003845223802"
+```
+
+Et côté BotFather, temporairement :
+
+```txt
+/setprivacy → Enable
+```
+
+Sinon ils vont continuer à capter trop large.
+
+## Ma reco finale
+
+On met :
+
+- **COO** : actif seulement `1` + `861`, passif ailleurs
+- **Dev / Atlas** : actif `13`, `769`, `1021`, `1786`, `6261`
+- **Vision / Soren** : actif `128`, actif ponctuel `861`
+- **KB / Mia** : passif partout, répond seulement à `@KB`
+- **R&D** : actif `153`
+- **Chief of Staff** : absent de tout VividFlow
+
+C’est le mapping le plus propre pour éviter que tout le monde parle en même temps.
+
+## user — 2026-05-20T18:38:28.931588
+
+[{"type": "text", "text": "si ca peut aider voilà les topics\n\n[Image attached at: /home/hermes/.hermes/image_cache/img_b178036f7a06.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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
+
+## assistant — 2026-05-20T18:38:28.931588
+
+Oui, ça aide. Là on a les topics principaux visibles :
+
+1. 🧠 **COO / Orchestration**
+2. 🌐 **CSO / Vision Direction**
+3. 📈 **R&D**
+4. # **General**
+5. 🧮 **Dev 2**
+6. 🖥️ **Dev 1**
+7. 🏆 **CSM**
+8. 🎨 **CMO / Content**
+
+Je corrige le routing proprement :
+
+## Routing final recommandé
+
+### 🧠 COO / Orchestration
+
+- **COO / Hermes** : actif
+- **KB / Mia** : passif
+- **Vision / Soren** : muet sauf mention
+- **Dev / Atlas** : muet sauf mention
+- **R&D** : muet sauf mention
+
+Usage : décisions, priorités, dispatch, arbitrage, suivi global.
+
+---
+
+### 🌐 CSO / Vision Direction
+
+- **Vision / Soren** : actif
+- **COO / Hermes** : passif / challenge stratégique
+- **KB / Mia** : passif
+- **Dev / Atlas** : absent sauf mention
+- **R&D** : passif si vision produit/IA
+
+Usage : vision stratégique, direction produit, positionnement, DA globale.
+
+---
+
+### 📈 R&D
+
+- **R&D** : actif
+- **COO / Hermes** : passif
+- **KB / Mia** : passif
+- **Dev / Atlas** : passif si prototypage
+- **Vision / Soren** : muet sauf mention
+
+Usage : idées, recherches, architecture agentique, concepts, expérimentations.
+
+---
+
+### # General
+
+- **COO / Hermes** : actif léger
+- **KB / Mia** : passif
+- **Vision / Soren** : répond seulement si mentionné
+- **Dev / Atlas** : répond seulement si mentionné
+- **R&D** : répond seulement si mentionné
+
+Usage : annonces, coordination courte, ping, tests. 
+Pas d’exécution lourde ici.
+
+---
+
+### 🧮 Dev 2
+
+- **Dev / Atlas** : actif
+- **COO / Hermes** : passif
+- **KB / Mia** : passif
+- **Vision / Soren** : muet sauf design
+- **R&D** : absent
+
+Usage : deuxième flux dev, corrections parallèles, tâches isolées.
+
+---
+
+### 🖥️ Dev 1
+
+- **Dev / Atlas** : actif
+- **COO / Hermes** : passif
+- **KB / Mia** : passif
+- **Vision / Soren** : muet sauf design
+- **R&D** : absent
+
+Usage : flux dev principal, SaaS, Data OS, Vercel, Convex, GitHub, bugs.
+
+---
+
+### 🏆 CSM
+
+- **CSM** : actif
+- **COO / Hermes** : passif / escalation
+- **KB / Mia** : passif
+- **Vision / Soren** : absent
+- **Dev / Atlas** : muet sauf bug client
+- **R&D** : absent
+
+Usage : clients, onboarding, suivi, retours, livrables, relances.
+
+---
+
+### 🎨 CMO / Content
+
+- **Vision / Soren** : actif
+- **COO / Hermes** : passif
+- **KB / Mia** : passif
+- **Dev / Atlas** : absent sauf besoin web/landing
+- **R&D** : muet sauf angle stratégique
+
+Usage : contenu, carrousels, copy, LinkedIn, acquisition, assets, decks.
+
+## Matrice simple
+
+```txt
+COO / Orchestration → COO actif
+CSO / Vision → Vision actif + COO passif
+R&D → R&D actif
+General → COO actif léger, autres sur mention
+Dev 1 → Dev actif
+Dev 2 → Dev actif
+CSM → CSM actif
+CMO / Content → Vision/CMO actif
+```
+
+## Qui doit être passif partout
+
+**KB / Mia** doit être passif dans tous les topics.
+
+Son rôle :
+- lire/capter
+- mémoriser décisions
+- documenter
+- résumer si demandé
+
+Mais ne pas répondre spontanément sauf :
+
+```txt
+@Mia
+@KB
+résume
+documente
+note cette décision
+```
+
+## Qui doit être absent de VividFlow
+
+À exclure complètement du groupe VividFlow :
+
+- Chief of Staff
+- Brvndlab COO
+- Brvndlab Dev
+- Brvndlab Finance
+- Brvndlab Radar
+- tout bot perso Jonathan
+
+## Configuration pratique
+
+Pour éviter le chaos :
+
+1. Tous les bots :
+```yaml
+telegram:
+ require_mention: true
+ group_allowed_chats:
+ - "-1003845223802"
+```
+
+2. Ensuite, par bot, on donne des topics actifs.
+
+Le vrai comportement voulu :
+
+- Dans son topic principal → peut répondre.
+- Dans les autres topics → répond seulement si mentionné.
+- KB → jamais spontané, sauf mention/commande de capture.
+- Bots hors VividFlow → absents.
+
+Là, on a enfin un routing clair.
+
+## user — 2026-05-20T18:40:50.569714
+
+ok explique moi la struture de la second brain le skill que je t'ai implémenter et son utilité
+
+## assistant — 2026-05-20T18:40:50.569714
+
+Oui. Le **Second Brain**, c’est la mémoire longue structurée de VividFlow. Pas juste “un dossier de notes”. C’est un système qui transforme les messages, calls, docs, transcriptions et décisions en **connaissance exploitable par les agents**.
+
+## Structure simple
+
+Le système est organisé comme ça :
+
+```txt
+/root/
+├── config/
+├── raw/
+├── wiki/
+├── ops/
+├── outputs/
+├── projects/
+└── archive/
+```
+
+## 1. `raw/` = les sources brutes
+
+C’est l’entrée du système.
+
+Tout ce qui arrive est gardé ici **sans être modifié** :
+
+```txt
+raw/
+├── transcriptions/
+├── meetings/
+├── conversations/
+├── discord/
+├── messages/
+├── docs/
+├── brainstorming/
+├── web/
+└── assets/
+```
+
+Exemples :
+
+- message Telegram important
+- vocal transcrit
+- call tl;dv
+- PDF envoyé
+- capture d’écran
+- brainstorming
+- conversation avec un client
+- décision donnée par Jonathan ou toi
+
+Règle : **raw est append-only**. 
+On ajoute, on ne modifie pas. C’est la preuve / source originale.
+
+## 2. `wiki/` = la connaissance propre
+
+C’est là que l’agent transforme le chaos en mémoire utilisable.
+
+```txt
+wiki/
+├── entities/
+├── concepts/
+├── comparisons/
+├── queries/
+├── index.md
+├── log.md
+└── SCHEMA.md
+```
+
+### `entities/`
+
+Les “objets” concrets :
+
+- personnes
+- clients
+- leads
+- entreprises
+- produits
+- agents
+- projets
+
+Exemples :
+
+```txt
+wiki/entities/jonathan.md
+wiki/entities/thomas.md
+wiki/entities/vividflow.md
+wiki/entities/client-x.md
+wiki/entities/data-os.md
+```
+
+### `concepts/`
+
+Les systèmes, méthodes, doctrines, frameworks.
+
+Exemples :
+
+```txt
+wiki/concepts/finance-os.md
+wiki/concepts/data-os.md
+wiki/concepts/service-execution-os.md
+wiki/concepts/agent-routing.md
+wiki/concepts/onboarding-client.md
+```
+
+### `comparisons/`
+
+Les analyses comparatives.
+
+Exemples :
+
+```txt
+Convex vs Supabase
+Vercel vs VPS
+Claude Code vs Codex
+```
+
+### `queries/`
+
+Les réponses importantes archivées.
+
+Exemple : si tu demandes :
+
+> “Qu’est-ce qu’on sait sur le Data OS ?”
+
+L’agent peut répondre, puis garder la synthèse dans :
+
+```txt
+wiki/queries/2026-05-20-data-os.md
+```
+
+### `index.md`
+
+C’est le catalogue principal.
+
+Il doit toujours dire :
+
+- quelles pages existent
+- à quoi elles servent
+- où trouver l’info
+
+C’est la carte du cerveau.
+
+### `log.md`
+
+Journal append-only.
+
+Chaque fois qu’un agent ingère une info importante, il note :
+
+```txt
+date
+source raw
+page wiki modifiée
+décision/action extraite
+```
+
+### `SCHEMA.md`
+
+Les règles de structure :
+
+- frontmatter obligatoire
+- statuts acceptés
+- tags autorisés
+- conventions de noms
+- champs clients/leads/projets
+
+## 3. `ops/` = pilotage opérationnel
+
+C’est pour les suivis actifs :
+
+- tâches
+- alertes
+- dashboards internes
+- health checks
+- fichiers de contrôle
+- états de crons
+
+Exemple :
+
+```txt
+ops/dream-2026-05-20.json
+ops/engagement-tracker.md
+ops/agent-health.md
+```
+
+## 4. `outputs/` = livrables générés
+
+Tout ce que l’agent produit pour être utilisé :
+
+- audits
+- docs clients
+- rapports
+- specs
+- cahiers des charges
+- decks
+- exports
+
+Exemples :
+
+```txt
+outputs/clients/schmid/audit.md
+outputs/vividflow/data-os-spec.md
+outputs/cdc/client-x.md
+```
+
+## 5. `projects/` = codebases
+
+Les projets code sont visibles mais plutôt **read-only** pour la mémoire.
+
+Exemples :
+
+```txt
+projects/vividflow-dataos
+projects/vividflow-agaas
+projects/client-x-dashboard
+```
+
+Le Second Brain peut les référencer, mais il ne doit pas les confondre avec la mémoire business.
+
+## 6. `archive/` = dormant
+
+Tout ce qui n’est plus actif :
+
+- anciens clients
+- anciennes idées
+- vieux projets
+- anciennes specs
+
+Pas supprimé, juste sorti du flux actif.
+
+---
+
+## Le pipeline automatique
+
+Le skill décrit 3 gros jobs.
+
+## A. Capture — toutes les 30 min
+
+Script :
+
+```txt
+sb-capture.py
+```
+
+Rôle :
+
+- récupère Telegram
+- récupère Discord
+- récupère tl;dv
+- capture les nouveaux messages/docs/calls
+- les range dans `raw/`
+
+But : ne rien perdre.
+
+## B. Ingest — toutes les 2h
+
+Script :
+
+```txt
+sb-context-scan.py
+```
+
+Rôle :
+
+- regarde les nouveaux fichiers dans `raw/`
+- extrait les infos utiles
+- met à jour le `wiki/`
+
+Il ne fait pas juste un résumé. Il extrait :
+
+- participants
+- décisions
+- actions
+- pain points
+- signaux business
+- statut client/projet
+- prochaines étapes
+- deal signal
+- responsable
+
+Exemple :
+
+Un message brut :
+
+```txt
+Jonathan : On doit faire que KB soit passif partout et Dev actif uniquement dans Dev 1/Dev 2.
+```
+
+Devient dans le wiki :
+
+```txt
+Concept : agent-routing-vividflow
+Décision : KB passif partout, Dev actif Dev 1/Dev 2.
+Source : raw/messages/...
+Action : mettre à jour config Telegram/Hermes.
+```
+
+## C. Lint — hebdo
+
+Script :
+
+```txt
+sb-lint.py
+```
+
+Rôle :
+
+- vérifie que le wiki reste propre
+- détecte les pages cassées
+- détecte les liens morts
+- détecte les vieux deals sans relance
+- détecte les clients/students fantômes
+- vérifie les champs obligatoires
+
+C’est le nettoyage qualité.
+
+---
+
+## Son utilité concrète pour VividFlow
+
+## 1. Éviter que tout reste dans Telegram
+
+Aujourd’hui, beaucoup de décisions sont perdues dans les topics.
+
+Le Second Brain fait :
+
+```txt
+Telegram chaos → raw source → wiki propre → agents alignés
+```
+
+## 2. Donner une mémoire commune aux agents
+
+Sans Second Brain :
+
+- COO ne sait pas ce que Dev a fait
+- KB oublie les décisions
+- Vision repart de zéro
+- Dev mélange les specs
+- Jonathan/Thomas doivent répéter
+
+Avec Second Brain :
+
+- chaque agent peut charger le wiki
+- les décisions sont centralisées
+- les rôles sont clairs
+- les anciennes specs sont retrouvables
+
+## 3. Transformer les discussions en système
+
+Exemple avec ce qu’on fait maintenant :
+
+Tu donnes les topics VividFlow.
+
+Le Second Brain devrait créer/mettre à jour :
+
+```txt
+wiki/concepts/vividflow-agent-routing.md
+```
+
+Avec :
+
+```txt
+COO / Orchestration → COO actif
+CSO / Vision → Vision actif
+R&D → R&D actif
+General → COO actif léger
+Dev 1 → Dev actif
+Dev 2 → Dev actif
+CSM → CSM actif
+CMO / Content → Vision actif
+KB → passif partout
+```
+
+Comme ça, ce n’est pas juste “dit dans Telegram”. C’est durable.
+
+## 4. Faire des réponses sourcées
+
+Quand tu demandes :
+
+> “C’est quoi la règle pour les bots VividFlow ?”
+
+L’agent ne répond pas au feeling. Il lit :
+
+```txt
+wiki/index.md
+wiki/concepts/vividflow-agent-routing.md
+wiki/log.md
+```
+
+Puis répond avec source.
+
+## 5. Aider le Data OS
+
+Le Data OS peut devenir l’interface visuelle du Second Brain.
+
+En gros :
+
+```txt
+Second Brain = backend mémoire
+Data OS = interface opérationnelle
+Agents = acteurs qui lisent/écrivent dedans
+```
+
+Le Data OS affiche :
+
+- décisions
+- tâches
+- clients
+- projets
+- agents
+- statuts
+- docs
+- dernières sources capturées
+
+Le Second Brain alimente tout ça.
+
+---
+
+## Différence entre mémoire Hermes et Second Brain
+
+## Mémoire Hermes
+
+Courte, compacte, injectée dans les conversations.
+
+Elle sert à garder :
+
+- préférences stables
+- règles générales
+- faits durables très courts
+
+Exemple :
+
+```txt
+Thomas préfère des réponses courtes et pragmatiques.
+```
+
+## Second Brain
+
+Long, structuré, sourcé.
+
+Il sert à garder :
+
+- docs
+- calls
+- décisions
+- clients
+- specs
+- workflows
+- historiques
+- outputs
+
+Exemple :
+
+```txt
+Toutes les décisions sur le routing des bots VividFlow avec sources Telegram.
+```
+
+Donc :
+
+```txt
+Mémoire Hermes = réflexes permanents
+Second Brain = base de connaissance complète
+```
+
+---
+
+## Résumé en une phrase
+
+Le Second Brain sert à transformer tout ce qui se passe dans Telegram, calls, docs et projets en **mémoire opérationnelle fiable**, que les agents peuvent consulter pour ne pas repartir de zéro et pour piloter VividFlow proprement.
+
+La bonne logique pour vous :
+
+```txt
+Telegram = conversation
+raw = preuve
+wiki = connaissance
+ops = pilotage
+outputs = livrables
+Data OS = interface
+agents = exécution
+```

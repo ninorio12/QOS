@@ -1,0 +1,501 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260513_141656_dd08de
+source_file: /home/hermes/.hermes/sessions/20260513_141656_dd08de.jsonl
+source_sha256_16: 071b011e75d1a918
+date: 2026-05-13
+---
+
+# Recovered session root/20260513_141656_dd08de
+
+
+## user — 2026-05-13T14:17:47.590623
+
+[Jonathan] done !
+
+## assistant — 2026-05-13T14:17:47.590623
+
+Parfait. C’est noté.
+
+## user — 2026-05-13T14:17:47.590623
+
+[Jonathan] Bloque-moi un créneau pour 10h30 avec Thomas, de 10h30 à 11h30
+
+## assistant — 2026-05-13T14:17:47.590623
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: "[Thomas] la commande /goal tu connais ?"
+
+## Goal
+Connecter Hermes/Cockpit aux outils Google, Telegram et WhatsApp de Jonathan/Thomas afin de pouvoir :
+- gérer Google Calendar ;
+- accéder à Gmail ;
+- envoyer des mails/messages après demande ou validation explicite ;
+- interagir avec Telegram en privé quand possible ;
+- interagir avec WhatsApp via Hermes / Meta WhatsApp Business Cloud API ;
+- permettre à Thomas d’échanger avec Hermes/Cockpit, notamment via VividFlow/Telegram/WhatsApp.
+
+Objectifs Google déjà réalisés :
+- Google Calendar connecté ;
+- événement créé, modifié, déplacé, lien Google Meet ajouté ;
+- Gmail connecté ;
+- mails envoyés à Thomas.
+
+Objectif Telegram actuel :
+- utiliser Telegram pour rappels/messages rapides à Thomas si possible ;
+- **règle importante** : les rappels/messages destinés à Thomas doivent être envoyés en privé, pas en groupe/topic, sauf demande explicite ;
+- Thomas n’est pas encore disponible comme cible DM Telegram privée dans `send_message`; seules cibles visibles : DM Jonathan et groupes/topics Brvndlab/Vividflow.
+
+Objectif WhatsApp initial via WhatsApp Web/Baileys :
+- tenté via QR puis pairing par numéro ;
+- bloqué/refusé côté WhatsApp ;
+- connecteur WhatsApp Web/Baileys désactivé pour éviter les reconnexions en boucle.
+
+Objectif WhatsApp actuel :
+- passer par **Meta WhatsApp Business Cloud API** ;
+- créer/configurer une app Meta désormais nommée **Jonathan Cockpit** plutôt que VividFlow Cockpit, car Jonathan veut un usage WhatsApp large : perso, Brvndlab, VividFlow ;
+- récupérer/configurer `Phone Number ID`, `WhatsApp Business Account ID`, token Meta, destinataire test ;
+- préparer ensuite envoi de messages, webhook entrant, connexion Hermes/Cockpit et règles de sécurité.
+
+## Constraints & Preferences
+- L’utilisateur principal est francophone ; répondre en français.
+- Jonathan est impatient et veut que l’assistant fasse le maximum seul, avec peu d’allers-retours.
+- Jonathan préfère liens directs vérifiés + instructions ultra-courtes, exactes bouton-par-bouton pour accès techniques.
+- Ne jamais exposer ni répéter les secrets OAuth/API keys/tokens/codes/URLs d’autorisation complètes. Remplacer par `[REDACTED]`.
+- Des identifiants OAuth/API ont déjà été affichés/collés : client secret OAuth, client ID OAuth, codes OAuth, URLs de redirection. Ne pas conserver les valeurs exactes.
+- Le numéro WhatsApp personnel fourni doit rester `[REDACTED_PHONE]`.
+- Les QR codes WhatsApp et codes de pairing doivent rester `[REDACTED]`.
+- Google Calendar et Gmail sont authentifiés via la skill `google-workspace`.
+- Gmail : l’assistant peut lire/rechercher/préparer/envoyer des mails. Préférence générale : envoyer seulement après validation explicite ou demande claire d’envoi.
+- WhatsApp perso via WhatsApp Web/Baileys est non officiel et bloqué pour ce compte.
+- Pour usage pro/client/perso via WhatsApp, voie choisie : **Meta WhatsApp Business Cloud API**.
+- WhatsApp Business Cloud API ne pilote pas le WhatsApp personnel comme WhatsApp Web ; il faut utiliser le numéro test Meta ou connecter un numéro WhatsApp Business dédié.
+- Compte Google connecté : `jonathanzekhe@gmail.com`.
+- Adresse Thomas utilisée : `thomas@qorpoia.com`.
+- Nom d’app Meta initialement recommandé : **VividFlow Cockpit**.
+- Nom d’app Meta ensuite corrigé/recommandé après précision de Jonathan : **Jonathan Cockpit**.
+- Raison du changement : Jonathan veut utiliser WhatsApp pour lui-même, Brvndlab, VividFlow et sa vie perso ; ne pas limiter à VividFlow.
+- Description Meta initialement recommandée pour VividFlow : **Assistant opérationnel VividFlow pour gérer les communications et automatisations WhatsApp Business.**
+- Pour Meta/WhatsApp, consigne donnée : ne pas coller le token Meta en clair dans le chat ; copier le token puis dire `token copié` si récupération locale possible.
+- Thomas est autorisé VividFlow/Telegram comme Jonathan.
+- Thomas a autorité complète sur VividFlow : peut demander solutions/actions/sous-agents/sujets.
+- Limite actuelle de Thomas : pas Brvndlab sauf instruction explicite de Jonathan.
+- Objectif UX : Thomas doit pouvoir échanger avec Hermes/Cockpit et agents via le SaaS VividFlow, pas seulement Telegram.
+- Thomas utilise l’email `thomas@qorpoia.com` pour accès VividFlow/Soren ; ne pas stocker ni répéter ses mots de passe en clair.
+- Thomas préfère une communication transparente et des rapports de veille clairs, concis, très lisibles ; PDF accepté si rapport trop dense, mais pas d’installation/action technique sans accord.
+- Nouvelle préférence enregistrée : rappels/messages rapides à Thomas en privé via Telegram/WhatsApp plutôt qu’email quand disponible, jamais en groupe sauf demande explicite.
+- Jonathan ne veut pas de heartbeats Telegram visibles/spam récurrents dans les topics agents ; automatisations inter-agents silencieuses par défaut ou déclenchées à la demande.
+- Pour Brvndlab, Jonathan veut que l’assistant soit le COO / cockpit principal, pas CEO. Ne pas appeler ce rôle CEO.
+- Jonathan a basculé le travail de développement Brvndlab vers Codex avec GPT-5.5 et ne veut plus utiliser GLM pour le dev.
+
+## Completed Actions
+1. CONSULTÉ `google-workspace` — identifié besoin OAuth Google et fichiers manquants `google_token.json` / `google_client_secret.json` [tool: skill_view]
+2. EXÉCUTÉ `date '+%Y-%m-%d %H:%M:%S %Z %z'` — résultat `2026-05-13 09:24:56 CEST +0200` [tool: terminal]
+3. TESTÉ Google setup avec `setup.py --check` — `NOT_AUTHENTICATED: No token at /Users/businessmanagement/.hermes/google_token.json` [tool: terminal]
+4. GUIDÉ l’utilisateur pour créer un client OAuth Google Cloud Desktop, activer Calendar API, configurer consent screen/test users [assistant]
+5. CRÉÉ `/Users/businessmanagement/.hermes/google_client_secret.json` avec client OAuth Desktop ; valeurs sensibles `[REDACTED]` [tool: write_file]
+6. GÉNÉRÉ URL OAuth Google avec `setup.py --auth-url` — URL sensible non conservée [tool: terminal]
+7. TENTÉ un échange de code OAuth depuis capture — échec `invalid_client`, secret client invalide [tool: terminal]
+8. DEMANDÉ le JSON exact ou nouveau secret OAuth ; expliqué que Google ne permettait plus de télécharger/voir les anciens secrets, solution `+ Add secret` [assistant]
+9. REÇU nouveau client secret et client ID OAuth — valeurs traitées comme `[REDACTED]` [user]
+10. MIS À JOUR `/Users/businessmanagement/.hermes/google_client_secret.json` av
+
+...[TRONQUÉ 36608 chars sha256:11219057a50961a4]...
+
+endar final :
+ - `Cockpit VividFlow`.
+ - 13 mai 2026.
+ - 13h30–14h30.
+ - Europe/Zurich / CEST.
+ - invité `thomas@qorpoia.com`.
+ - couleur bleu (`colorId` `9`).
+ - Google Meet : `https://meet.google.com/exj-audx-jua`.
+- Mail initial envoyé à Thomas :
+ - À `thomas@qorpoia.com`.
+ - Objet `Résumé rapide de ce qu’on a fait hier`.
+ - Gmail id/threadId : `[REDACTED]`.
+- Mail de rappel envoyé à Thomas :
+ - À `thomas@qorpoia.com`.
+ - Objet `Appel maintenant`.
+ - Corps : rappel de l’appel maintenant + lien Meet.
+ - Gmail id/threadId : `[REDACTED]`.
+- Telegram :
+ - Test envoyé par erreur/contexte dans un topic Vividflow ; ne pas refaire pour rappels privés.
+ - Règle de Jonathan : messages/rappels à Thomas doivent être privés, pas publics/groupe/topic.
+ - Thomas n’apparaît pas encore dans les cibles DM Telegram.
+ - Dernier `send_message list` montrait DM Jonathan et topics Brvndlab/Vividflow uniquement.
+- WhatsApp Web/Baileys état final :
+ - désactivé dans config ;
+ - dernier health port 3000 non joignable ;
+ - session `registered False`, `me_present True` ;
+ - pairing refusé `CONNECTION_CLOSED=401`;
+ - QR refusé par WhatsApp avec message type `Can't link new devices right now`.
+- L’utilisateur a supprimé les anciens appareils WhatsApp, sans résoudre le problème.
+- Direction actuelle : **Meta WhatsApp Business Cloud API**.
+- Nom app Meta actuel : **Jonathan Cockpit**.
+- Ancien nom **VividFlow Cockpit** doit être considéré comme obsolète pour cette app globale WhatsApp, mais peut rester contexte historique.
+- Infos Meta à obtenir ensuite : `Phone Number ID`, `WhatsApp Business Account ID`, token `[REDACTED]`, numéro destinataire autorisé test.
+- Consigne déjà donnée : ne pas coller le token Meta en clair dans le chat ; copier le token puis répondre `token copié` si récupération locale possible.
+- Lien officiel Meta vérifié : `https://developers.facebook.com/apps`.
+- Doc officielle consultée : `https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started`.
+- Chemin Meta doc :
+ - créer app avec cas d’utilisation **Tisser des liens avec votre clientèle via WhatsApp** ;
+ - après création : **Personnaliser le cas d’utilisation > Connecter à WhatsApp > Démarrage rapide** ;
+ - cliquer **Commencer à utiliser l’API** ;
+ - arriver sur **Configuration de l’API**.
+- Thomas est maintenant l’interlocuteur dans le dernier message et demande : “la commande /goal tu connais ?”
+
+--- END OF CONTEXT SUMMARY — respond to the message below, not the summary above ---
+
+## assistant — 2026-05-13T14:17:47.590623
+
+Oui, mais pas dans Hermes standard à ma connaissance.
+
+Dans la liste des slash commands Hermes que j’ai, il y a par exemple :
+- `/new`
+- `/reset`
+- `/clear`
+- `/tools`
+- `/skills`
+- `/cron`
+- `/status`
+- `/commands`
+- `/help`
+
+Mais **`/goal` n’apparaît pas comme commande native Hermes**.
+
+Possible que ce soit :
+- une commande custom ajoutée dans votre environnement ;
+- une commande d’un autre agent/bot ;
+- une commande prévue pour définir un objectif/mission dans un système d’orchestration.
+
+Pour vérifier ici, tape plutôt :
+`/commands`
+
+Ça affichera la liste réelle des commandes disponibles dans ce chat.
+
+## user — 2026-05-13T14:17:47.590623
+
+[Thomas] lis ce doc : https://hermes-agent.nousresearch.com/docs/user-guide/features/goals
+
+## assistant — 2026-05-13T14:17:47.590623
+
+Oui — je viens de lire la doc, et correction : **`/goal` existe bien dans Hermes**.
+
+C’est une commande pour donner un **objectif persistant** à Hermes. L’agent continue tout seul après chaque tour jusqu’à ce que :
+- l’objectif soit atteint ;
+- tu fasses `/goal pause` ou `/goal clear` ;
+- la limite de tours soit atteinte.
+
+Commandes utiles :
+- `/goal <objectif>` → définit l’objectif et lance directement le travail
+- `/goal` ou `/goal status` → affiche l’objectif actif
+- `/goal pause` → met en pause
+- `/goal resume` → reprend
+- `/goal clear` → supprime l’objectif
+
+Exemple :
+`/goal Corrige tous les bugs de la feature WhatsApp, vérifie les tests, puis résume ce qui a changé`
+
+C’est utile quand tu veux éviter de dire “continue” toutes les 5 minutes. Hermes boucle automatiquement avec un “judge” qui vérifie si l’objectif est terminé.
+
+J’ai aussi corrigé ma doc interne Hermes : ma référence était à jour sur les anciennes slash commands, mais pas encore sur `/goal`.
+
+## user — 2026-05-13T14:24:26.041551
+
+[Thomas] ok maintenant tu garde en mémoire cette fonction elle va etre utile
+
+## assistant — 2026-05-13T14:24:26.041551
+
+C’est fait.
+
+Je l’ai gardée en mémoire + j’ai patché la skill Hermes interne pour ne plus rater `/goal`.
+
+À retenir pour nous :
+`/goal` = mode mission persistante. Parfait pour lancer des chantiers longs type :
+- “configure WhatsApp Cloud API de bout en bout”
+- “audite VividFlow et prépare le plan d’intégration agents”
+- “corrige tous les points bloquants puis vérifie”
+- “prépare une veille complète et livre un rapport final”
+
+Ça évite les relances “continue”.
+
+## user — 2026-05-13T14:34:56.850216
+
+[Jonathan] Bon continuons tout ce qui est par rapport à WhatsApp. Du coup j'étais à la page où c'était écrit "Configuration de l'API". Qu'est-ce que je dois faire maintenant?
+
+## assistant — 2026-05-13T14:34:56.850216
+
+Oui. Sur la page **Configuration de l’API**, fais ça dans cet ordre :
+
+1. **Repère ces 3 blocs :**
+ - **Token d’accès temporaire**
+ - **ID du numéro de téléphone**
+ - **ID du compte WhatsApp Business**
+
+2. **Ne colle pas le token ici.**
+ - Clique juste sur **Copier** à côté du **token d’accès temporaire**
+ - Puis réponds-moi : `token copié`
+ - Je le récupère localement depuis le presse-papiers et je le mets dans Hermes sans l’afficher.
+
+3. **Copie-colle ici seulement ces 2 IDs non secrets :**
+ - `Phone Number ID / ID du numéro de téléphone`
+ - `WhatsApp Business Account ID / ID du compte WhatsApp Business`
+
+4. Ensuite, dans la section **À / To**, Meta va te demander un numéro destinataire test.
+ - Mets ton numéro WhatsApp perso si proposé.
+ - S’il demande de l’ajouter comme destinataire test : clique **Ajouter un destinataire** / **Add recipient**.
+ - Tu recevras probablement un code WhatsApp à valider.
+
+5. Quand le destinataire est validé, clique **Envoyer le message** / **Send message** pour tester le template `hello_world`.
+
+Donc maintenant : **copie le token avec le bouton Copier**, réponds `token copié`, puis envoie-moi les deux IDs visibles.
+
+## user — 2026-05-13T14:42:41.556705
+
+[Thomas] https://hermes-agent.nousresearch.com/docs/user-guide/features/web-dashboard lance le hermes dashboard en lisant ce doc
+
+## assistant — 2026-05-13T14:42:41.556705
+
+C’est lancé et vérifié.
+
+Lien local :
+http://127.0.0.1:9119
+
+État :
+- Dashboard Hermes : **running**
+- Port : **9119**
+- Host : **127.0.0.1**
+- Gateway : **running**
+- Telegram : **connected**
+- Version : **0.12.0**
+- Chat TUI activé avec `--tui`
+
+Important : c’est accessible uniquement depuis la machine qui fait tourner Hermes. Donc si tu ou Jonathan êtes sur un autre appareil, il faudra soit :
+- ouvrir ce lien sur le Mac/serveur Hermes ;
+- soit mettre en place un accès distant sécurisé plus tard.
+
+## user — 2026-05-13T15:25:07.008430
+
+[Jonathan] token copié
+
+## assistant — 2026-05-13T15:25:07.008430
+
+Token Meta récupéré et sauvegardé localement dans Hermes. Je ne l’ai pas affiché.
+
+Maintenant il me faut les 2 IDs visibles sur la page **Configuration de l’API** :
+
+- `ID du numéro de téléphone` / `Phone Number ID`
+- `ID du compte WhatsApp Business` / `WhatsApp Business Account ID`
+
+Tu peux les coller ici, ce ne sont pas des secrets comme le token. Ensuite je fais le test API.
+
+## user — 2026-05-13T15:27:53.874854
+
+[Jonathan] id de numéro de téléphone copié
+
+## assistant — 2026-05-13T15:27:53.874854
+
+ID du numéro de téléphone sauvegardé localement.
+
+Il me manque maintenant :
+
+**ID du compte WhatsApp Business** 
+Sur la même page, copie la valeur `WhatsApp Business Account ID`, puis réponds :
+
+`WABA ID copié`
+
+## user — 2026-05-13T15:38:39.877422
+
+[Jonathan] waba id copié
+
+## assistant — 2026-05-13T15:38:39.877422
+
+WABA ID sauvegardé. J’ai vérifié l’API Meta : connexion OK.
+
+État actuel :
+- Token Meta : OK
+- Phone Number ID : OK
+- WABA ID : OK
+- Numéro Meta : **Test Number**
+- WABA : **Test WhatsApp Business Account**
+- API Graph Meta : répond correctement
+
+Prochaine étape : test d’envoi WhatsApp.
+
+Sur la page **Configuration de l’API**, dans la section **À / To** :
+1. Ajoute ton numéro perso comme destinataire test si ce n’est pas déjà fait.
+2. Valide le code reçu sur WhatsApp.
+3. Copie le numéro destinataire au format international visible/utilisé par Meta.
+4. Réponds-moi : `numéro destinataire copié`
+
+Ne le colle pas ici si tu préfères éviter d’exposer le numéro ; je peux le récupérer depuis le presse-papiers comme les IDs.
+
+## user — 2026-05-13T15:41:38.283377
+
+[Jonathan] J'ai rien compris. Fais-le toi-même
+
+## assistant — 2026-05-13T15:41:38.283377
+
+J’ai essayé de le faire moi-même côté API.
+
+Résultat Meta :
+**bloqué parce qu’aucun numéro destinataire n’est encore autorisé.**
+
+Erreur officielle :
+`Recipient phone number not in allowed list`
+
+Donc il reste **une seule étape que je ne peux pas faire sans ton téléphone**, parce que Meta envoie un code WhatsApp sur ton numéro.
+
+Fais exactement ça sur la page **Configuration de l’API** :
+
+1. Va dans la section **À / To**
+2. Clique **Gérer la liste des numéros de téléphone** ou **Ajouter un destinataire**
+3. Entre ton numéro WhatsApp perso
+4. Clique **Suivant / Next**
+5. Tu reçois un code sur WhatsApp
+6. Entre le code dans Meta
+7. Quand c’est validé, dis-moi juste : **destinataire validé**
+
+Après ça, je lance l’envoi test moi-même depuis l’API.
+
+## user — 2026-05-13T15:44:46.805866
+
+[Jonathan] destinataire validé
+
+## assistant — 2026-05-13T15:44:46.805866
+
+Parfait. Il me manque juste la valeur **À / To** que Meta utilise pour envoyer le test.
+
+Je ne peux pas la deviner depuis l’API : Meta confirme que le destinataire est autorisé, mais ne me donne pas son numéro.
+
+Fais juste ça :
+
+1. Sur **Configuration de l’API**
+2. Dans le champ **À / To**, sélectionne ton numéro validé
+3. Copie le numéro affiché
+4. Réponds : **numéro copié**
+
+Ne le colle pas ici. Je le récupère depuis le presse-papiers et je lance le test WhatsApp.
+
+## user — 2026-05-13T15:45:53.542722
+
+[Jonathan] J'ai pas de quoi te parler. Bref j'ai testé. J'ai appuyé sur le bouton "Onvoie un message" et j'ai reçu un message. C'est trop incroyable!
+
+## assistant — 2026-05-13T15:45:53.542722
+
+Excellent. Ça veut dire que la **Cloud API WhatsApp fonctionne**.
+
+État validé :
+- App Meta **Jonathan Cockpit** : OK
+- Token : OK
+- Phone Number ID : OK
+- WABA ID : OK
+- Destinataire test : validé
+- Envoi `hello_world` depuis Meta : reçu sur WhatsApp ✅
+
+Prochaine étape logique : connecter ça à Hermes/Cockpit, pour qu’on puisse envoyer des WhatsApp depuis ici sans passer par le bouton Meta.
+
+Il reste 3 blocs :
+1. **Envoi sortant** : créer une commande locale/API pour envoyer un WhatsApp via Meta.
+2. **Réception entrante** : créer un webhook pour recevoir les messages WhatsApp.
+3. **Sécurité** : autoriser seulement Jonathan/Thomas, éviter que n’importe qui parle au Cockpit.
+
+Pour avancer vite, prochaine action : je crée le script local `send_whatsapp.py` qui utilise le token + Phone Number ID déjà sauvegardés. Ensuite on testera avec ton numéro.
+
+## user — 2026-05-13T15:53:27.045801
+
+[Jonathan] Go, je te laisse faire ça. Je te laisse finir
+
+## assistant — 2026-05-13T15:53:27.045801
+
+C’est fait.
+
+J’ai terminé la base WhatsApp Cloud API côté Hermes/Cockpit :
+
+- Token Meta sauvegardé localement
+- Phone Number ID sauvegardé
+- WABA ID sauvegardé
+- API Meta vérifiée : OK
+- Script d’envoi créé :
+ - `~/.hermes/scripts/send_whatsapp.py`
+- Webhook local créé :
+ - `~/.hermes/scripts/whatsapp_cloud_webhook.py`
+- Webhook lancé en local :
+ - `http://127.0.0.1:9120/webhook`
+- Inbox entrante prête :
+ - `~/.hermes/whatsapp-cloud/inbox.jsonl`
+- Doc interne créée :
+ - `~/.hermes/WHATSAPP-CLOUD-SETUP.md`
+
+Ce qui marche maintenant :
+```bash
+~/.hermes/scripts/send_whatsapp.py --to +41790000000 --text "Message"
+```
+
+Ce qu’il reste pour que je puisse envoyer sans te redemander le numéro :
+- enregistrer ton numéro comme `META_WHATSAPP_DEFAULT_TO`
+
+Je ne l’ai pas encore parce que Meta ne me donne pas le numéro autorisé via l’API, et ton presse-papiers ne contenait pas le numéro.
+
+Donc prochaine mini-action, quand tu veux :
+1. Copie ton numéro WhatsApp au format international.
+2. Dis-moi : `numéro copié`.
+
+Je le sauvegarde localement sans l’afficher, puis après ça je pourrai envoyer :
+```bash
+~/.hermes/scripts/send_whatsapp.py --text "Message"
+```
+
+Pour les messages entrants : la base est prête, mais Meta exige une URL HTTPS publique. Il faudra exposer le webhook local avec un domaine/tunnel sécurisé avant que WhatsApp puisse parler directement à Hermes.
+
+## user — 2026-05-13T15:58:12.675618
+
+[Jonathan] numéro copié
+
+## assistant — 2026-05-13T15:58:12.675618
+
+C’est fait.
+
+- Numéro par défaut sauvegardé localement sans l’afficher.
+- Test envoyé depuis Hermes → WhatsApp Cloud API.
+- Statut : **sent** ✅
+
+Tu devrais avoir reçu :
+“Test Cockpit WhatsApp ✅ Connexion Hermes → WhatsApp Cloud API opérationnelle.”
+
+Maintenant l’envoi sortant WhatsApp est opérationnel depuis le Cockpit.
+
+## user — 2026-05-13T16:00:25.465665
+
+[Jonathan] Il y a une seule règle : c'est que tous les messages qui vont depuis ce WhatsApp, il y a que moi qui ai la capacité de pouvoir les envoyer. Thomas n'a pas la possibilité d'envoyer des messages depuis mon WhatsApp et ça, c'est strict. Il ne peut pas aussi révoquer cette action. C'est que moi qui peut la révoquer.
+
+## assistant — 2026-05-13T16:00:25.465665
+
+Reçu. Règle appliquée et verrouillée.
+
+J’ai fait 4 choses :
+
+- Mémoire mise à jour : **WhatsApp Jonathan = Jonathan seul peut envoyer/révoquer**
+- Script d’envoi modifié : il exige maintenant `--actor Jonathan`
+- Test de blocage fait :
+ - `--actor Thomas` → **FORBIDDEN**
+ - `--actor Jonathan` → **sent**
+- Doc interne mise à jour :
+ - `~/.hermes/WHATSAPP-CLOUD-SETUP.md`
+
+Commande autorisée :
+```bash
+~/.hermes/scripts/send_whatsapp.py --actor Jonathan --text "Message"
+```
+
+Commande bloquée :
+```bash
+~/.hermes/scripts/send_whatsapp.py --actor Thomas --text "Message"
+```
+
+C’est strict : Thomas ne peut ni envoyer depuis ton WhatsApp, ni révoquer cette règle.

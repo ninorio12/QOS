@@ -41,21 +41,50 @@ await fs.rm(OUT, { recursive: true, force: true })
 await fs.mkdir(path.join(OUT, 'sb'), { recursive: true })
 
 // ── Second Brain ──
+// Normalise une cible de lien pour résolution (lowercase, sans ext, sans ancre/alias, sans slash de tête).
+const normRef = (s) => s.replace(/\\/g, '/').replace(/^\.?\//, '').replace(/\.(md|txt)$/i, '').trim().toLowerCase()
+// Extrait les wikilinks [[cible|alias]] et [[cible#ancre]] d'un contenu.
+const extractWikilinks = (txt) => {
+  const out = []
+  for (const m of txt.matchAll(/\[\[([^\]]+)\]\]/g)) {
+    const target = m[1].split('|')[0].split('#')[0].trim()
+    if (target) out.push(target)
+  }
+  return out
+}
+
 let sbIndex = []
 try {
   const files = await walk(SB)
+  const refMap = new Map() // clé normalisée (rel sans ext + basename) → id
   for (const f of files) {
     const rel = path.relative(SB, f)
     const seg = rel.split(path.sep)[0]
     const st = await fs.stat(f)
     const id = slug(rel)
     const ext = path.extname(f).slice(1).toLowerCase()
-    // contenu bundlé pour .md/.txt (cap 200 Ko)
+    // contenu lu pour .md/.txt (cap 500 Ko) → extraction des liens ; bundle si < 200 Ko.
     let hasContent = false
-    if (/^(md|txt)$/.test(ext) && st.size < 200_000) {
-      await fs.writeFile(path.join(OUT, 'sb', id + '.txt'), await fs.readFile(f, 'utf8')); hasContent = true
+    let rawLinks = []
+    if (/^(md|txt)$/.test(ext) && st.size < 500_000) {
+      const content = await fs.readFile(f, 'utf8')
+      rawLinks = extractWikilinks(content)
+      if (st.size < 200_000) { await fs.writeFile(path.join(OUT, 'sb', id + '.txt'), content); hasContent = true }
     }
-    sbIndex.push({ id, name: path.basename(rel), family: SB_FAMILY(seg), path: 'vividflow-second-brain/' + rel.replace(/\\/g, '/'), ext, size: st.size, mtime: st.mtimeMs, hasContent })
+    const relNoExt = rel.replace(/\\/g, '/').replace(/\.(md|txt|json)$/i, '')
+    refMap.set(normRef(relNoExt), id)
+    if (!refMap.has(normRef(path.basename(relNoExt)))) refMap.set(normRef(path.basename(relNoExt)), id)
+    sbIndex.push({ id, name: path.basename(rel), family: SB_FAMILY(seg), path: 'vividflow-second-brain/' + rel.replace(/\\/g, '/'), ext, size: st.size, mtime: st.mtimeMs, hasContent, rawLinks })
+  }
+  // Résolution des liens → ids (ignore les cibles introuvables et les auto-liens).
+  for (const node of sbIndex) {
+    const links = []
+    for (const t of node.rawLinks) {
+      const tid = refMap.get(normRef(t)) ?? refMap.get(normRef(path.basename(t)))
+      if (tid && tid !== node.id && !links.includes(tid)) links.push(tid)
+    }
+    node.links = links
+    delete node.rawLinks
   }
   sbIndex.sort((a, b) => b.mtime - a.mtime)
 } catch { /* absent */ }

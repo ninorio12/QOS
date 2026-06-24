@@ -1,0 +1,22 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260611_134902_b0d784.jsonl
+captured_at: 2026-06-11T13:56:47.018610
+platform: telegram
+type: conversation_delta
+---
+
+## assistant — 2026-06-11T13:49:13.127711
+
+Je suis d’accord avec les retours. Ils confirment exactement la bonne lecture : **OpenWA / Baileys / Waha / Evolution API = très utiles pour POC, mais pas une fondation client long terme.** Ce que je retiens : - Le risque de ban est réel, même avec simulation humaine. - Le fait que le client écrive en premier réduit le risque, mais ne l’annule pas. - OpenWA est pratique, mais fragile : session, QR, WhatsApp Web, changements Meta. - Baileys est plus propre techniquement, mais reste non officiel. - Pour des clients VividFlow, promettre ça comme infrastructure stable serait risqué. - La sécurité serveur/webhooks est un vrai sujet : IP filtering, rate limit, reverse proxy, auth, logs, firewall. Donc ma position nette : **Baileys oui pour tester vite et apprendre. Cloud API oui pour vendre sérieusement. OpenWA non pour le long terme.** Pour VividFlow, je ferais ça : 1. **Baileys sandbox** - tester expérience agent ; - mesurer qualité/réactivité ; - valider UX WhatsApp ; - zéro promesse client. 2. **Cloud API production** - offres clients ; - numéro propre ; - consentement ; - templates ; - conformité ; - meilleure stabilité. 3. **Sécurité obligatoire** - webhook signé ; - rate limit ; - firewall/ipset ou équivalent ; - logs ; - kill-switch ; - opt-out ; - pas d’outbound sauvage. Le commentaire le plus juste est celui-là : **“POC ou transition avant API Business pour prod.”** Donc oui, ton intuition est bonne : testons Baileys, mais si on construit une vraie solution client, la cible doit être officielle.
+
+## user — 2026-06-11T13:49:13.127711
+
+[Your active task list was preserved across context compression] - [>] 1. Auditer config/profil Hermes actif et WhatsApp natif (in_progress) - [ ] 2. Configurer env + garde-fous WhatsApp VividFlow (pending) - [ ] 3. Pairer/relancer gateway et vérifier réception (pending)
+
+## user — 2026-06-11T13:49:13.127711
+
+You've reached the maximum number of tool-calling iterations allowed. Please provide a final response summarizing what you've found and accomplished so far, without calling any more tools.
+
+## assistant — 2026-06-11T13:49:13.127711
+
+Oui. Voilà l’état propre à ce stade. **Ce que j’ai vérifié :** - Le spike Baileys maison tourne encore : - process actif : `node bridge.mjs` - dossier : `/home/hermes/baileys-vividflow-spike` - port connu : `8891` - Les gateways Hermes principales tournent aussi : - `chief_of_staff` - `cmo_executor` - `csm_executor` - `operations_executor` - `rd_executor` - Le profil `vividflow_whatsapp_bot` existe bien. - Dans sa config, WhatsApp natif Hermes est actuellement désactivé : - `whatsapp.enabled: false` - raison inscrite : pairing Baileys bloqué / passage envisagé vers Cloud API. - Il y a déjà une section WhatsApp dans la config, donc on peut basculer proprement dessus au lieu de garder le bridge maison. **Point important :** Le risque principal maintenant, c’est d’avoir **deux systèmes WhatsApp actifs en parallèle** : - le spike Baileys maison ; - le WhatsApp natif Hermes. Ça peut créer des doubles réponses, des comportements instables, et augmenter le risque de restriction. Donc on ne doit pas activer le natif sans arrêter proprement le spike. **Ce qu’il faut faire ensuite, dans l’ordre :** 1. Stopper/neutraliser le bridge maison `node bridge.mjs`. 2. Activer WhatsApp dans le profil `vividflow_whatsapp_bot`. 3. Configurer les garde-fous : - numéro dédié VividFlow uniquement ; - utilisateurs autorisés / whitelist ; - groupes désactivés ; - pas de broadcast ; - pas d’outbound froid ; - ton externe sécurisé. 4. Pairer via `hermes whatsapp`. 5. Relancer la gateway du profil. 6. Tester avec 1 message entrant simple. 7. Vérifier qu’il répond une seule fois, proprement. **Ma recommandation nette :** On bascule vers le WhatsApp natif Hermes, mais seulement après avoir coupé le spike maison. C’est la seule façon propre.

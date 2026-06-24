@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import PipelineMobileTabs from '@/components/pipeline/PipelineMobileTabs'
+import { Modal } from '@/components/ui/Modal'
 const NewLeadWidget = dynamic(() => import('@/components/shared/NewLeadWidget'), { ssr: false })
 const NewContactModal = dynamic(() => import('@/components/contacts/NewContactModal'), { ssr: false })
 import { useKanbanSensors } from '@/hooks/useKanbanSensors'
@@ -12,6 +13,7 @@ import {
   DndContext,
   DragOverlay,
   closestCenter,
+  pointerWithin,
   defaultDropAnimationSideEffects,
   type DropAnimation,
   type DragStartEvent,
@@ -27,7 +29,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { getAvatarColor } from '@/components/contacts/types'
 import { useToast } from '@/hooks/useToast'
 import { Toaster } from '@/components/shared/Toaster'
@@ -86,7 +88,7 @@ function ClientCard({ client, isDragging = false }: { client: Client; isDragging
         <span className="text-[10px] text-soren-subtle shrink-0">{date}</span>
       </div>
       <div className="flex items-center justify-between gap-1">
-        <span className="text-[11px] font-bold text-soren-text truncate min-w-0">
+        <span className="text-[11px] font-bold text-soren-text whitespace-nowrap shrink-0 tabular-nums">
           {client.value > 0 ? `${client.value.toLocaleString('fr-FR')} CHF` : '—'}
         </span>
         <Avatar initials={client.initials} />
@@ -147,16 +149,16 @@ function ClientColumn({ stage, clients, isOver, wasDragged, onCardClick, mobileA
 
   return (
     <div className="flex flex-col w-[200px] md:w-48 flex-shrink-0 h-full">
-      <div className="flex items-center justify-between mb-2 px-0.5">
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between gap-1.5 mb-2 px-0.5">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
-          <span className="text-[11px] font-semibold text-[#374151] truncate max-w-[120px]">{stage.name}</span>
-          <span className="text-[9px] font-bold bg-soren-card border border-soren-border text-soren-muted px-1.5 py-0.5 rounded-full min-w-[16px] text-center shadow-sm">
+          <span className="text-[11px] font-semibold text-[#374151] truncate">{stage.name}</span>
+          <span className="text-[9px] font-bold bg-soren-card border border-soren-border text-soren-muted px-1.5 py-0.5 rounded-full min-w-[16px] text-center shadow-sm flex-shrink-0">
             {clients.length}
           </span>
         </div>
         {total > 0 && (
-          <span className="text-[9px] text-soren-subtle font-medium">{total.toLocaleString('fr-FR')} CHF</span>
+          <span className="text-[9px] text-soren-subtle font-medium whitespace-nowrap flex-shrink-0 tabular-nums">{total.toLocaleString('fr-FR')} CHF</span>
         )}
       </div>
 
@@ -186,11 +188,33 @@ function ClientColumn({ stage, clients, isOver, wasDragged, onCardClick, mobileA
 
 export default function ClientsBoard() {
   const [clients, setClients] = useState<Client[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const matchSearch = (c: Client) => { const q = searchQuery.trim().toLowerCase(); return !q || [c.name, c.company].some(f => f?.toLowerCase().includes(q)) }
   const [activeId, setActiveId] = useState<string | null>(null)
   const [overId,   setOverId]   = useState<string | null>(null)
   const [mobileStageId, setMobileStageId] = useState<string>(CLIENT_STAGES[0].id)
   const [scrolled, setScrolled] = useState(false)
   const [editContact, setEditContact] = useState<Record<string, unknown> | null>(null)
+  // Retour en arrière d'un client (régression d'étape onboarding) : autorisé mais avec confirmation (règle Thomas, comme le board Leads).
+  const [pendingBackMove, setPendingBackMove] = useState<{ client: Client; toStageId: string } | null>(null)
+  const isMoveAllowed = (fromStageId: string, toStageId: string) => {
+    const from = CLIENT_STAGES.findIndex(s => s.id === fromStageId)
+    const to   = CLIENT_STAGES.findIndex(s => s.id === toStageId)
+    if (from === -1 || to === -1) return true
+    return to >= from
+  }
+  const persistClientStage = (id: string, toStageId: string, fromStageId: string) => {
+    fetch(`/api/pipeline/clients/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stageId: toStageId }) })
+      .catch(() => setClients(prev => prev.map(c => c.id === id ? { ...c, stageId: fromStageId } : c)))
+  }
+  const confirmBackMove = () => {
+    if (!pendingBackMove) return
+    const { client, toStageId } = pendingBackMove
+    setClients(prev => prev.map(c => c.id === client.id ? { ...c, stageId: toStageId } : c))
+    persistClientStage(client.id, toStageId, client.stageId)
+    setMobileStageId(toStageId)
+    setPendingBackMove(null)
+  }
   const boardRef   = useRef<HTMLDivElement>(null)
   const wasDragged = useRef(false)
   const { toasts, toast, dismiss } = useToast()
@@ -280,6 +304,14 @@ export default function ClientsBoard() {
   const sensors = useKanbanSensors()
 
   const collisionDetection: CollisionDetection = useCallback((args) => {
+    // Précision : on suit le POINTEUR (colonne/carte réellement sous le curseur), pas le centre de la carte.
+    // On préfère une carte (insertion exacte) à la colonne si les deux sont sous le pointeur.
+    const within = pointerWithin(args)
+    if (within.length) {
+      const cards = within.filter(c => !CLIENT_STAGES.some(s => s.id === c.id))
+      return cards.length ? cards : within
+    }
+    // Repli (pointeur dans un vide) : colonne la plus proche.
     return closestCenter(args)
   }, [])
 
@@ -309,12 +341,9 @@ export default function ClientsBoard() {
     const targetStage = CLIENT_STAGES.find(s => s.id === overId)
     if (targetStage) {
       if (activeClient.stageId !== targetStage.id) {
+        if (!isMoveAllowed(activeClient.stageId, targetStage.id)) { setPendingBackMove({ client: activeClient, toStageId: targetStage.id }); return }
         setClients(prev => prev.map(c => c.id === activeId ? { ...c, stageId: targetStage.id } : c))
-        fetch(`/api/pipeline/clients/${activeId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ stageId: targetStage.id }),
-        }).catch(() => setClients(prev => prev.map(c => c.id === activeId ? { ...c, stageId: activeClient.stageId } : c)))
+        persistClientStage(activeId, targetStage.id, activeClient.stageId)
       }
       return
     }
@@ -331,6 +360,7 @@ export default function ClientsBoard() {
         return [...rest, ...arrayMove(col, from, to)]
       })
     } else {
+      if (!isMoveAllowed(activeClient.stageId, overClient.stageId)) { setPendingBackMove({ client: activeClient, toStageId: overClient.stageId }); return }
       setClients(prev => {
         const without = prev.filter(c => c.id !== activeId)
         const col     = without.filter(c => c.stageId === overClient.stageId)
@@ -340,11 +370,7 @@ export default function ClientsBoard() {
         col.splice(idx, 0, moved)
         return [...rest, ...col]
       })
-      fetch(`/api/pipeline/clients/${activeId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stageId: overClient.stageId }),
-      }).catch(() => setClients(prev => prev.map(c => c.id === activeId ? { ...c, stageId: activeClient.stageId } : c)))
+      persistClientStage(activeId, overClient.stageId, activeClient.stageId)
     }
   }
 
@@ -353,12 +379,11 @@ export default function ClientsBoard() {
     const idx = CLIENT_STAGES.findIndex(s => s.id === client.stageId)
     const target = CLIENT_STAGES[idx + dir]
     if (!target) return
+    if (!isMoveAllowed(client.stageId, target.id)) { setPendingBackMove({ client, toStageId: target.id }); return }
     setMobileStageId(target.id)
     setClients(prev => prev.map(c => c.id === client.id ? { ...c, stageId: target.id } : c))
-    fetch(`/api/pipeline/clients/${client.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stageId: target.id }),
-    }).catch(() => setClients(prev => prev.map(c => c.id === client.id ? { ...c, stageId: client.stageId } : c)))
+    persistClientStage(client.id, target.id, client.stageId)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const totalValue = clients.reduce((sum, c) => sum + c.value, 0)
@@ -377,8 +402,20 @@ export default function ClientsBoard() {
               {clients.length} clients · <span className="font-semibold text-soren-text">{totalValue.toLocaleString('fr-FR')} CHF</span>
             </p>
           </div>
-          {/* Modal creates contact + client server-side; reactive query shows it instantly */}
-          <NewLeadWidget mode="clients" />
+          <div className="flex items-center gap-2">
+            {/* Recherche soft, à gauche de « Nouveau client » */}
+            <div className="relative">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-soren-subtle pointer-events-none" />
+              <input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Rechercher…"
+                className="w-36 focus:w-52 bg-soren-card border border-soren-border rounded-full pl-8 pr-3 py-1.5 text-[11px] text-soren-text placeholder-soren-subtle outline-none focus:ring-2 focus:ring-[#FF4D00]/20 focus:border-[#FF4D00]/40 transition-all duration-300"
+              />
+            </div>
+            {/* Modal creates contact + client server-side; reactive query shows it instantly */}
+            <NewLeadWidget mode="clients" />
+          </div>
         </div>
 
         {/* Board */}
@@ -391,24 +428,12 @@ export default function ClientsBoard() {
             className="pointer-events-none absolute right-0 top-0 bottom-4 w-8 z-10"
             style={{ background: 'linear-gradient(to left, var(--bg-app) 40%, transparent)' }}
           />
-          <div className="hidden">
-            {CLIENT_STAGES.map(stage => {
-              const on = stage.id === mobileStageId
-              return (
-                <button key={stage.id} onClick={() => setMobileStageId(stage.id)}
-                  className={`flex-none flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border transition-colors ${on ? 'bg-[#FF4D00] border-[#FF4D00]' : 'bg-soren-card border-soren-border'}`}>
-                  <span className={`text-[11px] font-semibold whitespace-nowrap ${on ? 'text-white' : 'text-soren-muted'}`}>{stage.name}</span>
-                  <span className={`text-[10px] font-bold leading-none px-1.5 py-0.5 rounded-full ${on ? 'bg-white/25 text-white' : 'bg-soren-elevated text-soren-subtle'}`}>{clients.filter(c => c.stageId === stage.id).length}</span>
-                </button>
-              )
-            })}
-          </div>
           <div ref={boardRef} className="flex gap-3 overflow-x-auto px-3 md:px-6 pb-[max(1rem,env(safe-area-inset-bottom))] kanban-scroll kanban-board-row">
             {CLIENT_STAGES.map(stage => (
               <ClientColumn
                 key={stage.id}
                 stage={stage}
-                clients={clients.filter(c => c.stageId === stage.id)}
+                clients={clients.filter(c => c.stageId === stage.id && matchSearch(c))}
                 isOver={overId === stage.id}
                 wasDragged={wasDragged}
                 onCardClick={openClientEdit}
@@ -432,6 +457,23 @@ export default function ClientsBoard() {
           onClose={() => setEditContact(null)}
           onSave={() => setEditContact(null)}
         />
+      )}
+
+      {pendingBackMove && (
+        <Modal onClose={() => setPendingBackMove(null)}>
+          <div className="relative bg-soren-card rounded-2xl shadow-2xl w-full max-w-[400px] p-6">
+            <p className="text-[15px] font-bold text-soren-text mb-2">Revenir en arrière ?</p>
+            <p className="text-[12.5px] text-soren-muted leading-relaxed mb-5">
+              Tu déplaces <span className="font-semibold text-soren-text">{pendingBackMove.client.name}</span> de
+              {' '}« {CLIENT_STAGES.find(s => s.id === pendingBackMove.client.stageId)?.name ?? '?'} » vers
+              {' '}« {CLIENT_STAGES.find(s => s.id === pendingBackMove.toStageId)?.name ?? '?'} » : un retour en arrière dans l&apos;onboarding. Confirmer ?
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setPendingBackMove(null)} className="text-[13px] font-semibold text-soren-muted border border-soren-border rounded-xl px-4 py-2 hover:bg-soren-elevated">Annuler</button>
+              <button onClick={confirmBackMove} className="text-[13px] font-semibold text-white bg-[#FF4D00] rounded-xl px-4 py-2 shadow-sm hover:bg-[#e84400]">Confirmer le retour</button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   )

@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { fmtMoney } from '@/lib/money'
+import { ICLOSED_KICKOFF_BOOKING_URL } from '@/components/shared/IClosedBookingModal'
 
 const CONTRACT_CURRENCIES = ['CHF', 'EUR', 'USD', 'GBP']
 import {
@@ -206,15 +207,32 @@ function ClientOnboarding({ client, contactId, router }: { client: ClientLite; c
         form={doc?.form ?? {}}
         receivedAt={doc?.formReceivedAt}
         contractReady={!!doc?.signedContract?.fileName}
+        contactId={contactId}
+        onSent={() => setTask('formSent', true)}
       />
 
-      <StepCard icon={<CalendarPlus size={16} />} title="Kickoff call — planifier" done={!!tasks.kickoffPlanned} onToggle={v => setTask('kickoffPlanned', v)}>
-        <button
-          onClick={() => router.push(`/calendrier?new=1&contact=${contactId}&name=${encodeURIComponent(client.name)}`)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-soren-sidebar text-white text-[12px] font-semibold hover:bg-[#2a2a2a] transition-colors"
+      <StepCard icon={<CalendarPlus size={16} />} title="Kickoff call : planifier" done={!!tasks.kickoffPlanned} onToggle={v => setTask('kickoffPlanned', v)}>
+        {/* Ouvre la page iClosed du kickoff (hôte = Thomas), pré-remplie avec le client, et coche l'étape. */}
+        <a
+          href={`${ICLOSED_KICKOFF_BOOKING_URL}?name=${encodeURIComponent(client.name)}${full?.email ? `&email=${encodeURIComponent(full.email)}` : ''}`}
+          target="_blank" rel="noreferrer"
+          onClick={() => setTask('kickoffPlanned', true)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-soren-sidebar text-white text-[12px] font-semibold hover:bg-[#2a2a2a] transition-colors"
         >
-          <CalendarPlus size={14} /> Générer un rendez-vous
-        </button>
+          <CalendarPlus size={14} /> Planifier le kickoff sur iClosed
+        </a>
+        {/* Kickoff réservé par le client sur iClosed (webhook) → date/heure affichée. */}
+        {(() => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const k = (doc as any)?.kickoffAt as string | undefined
+          if (!k) return null
+          const d = new Date(k)
+          return (
+            <p className="mt-2.5 inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[#16A34A]">
+              <CalendarPlus size={13} /> Kickoff planifié le {d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} à {d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          )
+        })()}
       </StepCard>
 
       <PaymentPhase
@@ -578,14 +596,34 @@ function AccountBlock({ group, data }: { group: { title: string; fields: [string
 }
 
 // Miroir read-only EXHAUSTIF de la soumission publique : affiche tout ce qui est dans form (toute clé), codes masquables + copiables.
-function OnboardingForm({ done, onToggle, form, receivedAt, contractReady }: {
+function OnboardingForm({ done, onToggle, form, receivedAt, contractReady, contactId, onSent }: {
   done: boolean; onToggle: (v: boolean) => void
   form: Record<string, Record<string, unknown>>
   receivedAt?: string
   contractReady?: boolean
+  contactId?: string
+  onSent?: () => void
 }) {
   const [copied, setCopied] = useState(false)
   const copyLink = () => { navigator.clipboard?.writeText(ONBOARDING_FORM_URL).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800) }).catch(() => {}) }
+  // Envoi du formulaire par email (Resend) à l'adresse du contact.
+  const [sending, setSending] = useState(false)
+  const [sentMsg, setSentMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const sendForm = async () => {
+    if (sending || !contactId) return
+    setSending(true); setSentMsg(null)
+    try {
+      const res = await fetch('/api/onboarding/send-form', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contactId }) })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.ok) throw new Error(j.error || "Échec de l'envoi")
+      setSentMsg({ ok: true, text: `Formulaire envoyé à ${j.email}` })
+      onSent?.()
+    } catch (e) {
+      setSentMsg({ ok: false, text: (e as Error).message })
+    } finally {
+      setSending(false)
+    }
+  }
   const accData = (form.accounts ?? {}) as Record<string, unknown>
   const accExtraKeys = Object.keys(accData).filter(k => !ACCOUNT_GROUP_KEYS.includes(k) && hasValue(accData[k]))
   // Sections présentes dans la soumission mais hors schéma + comptes (anciennes versions, clés inconnues) → affichées aussi.
@@ -618,16 +656,17 @@ function OnboardingForm({ done, onToggle, form, receivedAt, contractReady }: {
           {contractReady ? (
             <div className="flex flex-col items-center gap-2">
               <div className="flex flex-wrap items-center justify-center gap-2">
-                <a href={ONBOARDING_FORM_URL} target="_blank" rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF4D00] text-white text-[12px] font-semibold hover:bg-[#E64500] transition-colors">
-                  <Send size={14} /> Envoyer le formulaire
-                </a>
+                <button onClick={sendForm} disabled={sending || !contactId}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF4D00] text-white text-[12px] font-semibold hover:bg-[#E64500] transition-colors disabled:opacity-60">
+                  <Send size={14} /> {sending ? 'Envoi…' : 'Envoyer le formulaire'}
+                </button>
                 <button onClick={copyLink}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-soren-card border border-soren-border text-soren-text text-[12px] font-semibold hover:border-[#C8CBD0] transition-colors">
                   {copied ? <Check size={14} className="text-[#16A34A]" /> : <Copy size={14} />} {copied ? 'Lien copié !' : 'Copier le lien'}
                 </button>
               </div>
               <p className="text-[10px] text-soren-subtle font-mono truncate max-w-full">{ONBOARDING_FORM_URL}</p>
+              {sentMsg && <p className={`text-[11px] font-semibold ${sentMsg.ok ? 'text-[#16A34A]' : 'text-[#DC2626]'}`}>{sentMsg.text}</p>}
             </div>
           ) : (
             <div className="flex items-center justify-center gap-2 text-[11px] font-semibold text-soren-subtle bg-soren-card/60 border border-dashed border-soren-border rounded-xl px-3 py-2.5">

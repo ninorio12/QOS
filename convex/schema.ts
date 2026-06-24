@@ -111,11 +111,17 @@ export default defineSchema({
     website:     v.optional(v.string()),
     source:      v.optional(v.string()),  // 'inbound' | 'outbound'
     statut:      v.optional(v.string()),  // 'lead' | 'client' | 'perdu'
-    lostReason:  v.optional(v.string()),  // raison de perte (faux_numero | pas_interesse | jamais_repondu | …)
+    lostStage:    v.optional(v.string()),  // où le lead a été perdu : 'prospection' | 'r1' | 'r2'
+    lostReason:   v.optional(v.string()),  // raison de perte — prospection (faux_numero…) ou non-vente R1/R2 (non_qualifie…)
+    lostObjection:v.optional(v.string()),  // objection non surmontée (uniquement si lostReason = non_qualifie en R1/R2)
+    wonObjection: v.optional(v.string()),  // objection surmontée à la conversion en client
+    dealDate:     v.optional(v.string()),  // date de la transaction (conversion en client)
     leadStatus:  v.optional(v.string()),  // active | handoff | non_qualifie | dormant
     linkedinUrl: v.optional(v.string()),
+    country:     v.optional(v.string()),  // pays (adresse) — Suisse/France/… pour le champ Canton/Région
     canton:      v.optional(v.string()),
-    metier:      v.optional(v.string()),  // profession / secteur
+    role:        v.optional(v.string()),  // rôle / poste de la personne (CEO, Directeur…)
+    metier:      v.optional(v.string()),  // métier / secteur d'activité de l'entreprise (distinct de la niche)
     niche:       v.optional(v.string()),  // niche business
     temperature: v.optional(v.string()),  // froid | tiede | chaud (lead temperature, synchro Prospection)
     tags:        v.array(v.string()),
@@ -200,6 +206,7 @@ export default defineSchema({
     })),
     paidStatus: v.optional(v.array(v.boolean())),  // parallèle à amounts: payé ou non
     paidDates:  v.optional(v.array(v.string())),   // date d'encaissement par échéance
+    dueDates:   v.optional(v.array(v.string())),   // date d'échéance prévue par versement (→ "En retard" si dépassée & non payée)
     refunds:    v.optional(v.array(v.object({ amount: v.number(), date: v.string(), note: v.optional(v.string()) }))),
     signedContract: v.optional(v.object({   // contrat signé uploadé (Convex File Storage)
       fileName:   v.string(),
@@ -211,6 +218,7 @@ export default defineSchema({
     formReceivedAt: v.optional(v.string()),  // date de soumission du formulaire public par le client
     contractGenerated: v.optional(v.boolean()), // contrat déjà généré au moins une fois
     kickoffEventId: v.optional(v.string()),
+    kickoffAt:  v.optional(v.string()),      // date/heure ISO du kickoff réservé sur iClosed (webhook)
     updatedAt:  v.string(),
   }).index("by_contact", ["contactId"]),
 
@@ -226,12 +234,31 @@ export default defineSchema({
 
   // Métadonnées libres par enregistrement tl;dv — synthèse, balises, nom personnalisé (éditable/persisté)
   record_notes: defineTable({
-    recordId:  v.string(),   // tl;dv meeting id
+    recordId:  v.string(),   // tl;dv / fathom meeting id
     synthesis: v.string(),
     tags:      v.optional(v.array(v.string())),   // r1 | r2 | interne | externe | consulting
-    name:      v.optional(v.string()),            // nom personnalisé (override du titre tl;dv)
+    name:      v.optional(v.string()),            // nom personnalisé (override du titre)
+    linkedContactId: v.optional(v.string()),      // crm_contacts id rattaché
+    linkedLeadId:    v.optional(v.string()),      // crm_leads id rattaché (opportunité)
+    synthesisBy: v.optional(v.string()),          // auteur de la synthèse (ex "agent:agent-kb") — preuve avatar
+    synthesisAt: v.optional(v.string()),          // ISO date d'écriture de la synthèse
     updatedAt: v.string(),
   }).index("by_record", ["recordId"]),
+
+  // Cerveau réel des agents — SOUL.md synchronisé depuis le runtime VPS (lecture seule, source de vérité vivante)
+  agent_brains: defineTable({
+    slug:       v.string(),                       // id agent côté UI (ex "agent-operations", "coo")
+    soul:       v.string(),                       // SOUL.md brut complet (fallback / debug)
+    name:       v.optional(v.string()),           // nom lisible (facultatif)
+    vpsProfile: v.optional(v.string()),           // dossier profil VPS source (ex "agent-operations-slack")
+    soulUpdatedAt: v.optional(v.string()),        // mtime du fichier SOUL.md côté VPS (ISO)
+    syncedAt:   v.string(),                        // ISO de la dernière synchro reçue
+    // Découpage prêt à afficher (4 onglets) — généré côté sync depuis SOUL.md + config.yaml
+    mdSoul:        v.optional(v.string()),         // Soul (doctrine, identité, mission, limites)
+    mdPersonnalite: v.optional(v.string()),       // Personnalité (style, ton, format)
+    mdRole:        v.optional(v.string()),         // Rôle & Responsabilité (protocole, registre, règles, responsabilités)
+    mdOutils:      v.optional(v.string()),         // Outils (MCP, toolsets, skills installés)
+  }).index("by_slug", ["slug"]),
 
   // Process — documents type Notion (titre, icône, lien Lucidchart + preview, blocs de contenu)
   processes: defineTable({
@@ -257,6 +284,75 @@ export default defineSchema({
     account:   v.optional(v.string()),   // libellé masqué/compte affichable
     updatedAt: v.string(),
   }).index("by_key", ["key"]),
+
+  // Stripe — paiements réels (charges/payment_intents) + remboursements, alimentés par
+  // le webhook /api/webhooks/stripe (temps réel) et le backfill /api/stripe/sync.
+  // Source de vérité de l'Encaissé/Remboursé ; l'« À collecter » se réconcilie avec
+  // le plan d'échéances onboarding (montant prévu − déjà encaissé Stripe).
+  stripe_payments: defineTable({
+    stripeId:        v.string(),             // ch_… / pi_… / re_… (unique, clé d'upsert)
+    type:            v.string(),             // 'payment' | 'refund' | 'dispute'
+    status:          v.string(),             // 'succeeded' | 'pending' | 'failed' | 'open' | 'won' | 'lost'
+    amount:          v.number(),             // unités majeures (CHF/EUR…), positif
+    currency:        v.string(),             // 'chf' | 'eur' | 'usd' (minuscule, depuis Stripe)
+    customerId:      v.optional(v.string()),
+    customerEmail:   v.optional(v.string()),
+    contactId:       v.optional(v.id("crm_contacts")),  // matché par email
+    description:     v.optional(v.string()),
+    created:         v.string(),             // ISO de l'objet Stripe
+    invoiceId:       v.optional(v.string()),
+    paymentIntentId: v.optional(v.string()),
+    livemode:        v.optional(v.boolean()),
+    source:          v.optional(v.string()), // 'webhook' | 'backfill'
+    createdAt:       v.string(),
+  })
+    .index("by_stripe_id", ["stripeId"])
+    .index("by_created",   ["created"])
+    .index("by_contact",   ["contactId"]),
+
+  // Stripe — connexion (clés stockées côté serveur, jamais renvoyées au client).
+  // Comme meta_connection : 1 ligne/workspace. Le sync (action "use node") et le
+  // webhook (httpAction) lisent ces clés via internalQuery — elles ne sortent pas de Convex.
+  stripe_connection: defineTable({
+    workspaceId:   v.string(),
+    secretKey:     v.string(),             // sk_live_… / sk_test_…
+    webhookSecret: v.optional(v.string()), // whsec_…
+    accountName:   v.optional(v.string()),
+    livemode:      v.optional(v.boolean()),
+    connectedAt:   v.string(),
+    lastSyncAt:    v.optional(v.string()),
+  })
+    .index("by_workspace", ["workspaceId"]),
+
+  // Paiements externes (hors Stripe) : virements Revolut Pro (webhook) + saisies manuelles.
+  external_payments: defineTable({
+    workspaceId:  v.string(),
+    method:       v.string(),              // 'revolut' | 'virement' | 'manual'
+    externalId:   v.optional(v.string()),  // id transaction Revolut (dédup du webhook)
+    amount:       v.number(),              // unités majeures, positif (reçu)
+    currency:     v.optional(v.string()),
+    counterparty: v.optional(v.string()),  // nom de l'émetteur (client)
+    reference:    v.optional(v.string()),  // référence/libellé du virement
+    contactId:    v.optional(v.id("crm_contacts")), // matché par nom/email
+    date:         v.string(),              // ISO de la transaction
+    state:        v.optional(v.string()),  // 'completed' | …
+    note:         v.optional(v.string()),
+    createdBy:    v.optional(v.string()),   // 'revolut-webhook' | 'manual'
+    createdAt:    v.string(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_external",  ["externalId"]),
+
+  // Revolut Business — connexion (token stocké côté serveur, jamais renvoyé au client).
+  revolut_connection: defineTable({
+    workspaceId:  v.string(),
+    accessToken:  v.optional(v.string()),  // token API Revolut (server-only)
+    refreshToken: v.optional(v.string()),
+    accountName:  v.optional(v.string()),
+    webhookId:    v.optional(v.string()),
+    connectedAt:  v.string(),
+  })
+    .index("by_workspace", ["workspaceId"]),
 
   // Groupes/catégories de process (persistés pour afficher des groupes même vides)
   process_categories: defineTable({
@@ -286,7 +382,24 @@ export default defineSchema({
     tags:        v.optional(v.array(v.string())),
     description: v.optional(v.string()),
     assignedTo:  v.optional(v.array(v.string())),
+    status:      v.optional(v.string()),   // projets Vercel : '' | todo | doing | done
   }).index("by_category", ["category"]),
+
+  // Dossiers de la bibliothèque Data — arborescence (path-based). Un dossier = un chemin
+  // unique ("Projets", "Projets/Client A"). parentPath = "" pour la racine.
+  library_folders: defineTable({
+    name:       v.string(),
+    path:       v.string(),   // chemin complet unique
+    parentPath: v.string(),   // "" = racine
+    createdAt:  v.string(),
+  }).index("by_parent", ["parentPath"]).index("by_path", ["path"]),
+
+  // Dossiers de BASE masqués. Les dossiers de base (Skills, …) sont définis côté UI et
+  // recréés à la racine à chaque rendu — pour permettre leur suppression, on mémorise ici
+  // le nom de ceux que l'utilisateur a supprimés (recréer un dossier du même nom le restaure).
+  library_hidden_base: defineTable({
+    name: v.string(),
+  }).index("by_name", ["name"]),
 
   // Métadonnées contacts — remplace localStorage vividflow_contact_source/canton/statut
   contact_meta: defineTable({
@@ -303,7 +416,7 @@ export default defineSchema({
     workspaceId:     v.string(),
     title:           v.string(),
     description:     v.optional(v.string()),
-    status:          v.string(),   // todo | in_progress | blocked | done | cancelled
+    status:          v.string(),   // todo | in_progress | urgent | done | (blocked|cancelled legacy)
     priority:        v.string(),   // low | normal | high | urgent
     assigneeType:    v.string(),   // human | agent
     assigneeId:      v.optional(v.string()),
@@ -313,6 +426,10 @@ export default defineSchema({
     linkedProjectId: v.optional(v.string()),
     linkedMissionId: v.optional(v.string()),
     blockerReason:   v.optional(v.string()),
+    objective:         v.optional(v.string()),    // objectif à atteindre (affiché au clic)
+    objectiveAchieved: v.optional(v.boolean()),   // réponse de la fiche de validation
+    completionNote:    v.optional(v.string()),    // description fournie à la validation
+    completedAt:       v.optional(v.string()),    // date de validation (→ Historique après 5 j)
     order:           v.optional(v.number()),   // tri manuel (drag & drop) — plus grand = plus haut
     comments:        v.optional(v.array(v.object({ authorType: v.string(), authorId: v.string(), authorName: v.optional(v.string()), authorAvatar: v.optional(v.string()), text: v.string(), at: v.string() }))),
     createdBy:       v.string(),
@@ -460,7 +577,7 @@ export default defineSchema({
     workspaceId:    v.string(),
     contactId:      v.string(),
     leadId:         v.optional(v.string()),   // crm_leads id (représentation Pipeline)
-    boardColumn:    v.optional(v.string()),   // colonne kanban : leads_a_traiter | nrp1..nrp4 | rdv_booke | perdu
+    boardColumn:    v.optional(v.string()),   // colonne kanban : leads_a_traiter | nrp1..nrp4 | rdv_booke | a_suivre | perdu
     phase:          v.string(),               // phase courante (legacy/compat) : phase1 | phase2 | phase3
     phaseStatus:    v.optional(v.string()),   // statut courant (legacy/compat)
     phase1Status:   v.optional(v.string()),   // cellule Phase 1 du tracker : appele|repondu|pas_repondu|message_laisse|a_rappeler|interesse
@@ -475,6 +592,9 @@ export default defineSchema({
     shortNote:      v.optional(v.string()),
     lostReason:     v.optional(v.string()),   // reponse_negative | pas_de_reponse_phase3 | mauvais_numero | non_qualifie | hors_cible | autre
     lostStage:      v.optional(v.string()),   // nouveau-lead | conversation (stade au moment de la perte)
+    followUpReason: v.optional(v.string()),   // texte libre — raison "À suivre" (devient un chip sur la carte)
+    followUpAt:     v.optional(v.string()),    // date d'entrée dans la colonne "À suivre" (ISO)
+    internalLead:   v.optional(v.boolean()),  // lead poussé depuis une fiche contact ("Leads interne") — card teal, interdite de retour en "Leads à traiter"
     status:         v.string(),               // active | handoff | lost
     isDemo:         v.optional(v.boolean()),
     createdAt:      v.string(),
@@ -490,7 +610,8 @@ export default defineSchema({
     notes:               v.optional(v.string()),
     createdBy:           v.string(),
     createdAt:           v.string(),
-  }).index("by_record", ["prospectionRecordId"]),
+  }).index("by_record", ["prospectionRecordId"])
+    .index("by_workspace_created", ["workspaceId", "createdAt"]),
 
   prospection_goals: defineTable({
     workspaceId:    v.string(),
@@ -504,6 +625,27 @@ export default defineSchema({
     createdAt:      v.string(),
     updatedAt:      v.string(),
   }).index("by_workspace", ["workspaceId"]),
+
+  // Seuils d'objectif du cockpit Prospection (vert/orange/rouge). 1 doc par workspace.
+  prospection_objectives: defineTable({
+    workspaceId:   v.string(),
+    leadsR1:       v.optional(v.number()),  // % Leads → R1
+    tauxShow:      v.optional(v.number()),  // % taux de show
+    tauxClose:     v.optional(v.number()),  // % taux de close
+    ca:            v.optional(v.number()),  // € chiffre d'affaires
+    roi:           v.optional(v.number()),  // × ROI
+    ventes:        v.optional(v.number()),  // nb total ventes
+    cashContracte: v.optional(v.number()),  // € cash contracté
+    panierMoyen:   v.optional(v.number()),  // € panier moyen
+    updatedAt:     v.optional(v.string()),
+  }).index("by_workspace", ["workspaceId"]),
+
+  // Snapshot quotidien du Score Santé Business (pour Évolution 7j / 30j).
+  prospection_health_history: defineTable({
+    workspaceId: v.string(),
+    date:        v.string(),   // 'YYYY-MM-DD'
+    score:       v.number(),   // 0-100
+  }).index("by_workspace", ["workspaceId"]).index("by_ws_date", ["workspaceId", "date"]),
 
   // Objectifs quotidiens du setter (module Performance)
   setter_tasks: defineTable({
@@ -533,10 +675,20 @@ export default defineSchema({
     summary:     v.optional(v.string()),
     objections:  v.optional(v.array(v.string())),
     nextStep:    v.optional(v.string()),
+    stage:          v.optional(v.string()),   // 'R1' | 'R2' : persisté (source iClosed), fiable vs deviné par titre
+    bioMarkdown:    v.optional(v.string()),    // bio "brief de bras-droit" générée par l'agent Operations
+    bioGeneratedAt: v.optional(v.string()),
+    bioBy:          v.optional(v.string()),    // auteur du brief : 'agent-operations' | 'manual' (marque de passage)
+    externalId:     v.optional(v.string()),    // id iClosed eventCall (dédup du sync)
+    meetLink:       v.optional(v.string()),    // lien Google Meet / visio du RDV
+    quizJson:       v.optional(v.string()),    // réponses captées au booking iClosed : JSON [{q,a}]
+    calendarLabel:  v.optional(v.string()),    // calendrier iClosed (nom de l'event), ex: "Audit IA offert"
+    calendarSlug:   v.optional(v.string()),    // slug de booking iClosed, ex: "audit-out" (donne inbound/outbound)
+    calendarColor:  v.optional(v.string()),    // couleur iClosed du calendrier (ex: #f07b0a)
     createdBy:   v.string(),
     createdAt:   v.string(),
     updatedAt:   v.string(),
-  }).index("by_workspace", ["workspaceId"]),
+  }).index("by_workspace", ["workspaceId"]).index("by_contact", ["contactId"]).index("by_external", ["externalId"]),
 
   // Outreach — séquences/messages de prospection (liés contact/lead)
   os_outreach: defineTable({
@@ -627,4 +779,186 @@ export default defineSchema({
     updatedBy:   v.optional(v.string()),
     updatedAt:   v.string(),
   }).index("by_workspace", ["workspaceId"]).index("by_docId", ["workspaceId", "docId"]),
+
+  // Closing — réponses du formulaire de confirmation (post-booking R1), pour préparer l'appel.
+  // Liées à la fiche contact par email/contactId quand on retrouve le prospect.
+  confirmation_intake: defineTable({
+    workspaceId:       v.string(),
+    contactId:         v.optional(v.id("crm_contacts")),
+    email:             v.optional(v.string()),
+    fullName:          v.string(),
+    company:           v.optional(v.string()),
+    // 8 questions de qualification (clés stables ; raw garde le payload complet)
+    companyType:       v.optional(v.string()),  // type d'entreprise
+    headcount:         v.optional(v.string()),  // effectif
+    monthlyRevenue:    v.optional(v.string()),  // CA mensuel approx.
+    costliestFunction: v.optional(v.string()),  // fonction la plus coûteuse
+    repetitiveCost:    v.optional(v.string()),  // coût/temps des tâches répétitives
+    whyNow:            v.optional(v.string()),  // pourquoi l'IA maintenant
+    timing:            v.optional(v.string()),  // quand lancer
+    budget:            v.optional(v.string()),  // budget IA prévu
+    raw:               v.optional(v.any()),     // payload brut (résilience si le form change)
+    answersJson:       v.optional(v.string()),  // questionnaire complet (toutes Q/R, libres comprises) : JSON [{q,a}]
+    source:            v.optional(v.string()),  // 'confirmation-form' | 'diagnostic' | ...
+    createdAt:         v.string(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_contact",   ["contactId"])
+    .index("by_email",     ["workspaceId", "email"])
+    .index("by_created",   ["createdAt"]),
+
+  // Media Buyer — métriques d'ads (Meta) par créa/adset/campagne. V1 alimentée par
+  // import CSV / saisie manuelle ; V2 = sync API Meta. Le verdict est recalculé à la lecture.
+  meta_ad_metrics: defineTable({
+    workspaceId: v.string(),
+    level:       v.string(),               // 'creative' | 'adset' | 'campaign'
+    name:        v.string(),
+    campaign:    v.optional(v.string()),
+    adset:       v.optional(v.string()),
+    thumbUrl:    v.optional(v.string()),
+    periodFrom:  v.optional(v.string()),
+    periodTo:    v.optional(v.string()),
+    spend:       v.number(),
+    impressions: v.optional(v.number()),   // vues
+    clicks:      v.optional(v.number()),   // clics
+    leads:       v.optional(v.number()),   // leads générés
+    roas:        v.optional(v.number()),
+    cpa:         v.optional(v.number()),
+    ctr:         v.optional(v.number()),   // %
+    hookRate:    v.optional(v.number()),   // %
+    frequency:   v.optional(v.number()),
+    results:     v.optional(v.number()),   // leads / achats (legacy board)
+    verdictOverride: v.optional(v.string()), // 'scale'|'watch'|'kill' si forcé à la main
+    source:      v.optional(v.string()),   // 'csv' | 'manual' | 'meta-api'
+    active:      v.optional(v.boolean()),
+    createdAt:   v.string(),
+    updatedAt:   v.string(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_level",     ["workspaceId", "level"]),
+
+  // Meta Ads — série journalière (1 ligne / jour) pour les graphiques Évolution CPL
+  // & Leads générés et le calcul de variance période vs période précédente.
+  meta_daily: defineTable({
+    workspaceId: v.string(),
+    date:        v.string(),               // 'YYYY-MM-DD'
+    spend:       v.number(),
+    impressions: v.number(),
+    clicks:      v.number(),
+    leads:       v.number(),
+    source:      v.optional(v.string()),   // 'meta-api' | 'seed'
+    createdAt:   v.string(),
+  })
+    .index("by_workspace",      ["workspaceId"])
+    .index("by_workspace_date", ["workspaceId", "date"]),
+
+  // Meta Ads — connexion du compte Meta Business (chip "Connecter" du header).
+  // 1 ligne / workspace. Le jeton longue durée est conservé côté serveur ;
+  // l'ingestion réelle des insights via la Graph API arrive en V2.
+  meta_connection: defineTable({
+    workspaceId: v.string(),
+    accountId:   v.string(),               // act_XXXXXXXX
+    accountName: v.optional(v.string()),
+    token:       v.string(),               // System User Access Token (longue durée)
+    connectedAt: v.string(),
+    lastSyncAt:  v.optional(v.string()),
+    currency:    v.optional(v.string()),   // devise du compte (CHF/EUR/USD…) lue via Graph API
+    accountStatus: v.optional(v.number()),
+    timezone:    v.optional(v.string()),
+  })
+    .index("by_workspace", ["workspaceId"]),
+
+  // Meta Ads — insights par objet ET par jour (campaign/adset/creative × date).
+  // Alimentée par l'ingestion Graph API (time_increment=1) → permet d'agréger
+  // les tableaux sur n'importe quelle période choisie au calendrier.
+  meta_object_daily: defineTable({
+    workspaceId: v.string(),
+    level:       v.string(),               // 'campaign' | 'adset' | 'creative' (= ad côté Meta)
+    objectId:    v.string(),               // campaign_id / adset_id / ad_id
+    name:        v.string(),
+    campaign:    v.optional(v.string()),
+    adset:       v.optional(v.string()),
+    date:        v.string(),               // 'YYYY-MM-DD'
+    spend:       v.number(),
+    impressions: v.number(),
+    clicks:      v.number(),
+    leads:       v.number(),
+    source:      v.optional(v.string()),   // 'meta-api' | 'seed'
+    createdAt:   v.string(),
+  })
+    .index("by_workspace",      ["workspaceId"])
+    .index("by_ws_level_date",  ["workspaceId", "level", "date"]),
+
+  // Créas Meta synchronisées AVEC leurs visuels (photo + vidéo) — accessibles depuis le Data OS,
+  // analysables par l'agent Media Buyer (vision). 1 ligne / annonce (adId).
+  meta_creatives: defineTable({
+    workspaceId:  v.string(),
+    adId:         v.string(),
+    name:         v.string(),
+    status:       v.optional(v.string()),
+    campaign:     v.optional(v.string()),
+    adset:        v.optional(v.string()),
+    imageUrl:     v.optional(v.string()),   // 📷 photo de la créa
+    thumbnailUrl: v.optional(v.string()),
+    videoSource:  v.optional(v.string()),   // 🎬 URL de la vidéo
+    videoThumb:   v.optional(v.string()),
+    spend:        v.optional(v.number()),
+    impressions:  v.optional(v.number()),
+    reach:        v.optional(v.number()),
+    ctr:          v.optional(v.number()),   // CTR total %
+    ctrOutbound:  v.optional(v.number()),   // CTR lien sortant %
+    cpm:          v.optional(v.number()),
+    frequency:    v.optional(v.number()),
+    hookRate:     v.optional(v.number()),   // vues 3s / impressions %
+    holdRate:     v.optional(v.number()),   // thruplay / vues 3s %
+    cvr:          v.optional(v.number()),   // résultat / clic %
+    leads:        v.optional(v.number()),
+    purchases:    v.optional(v.number()),
+    results:      v.optional(v.number()),   // achats si funnel achat, sinon leads
+    cpa:          v.optional(v.number()),
+    roas:         v.optional(v.number()),
+    qualityRanking:    v.optional(v.string()),
+    engagementRanking: v.optional(v.string()),
+    conversionRanking: v.optional(v.string()),
+    syncedAt:     v.string(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_ws_ad",     ["workspaceId", "adId"]),
+
+  // Outbound email — état de la loop (remplace le Google Sheet « Base leads dirigeants »).
+  // Machine à états du SOP « Présentation email outbound ». Source de vérité de la loop.
+  outbound_leads: defineTable({
+    workspaceId:      v.string(),
+    firstName:        v.string(),
+    lastName:         v.optional(v.string()),
+    email:            v.optional(v.string()),
+    company:          v.optional(v.string()),
+    role:             v.optional(v.string()),     // poste du décideur
+    niche:            v.optional(v.string()),
+    canton:           v.optional(v.string()),
+    website:          v.optional(v.string()),
+    source:           v.optional(v.string()),     // preuve/URL source
+    score:            v.optional(v.string()),     // 'A' | 'B' | 'C' (qualité)
+    // Étape SOP : a_auditer | audit_ok | a_corriger | rejete | deck_a_faire | pret_envoi | email_envoye | relance | importe | froid
+    etape:            v.string(),
+    agentResponsable: v.optional(v.string()),     // data_analyst | coo | csm | ops
+    note:             v.optional(v.string()),     // blocage / raison / consigne
+    deckUrl:          v.optional(v.string()),
+    repondu_le:       v.optional(v.string()),      // ISO — date de réponse au mail (taux de réponse). Set par la détection Gmail / sheet.
+    lastActivity:     v.string(),
+    createdBy:        v.optional(v.string()),
+    createdAt:        v.string(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_etape",     ["workspaceId", "etape"])
+    .index("by_email",     ["email"]),
+
+  // Type métier d'un événement du calendrier (R1 | R2 | follow_up | interne | client | autre).
+  // Les events Google sont en lecture seule : on stocke ici l'override de type, partagé entre profils.
+  calendar_event_types: defineTable({
+    eventId: v.string(),   // id de l'event (ex. "google-xxx")
+    type:    v.string(),   // r1 | r2 | follow_up | interne | client | autre
+    setBy:   v.optional(v.string()),
+    updatedAt: v.string(),
+  }).index("by_event", ["eventId"]),
 })

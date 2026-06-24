@@ -18,6 +18,7 @@ const isProtectedApi = createRouteMatcher([
   '/api/contact(.*)',
   '/api/contacts/search',
   '/api/crm/(.*)',
+  '/api/outbound/(.*)',
   '/api/dashboard',
   '/api/pipeline-opps',
   '/api/pipeline/(.*)',
@@ -34,6 +35,7 @@ const isProtectedApi = createRouteMatcher([
   '/api/knowledge/(.*)',
   '/api/integrations',
   '/api/tldv/(.*)',
+  '/api/fathom/(.*)',
 ])
 
 // Appelant serveur-à-serveur légitime (MCP/agents) porteur du secret partagé.
@@ -47,7 +49,10 @@ function hasServiceSecret(req: Request): boolean {
   return provided.length > 0 && provided === secret
 }
 
-export default clerkMiddleware(async (auth, req) => {
+// Mode démo : pass-through total (aucun Clerk). Constante de build → la prod garde Clerk.
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+
+const clerkHandler = clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl
   if (pathname.startsWith('/api/')) {
     // Données métier : session Clerk OU secret de service requis, sinon 401.
@@ -63,6 +68,12 @@ export default clerkMiddleware(async (auth, req) => {
     await auth.protect()
   }
 })
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function middleware(req: any, ev: any) {
+  if (DEMO_MODE) return NextResponse.next()
+  return clerkHandler(req, ev)
+}
 
 export const config = {
   // Exclut les assets statiques ; inclut les pages.

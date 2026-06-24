@@ -1,0 +1,50 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260615_171742_6a36d4.jsonl
+captured_at: 2026-06-15T17:34:12.363806
+platform: telegram
+type: conversation_delta
+---
+
+## assistant — 2026-06-15T17:19:41.906478
+
+Ok, j’active le brainstorming profond. Je te challenge direct : appeler ça “CSM scraper de leads” est probablement le mauvais rôle. CSM peut enrichir, qualifier, nettoyer et pousser dans le Data OS, mais le scraping brut devrait être une fonction encadrée, avec règles anti-spam, sources autorisées, scoring et validation avant création contact. On va cadrer en 5 blocs : 1. source des leads 2. critères ICP 3. workflow CSM 4. écriture Data OS 5. garde-fous qualité / anti-pollution Première question : tu veux qu’il scrape quoi en priorité ? A. Instagram B. LinkedIn C. Google Maps / sites locaux D. listes déjà fournies en CSV / texte / captures
+
+## user — 2026-06-15T17:19:41.906478
+
+des noms de dirigeants avec leur nom prénom adresse mail et numéro de téléphone très important
+
+## assistant — 2026-06-15T17:19:41.906478
+
+Oui, mais on doit le cadrer proprement. Pour des dirigeants, le CSM doit viser **prospection B2B nominative**, pas “aspirer Internet”. Donc il peut chercher : - nom + prénom - entreprise - poste exact - email pro vérifié ou probable - téléphone pro uniquement - source de chaque donnée - niveau de confiance - statut consentement / base légitime - date de collecte Règle dure : pas de numéros perso, pas de scraping agressif LinkedIn, pas de données sensibles, pas d’import automatique sans preuve/source. Le bon workflow : 1. CSM trouve les dirigeants cibles selon ICP. 2. Il enrichit email/téléphone via sources publiques ou outils autorisés. 3. Il déduplique dans Data OS. 4. Il crée le contact en statut `lead`. 5. Il ajoute provenance + score + “à valider” si confiance moyenne. 6. Le setter ne contacte que les leads validés ou score élevé. Le champ critique dans le Data OS devrait être : ```txt firstName lastName company role email phone linkedinUrl website source sourceUrl niche canton/pays confidenceScore dataQuality: verified / probable / incomplete contactPermission: b2b_legitimate_interest / needs_review notes ``` Mon avis : MVP = 50 dirigeants max, sur une niche précise, avec validation humaine avant outreach. Sinon on va remplir le Data OS de déchets et cramer la réputation VividFlow.
+
+## assistant — 2026-06-15T17:19:41.906478
+
+Oui, donc le cadrage devient beaucoup plus net : **dirigeants B2B en Suisse romande uniquement**. Je poserais la règle comme ça : ```txt Zone : Suisse romande Cantons prioritaires : VD, GE, VS, FR, NE, JU Optionnel : BE francophone Langue : français Cible : dirigeants, fondateurs, associés, gérants, directeurs Données : prénom, nom, entreprise, rôle, email pro, téléphone pro, site, LinkedIn, source Exclusion : numéros privés, profils hors Suisse romande, emails génériques seuls si aucun décideur identifié ``` Workflow CSM : 1. il cherche les entreprises romandes dans une niche donnée ; 2. il identifie le bon décideur ; 3. il enrichit email pro + téléphone pro ; 4. il vérifie que l’entreprise est bien en Suisse romande ; 5. il pousse dans Data OS avec canton + source + score ; 6. si téléphone/email incertain → statut `needs_review`, pas contactable direct. Pour le MVP, je ferais : - **1 niche** - **1 canton** - **50 dirigeants** - qualité > volume - validation manuelle avant outreach Prochaine décision à prendre : on commence par quelle niche romande ?
+
+## user — 2026-06-15T17:19:41.906478
+
+c'est quoi le lien du drive qu'on a tous en commun stp
+
+## assistant — 2026-06-15T17:19:41.906478
+
+Le Drive commun que j’ai en mémoire : https://drive.google.com/drive/folders/1RSOfO5zvgzI7-T3_JXNYPUDqgAYev17v Dossier : **Content Agent**.
+
+## user — 2026-06-15T17:19:41.906478
+
+créer un google sheet dans le dossier process et met les colonnes qui seront remplis par l'agent ca sera notre base ensuite il fera un filtre pour savoir si les leads sont correct
+
+## assistant — 2026-06-15T17:19:41.906478
+
+C’est créé dans le dossier **Process**. Sheet : **Base leads dirigeants — Suisse romande** Lien : https://docs.google.com/spreadsheets/d/1sbFU9uviMbQjcp4bJXTdS6Q5ocElf8ZH2U67tlQNidU/edit J’ai mis : - colonnes complètes pour prénom/nom/email/téléphone/entreprise/source - canton Suisse romande - scoring qualité automatique - décision filtre : `OK`, `needs_review`, `rejeté`, `doublon` - listes déroulantes pour validation - onglet **Règles filtre CSM** Base prête pour que l’Agent CSM remplisse, puis filtre les leads corrects avant import Data OS.
+
+## assistant — 2026-06-15T17:21:29.711798
+
+Rectifié. Cause : le Sheet est en locale française, donc les formules doivent utiliser `;` au lieu de `,`. J’ai corrigé toutes les formules de `B2:C1001` : - score qualité - décision filtre Vérifié : plus d’erreur sur l’échantillon, les lignes affichent maintenant `0 / rejeté` tant qu’elles sont vides.
+
+## user — 2026-06-15T17:26:10.011139
+
+je veux que le tableau soit simple et effiace pour l'agent qui sera en mesur ede scrapper et remplir ce fichier, d'ailleurs quel agent doit faire ca?
+
+## assistant — 2026-06-15T17:26:10.011139
+
+Tu as raison. J’ai simplifié le Sheet : **16 colonnes**, zéro formule fragile, filtres + menus déroulants. Lien : https://docs.google.com/spreadsheets/d/1sbFU9uviMbQjcp4bJXTdS6Q5ocElf8ZH2U67tlQNidU/edit Colonnes maintenant : - Statut - Qualité - Prénom / Nom - Poste - Entreprise - Canton / Ville - Email pro - Téléphone pro - Site web / LinkedIn - Source URL - Preuve / où trouvé - Notes - Import Data OS Pour l’agent : **je ne mettrais pas ça sur Agent CSM en rôle principal**. Le bon setup : - **Agent Operations** : scrape + remplit le fichier. - **Data Analyst** : contrôle qualité / filtre / doublons. - **Agent CSM** : seulement ensuite, pour suivi relation ou préparation outreach. Si tu veux un seul agent pour commencer : **Agent Operations**.

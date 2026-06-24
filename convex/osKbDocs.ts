@@ -8,6 +8,7 @@ import { WORKSPACE } from "./osLib"
 function kindOf(docId: string): string {
   if (docId.startsWith("sop:")) return "sop"
   if (docId.startsWith("pb:")) return "playbook"
+  if (docId.startsWith("loop:")) return "loop"
   return "doc"
 }
 

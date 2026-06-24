@@ -1,0 +1,98 @@
+# Audit GBrain / Second Brain / Data OS — 2026-06-09
+
+## Verdict
+
+Fonctionnel, mais pas encore parfait. Les briques critiques sont en place : Second Brain, GBrain, Data OS, ContextLoader, Supermemory, profils agents.
+
+Le système peut déjà servir de source de vérité opérationnelle si les agents chargent les bons slugs runtime avant de répondre.
+
+## Santé GBrain
+
+- Version : gbrain 0.33.1.0
+- Pages connectées : 397
+- Source : default, PGLite local
+- Embedding provider : ollama:all-minilm, 384 dimensions, DB alignée
+- Doctor : warnings, health_score 80
+- Intégrité : OK
+- Recherche testée : OK
+
+Warning restant : couverture embeddings faible (1%, 4936 chunks manquants). Cause : beaucoup de raw Telegram / grosses pages dépassent le contexte court de all-minilm. Ce n'est pas bloquant pour le runtime si les agents utilisent les pages compactes.
+
+## Fix appliqué
+
+Création de 3 pages runtime compactes, courtes et embeddées :
+
+- context-loader-core
+- agent-roles-core
+- source-of-truth-core
+
+Ces pages doivent être chargées en priorité pour éviter le contexte géant Telegram.
+
+## Second Brain
+
+- /home/hermes/vividflow-second-brain existe
+- wiki : 33 fichiers markdown
+- raw : 349 fichiers markdown
+- outputs : 5+ fichiers markdown
+- Context Loader complet présent : wiki/processes/context-loader-protocol.md
+- Boucle GBrain agents présente : wiki/processes/gbrain-agent-context-loop.md
+- Concepts source-of-truth présents.
+
+## Data OS
+
+Repo : /home/hermes/workspaces/vividflow-data-os
+
+Tests : OK
+Typecheck : OK
+État runtime :
+- modules : 17
+- repositories : 1
+- clients : 1
+- calls : 1
+- tasks : 1
+- decisions : 1
+- agents : 5
+- agentActions : 1
+- auditLogs : 9
+
+Agents Data OS : Coordinatrice, Developper Tech, Knowledge Base, Recherche et Développement, Vision Architect.
+
+## Profils agents
+
+ContextLoader vérifié/renforcé dans :
+- chief_of_staff
+- cmo_executor
+- csm_executor
+- gbrain_executor
+- operations_executor
+- rd_executor
+- vision_architekt
+
+Ajout mémoire : charger en priorité context-loader-core, agent-roles-core, source-of-truth-core.
+
+## Limites actuelles
+
+1. GBrain contient encore trop de raw Telegram dans le même corpus, ce qui pollue certains résultats.
+2. Embedding complet impossible avec all-minilm sur les grosses pages.
+3. Data OS est fonctionnel mais encore léger : peu de tâches/clients/calls réels.
+4. Les agents en RAM peuvent nécessiter restart/reset pour recharger les nouvelles mémoires/skills.
+
+## Prochaine étape pour vraie machine de guerre
+
+1. Séparer GBrain en deux modes :
+   - runtime curated : wiki/runtime + docs/agents + Data OS docs
+   - archive raw : raw Telegram consultable uniquement si nécessaire
+
+2. Ajouter un cron/heartbeat :
+   - importer wiki/runtime + Data OS docs
+   - embed les pages courtes
+   - tester query context-loader-core
+   - écrire un rapport santé
+
+3. Faire écrire chaque décision importante dans Second Brain ou Data OS au lieu de Telegram.
+
+4. Ajouter une commande agent standard :
+   - charger context-loader-core
+   - charger agent-roles-core
+   - charger source-of-truth-core
+   - puis seulement répondre.

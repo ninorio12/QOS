@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronLeft, Pencil, X, Check, Loader2, Bot, User, ChevronDown } from 'lucide-react'
 import { type GHLContact, type GHLOpportunity, type GHLPipeline } from '@/lib/ghl'
 import { fetchJSON } from '@/lib/fetchJSON'
+import { regionConfig, regionDisplay, COUNTRIES } from '@/lib/regions'
 import { getAvatarColor, type ContactAttribution } from './types'
 
 const BOT_COLORS: Record<string, string> = {
@@ -50,6 +51,7 @@ type EditableFields = {
   city:        string
   postalCode:  string
   country:     string
+  canton:      string
   website:     string
 }
 
@@ -90,6 +92,68 @@ function Field({
         />
       ) : href ? (
         <a href={href} className="text-sm text-[#3462EE] hover:underline break-all pt-1.5">{value}</a>
+      ) : (
+        <p className="text-sm text-soren-text break-all pt-1.5">{value}</p>
+      )}
+    </div>
+  )
+}
+
+// Champ « Canton / Région » cohérent selon le pays : liste de cantons (CH), de régions (FR),
+// ou texte libre sinon. Même mise en page que <Field>.
+function RegionField({ country, value, editing, onChange }: {
+  country:  string
+  value:    string
+  editing:  boolean
+  onChange: (v: string) => void
+}) {
+  const rc = regionConfig(country)
+  if (!editing && !value) return (
+    <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
+      <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">{rc.label}</p>
+      <p className="text-sm text-[#D1D5DB] italic">—</p>
+    </div>
+  )
+  return (
+    <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
+      <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-2 flex-shrink-0">{rc.label}</p>
+      {editing ? (
+        rc.options ? (
+          <div className="flex-1"><CustomSelect value={value} onChange={onChange} options={[{ value: '', label: '— Choisir —' }, ...rc.options]} /></div>
+        ) : (
+          <input
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            placeholder="Canton, région…"
+            className="flex-1 text-sm text-soren-text bg-[#F9F9F7] border border-soren-border rounded-lg px-3 py-1.5 outline-none focus:border-[#3462EE] transition-colors"
+          />
+        )
+      ) : (
+        <p className="text-sm text-soren-text break-all pt-1.5">{regionDisplay(country, value)}</p>
+      )}
+    </div>
+  )
+}
+
+// Champ « Pays » = menu déroulant (Suisse/France en tête). Garde une valeur existante hors liste.
+function CountryField({ value, editing, onChange }: {
+  value:    string
+  editing:  boolean
+  onChange: (v: string) => void
+}) {
+  if (!editing && !value) return (
+    <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
+      <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">Pays</p>
+      <p className="text-sm text-[#D1D5DB] italic">—</p>
+    </div>
+  )
+  const opts: SelectOption[] = [{ value: '', label: '— Choisir —' }, ...COUNTRIES.map(c => ({ value: c, label: c }))]
+  if (value && !(COUNTRIES as readonly string[]).includes(value)) opts.splice(1, 0, { value, label: value })
+  return (
+    <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
+      <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-2 flex-shrink-0">Pays</p>
+      {editing ? (
+        <div className="flex-1"><CustomSelect value={value} onChange={onChange} options={opts} /></div>
       ) : (
         <p className="text-sm text-soren-text break-all pt-1.5">{value}</p>
       )}
@@ -335,6 +399,7 @@ export default function ContactDetailPage({
     city:        contact.city        ?? '',
     postalCode:  contact.postalCode  ?? '',
     country:     contact.country     ?? '',
+    canton:      contact.canton      ?? '',
     website:     contact.website     ?? '',
   })
 
@@ -473,17 +538,14 @@ export default function ContactDetailPage({
           </div>
         </div>
 
-        {/* Infos card */}
-        <div className="bg-soren-card rounded-2xl px-6 py-2 mb-4">
+        {/* Coordonnées */}
+        <div className="bg-soren-card rounded-2xl px-6 pt-4 pb-2 mb-4">
+          <h3 className="text-[10px] font-bold text-soren-subtle uppercase tracking-widest mb-1">Coordonnées</h3>
           <Field label="Prénom"     name="firstName"   value={fields.firstName}   editing={editing} onChange={handleChange} />
           <Field label="Nom"        name="lastName"    value={fields.lastName}    editing={editing} onChange={handleChange} />
           <Field label="Email"      name="email"       value={fields.email}       editing={editing} onChange={handleChange} type="email" href={!editing && fields.email ? `mailto:${fields.email}` : undefined} />
           <Field label="Téléphone"  name="phone"       value={fields.phone}       editing={editing} onChange={handleChange} type="tel"   href={!editing && fields.phone ? `tel:${fields.phone}` : undefined} />
           <Field label="Entreprise" name="companyName" value={fields.companyName} editing={editing} onChange={handleChange} />
-          <Field label="Adresse"    name="address1"    value={fields.address1}    editing={editing} onChange={handleChange} />
-          <Field label="Ville"      name="city"        value={fields.city}        editing={editing} onChange={handleChange} />
-          <Field label="Code postal" name="postalCode" value={fields.postalCode}  editing={editing} onChange={handleChange} />
-          <Field label="Pays"       name="country"     value={fields.country}     editing={editing} onChange={handleChange} />
           <Field label="Site web"   name="website"     value={fields.website}     editing={editing} onChange={handleChange} href={!editing && fields.website ? fields.website : undefined} />
           {!editing && (
             <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
@@ -493,6 +555,16 @@ export default function ContactDetailPage({
               </p>
             </div>
           )}
+        </div>
+
+        {/* Adresse & Infos */}
+        <div className="bg-soren-card rounded-2xl px-6 pt-4 pb-2 mb-4">
+          <h3 className="text-[10px] font-bold text-soren-subtle uppercase tracking-widest mb-1">Adresse &amp; Infos</h3>
+          <Field label="Adresse"    name="address1"    value={fields.address1}    editing={editing} onChange={handleChange} />
+          <Field label="Ville"      name="city"        value={fields.city}        editing={editing} onChange={handleChange} />
+          <Field label="Code postal" name="postalCode" value={fields.postalCode}  editing={editing} onChange={handleChange} />
+          <CountryField value={fields.country} editing={editing} onChange={v => { if (v !== fields.country) handleChange('canton', ''); handleChange('country', v) }} />
+          <RegionField country={fields.country} value={fields.canton} editing={editing} onChange={v => handleChange('canton', v)} />
         </div>
 
         {/* Pipeline / Opportunités */}

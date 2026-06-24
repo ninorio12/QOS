@@ -1,0 +1,18 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260610_164234_b0d93f.jsonl
+captured_at: 2026-06-10T16:48:34.708735
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-06-10T16:45:03.022949
+
+ok on va heberger sur le vps et on va créer ce profil demo c'est Jonathan qui a whatsapp business faut donc qu'on prépare en amont tout ce qui a a faire et lui il aura jsute la manip whatsapp
+
+## assistant — 2026-06-10T16:45:03.022949
+
+Oui. On fait comme ça : 1. **Nous, en amont** - VPS : créer le petit service webhook `WhatsApp → Hermes → Wasender`. - Profil Hermes : `whatsapp_demo` existe déjà sur le VPS. - Prompt agent : déjà prêt pour une démo VividFlow WhatsApp. - Endpoint : préparer une URL publique type `https://.../webhook/whatsapp`. - Logs/debug : prévoir `/health` et `/inspect` pour voir les messages reçus. - Secret : ajouter le token Wasender dans `.env`, jamais en clair dans le code. 2. **Jonathan, seule manip** - Ouvrir Wasender. - Créer/connecter une session WhatsApp. - Sur son téléphone : WhatsApp Business → Appareils connectés → Scanner le QR code. - Nous envoyer uniquement le statut “connecté” + le token API Wasender si on ne l’a pas déjà. 3. **Flux final** ```text Client écrit sur WhatsApp Business de Jonathan → Wasender reçoit le message → Webhook VPS appelle l’agent whatsapp_demo → Agent répond → Wasender renvoie la réponse sur WhatsApp ``` Point important : **on ne fait pas utiliser Jonathan pour la technique**. Il scanne juste le QR code. Le reste, on le prépare côté VPS. J’ai aussi vérifié : le profil `whatsapp_demo` existe déjà, mais il est arrêté et pas encore branché à Wasender.
+
+## assistant — 2026-06-10T16:48:34.681777
+
+Il y a 5 choses à faire, dans cet ordre : 1. **Créer le service webhook sur le VPS** - Endpoint `POST /webhook/whatsapp` - Endpoint `GET /health` - Endpoint `GET /inspect` pour debug 2. **Brancher Wasender** - Créer compte/session Wasender - Récupérer le token API - Configurer le webhook Wasender vers notre URL VPS 3. **Brancher Hermes** - Utiliser le profil déjà existant : `whatsapp_demo` - Faire passer chaque message WhatsApp entrant dans cet agent - Récupérer sa réponse 4. **Renvoyer la réponse sur WhatsApp** - Appel API Wasender `send message` - Réponse envoyée au numéro qui a écrit 5. **Faire la manip Jonathan** - Jonathan scanne seulement le QR code avec WhatsApp Business - On teste depuis un autre téléphone - On corrige le prompt si besoin Concrètement : je peux préparer tout le VPS maintenant. Il me manquera seulement ensuite **le token Wasender** et **Jonathan pour scanner le QR code**.

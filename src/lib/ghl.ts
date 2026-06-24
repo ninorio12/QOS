@@ -267,9 +267,15 @@ export type GHLContact = {
   customFields?:  { id: string; value: string | null }[]
   dnd?:           boolean
   type?:          string | null
+  role?:          string | null
   metier?:        string | null
   niche?:         string | null
   statut?:        string | null
+  lostStage?:     string | null
+  lostReason?:    string | null
+  lostObjection?: string | null
+  wonObjection?:  string | null
+  dealDate?:      string | null
   canton?:        string | null
 }
 

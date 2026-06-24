@@ -1,0 +1,1190 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260512_155235_2ddb68
+source_file: /home/hermes/.hermes/sessions/20260512_155235_2ddb68.jsonl
+source_sha256_16: 786794e20ba36746
+date: 2026-05-12
+---
+
+# Recovered session root/20260512_155235_2ddb68
+
+
+## assistant — 2026-05-12T15:53:43.829297
+
+Le script côté Asus est bon **si OpenSSH Server est bien installé**. Mais depuis ici, je ne peux toujours pas atteindre ton Asus :
+
+```txt
+100.117.237.106:22 = timeout
+```
+
+Donc le problème n’est probablement pas ta clé SSH. C’est le réseau.
+
+## Ce qui bloque
+
+Ton Asus est sur Tailscale :
+
+```txt
+100.117.237.106
+```
+
+Mais cette machine Hermes n’est pas encore dans ton Tailnet Tailscale. Donc je ne peux pas joindre ton IP `100.x.x.x`.
+
+## Deux options maintenant
+
+### Option 1 — Recommandée : connecter Hermes à ton Tailscale
+
+Il faut que cette machine rejoigne ton réseau Tailscale.
+
+Je lance l’installation/connexion Tailscale ici, ça va générer un lien d’auth. Tu l’ouvres, tu approuves, et après je pourrai tester :
+
+```bash
+ssh -i ~/.ssh/hermes_thomas_asusvivobook_ed25519 USERNAME@100.117.237.106
+```
+
+Dis-moi juste :
+
+```txt
+OK connecte Hermes à Tailscale
+```
+
+Et je lance.
+
+---
+
+### Option 2 — Tunnel inverse SSH depuis ton Asus vers Hermes
+
+Si tu ne veux pas connecter Hermes à Tailscale, ton Asus peut ouvrir un tunnel vers moi. Mais c’est plus technique et moins propre.
+
+---
+
+## Il me manque encore
+
+Le script devait afficher :
+
+```txt
+USERNAME=...
+```
+
+Tu ne m’as pas envoyé la ligne exacte.
+
+Envoie-moi :
+
+```txt
+USERNAME=
+VIVIDFLOW_REPO_PATH=
+```
+
+Exemple :
+
+```txt
+USERNAME=Thomas
+VIVIDFLOW_REPO_PATH=C:\Users\Thomas\Documents\VividFlow
+```
+
+## Prochaine action
+
+Le plus simple :
+
+1. Tu m’envoies `USERNAME`.
+2. Tu me dis : **OK connecte Hermes à Tailscale**.
+3. Je connecte cette machine au même Tailnet.
+4. Je reteste SSH.
+
+## user — 2026-05-12T15:57:55.251976
+
+[Thomas] USERNAME=thoma
+ VIVIDFLOW_REPO_PATH=N/A (pas de repo VividFlow sur cette machine)
+ OK connecte Hermes à Tailscale
+
+## assistant — 2026-05-12T15:57:55.251976
+
+Need install tailscale. This is macOS environment not VPS? interfaces macOS. Need use terminal. Might need sudo impossible. Check tailscale installed.
+
+## assistant — 2026-05-12T15:57:55.251976
+
+J’ai tenté de connecter Hermes à Tailscale, mais il y a un blocage clair :
+
+## Ce qui bloque
+
+Cette machine Hermes tourne en fait sur un environnement **macOS** :
+
+```txt
+Mac---Jonathan-ZKH.local
+```
+
+Tailscale n’est pas installé ici, et l’installation macOS demande un mot de passe admin via `sudo`.
+
+Résultat :
+
+```txt
+sudo: a password is required
+```
+
+Je ne peux pas contourner ça proprement, et je ne veux pas te demander un mot de passe admin dans Telegram.
+
+Donc pour l’instant :
+
+- ton Asus : `100.117.237.106`
+- utilisateur : `thoma`
+- SSH Asus : probablement prêt
+- Hermes : pas encore dans le Tailnet
+- connexion SSH : impossible tant que Hermes n’est pas dans Tailscale
+
+## Ce qu’il faut faire côté machine Hermes
+
+Quelqu’un qui a accès admin à cette machine doit installer Tailscale manuellement :
+
+```bash
+brew install --cask tailscale
+```
+
+Ou télécharger ici :
+
+https://tailscale.com/download/mac
+
+Puis :
+1. ouvrir l’app Tailscale ;
+2. se connecter au même compte/tailnet que ton Asus ;
+3. autoriser l’extension VPN dans macOS si demandé ;
+4. me dire quand c’est fait.
+
+Ensuite je reteste directement :
+
+```bash
+ssh -i ~/.ssh/hermes_thomas_asusvivobook_ed25519 thoma@100.117.237.106
+```
+
+## Alternative plus rapide si tu veux avancer maintenant
+
+Comme tu as Claude Code sur l’Asus, on peut fonctionner comme ça temporairement :
+
+1. Je te donne les prompts/commandes structurées.
+2. Tu les colles dans Claude Code local.
+3. Claude Code travaille sur ton Asus.
+4. Tu pushes sur GitHub.
+5. Moi je review/planifie/orchestre depuis ici.
+
+C’est moins direct, mais ça marche tout de suite.
+
+## Option avancée sans Tailscale
+
+On peut aussi faire un tunnel inverse depuis ton Asus, mais c’est plus fragile. Je recommande de rester sur Tailscale.
+
+## Résumé
+
+Je suis bloqué uniquement par l’installation Tailscale côté Hermes/macOS qui demande admin.
+
+Action la plus propre :
+
+```txt
+Installer Tailscale sur la machine Hermes/macOS et la connecter au même compte que l’Asus.
+```
+
+Dès que c’est fait, je teste SSH vers :
+
+```txt
+thoma@100.117.237.106
+```
+
+## user — 2026-05-12T16:01:59.325107
+
+[Thomas] oublie juste trouve un solution car tu es dans un VPS, j'ai mon saas soren codé en local et ou est ce qu'on peut travailler efficacement sur le projet vivdflow car tu peux coder est ce qu'on code directement depuis le vps, est ce qu'on passer par Github ou pas
+
+## assistant — 2026-05-12T16:01:59.325107
+
+Oui. On oublie l’accès local direct pour l’instant. La solution efficace, propre et scalable : **GitHub devient le pont central**.
+
+## Réponse courte
+
+On ne code **pas directement dans le local Asus** et on ne dépend **pas du VPS seul**.
+
+On travaille comme ça :
+
+```txt
+Local Asus / Claude Code
+ ↕ GitHub
+Hermes / Cockpit / VPS
+ ↕ GitHub
+Vercel / Convex / Clerk
+```
+
+GitHub devient la source de vérité. 
+Ton local et mon environnement peuvent bosser dessus sans devoir être connectés en SSH.
+
+---
+
+## Pourquoi c’est le meilleur choix
+
+### Coder directement depuis le VPS
+
+Possible, mais pas idéal.
+
+Avantages :
+- je peux coder directement ;
+- je peux lancer tests/builds ;
+- je peux pousser sur GitHub.
+
+Limites :
+- ton SaaS Soren est déjà en local ;
+- si le repo local n’est pas synchronisé, on risque deux versions ;
+- secrets/env locaux pas forcément dispo ;
+- plus risqué si on travaille hors GitHub.
+
+Verdict :
+- utile pour tâches ponctuelles ;
+- pas comme méthode principale.
+
+---
+
+### Coder directement sur ton Asus
+
+Possible avec SSH/Tailscale, mais on a vu que ça complique.
+
+Avantages :
+- accès à Claude Code local ;
+- accès à ton environnement réel.
+
+Limites :
+- réseau fragile ;
+- setup long ;
+- risques sécurité ;
+- si ton PC est éteint, je suis bloqué ;
+- mauvais pour une équipe.
+
+Verdict :
+- à éviter comme base de travail.
+
+---
+
+### Passer par GitHub
+
+C’est la meilleure méthode.
+
+Avantages :
+- propre ;
+- versionné ;
+- pas besoin d’accès direct à ton PC ;
+- Claude Code local peut travailler ;
+- moi je peux travailler depuis Hermes ;
+- Codex/Claude/Hermes peuvent créer branches/PR ;
+- Vercel peut déployer automatiquement ;
+- historique clair ;
+- rollback simple.
+
+Verdict :
+- **c’est notre workflow principal.**
+
+---
+
+## Workflow recommandé pour VividFlow
+
+### 1. Tu mets Soren/VividFlow sur GitHub
+
+Depuis ton Asus avec Claude Code local :
+
+```bash
+cd chemin/vers/ton/projet
+git init
+git add .
+git commit -m "chore: import existing Soren/VividFlow app"
+gh repo create vividflow-agaas --private --source=. --remote=origin --push
+```
+
+Si le repo existe déjà :
+
+```bash
+cd chemin/vers/ton/projet
+git remote add origin https://github.com/TON_COMPTE/vividflow-agaas.git
+git branch -M main
+git push -u origin main
+```
+
+---
+
+### 2. Moi je clone le repo côté Hermes
+
+Une fois le repo GitHub créé, tu m’envoies l’URL.
+
+Moi je fais :
+
+```bash
+git clone ...
+```
+
+Puis j’analyse :
+- stack ;
+- architecture ;
+- auth actuelle ;
+- DB actuelle ;
+- routes ;
+- modules ;
+- dette technique ;
+- comment migrer vers Convex + Clerk.
+
+---
+
+### 3. On crée une branche par chantier
+
+Exemples :
+
+```txt
+feat/clerk-auth
+feat/convex-schema
+feat/conversations-core
+feat/agent-runtime
+fix/ghl-401
+docs/agaas-blueprint
+```
+
+Chaque chantier = une PR.
+
+---
+
+### 4. Claude Code local et Hermes se partagent le travail
+
+#### Toi / Claude Code local
+
+Idéal pour :
+- gros refactors ;
+- codage local avec contexte complet ;
+- tests visuels ;
+- interactions IDE ;
+- modifications rapides.
+
+#### Moi / Hermes
+
+Idéal pour :
+- architecture ;
+- plans ;
+- reviews ;
+- GitHub issues/PR ;
+- audits ;
+- tests automatisés ;
+- docs ;
+- Convex/Clerk patterns ;
+- coordination agents ;
+- suivi du projet.
+
+---
+
+### 5. Vercel déploie depuis GitHub
+
+On branche Vercel au repo :
+
+```txt
+GitHub main → production
+GitHub PR → preview deployments
+```
+
+Ça nous donne :
+- preview par PR ;
+- rollback ;
+- logs ;
+- déploiement propre.
+
+---
+
+## Le workflow exact que je recommande
+
+### Phase 0 — Centraliser le code
+
+Objectif : sortir le projet du local isolé.
+
+À faire côté Asus :
+
+```txt
+Soren local → GitHub privé
+```
+
+Nom recommandé :
+
+```txt
+vividflow-agaas
+```
+
+ou si tu veux garder l’historique :
+
+```txt
+soren-to-vividflow
+```
+
+Mon choix :
+
+```txt
+vividflow-agaas
+```
+
+---
+
+### Phase 1 — Audit
+
+Moi je fais :
+
+- audit architecture ;
+- audit sécurité ;
+- audit auth ;
+- audit modules ;
+- audit dépendances ;
+- identification de ce qu’on garde / jette ;
+- plan migration Convex + Clerk ;
+- plan MVP Conversations + Agent Runtime.
+
+Livrable :
+
+```txt
+/docs/AGAAS_BLUEPRINT.md
+/docs/MIGRATION_PLAN.md
+/docs/TECH_AUDIT.md
+```
+
+---
+
+### Phase 2 — Migration contrôlée
+
+Ordre conseillé :
+
+1. Clerk auth/orgs ;
+2. Convex schema ;
+3. Workspaces multi-tenant ;
+4. Conversations core ;
+5. Contacts/opportunities ;
+6. Agent runtime minimal ;
+7. WhatsApp provider abstraction ;
+8. GHL soit réparé, soit isolé derrière intégration externe.
+
+---
+
+### Phase 3 — PR par PR
+
+Règle :
+
+```txt
+pas de gros push direct sur main
+```
+
+Toujours :
+
+```txt
+branche → PR → review → preview → merge
+```
+
+---
+
+## Ce que je ne recommande pas
+
+### Ne pas bosser uniquement en local
+
+Sinon :
+- moi je suis aveugle ;
+- tu dois copier-coller tout le temps ;
+- impossible de review proprement ;
+- impossible d’avoir des previews Vercel fiables.
+
+### Ne pas bosser directement en prod
+
+On ne modifie pas `app.qorpoia.com` en sauvage.
+
+### Ne pas mélanger Soren/BTP et VividFlow AGAAS
+
+Le repo peut contenir l’ancien Soren, mais le plan doit être clair :
+
+```txt
+Soren = base/prototype
+VividFlow AGAAS = produit cible
+```
+
+---
+
+## Ma recommandation finale
+
+On fait :
+
+## **GitHub-first**
+
+Concrètement :
+
+1. Tu pushes ton SaaS local sur un repo privé GitHub.
+2. Tu m’envoies l’URL.
+3. Je clone ici.
+4. Je crée le blueprint + plan migration.
+5. On code par PR.
+6. Claude Code local t’aide sur les chantiers lourds.
+7. Moi je pilote depuis Hermes.
+
+C’est le plus efficace, le plus sécurisé, et le plus scalable.
+
+---
+
+## Ce que tu dois faire maintenant
+
+Sur ton Asus, dans Claude Code, colle :
+
+```txt
+Mon objectif est de publier mon SaaS local Soren/VividFlow sur GitHub privé pour que Hermes/Cockpit puisse auditer et travailler dessus.
+
+Tâches :
+1. Identifier le dossier racine du projet.
+2. Vérifier s’il y a déjà un repo git.
+3. Vérifier qu’aucun secret .env, token, password, clé API, fichier de credentials ou dossier node_modules ne sera commit.
+4. Créer ou corriger .gitignore.
+5. Initialiser git si besoin.
+6. Créer un commit initial.
+7. Créer un repo GitHub privé nommé vividflow-agaas.
+8. Push sur main.
+9. Me donner l’URL du repo.
+
+Important :
+- Ne jamais commit .env.
+- Ne jamais afficher les secrets.
+- Si gh CLI n’est pas connecté, me guider pour faire gh auth login.
+- Avant push, afficher git status et les fichiers sensibles exclus.
+```
+
+Ensuite tu me donnes l’URL GitHub du repo, et je prends la suite.
+
+## user — 2026-05-12T16:11:08.911948
+
+[Thomas] ok toi de ton coté tu vas coder quoi et comment ?
+
+## assistant — 2026-05-12T16:11:08.911948
+
+Moi, de mon côté, je vais bosser en **GitHub-first** depuis Hermes/VPS. Je ne vais pas attendre d’avoir accès à ton Asus.
+
+## Mon rôle concret
+
+Je vais être le **cockpit technique + produit** :
+
+- auditer le code ;
+- écrire les plans ;
+- créer les branches ;
+- coder les parties propres ;
+- ouvrir des PR ;
+- review ce que Claude Code local fait ;
+- vérifier les builds/tests ;
+- documenter les décisions ;
+- garder GBrain à jour.
+
+---
+
+## Comment je vais coder
+
+Dès que tu m’envoies l’URL du repo GitHub privé :
+
+1. Je clone le repo ici.
+2. Je crée une branche dédiée.
+3. Je fais un audit technique.
+4. Je crée les fichiers de plan.
+5. Je code par petits chantiers.
+6. Je push en PR.
+7. Tu peux review/merge ou faire compléter par Claude Code local.
+
+Workflow :
+
+```txt
+GitHub repo
+ ↓
+Hermes clone
+ ↓
+branche feat/...
+ ↓
+code + tests
+ ↓
+commit
+ ↓
+push
+ ↓
+PR
+ ↓
+review / preview Vercel
+```
+
+---
+
+## Ce que je vais coder en priorité
+
+### 1. Documentation de vérité projet
+
+Premier chantier, avant de toucher fort au code :
+
+```txt
+/docs/AGAAS_BLUEPRINT.md
+/docs/MIGRATION_PLAN.md
+/docs/TECH_AUDIT.md
+/docs/CONVEX_CLERK_ARCHITECTURE.md
+```
+
+But :
+- clarifier ce qu’on garde de Soren ;
+- clarifier ce qu’on transforme en VividFlow ;
+- éviter de coder à l’aveugle ;
+- donner aussi un cadre à ton Claude Code local.
+
+---
+
+### 2. Base architecture Convex + Clerk
+
+Si le repo est déjà Next.js, je vais préparer :
+
+```txt
+convex/schema.ts
+convex/auth.config.ts
+convex/http.ts
+convex/workspaces.ts
+convex/users.ts
+convex/conversations.ts
+convex/contacts.ts
+convex/opportunities.ts
+```
+
+But :
+- Clerk gère auth/orgs ;
+- Convex devient backend temps réel ;
+- tout est scoped par `workspaceId` ou `clerkOrgId`.
+
+Règle centrale :
+
+```txt
+aucune donnée client sans workspaceId
+```
+
+---
+
+### 3. Modèle multi-tenant
+
+Je vais coder/structurer :
+
+```txt
+workspaces
+members
+roles
+contacts
+conversations
+messages
+opportunities
+tasks
+agentRuns
+agentActions
+knowledgeDocuments
+integrations
+```
+
+But :
+- chaque client VividFlow a son workspace ;
+- chaque utilisateur a des droits ;
+- chaque agent agit dans un périmètre contrôlé.
+
+---
+
+### 4. Module Conversations minimal
+
+C’est le cœur du produit.
+
+Je vais travailler vers :
+
+```txt
+/app/conversations
+/components/conversations/*
+convex/conversations.ts
+convex/messages.ts
+```
+
+Fonctions MVP :
+- liste conversations ;
+- détail conversation ;
+- messages ;
+- statut ;
+- assignation ;
+- lien contact ;
+- résumé IA ;
+- réponse suggérée.
+
+---
+
+### 5. Agent Runtime minimal
+
+Je vais créer la base :
+
+```txt
+convex/agents.ts
+convex/agentRuns.ts
+convex/agentActions.ts
+```
+
+Objectif :
+
+```txt
+message entrant
+→ agent lit le contexte
+→ qualification
+→ résumé
+→ suggestion de réponse
+→ action proposée
+→ validation humaine
+```
+
+Règle :
+- l’agent ne fait pas n’importe quoi ;
+- il propose ;
+- l’humain valide ;
+- tout est loggé.
+
+---
+
+### 6. Isolation des intégrations
+
+Je vais isoler GHL/WhatsApp derrière des interfaces propres.
+
+Exemple :
+
+```txt
+/lib/integrations/ghl/*
+/lib/integrations/whatsapp/*
+/lib/integrations/channels/*
+```
+
+But :
+- GHL ne doit pas casser tout le dashboard ;
+- WhatsApp est un canal, pas le produit ;
+- demain on peut remplacer GHL ou changer provider.
+
+---
+
+## Ce que je ne vais pas faire tout de suite
+
+Je ne vais pas commencer par :
+- refaire tout le dashboard ;
+- créer 15 modules ;
+- ajouter Stripe ;
+- refaire le design complet ;
+- brancher WhatsApp live ;
+- migrer toute la DB d’un coup ;
+- mettre l’IA en mode “autonome total”.
+
+Pourquoi :
+- trop large ;
+- risque de casser ;
+- pas MVP ;
+- la valeur est d’abord dans **Conversations + CRM + Agent Runtime**.
+
+---
+
+## Ce que Claude Code local peut faire pendant ce temps
+
+Ton Claude Code local est très utile pour :
+
+- pousser le repo local sur GitHub ;
+- faire tourner l’app localement ;
+- tester visuellement ;
+- corriger bugs UI ;
+- refactor gros fichiers ;
+- exécuter commandes qui dépendent de ton environnement local ;
+- ajouter les secrets localement sans les exposer.
+
+Moi je peux lui donner des prompts précis.
+
+---
+
+## Répartition idéale
+
+### Moi / Hermes
+
+Je prends :
+- architecture ;
+- documentation ;
+- schéma Convex ;
+- auth Clerk ;
+- conventions multi-tenant ;
+- PRs propres ;
+- audit ;
+- plans ;
+- review ;
+- GBrain.
+
+### Claude Code local
+
+Il prend :
+- migration concrète dans ton repo local ;
+- tests locaux ;
+- debug runtime ;
+- UI/UX local ;
+- adaptation de l’existant Soren ;
+- commandes nécessitant tes credentials locaux.
+
+---
+
+## Première PR que je ferai
+
+Dès que j’ai le repo :
+
+```txt
+branch: docs/agaas-blueprint
+```
+
+Contenu :
+- audit technique initial ;
+- blueprint produit ;
+- plan migration ;
+- architecture Convex/Clerk ;
+- définition MVP.
+
+Ça ne casse rien.
+
+Ensuite :
+
+```txt
+branch: feat/convex-clerk-foundation
+```
+
+Contenu :
+- installation packages si absents ;
+- config Convex ;
+- config Clerk ;
+- tables workspace/users/members ;
+- helpers auth backend ;
+- docs env vars.
+
+Puis :
+
+```txt
+branch: feat/conversations-core
+```
+
+Contenu :
+- schema conversations/messages/contacts ;
+- premières queries/mutations ;
+- UI inbox minimale si le front est prêt.
+
+---
+
+## Mon mode de travail
+
+Je vais fonctionner comme ça :
+
+```txt
+1 chantier = 1 branche = 1 PR = 1 objectif clair
+```
+
+Chaque PR aura :
+- résumé ;
+- fichiers changés ;
+- risques ;
+- tests lancés ;
+- prochaines étapes.
+
+---
+
+## Ce dont j’ai besoin maintenant
+
+Juste l’URL du repo GitHub privé quand Claude Code local l’a push.
+
+Exemple :
+
+```txt
+https://github.com/ton-compte/vividflow-agaas
+```
+
+Dès que je l’ai, je commence par l’audit + première PR docs.
+
+## user — 2026-05-12T16:14:23.520379
+
+[Thomas] ok explique à Claude code tu es son COO explique ce que tu fais, le fait qu'on va utiliser Soren comme base pour faire Vividflow, que c'est l'immobilier et toi ce que tu vas faire et commnet organiser ca
+
+## assistant — 2026-05-12T16:14:23.520379
+
+Need answer prompt for Claude Code. Need maybe include memory says VividFlow AGAAS immo suisse, conversations > WhatsApp, target dirigeants agences immo CH. Keep French. No tools needed? Skills relevant maybe vividflow-agaas product already loaded. final concise.
+Copie-colle ça dans **Claude Code local** :
+
+```txt
+Tu es Claude Code local sur l’ordinateur de Thomas.
+
+Contexte global :
+Nous construisons VividFlow, un SaaS AGAAS — Agentic-as-a-Service — pour l’immobilier suisse.
+
+VividFlow n’est pas un simple chatbot.
+VividFlow est un CRM conversation-first + couche agentique.
+
+Produit cible :
+- Client cible : dirigeants d’agences immobilières en Suisse.
+- Problème : les agences gèrent trop de prospects, messages, relances et opportunités dans WhatsApp, email, appels, notes éparpillées.
+- Solution : VividFlow centralise les conversations, transforme les messages en contacts/opportunités/tâches, et utilise des agents IA pour qualifier, résumer, proposer des réponses, relancer et assister l’équipe commerciale.
+
+Important :
+Le SaaS actuel “Soren” sert de base/prototype technique.
+Mais le produit final est VividFlow.
+Soren/BTP ou les contenus orientés chantier/rénovation sont des exemples/prototypes, pas la cible produit finale.
+
+Positionnement final :
+VividFlow = CRM + Conversations + Agents IA pour agences immobilières suisses.
+
+Architecture cible souhaitée :
+- Frontend : Next.js
+- Backend/data realtime : Convex
+- Auth/multi-tenant : Clerk Organizations
+- Déploiement : Vercel
+- Source de vérité code : GitHub
+- Orchestration/COO technique : Hermes/Cockpit
+- Claude Code local : exécution locale, refactor, tests, push initial, adaptation du code existant.
+
+Le Cockpit/Hermes est le COO technique du projet.
+Il va :
+1. auditer le repo après push GitHub ;
+2. créer le blueprint produit ;
+3. créer le plan de migration Soren → VividFlow ;
+4. structurer les PR ;
+5. définir l’architecture Convex + Clerk ;
+6. review le code ;
+7. garder une mémoire/second brain du projet ;
+8. coordonner les chantiers techniques.
+
+Toi, Claude Code local, ton rôle est :
+1. préparer le repo local Soren ;
+2. éviter que des secrets soient commit ;
+3. pousser le projet sur GitHub privé ;
+4. aider à faire tourner le projet localement ;
+5. aider à refactorer l’existant ;
+6. appliquer les PR/plans demandés par Hermes si besoin ;
+7. vérifier les builds/tests localement.
+
+Workflow décidé :
+GitHub est la source de vérité.
+
+Flux :
+Local Asus / Claude Code
+↕ GitHub
+Hermes / Cockpit
+↕ GitHub
+Vercel / Convex / Clerk
+
+On ne travaille pas en SSH direct.
+On ne code pas chacun dans son coin.
+On travaille par branches et PR.
+
+Branches probables :
+- docs/agaas-blueprint
+- docs/migration-plan
+- feat/clerk-auth
+- feat/convex-foundation
+- feat/conversations-core
+- feat/crm-core
+- feat/agent-runtime
+- fix/ghl-401
+- refactor/remove-btp-assumptions
+
+Priorités produit :
+P0 :
+1. Auth + organisations
+2. Workspaces multi-tenant
+3. Conversations inbox
+4. Contacts/prospects
+5. Pipeline/opportunités
+6. Résumé/qualification IA
+7. Réponses suggérées
+8. Validation humaine avant action agentique
+
+P1 :
+1. WhatsApp/provider abstraction
+2. Email channel
+3. Agent runtime logs
+4. Knowledge base par workspace
+5. Tasks/calendar
+6. Permissions agents
+
+P2 :
+1. Analytics
+2. Billing
+3. Workflow builder
+4. Agents spécialisés avancés
+
+Règles critiques :
+- Ne jamais commit `.env`, tokens, clés API, credentials, fichiers secrets.
+- Ne jamais afficher les secrets dans les logs ou réponses.
+- Ne pas transformer VividFlow en dashboard-first.
+- Ne pas construire 15 modules avant de prouver la boucle Conversations → CRM → Agent.
+- Ne pas laisser un agent agir sans permissions/audit.
+- Ne pas garder le langage BTP/Soren comme produit final.
+- Toute donnée client doit être multi-tenant : workspace/org obligatoire.
+- WhatsApp est un canal, pas le produit. L’interface principale doit être VividFlow Conversations.
+
+Ta première mission :
+Publier proprement le projet local Soren sur GitHub privé pour que Hermes puisse auditer et travailler.
+
+Étapes :
+1. Identifier le dossier racine du projet.
+2. Vérifier s’il y a déjà Git.
+3. Vérifier `.gitignore`.
+4. S’assurer que `.env`, `.env.local`, secrets, node_modules, build outputs ne sont pas commit.
+5. Faire un commit initial propre.
+6. Créer un repo GitHub privé nommé idéalement `vividflow-agaas`.
+7. Push sur `main`.
+8. Donner l’URL GitHub à Thomas pour qu’il la transmette à Hermes.
+
+Commandes indicatives :
+
+git status
+git remote -v
+git branch
+
+Vérifie les fichiers sensibles :
+
+git status --ignored
+git check-ignore -v .env .env.local node_modules 2>/dev/null
+
+Si pas de repo Git :
+
+git init
+git add .
+git status
+git commit -m "chore: import existing Soren app as VividFlow base"
+
+Créer repo privé avec gh CLI :
+
+gh repo create vividflow-agaas --private --source=. --remote=origin --push
+
+Si le repo existe déjà :
+
+git remote add origin https://github.com/OWNER/vividflow-agaas.git
+git branch -M main
+git push -u origin main
+
+Livrable attendu à la fin :
+- URL GitHub du repo
+- état du push
+- fichiers sensibles exclus confirmés
+- commandes de run local détectées
+- stack détectée
+- problèmes bloquants éventuels
+
+Format de résumé final à donner à Thomas :
+
+REPO_URL=
+BRANCH=main
+PUSH_STATUS=success/fail
+LOCAL_RUN_COMMAND=
+BUILD_COMMAND=
+PACKAGE_MANAGER=
+SECRETS_EXCLUDED=yes/no
+BLOCKERS=
+NOTES=
+```
+
+Envoie-moi ensuite l’URL GitHub que Claude Code te donne, et je prends le relais côté Cockpit.
+
+## user — 2026-05-12T16:16:00.679977
+
+[Thomas] oublie pas tout ce qu'on fait c'est de faire un AGaas saas scalable avec des abonnements donc instantané au niveau de l'installation chez l'utilisateur
+
+## assistant — 2026-05-12T16:16:00.679977
+
+Need save memory? This is durable important. Use memory maybe replace VividFlow memory compact.
+
+## assistant — 2026-05-12T16:16:00.679977
+
+Oui, c’est noté et c’est **central**.
+
+On ne construit pas juste “un outil interne” ou “un prototype Soren”. 
+On construit :
+
+## **Un AGAAS SaaS scalable par abonnement**
+
+Avec une logique :
+
+```txt
+le client s’abonne
+→ crée son workspace
+→ connecte ses canaux
+→ importe/ajoute son équipe
+→ configure ses agents
+→ commence à recevoir/traiter ses conversations
+```
+
+Le tout doit être **quasi instantané**, pas un setup agence manuel de 3 semaines.
+
+Je l’ai ajouté à la mémoire projet.
+
+## Implication produit
+
+On doit penser VividFlow comme :
+
+- **multi-tenant dès le départ** ;
+- **abonnement SaaS** ;
+- **onboarding self-serve** ;
+- **installation rapide** ;
+- **pas dépendant d’un setup custom par client** ;
+- **agents configurables par workspace** ;
+- **intégrations standardisées** ;
+- **billing/usage tracking prévu**.
+
+## Donc dans l’architecture
+
+### Clerk
+
+Pour :
+- signup/login ;
+- organizations ;
+- membres ;
+- rôles ;
+- invitations ;
+- onboarding équipe.
+
+### Convex
+
+Pour :
+- workspaces ;
+- conversations ;
+- contacts ;
+- messages ;
+- agent runs ;
+- permissions ;
+- données realtime.
+
+### Stripe
+
+À prévoir ensuite pour :
+- abonnements ;
+- plans ;
+- limites d’usage ;
+- paiement ;
+- invoices ;
+- upgrade/downgrade.
+
+### Onboarding client
+
+Il faudra un flow du style :
+
+```txt
+1. Créer compte
+2. Créer organisation/agence
+3. Choisir plan
+4. Connecter canal principal
+5. Ajouter équipe
+6. Importer contacts optionnel
+7. Configurer agent
+8. Dashboard Conversations prêt
+```
+
+## Ce que ça change dans ma façon de coder
+
+Je ne coderai pas des features “one-shot client”. 
+Je coderai avec ces règles :
+
+- chaque donnée a un `workspaceId` ;
+- chaque action vérifie le tenant ;
+- chaque agent appartient à un workspace ;
+- chaque intégration est branchée par workspace ;
+- chaque usage doit pouvoir être mesuré ;
+- chaque feature doit marcher pour 1 client comme pour 100.
+
+## Règle produit à garder
+
+Si une feature nécessite une installation manuelle lourde par client, elle n’est pas MVP.
+
+Le MVP doit prouver :
+
+```txt
+abonnement → workspace → conversations → CRM → agent → valeur
+```
+
+C’est ça qui transforme Soren en vrai **VividFlow AGAAS SaaS**.

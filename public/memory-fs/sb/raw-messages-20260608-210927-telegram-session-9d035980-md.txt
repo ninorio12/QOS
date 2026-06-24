@@ -1,0 +1,26 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260608_180610_e45fc39f.jsonl
+captured_at: 2026-06-08T21:09:27.874631
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-06-08T20:46:06.352034
+
+on va faire beaucoup de vercel avec le nom de domaine officiel de vividflow.co et faudrait le garder à chaque fois
+
+## assistant — 2026-06-08T20:46:06.352034
+
+Oui, c’est le bon réflexe. Je le garde comme convention VividFlow : **chaque nouveau lien Vercel doit viser un sous-domaine officiel de `vividflow.co` quand c’est possible**, pas un `.vercel.app` dispersé. Naming recommandé : - `start.vividflow.co` : onboarding / mise en route - `clients.vividflow.co` : portail client - `ops.vividflow.co` : cockpit interne - `demo.vividflow.co` : démos temporaires - `preview.vividflow.co` : tests partageables Pour ce tunnel, je prendrais : **`start.vividflow.co`**
+
+## user — 2026-06-08T20:49:09.586693
+
+d'accord Jonathan l'a déjà fait avec le nom de domaine officiel recupère comment il a fait
+
+## assistant — 2026-06-08T20:49:09.586693
+
+Je prends un moment pour le retrouver proprement.
+
+## assistant — 2026-06-08T20:49:09.586693
+
+J’ai retrouvé. Jonathan a déjà fait comme ça côté Vercel : - Projet Vercel : `vividflow-onboarding` - Déploiement prod : `vividflow-onboarding-98js89xla-jonathanzekhe-4288s-projects.vercel.app` - Alias officiel créé : `onboarding.vividflow.co` - Domaine principal déjà aliasé : - `vividflow.co` - `www.vividflow.co` Donc la méthode est : 1. Déployer le projet en prod sur Vercel. 2. Ajouter un alias officiel : `vercel alias set <deployment-url> onboarding.vividflow.co` 3. Vérifier avec : `vercel inspect onboarding.vividflow.co` Point important : côté Vercel, l’alias `onboarding.vividflow.co` existe bien. Mais en DNS public, il ne résout pas encore chez moi. Donc il manque sûrement le record DNS du sous-domaine chez le fournisseur DNS. À créer côté DNS : - Type : `CNAME` - Nom : `onboarding` - Valeur : `cname.vercel-dns.com` Ensuite `https://onboarding.vividflow.co` devrait marcher.

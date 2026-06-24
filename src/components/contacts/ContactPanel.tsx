@@ -48,11 +48,10 @@ function SourceIcon({ label, color }: { label: string; color: string }) {
   )
 }
 
-// ─── Related Leads (mock for now) ────────────────────────────
-const MOCK_LEADS = [
-  { id: '1', title: 'Résidence Les Chênes', value: 87000,  status: 'RDV Booké',       color: '#FF4D00', date: '20 mars' },
-  { id: '2', title: 'Lot technique Vinci',  value: 312000, status: 'En Conversation',  color: '#4A91A8', date: '14 mars' },
-]
+// ─── Related Leads ───────────────────────────────────────────
+// Vide tant qu'aucune source réelle de leads liés n'est branchée
+// (aucune donnée fabriquée affichée à l'utilisateur).
+const MOCK_LEADS: { id: string; title: string; value: number; status: string; color: string; date: string }[] = []
 
 // ─── Panel ───────────────────────────────────────────────────
 export default function ContactPanel({
@@ -216,7 +215,7 @@ export default function ContactPanel({
           </div>
           <div className="bg-soren-app border border-soren-border rounded-xl p-3 text-center">
             <p className="text-sm font-bold" style={{ color: '#FF4D00' }}>
-              {MOCK_LEADS.reduce((s, l) => s + l.value, 0).toLocaleString('fr-FR')} CHF
+              {MOCK_LEADS.reduce((s, l) => s + l.value, 0).toLocaleString('fr-FR')}<span className="text-[11px] font-semibold text-soren-muted ml-1">CHF</span>
             </p>
             <p className="text-[10px] text-soren-muted">Pipeline</p>
           </div>

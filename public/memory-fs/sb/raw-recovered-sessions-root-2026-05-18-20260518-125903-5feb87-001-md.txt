@@ -1,0 +1,356 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260518_125903_5feb87
+source_file: /home/hermes/.hermes/sessions/20260518_125903_5feb87.jsonl
+source_sha256_16: 853496e42c60e3a1
+date: 2026-05-18
+---
+
+# Recovered session root/20260518_125903_5feb87
+
+
+## user — 2026-05-18T12:59:07.782716
+
+[Thomas] c'est possible de faire travailler plusieurs agents en simultané sur le meme vercel ?
+
+## assistant — 2026-05-18T12:59:07.782716
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: "[Thomas] ok on bosse sur ce lien ; https://vividflow-service-execution-os.vercel.app?qa=pointer-drag-prod"
+
+## Goal
+Thomas construit un **VividFlow Data OS / Service Execution OS** : un système opérationnel où les données d’entreprise circulent entre modules — appels, prospects, tâches, paiements, feedbacks, livrables, décisions, audit trail — afin que l’IA puisse extraire, relier, proposer, alerter et préparer l’action, avec validation humaine sur les actions sensibles.
+
+Le produit ne doit pas devenir un CRM classique, un dashboard décoratif ou un catalogue de modules statiques. Il doit démontrer une boucle d’exécution concrète : **Calls / tl;dv → résumé IA → objections / besoins / tâches / décisions → CRM / Pipeline / Tasks / Dashboard → audit trail**.
+
+Le contexte immédiat : le module **Pipeline** est en cours de modification. Thomas veut pouvoir faire travailler un autre agent/module en parallèle sans bloquer l’avancement. La recommandation actuelle est de travailler sur un module transversal **Audit / Logs / Journal d’exécution**, car il est moins dépendant du Pipeline et renforce la crédibilité “Service Execution OS”.
+
+## Constraints & Preferences
+- Langue de travail : français.
+- Produit cible : **VividFlow Data OS / Service Execution OS**, pas un simple CRM.
+- Ne pas créer 17 pages statiques ou un catalogue de modules isolés.
+- Chaque module doit être pensé autour de la circulation de la donnée :
+ - quelle donnée entre ?
+ - qu’est-ce que le système comprend ?
+ - quelle action/décision sort ?
+ - quel autre module est impacté ?
+- Suisse par défaut :
+ - devise : CHF / francs suisses, pas euros.
+- Data OS interne VividFlow ≠ AGaaS client final.
+- Éviter :
+ - widgets fake,
+ - badges inutiles,
+ - UI décorative sans logique opérationnelle,
+ - brouhaha visuel,
+ - dashboard superficiel.
+- Organisation multi-agents :
+ - un agent par branche,
+ - un module par agent,
+ - scope strict,
+ - preview Vercel par branche/PR,
+ - pas de prod deploy direct sauf orchestrateur désigné.
+- À éviter absolument :
+ - deux agents sur `main`,
+ - deux agents dans le même dossier local,
+ - deux agents touchant le même module,
+ - modifications simultanées du layout global,
+ - modifications simultanées du design system,
+ - modifications simultanées du schema Convex/types sans coordination,
+ - plusieurs `vercel deploy --prod` simultanés,
+ - `vercel link` pendant qu’un autre agent déploie.
+- Production Vercel :
+ - contrôlée par un seul orchestrateur,
+ - merge vers `main`,
+ - deploy `--prod`,
+ - vérification domaine canonique,
+ - rollback si besoin.
+- Pour le module Audit/Logs :
+ - ne pas toucher Pipeline,
+ - ne pas modifier le layout global sauf nécessité,
+ - ne pas modifier le schema backend sans validation,
+ - rester dans la logique Service Execution OS,
+ - livrer branche dédiée, preview Vercel, fichiers modifiés, risques d’intégration.
+
+## Completed Actions
+1. CONSULTÉ la compétence `imported-cohorte-aios/infrastructure/deploy-to-vercel` — confirmé la stratégie multi-agents sur Vercel : branches + Preview Deployments, prod verrouillée par orchestrateur unique [tool: skill_view].
+2. RÉPONDU à la question sur plusieurs agents travaillant simultanément sur le même Vercel — validé que c’est possible via branches/PR/previews, mais pas sur `main` ni en prod directe [tool: assistant].
+3. CONSULTÉ la compétence `business/vividflow-agent-runtime` — récupéré le contexte runtime/agents VividFlow pour répondre au besoin de parallélisation des modules [tool: skill_view].
+4. RECOMMANDÉ une organisation parallèle — Agent 1 sur `Pipeline`, branche `agent/pipeline-module`; Agent 2 sur un module isolé, branche dédiée; scope strict par dossier/module; preview Vercel isolée [tool: assistant].
+5. IDENTIFIÉ les modules candidats à faire en parallèle pendant Pipeline — Inbox / Sources, Tasks / Actions, Clients / Accounts, Audit / Logs [tool: assistant].
+6. RECOMMANDÉ prioritairement **Audit / Logs / Journal d’exécution** comme module parallèle — module transversal, peu dépendant du modèle Pipeline, utile pour matérialiser le côté Service Execution OS [tool: assistant].
+7. FOURNI un prompt type pour l’autre agent — travailler sur `[TASKS/AUDIT]`, ne pas toucher Pipeline, ne pas toucher layout global sauf nécessité, ne pas modifier schema Convex sans validation, créer branche dédiée, livrer preview Vercel testable, donner fichiers modifiés, URL preview, risques d’intégration [tool: assistant].
+8. CONSULTÉ la compétence `imported-cohorte-aios/technical-delivery/webapp-testing` — préparation à l’analyse webapp / test navigateur [tool: skill_view].
+9. OUVERT l’URL `https://vividflow-service-execution-os.vercel.app?qa=pointer-drag-prod` — page chargée correctement [tool: browser_navigate].
+10. INSPECTÉ la console navigateur sur l’URL Vercel — résultat : `success: true`, `console_messages: []`, `js_errors: []`, `total_messages: 0`, `total_errors: 0` [tool: browser_console].
+11. LANCÉ une analyse visuelle rapide de la webapp — demande : “Analyse visuelle rapide de cette webapp Data OS: structure, modules visibles, état UI actuel, anomalies évidentes. Pas besoin d'être long.” avec annotation activée [tool: browser_vision].
+12. RECHERCHÉ le contexte conversationnel COO/Data OS — requête `COO OR "Data OS" OR pipeline OR "vividflow-service-execution-os"` avec filtre user/assistant, limite 5 [tool: session_search].
+13. CONSULTÉ la compétence `business/vividflow-agaas-product` — récupération du contexte produit VividFlow AGaaS/Data OS [tool: skill_view].
+14. SYNTHÉTISÉ le contexte COO/Data OS pour Thomas — produit = Service Execution OS / Data OS; priorité à la boucle Calls/tl;dv → résumé IA → objections/besoins/tâches/décisions → CRM/Pipeline/Tasks/Dashboard → audit trail; éviter les modules statiques; CHF par défaut; Data OS interne différent d’AGaaS client final [tool: assistant].
+15. CONFIRMÉ l’état de la page Vercel observée — URL charge correctement; titre visible : **VividFlow Data OS**; modules visibles : Dashboard, Pipeline Client, Data OS, Équipe IA, Bibliothèque, Équipe VividFlow; console navigateur : 0 erreur JS; page actuelle : dashboard avec synthèse commerciale [tool: assistant].
+16. FORMULÉ le scope recommandé pour le module **Au
+
+...[TRONQUÉ 17146 chars sha256:1bc975962f0fcb70]...
+
+s le repo si accès fichiers disponible,
+ - ou test QA de l’interaction `pointer-drag-prod`.
+- Si implémentation :
+ - créer une branche dédiée, ex. `agent/audit-logs-module`,
+ - identifier la structure de routes/modules existante,
+ - ajouter un module Audit/Journal sans toucher Pipeline,
+ - connecter les logs à des données mockées ou au backend seulement avec validation,
+ - prévoir états : `analysé`, `proposé`, `en attente validation`, `exécuté`, `refusé`, `erreur`,
+ - livrer preview Vercel,
+ - documenter fichiers modifiés et risques d’intégration.
+- Si uniquement produit :
+ - formaliser le spec du module Audit/Logs,
+ - définir les entrées/sorties,
+ - relier à la boucle Calls/tl;dv → IA → tâches/décisions → Pipeline → audit trail,
+ - proposer structure UI minimale.
+- Si QA :
+ - rouvrir l’URL Vercel,
+ - vérifier interactions principales,
+ - tester le comportement lié au paramètre `qa=pointer-drag-prod`,
+ - inspecter console et réseau,
+ - documenter anomalies UI/JS.
+
+## Critical Context
+- URL de travail : `https://vividflow-service-execution-os.vercel.app?qa=pointer-drag-prod`
+- Console navigateur sur cette URL :
+ - `success: true`
+ - `console_messages: []`
+ - `js_errors: []`
+ - `total_messages: 0`
+ - `total_errors: 0`
+- Modules visibles sur la page :
+ - Dashboard
+ - Pipeline Client
+ - Data OS
+ - Équipe IA
+ - Bibliothèque
+ - Équipe VividFlow
+- Titre visible : **VividFlow Data OS**
+- Écran observé : dashboard / synthèse commerciale.
+- Direction produit :
+ - Service Execution OS / Data OS,
+ - pas CRM classique,
+ - pas dashboard décoratif,
+ - pas catalogue de 17 modules statiques.
+- Boucle centrale à préserver :
+ - Calls / tl;dv
+ - résumé IA
+ - objections / besoins / tâches / décisions
+ - CRM / Pipeline / Tasks / Dashboard
+ - audit trail
+- Module parallèle recommandé :
+ - **Audit / Logs / Journal d’exécution**
+- Champs critiques d’un log :
+ - source,
+ - action,
+ - module impacté,
+ - statut,
+ - responsable,
+ - timestamp.
+- Exemples d’événements à tracer :
+ - appel analysé,
+ - résumé IA généré,
+ - tâche créée,
+ - décision proposée,
+ - opportunité pipeline modifiée,
+ - validation humaine requise,
+ - action exécutée,
+ - action refusée,
+ - erreur d’exécution.
+- États recommandés pour les logs/actions :
+ - `analysé`,
+ - `proposé`,
+ - `en attente validation`,
+ - `exécuté`,
+ - `refusé`,
+ - `erreur`.
+- Aucune clé API, token, mot de passe, secret, credential ou connection string ne doit être conservé ; toute valeur sensible éventuelle doit être remplacée par `[REDACTED]`.
+
+## user — 2026-05-18T12:59:07.782716
+
+[Thomas] ok tu vas t'occuper du module Data OS, tu vois il y a des fiches clients je veux que tu améliores la prensetation globale ensuite quand je clique sur la fiche client il y a un workflow process audit sur le web tout ce qui est important pour l'utilisation client car c'est trop trivial la c'est pas utilisable je peux pas l'utiliser comme un miro quoi faut que tu pousses ca a fond dans tout le saas a chaque fois que 'il y a un wrokflow faut qu'il soit ultra intuitif très modifiable ect
+
+## user — 2026-05-18T12:59:07.782716
+
+You've reached the maximum number of tool-calling iterations allowed. Please provide a final response summarizing what you've found and accomplished so far, without calling any more tools.
+
+## assistant — 2026-05-18T12:59:07.782716
+
+Thomas, c’est fait et poussé en prod.
+
+URL prod :
+https://vividflow-service-execution-os.vercel.app?qa=dataos-workflow-v3
+
+Ce que j’ai changé sur le module **Data OS** :
+
+- **Présentation globale des fiches clients améliorée**
+ - liste clients plus premium,
+ - cartes plus lisibles,
+ - hiérarchie visuelle plus nette,
+ - fiche client en modal plus large, plus exploitable.
+
+- **Fiche client enrichie**
+ - bloc onboarding plus complet,
+ - données client structurées : contact, métier, source, pipeline, CA, dates, notes,
+ - devise en **CHF**.
+
+- **Workflow process transformé en vrai canvas éditable**
+ - ajout d’étapes,
+ - modification du nom,
+ - modification du responsable,
+ - modification du détail/process,
+ - modification du statut,
+ - choix forme : rond / carré / triangle,
+ - choix icône : formulaire, call, CRM, mail, IA, validation, web, CHF, document,
+ - choix couleur,
+ - suppression d’étape,
+ - connexion entre étapes,
+ - déplacement des nodes sur le canvas,
+ - sauvegarde locale par client.
+
+- **Logique “Miro-like” renforcée**
+ - canvas à grille,
+ - zoom,
+ - templates rapides :
+ - Audit web,
+ - Onboarding SaaS,
+ - inspector à droite pour éditer chaque étape,
+ - toolbar claire : `+ Étape`, `Connecter`, `Enregistrer`.
+
+- **Vérifications faites**
+ - `npm run typecheck` OK,
+ - `npm run build` OK,
+ - déploiement Vercel prod OK,
+ - vérif navigateur sur prod OK,
+ - clic Data OS > fiche client > workflow OK,
+ - ajout d’étape + édition + sauvegarde OK,
+ - console JS : 0 erreur après clear,
+ - contrôle visuel : pas d’anomalie évidente.
+
+Point important : c’est déjà beaucoup plus proche d’un vrai **Service Execution OS** utilisable. Avant, le workflow faisait gadget. Maintenant on peut réellement mapper un process client et le modifier sans coder.
+
+Prochaine passe logique : rendre tous les workflows du SaaS homogènes avec ce même pattern :
+- canvas éditable,
+- inspector,
+- templates,
+- statuts,
+- responsables,
+- validation humaine,
+- historique / audit trail.
+
+## user — 2026-05-18T12:59:07.782716
+
+[Thomas] au niveau visuel attention c'est coupé avec la side bar et je veux pouvoir drag and drop les card créé ou est ce que je veux au pixel pret stp les fleches je dois pouvoir les lié avec un emen effect en gros quand je me rapproche d'une card ca créer une fleche automatiquement
+
+[Image attached at: /home/hermes/.hermes/image_cache/img_bc8d5e6e2c9f.jpg]
+[screenshot]
+
+## assistant — 2026-05-18T12:59:07.782716
+
+C’est corrigé et redéployé en prod.
+
+URL :
+https://vividflow-service-execution-os.vercel.app?qa=dataos-drag-magnet-v4-final
+
+Ce que j’ai fixé :
+
+- **Modal / sidebar**
+ - La fiche client passe maintenant au-dessus de la sidebar.
+ - Plus de contenu coupé par le rail noir.
+ - Z-index renforcé + modal pleine largeur propre.
+
+- **Drag & drop pixel-level**
+ - Les cards/nodes du workflow sont maintenant vraiment déplaçables.
+ - Le déplacement garde le point de prise exact sous la souris, pas un recentrage approximatif.
+ - Positionnement libre sur le canvas.
+
+- **Effet aimant + flèches auto**
+ - Quand tu rapproches une card d’une autre, la cible se met en état magnétique.
+ - Une flèche preview apparaît pendant le rapprochement.
+ - Au relâchement, la connexion est créée automatiquement.
+ - Visuellement : highlight orange + ligne aimantée animée.
+
+- **Vérifs faites**
+ - `typecheck` OK.
+ - `build` OK.
+ - Déploiement Vercel prod OK.
+ - Test prod :
+ - fiche client ouverte,
+ - modal au-dessus sidebar OK,
+ - canvas présent,
+ - node déplacé OK,
+ - effet aimant détecté OK,
+ - flèche créée automatiquement OK,
+ - console JS propre après clear.
+
+Là on se rapproche vraiment d’un workflow utilisable façon mini-Miro, pas juste des cartes décoratives.
+
+## user — 2026-05-18T12:59:07.782716
+
+[Thomas] [IMPORTANT: Background process proc_2d1ba390f622 matched watch pattern "Local:".
+Command: PORT=3022 npm run dev
+Matched output:
+ - Local: http://localhost:3022
+ ✓ Ready in 1870ms]
+
+## assistant — 2026-05-18T12:59:07.782716
+
+Oui, c’est juste la notif tardive du serveur local que j’avais lancé pour tester.
+
+État actuel :
+- serveur local `3022` : déjà stoppé / process terminé.
+- prod Vercel : déjà redéployée.
+- URL à tester : https://vividflow-service-execution-os.vercel.app?qa=dataos-drag-magnet-v4-final
+
+Rien à faire de ton côté sur ce message.
+
+## user — 2026-05-18T13:20:16.956617
+
+[{"type": "text", "text": "[Thomas] assure toi que les fléches soit bien centré par rapprt au forme et fait et permet d'ajouer manuellement de nous process dans le meme board\n\n[Image attached at: /home/hermes/.hermes/image_cache/img_61001d667466.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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
+
+## assistant — 2026-05-18T13:20:16.956617
+
+C’est fait et redéployé.
+
+URL prod :
+https://vividflow-service-execution-os.vercel.app?qa=arrow-center-process-final
+
+Corrections faites :
+
+- **Flèches recentrées**
+ - Les connecteurs ne partent plus avec des offsets fixes.
+ - Ils calculent maintenant le centre réel de chaque forme :
+ - rond,
+ - carré,
+ - triangle.
+ - La ligne sort du bord de la forme dans l’axe du centre, donc ça reste propre même si tu changes la forme ou que tu déplaces la card.
+
+- **Ajout manuel de nouveaux process dans le même board**
+ - Ajout d’un bouton **`+ Process`** à côté de `+ Étape`.
+ - Ça crée un nouveau mini-process complet dans le même canvas :
+ - Nouveau brief,
+ - Analyse process,
+ - Validation humaine.
+ - Le nouveau process est indépendant, modifiable et draggable.
+ - Le canvas s’agrandit automatiquement en hauteur quand tu ajoutes un nouveau process.
+
+- **Vérifs faites**
+ - `typecheck` OK.
+ - `build` OK.
+ - Prod Vercel redéployée OK.
+ - Test prod :
+ - bouton `+ Process` présent,
+ - ajout process OK,
+ - nombre de nodes augmente,
+ - canvas passe de `640px` à `704px`,
+ - flèches générées sur le nouveau process,
+ - console JS propre : 0 erreur.
+
+Là tu peux commencer à construire plusieurs workflows/process sur la même fiche client, au lieu d’avoir un seul tunnel figé.

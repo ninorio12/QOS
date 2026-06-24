@@ -1,0 +1,131 @@
+---
+type: process
+status: active
+updated: 2026-06-09
+sources:
+  - processes/gbrain-agent-context-loop.md
+  - processes/telegram-slack-gbrain-dataos-routing.md
+  - concepts/second-brain-operating-model.md
+  - /home/hermes/workspaces/vividflow-data-os/docs/agents
+---
+
+# Context Loader Protocol — VividFlow Agent OS
+
+## But
+
+Empêcher les agents VividFlow de répondre au feeling. Toute réponse VividFlow non triviale doit charger le bon contexte avant de répondre, puis écrire au bon endroit après l'action.
+
+## Règle dure
+
+Si la demande touche VividFlow, Data OS, agents, Slack, Telegram, client, process, décision, stratégie, contenu, delivery, dev ou mémoire opérationnelle : l'agent doit exécuter ce protocole avant de répondre.
+
+Une réponse sans contexte chargé est considérée invalide sauf pour un simple salut, accusé de réception, ou question de clarification courte.
+
+## Les quatre couches
+
+1. Supermemory = souvenirs diffus
+   - préférences de Jonathan
+   - corrections durables
+   - infos personnelles ou relationnelles
+   - jamais source de vérité opérationnelle
+
+2. Second Brain = bibliothèque durable
+   - concepts, décisions, process, principes, synthèses
+   - fichiers markdown dans /home/hermes/vividflow-second-brain/wiki
+   - sert à comprendre le pourquoi et les règles stables
+
+3. GBrain = bibliothécaire / moteur retrieval
+   - requêtes sur le Second Brain et les docs indexées
+   - sert à trouver les bonnes pages sans relire l'historique Telegram
+   - commande standard : gbrain query "<question>"
+
+4. Data OS = état opérationnel vivant
+   - agents, tâches, clients, calls, décisions actives, pipeline, owners
+   - repo : /home/hermes/workspaces/vividflow-data-os
+   - sert à savoir quoi faire maintenant et qui possède quoi
+
+## Classification de demande
+
+Avant d'agir, classifier mentalement la demande :
+
+- Rôle / responsabilité / routage agent → R&R agents + Data OS + GBrain
+- Décision / stratégie / vision → GBrain + Second Brain decisions/concepts
+- Process / workflow → GBrain + Second Brain processes
+- État opérationnel / tâche / owner / call → Data OS
+- Préférence de Jonathan / relationnel → Supermemory + memories Hermes
+- Dev / bug / infra → Data OS si lié produit, puis repo/terminal/tests
+- Contenu / DA / acquisition → GBrain + Second Brain + fiche CMO
+
+## Procédure obligatoire
+
+1. Déterminer si la demande est triviale.
+   - Triviale : salutation, phrase courte, confirmation simple.
+   - Non triviale : tout le reste.
+
+2. Pour une demande non triviale, charger le contexte minimal utile :
+   - interroger GBrain avec 1 à 3 requêtes ciblées ;
+   - lire les pages/fichiers retournés si nécessaire ;
+   - lire la fiche R&R de l'agent concerné ;
+   - lire Data OS si la réponse dépend d'un état actuel.
+
+3. Répondre avec preuve compacte :
+   - contexte utilisé ;
+   - diagnostic ;
+   - action/recommandation ;
+   - prochain owner ou escalade.
+
+4. Écrire au bon endroit après une action importante :
+   - décision stable → Second Brain decisions/
+   - process durable → Second Brain processes/
+   - concept → Second Brain concepts/
+   - état live, tâche, call, owner → Data OS
+   - préférence durable Jonathan → mémoire Hermes/Supermemory
+   - procédure technique réutilisable → skill Hermes
+
+## Règle anti-contexte géant
+
+Ne jamais essayer de résoudre un sujet VividFlow en relisant tout l'historique Telegram.
+
+Si le contexte Telegram est long ou confus :
+1. ignorer les blocs techniques répétés (Still working, Agent inactive, Compression failed, etc.) ;
+2. chercher dans GBrain ;
+3. charger 3 à 5 sources maximum ;
+4. répondre à partir de ces sources ;
+5. proposer /new ou résumé si la conversation est devenue trop lourde.
+
+## Règle de silence / anti-collision
+
+Un agent ne répond publiquement que si :
+- il est explicitement mentionné ;
+- il est owner actif du topic ;
+- la Coordinatrice lui a assigné la tâche ;
+- son R&R indique qu'il est responsable du sujet.
+
+Sinon il écoute ou laisse la Coordinatrice router.
+
+## Format minimum de réponse agent
+
+Pour toute réponse opérationnelle :
+
+Contexte chargé : [GBrain / Second Brain / Data OS / R&R / mémoire]
+Diagnostic : ...
+Action : ...
+Owner : ...
+Mémoire : [où c'est écrit ou pourquoi rien à écrire]
+
+Pour Telegram, rester court. Ne pas exposer les logs internes sauf si Jonathan demande un diagnostic.
+
+## Requêtes GBrain standards
+
+- gbrain query "VividFlow agent roles routing Data OS"
+- gbrain query "VividFlow Second Brain GBrain Data OS operating model"
+- gbrain query "VividFlow COO QA escalation agents"
+- gbrain query "VividFlow Telegram Slack routing agents"
+
+## Test de compréhension agent
+
+Chaque agent doit pouvoir répondre à :
+
+"Qui es-tu, quelle est ta mission, quelles sources dois-tu lire avant d'agir, quand dois-tu te taire ?"
+
+Une réponse générique signifie que le profil n'est pas correctement câblé.

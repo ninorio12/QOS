@@ -1,0 +1,455 @@
+---
+type: concept
+title: Module Équipe IA Data OS
+url: 'https://vividflow-service-execution-os.vercel.app/'
+updated: '2026-06-02T00:00:00.000Z'
+---
+
+# Module Équipe IA Data OS
+
+## Verdict
+
+Le module Équipe IA ne doit pas être une galerie de bots. Il doit devenir le cockpit de l’équipe agentique VividFlow : qui existe, qui travaille, sur quoi, avec quelles permissions, quels résultats, quels blocages, et quelles validations COO.
+
+L’écran actuel a une bonne base visuelle, mais il est encore trop “cartes de personnages”. Il doit devenir un vrai module opérateur.
+
+## État actuel observé
+
+Agents affichés :
+
+- VividFlow, Assistant COO, en ligne, Telegram, heartbeat 15min
+- Kai, Assistant CSM, bouton Démarrer, heartbeat jamais
+- Mia, Assistant CTO, bouton Démarrer, heartbeat jamais
+- Alex, Assistant CMO, en formation
+- Leo, Assistant CFO, en formation
+
+Problèmes :
+
+- noms/personas pas alignés avec notre système Slack actuel ;
+- COO présenté comme VividFlow mais pas clairement comme Chief of Staff / coordinateur ;
+- CMO actuel est en formation alors que dans notre Slack CMO fonctionne déjà ;
+- pas de lien clair avec Slack ;
+- pas de lien clair avec Data OS, tâches, activités, records ou GBrain ;
+- heartbeat “Jamais” est ambigu ;
+- pas de dernière action visible ;
+- pas de statut de validation COO ;
+- pas d’audit log visible ;
+- pas de permissions visibles.
+
+## Rôle réel du module
+
+Ce module doit répondre à 5 questions :
+
+1. Quels agents existent ?
+2. Qui est actif maintenant ?
+3. Que fait chaque agent ?
+4. Quelle donnée chaque agent peut lire ou écrire ?
+5. Qu’est-ce qui attend une validation humaine ?
+
+## Structure recommandée
+
+### 1. Bandeau équipe
+
+En haut :
+
+- Agents actifs
+- Actions en cours
+- À valider par COO
+- Blocages
+- Dernier heartbeat global
+
+Exemple :
+
+```text
+4 agents actifs
+7 actions en cours
+2 validations COO
+1 blocage
+Dernier check : il y a 4 min
+```
+
+### 2. Carte COO principale
+
+Le COO doit rester au-dessus des agents.
+
+Nom recommandé :
+
+```text
+Chief of Staff
+```
+
+Sous-label :
+
+```text
+Coordination, priorités, validation, routage
+```
+
+Il ne doit pas être présenté comme un simple agent métier. Il est la couche de contrôle.
+
+À afficher :
+
+- statut : en ligne / occupé / en audit / en erreur ;
+- surface : Telegram + Slack ;
+- channels supervisés ;
+- validations en attente ;
+- dernière synthèse ;
+- prochaines actions ;
+- bouton : Voir validations ;
+- bouton : Voir activité.
+
+### 3. Cartes agents spécialistes
+
+Agents actuels à aligner avec Slack :
+
+- CMO Design
+- Service Client
+- Data Analyst
+- Ops Système
+
+Chaque carte doit afficher :
+
+- nom métier ;
+- rôle clair ;
+- canal Slack associé ;
+- statut runtime ;
+- dernière action ;
+- tâche en cours ;
+- permissions ;
+- sources lues ;
+- écritures autorisées ;
+- validation requise ou non ;
+- bouton Voir runs ;
+- bouton Voir tâches ;
+- bouton Ouvrir Slack.
+
+## Cartes attendues
+
+### CMO Design
+
+Mission :
+
+```text
+Crée et itère les visuels, contenus, directions créatives et assets VividFlow.
+```
+
+Lit :
+
+- briefs Slack ;
+- Records ;
+- Projets ;
+- Base de connaissance ;
+- GBrain contexte créatif.
+
+Écrit :
+
+- livrables ;
+- prompts finaux ;
+- records assets ;
+- tâches de correction.
+
+Validation :
+
+```text
+COO obligatoire avant livraison finale.
+```
+
+Surface :
+
+```text
+Slack : cmo-design
+```
+
+### Service Client
+
+Mission :
+
+```text
+Suit les leads, clients, relances, risques relationnels et satisfaction.
+```
+
+Lit :
+
+- Leads ;
+- Clients ;
+- Conversations ;
+- Pipeline ;
+- Tâches.
+
+Écrit :
+
+- statut lead ;
+- client update ;
+- relance proposée ;
+- risque ;
+- prochaine action.
+
+Validation :
+
+```text
+Approval requise avant message externe client.
+```
+
+Surface :
+
+```text
+Slack : service-client
+```
+
+### Data Analyst
+
+Mission :
+
+```text
+Détecte les signaux faibles, analyse les données et propose ce qui mérite action.
+```
+
+Lit :
+
+- Data ;
+- Analyse ;
+- Records ;
+- signaux Slack ;
+- sources externes si branchées.
+
+Écrit :
+
+- signal ;
+- hypothèse ;
+- source ;
+- niveau de confiance ;
+- recommandation test / ignore.
+
+Validation :
+
+```text
+COO décide si le signal devient tâche ou décision.
+```
+
+Surface :
+
+```text
+Slack : data-analyst
+```
+
+### Ops Système
+
+Mission :
+
+```text
+Transforme les décisions en tâches, process, QA et exécution propre.
+```
+
+Lit :
+
+- Process ;
+- Tâches ;
+- Activités ;
+- Records ;
+- décisions COO.
+
+Écrit :
+
+- tâche ;
+- SOP ;
+- checklist ;
+- QA status ;
+- blocage.
+
+Validation :
+
+```text
+COO valide les process structurants.
+```
+
+Surface :
+
+```text
+Slack : ops-systeme
+```
+
+## Fiche détail agent
+
+Quand on clique sur un agent, le détail doit afficher :
+
+### Aperçu
+
+- mission ;
+- statut ;
+- canal Slack ;
+- dernier heartbeat ;
+- dernière action ;
+- coût / usage si disponible ;
+- fiabilité récente.
+
+### Travail en cours
+
+- runs actifs ;
+- tâches liées ;
+- livrables récents ;
+- blocages.
+
+### Permissions
+
+- peut lire ;
+- peut écrire ;
+- doit demander validation ;
+- interdit.
+
+### Mémoire et contexte
+
+- contexte GBrain chargé ;
+- sources Data OS utilisées ;
+- dernières notes durables ;
+- liens Records / Base de connaissance.
+
+### Audit
+
+- historique des runs ;
+- tool calls résumés ;
+- changements Data OS ;
+- validations humaines ;
+- erreurs.
+
+## États visuels
+
+Utiliser des états simples :
+
+- En ligne
+- En mission
+- Attend validation
+- Bloqué
+- Hors ligne
+- En configuration
+
+Éviter :
+
+```text
+Heartbeat : Jamais
+```
+
+Remplacer par :
+
+```text
+Jamais lancé
+Dernier check : il y a 12 min
+Aucun run récent
+En attente de configuration
+```
+
+## Visuel attendu
+
+Le module doit être sobre, premium, opérateur.
+
+Pas :
+
+- cartes trop “personnages IA” ;
+- prénoms inventés ;
+- couleurs arbitraires ;
+- stats décoratives.
+
+Oui :
+
+- cartes métier ;
+- statut runtime ;
+- dernier travail ;
+- sources ;
+- permissions ;
+- validation ;
+- lien Slack ;
+- lien Data OS.
+
+## Hiérarchie écran
+
+Ordre recommandé :
+
+1. Bandeau état global équipe IA.
+2. Carte Chief of Staff.
+3. Grille agents spécialistes.
+4. File “À valider par COO”.
+5. Activité récente agents.
+6. Bloc permissions et santé runtime.
+
+## Workflow produit
+
+Exemple : image CMO.
+
+1. Thomas écrit dans Slack cmo-design.
+2. CMO Design produit une image.
+3. COO reçoit/valide/challenge.
+4. Data OS crée un livrable avec source Slack et statut.
+5. Si validé, livrable passe en Records / Projet.
+6. GBrain conserve le pattern durable.
+7. Activités montre l’historique.
+
+Exemple : lead à risque.
+
+1. Message client détecté.
+2. Service Client analyse le risque.
+3. COO valide la relance proposée.
+4. Data OS met à jour Lead / Client / Tâche.
+5. Audit log conserve la décision.
+
+## Spécification MVP
+
+À construire en premier :
+
+- remplacer agents actuels par agents réels Slack ;
+- afficher canal Slack par agent ;
+- afficher statut runtime réel ou simulé propre ;
+- afficher dernière action ;
+- créer vue détail agent ;
+- ajouter file validations COO ;
+- connecter Tâches et Activités ;
+- préparer le modèle de données Agent Run.
+
+## Modèle de données minimum
+
+```text
+Agent
+- id
+- name
+- role
+- slackChannelId
+- status
+- lastHeartbeatAt
+- currentRunId
+- permissions
+- readsFrom
+- writesTo
+
+AgentRun
+- id
+- agentId
+- source
+- sourceUrl
+- status
+- summary
+- outputType
+- requiresApproval
+- approvedBy
+- createdAt
+- completedAt
+
+AgentAction
+- id
+- runId
+- type
+- targetModule
+- status
+- payload
+- validationStatus
+
+AuditLog
+- actor
+- action
+- source
+- oldValue
+- newValue
+- timestamp
+```
+
+## Conclusion
+
+Le module Équipe IA doit devenir la vue de contrôle de l’équipe agentique. Il doit montrer moins de storytelling et plus de vérité opérationnelle : agents réels, canaux Slack, tâches, runs, validations, permissions, activité et traces.
+
+Le bon niveau : un cockpit d’équipe, pas une vitrine de bots.

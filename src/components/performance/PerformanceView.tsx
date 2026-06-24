@@ -3,8 +3,10 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { Phone, MessageSquare, Clock, CalendarCheck, XCircle, Percent, BarChart3, Target, Plus, Check, Trash2, X, Pencil, CalendarDays, Banknote, type LucideIcon } from 'lucide-react'
+import { Phone, UserCheck, MessageSquare, CalendarCheck, XCircle, Percent, BarChart3, Target, Plus, Check, Trash2, X, Pencil, CalendarDays, Banknote, type LucideIcon } from 'lucide-react'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
+import { Portal } from '@/components/ui/Portal'
+import { Modal } from '@/components/ui/Modal'
 
 const iso = (d: Date) => d.toISOString().slice(0, 10)
 const today = () => localDate(new Date())
@@ -70,10 +72,12 @@ function KpiMini({ label, value, suffix, formula, Icon, color }: { label: string
   return (
     <div className="bg-soren-card rounded-2xl p-3 md:p-4 flex flex-col gap-1.5 shadow-sm border border-soren-border/60">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-medium text-soren-muted leading-none">{label}</span>
-        <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: color + '18', color }}><Icon size={15} /></span>
+        <span className="text-[10px] font-medium text-soren-muted leading-none">{label}</span>
+        <span className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: color + '18', color }}><Icon size={13} /></span>
       </div>
-      <span className="text-[20px] md:text-[22px] font-bold text-soren-text leading-none tabular-nums">{value}{suffix}</span>
+      <div className="text-[15px] md:text-[16px] font-semibold tracking-tight text-soren-text leading-none tabular-nums">
+        {value}{suffix && <span className="text-[11px] text-soren-muted font-semibold ml-1">{suffix}</span>}
+      </div>
       <span className="text-[10px] font-semibold text-[#FF4D00]/70">{formula ?? 'durant la période'}</span>
     </div>
   )
@@ -82,8 +86,7 @@ function KpiMini({ label, value, suffix, formula, Icon, color }: { label: string
 function AddModal({ has, onClose, onPersonal, onAuto }: { has: (t: string) => boolean; onClose: () => void; onPersonal: (title: string) => void; onAuto: (p: { title: string; target: number; metric: string }) => void }) {
   const [title, setTitle] = useState('')
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-md" onClick={onClose} />
+    <Modal onClose={onClose}>
       <div className="relative bg-soren-card rounded-2xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-4" style={{ animation: 'fadeSlideUp 200ms ease-out both' }}>
         <div className="flex items-center justify-between">
           <h3 className="text-[14px] font-black text-soren-text">Ajouter un objectif</h3>
@@ -119,7 +122,7 @@ function AddModal({ has, onClose, onPersonal, onAuto }: { has: (t: string) => bo
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -133,7 +136,7 @@ export default function PerformanceView() {
   const now = new Date()
   const tzOffset = new Date().getTimezoneOffset()
 
-  const taskSetter = users[0] ? setterKey(users[0].name) : 'human:thomas'
+  const taskSetter = users[0]?.name ? setterKey(users[0].name) : 'human:thomas'
 
   const { from, to } = useMemo(() => {
     const t = today()
@@ -193,15 +196,15 @@ export default function PerformanceView() {
               )}
             </div>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
             <KpiMini label="Leads contactés" value={s.contactes ?? 0} Icon={Phone} color="#3462EE" />
-            <KpiMini label="Réponses" value={s.reponses ?? 0} Icon={MessageSquare} color="#0EA5E9" />
+            <KpiMini label="Nouveau client" value={s.nouveauxClients ?? 0} formula="client obtenu via appel" Icon={UserCheck} color="#FF4D00" />
             <KpiMini label="Taux réponse" value={s.tauxReponse ?? 0} suffix="%" formula="Réponses ÷ contactés" Icon={Percent} color="#0EA5E9" />
-            <KpiMini label="À rappeler" value={s.aRappeler ?? 0} Icon={Clock} color="#D97706" />
+            <KpiMini label="Réponses" value={s.reponses ?? 0} Icon={MessageSquare} color="#0EA5E9" />
             <KpiMini label="R1 bookés" value={s.r1Booked ?? 0} Icon={CalendarCheck} color="#16A34A" />
             <KpiMini label="Perdus" value={s.perdus ?? 0} Icon={XCircle} color="#9CA3AF" />
             <KpiMini label="Taux de conversion R1" value={s.conversionR1 ?? 0} suffix="%" formula="R1 ÷ contactés" Icon={BarChart3} color="#FF4D00" />
-            <KpiMini label="Commission" value={s.commission ?? 0} suffix=" CHF" formula="2% des paiements outbound" Icon={Banknote} color="#16A34A" />
+            <KpiMini label="Commission" value={s.commission ?? 0} suffix=" CHF" formula="durant la période" Icon={Banknote} color="#16A34A" />
           </div>
         </section>
 
@@ -214,7 +217,7 @@ export default function PerformanceView() {
                   <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: gaugeColor + '18', color: gaugeColor }}><Target size={15} /></span>
                   {gaugeTitle}
                 </span>
-                <span className="text-[15px] font-black tabular-nums" style={{ color: gaugeColor }}>{globalPct}%{gaugeDone && ' ✓'}</span>
+                <span className="text-[15px] font-semibold tracking-tight tabular-nums" style={{ color: gaugeColor }}>{globalPct}%{gaugeDone && ' ✓'}</span>
               </div>
               <div className="h-2 rounded-full bg-soren-elevated overflow-hidden">
                 <div className="h-full rounded-full transition-all duration-500" style={{ width: `${globalPct}%`, background: gaugeColor }} />

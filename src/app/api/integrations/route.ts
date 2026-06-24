@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from '../../../../convex/_generated/api'
+import { isApiCallerAdmin, authedConvexClient } from '@/lib/apiAuth'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,6 +25,7 @@ const CATALOG: Cat[] = [
   // IA & réunions
   { key: 'anthropic',  name: 'Claude (Anthropic)', domain: 'anthropic.com', description: 'Modèles IA',                            category: 'IA & Réunions', kind: 'env', envVars: ['ANTHROPIC_API_KEY'], logo: 'https://cdn.simpleicons.org/claude/D97757' },
   { key: 'tldv',       name: 'tl;dv',       domain: 'tldv.io',        description: 'Enregistrements & transcripts de réunions',     category: 'IA & Réunions', kind: 'env', envVars: ['TLDV_API_KEY'] },
+  { key: 'fathom',     name: 'Fathom',      domain: 'fathom.ai',      description: 'Enregistrements & transcripts de réunions',     category: 'IA & Réunions', kind: 'env', envVars: ['FATHOM_API_KEY'] },
   // Paiements
   { key: 'stripe',     name: 'Stripe',      domain: 'stripe.com',     description: 'Paiements & encaissements',                     category: 'Paiements', kind: 'manual', envVars: ['STRIPE_SECRET_KEY'] },
   // Communication
@@ -60,17 +62,21 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    if (!(await isApiCallerAdmin())) return NextResponse.json({ error: 'Réservé aux administrateurs.' }, { status: 403 })
     const { key, secret, account } = await req.json()
     if (!CATALOG.find(c => c.key === key)) return NextResponse.json({ error: 'Unknown integration' }, { status: 400 })
-    await convex().mutation(api.integrations.connect, { key, secret, account })
+    const convex = await authedConvexClient()
+    await convex.mutation(api.integrations.connect, { key, secret, account })
     return NextResponse.json({ ok: true })
   } catch (err) { return NextResponse.json({ error: String(err) }, { status: 500 }) }
 }
 
 export async function DELETE(req: NextRequest) {
   try {
+    if (!(await isApiCallerAdmin())) return NextResponse.json({ error: 'Réservé aux administrateurs.' }, { status: 403 })
     const { key } = await req.json()
-    await convex().mutation(api.integrations.disconnect, { key })
+    const convex = await authedConvexClient()
+    await convex.mutation(api.integrations.disconnect, { key })
     return NextResponse.json({ ok: true })
   } catch (err) { return NextResponse.json({ error: String(err) }, { status: 500 }) }
 }

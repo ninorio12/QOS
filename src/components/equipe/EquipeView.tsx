@@ -2,7 +2,8 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { Bot, Brain, Play, Pause, CheckSquare, ScrollText, MessageSquare, Send } from 'lucide-react'
+import { Bot, Brain, Play, Pause, CheckSquare, ScrollText } from 'lucide-react'
+import { CHANNEL_LOGO } from '@/components/agentic/BrandLogos'
 import {
   AGENT_PROFILES, resolveProfile, loadRuntime, saveRuntime, loadOverrides,
   type AgentProfile, type AgentRuntime,
@@ -13,8 +14,6 @@ import { Chip } from '@/components/agentic/ui'
 
 const fmtDate = (iso?: string) =>
   iso ? new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
-
-const CH_ICON: Record<string, typeof MessageSquare> = { slack: MessageSquare, telegram: Send }
 
 function MicroLabel({ children }: { children: React.ReactNode }) {
   return <span className="text-[9px] uppercase tracking-wide font-bold text-soren-subtle">{children}</span>
@@ -96,10 +95,10 @@ export default function EquipeView() {
                 </div>
                 <p className="text-[10px] text-soren-muted leading-snug line-clamp-2">{a.role}</p>
 
-                {/* Canaux (depuis la config agent) */}
+                {/* Canaux (logos officiels) */}
                 <div className="flex items-center gap-1">
-                  {a.channels.filter(c => CH_ICON[c]).map(c => { const CI = CH_ICON[c]; return (
-                    <span key={c} title={c} className="w-5 h-5 rounded-md bg-soren-elevated flex items-center justify-center text-soren-muted"><CI size={11} /></span>
+                  {a.channels.filter(c => CHANNEL_LOGO[c]).map(c => { const Logo = CHANNEL_LOGO[c]; return (
+                    <span key={c} title={c.charAt(0).toUpperCase() + c.slice(1)} className="w-5 h-5 rounded-md bg-soren-elevated flex items-center justify-center"><Logo size={13} /></span>
                   )})}
                 </div>
 

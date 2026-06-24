@@ -143,6 +143,20 @@ Use competitor context to create personalization and urgency, not false claims. 
 
 Avoid implying VividFlow is already working with or contacting named competitors unless true. Swiss B2B trust/discretion matters more than a manipulative FOMO spike.
 
+## Audit d'appel / accompagnement acquisition personnel
+
+When Jonathan sends or plans to send a call transcript/voice note for a prospect or client he will personally accompany, do not answer with generic reassurance or a long strategic preface. He is usually time-constrained and wants an operator-grade audit.
+
+Default output after receiving the transcript:
+- **lecture business**: what the person really wants, current revenue/acquisition situation, urgency, hidden constraints;
+- **audit de l'appel**: strong signals, weak signals, objections, what Jonathan missed or should not overpromise;
+- **offre recommandée**: what Jonathan personally can put in place, not “VividFlow agency delivery” unless he says so;
+- **plan concret**: acquisition system, ads/funnel/CRM/follow-up/offers/content only where relevant;
+- **first 7 days**: the smallest high-leverage implementation sequence;
+- **verdict tranché**: what to do first, what to avoid, and why.
+
+Positioning rule: if Jonathan says “ce n’est pas mon agence qui va le servir” or similar, frame the work as **his personal acquisition/growth expertise** and keep VividFlow/agency language out of the recommendation.
+
 ## Brainstorm vs script
 
 When Jonathan says he wants to brainstorm, do not jump into scripts, plans, or execution. Treat the moment as exploration between Jonathan, Thomas, and the assistant. The user may be sending information only to be registered; do not answer with an opinion, recommendation, or action framework unless he explicitly asks for your avis, a decision, a script, or next steps.
@@ -214,8 +228,13 @@ Projection follow-up call detail: see `references/projection-follow-up-call-patt
 
 Validated outbound projection V1 decisions from Jonathan/Thomas: see `references/outbound-projection-v1-decisions.md`. Use it when recreating the email, personalized page structure, tone, and locked sequence.
 
+Prospect projection Claude handoff: see `references/prospect-projection-prompt-handoff.md`. Critical rule: Schmid Signature-style assets are strict fill-in templates, not creative references. Preserve pages, fixed blocks, CTA, sequence, and mechanics; only fill variables after research. Use researched sector labels that are precise but not over-narrow, and keep personalized URLs as `https://vividflow.co/[company-slug]`.
+
 Projection/page role:
 - It should feel like a real first pass, not a brochure.
+- Treat existing Schmid Signature-style pages as locked templates à trous: do not add/remove/reorder pages, rename sections, change CTA, rewrite fixed blocks, or replace the narrative mechanic. Fill only validated variables.
+- When a page uses the pattern “Entre [métier], [métier] et [métier]…”, keep that form and make the business enjeu concrete, not generic.
+- Category labels must be researched: avoid both broad labels (“entreprise de service”) and over-specific labels that may be false. Name the best true category; do not dodge with “entreprises comme [Entreprise]” unless Jonathan explicitly asks for a safer fallback.
 - It can use data gathered by VividFlow agents from the company website and public sources, but the call should not list that research.
 - Standard scalable personalization for 100–200 leads/day: company, founder/decision-maker, canton/region, sector, activity summary, 2–3 likely operational frictions, and a mini-maquette of the future system.
 - Avoid making the page look like a new CRM/SaaS tool. Show an operational layer around the existing team and tools.
@@ -300,6 +319,8 @@ When Jonathan shares external cold-call training (e.g. Minozan), extract the ope
 - `references/kalvi-quiz-funnel-hack.md` — notes de funnel hack du quiz Kalvi: structure, angles, résultat, ce que VividFlow peut reprendre ou doit éviter.
 - `references/viral-ai-real-estate-vggt.md` — investigation pattern for viral open-source AI real-estate videos, including VGGT and the VividFlow positioning bridge.
 - `references/outbound-projection-v1-decisions.md` — locked V1 email and 7-screen personalized projection structure from the outbound brainstorm.
+- `references/prospect-projection-prompt-handoff.md` — filled Claude prompt pattern for personalized prospect projection pages after scraping a prospect website, including the CC Concept / Serge Corradini example.
+- `references/iclosed-booking-form-fields.md` — generic VividFlow iClosed booking form fields for Audit VividFlow/general B2B events, including role/source questions and referral conditional.
 - `references/vividflow-projection-call-email-loop.md` — Jonathan’s current validated email + projection + follow-up call logic, including phrasing pitfalls and Claude Code prompt context.
 - `references/kalvi-quiz-funnel-hack.md` — notes de funnel hack du quiz Kalvi: structure, angles, résultat, ce que VividFlow peut reprendre ou doit éviter.
 - `references/viral-ai-real-estate-vggt.md` — investigation pattern for viral open-source AI real-estate videos, including VGGT and the VividFlow positioning bridge.

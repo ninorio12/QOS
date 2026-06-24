@@ -1,0 +1,190 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260516_010926_b64a79
+source_file: /home/hermes/.hermes/sessions/20260516_010926_b64a79.jsonl
+source_sha256_16: 35542ce2b034a92d
+date: 2026-05-16
+---
+
+# Recovered session root/20260516_010926_b64a79
+
+
+## user — 2026-05-16T01:09:39.769277
+
+[Jonathan] J'ai essayé de reconnecter l'API de YouTube. Enfin, j'ai tout coupé parce que je devrais juste me recentrer sur la logique des choses et maintenant j'essaie d'implémenter ça. Donc je suis cette directive. Elle est meilleure : https://brvndlab-mockups.vercel.app/brvndlab-radar-scraping-hermes
+
+## user — 2026-05-16T01:09:39.769277
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+"install moi sa" (référence à l'architecture Radar Orbit / adaptive scraping sans Apify).
+
+## Goal
+Installer et configurer **Radar Orbit** sur le dépôt Brvndlab : une orchestration intelligente pour la veille YouTube/Instagram/TikTok qui évite le scraping coûteux (Apify) et privilégie un pipeline de transcripts `kome.ai → SearchAPI.io`.
+
+## Constraints & Preferences
+- Jonathan préfère des explications simples, digestes, concrètes.
+- **Supports/livrables visuels en PDF, jamais HTML**.
+- Réponses naturelles, fluides, substantielles mais pas en pavés ; tranchant avec discernement.
+- Mockups sur Vercel.
+- **Zéro secret** : remplacer les clés/tokens par `[REDACTED]`.
+
+## Completed Actions
+1. RECHERCHÉ les compétences internes — `brvndlab-autonomous-dev`, `brvndlab-product-brief` consultées [tool: skill_view].
+2. EXPLORÉ le dépôt distant `jonathanzekhe/brvndlab` — identifié la structure `brvndlab-app` avec Convex et Next.js [tool: mcp_github_get_file_contents].
+3. ANALYSÉ `convex/radarActions.ts` et `convex/schema.ts` — identifié l'usage massif d'Apify et les anciennes méthodes de scan quotidien [tool: mcp_github_get_file_contents].
+4. CRÉÉ une branche `tech/radar-orbit-install` sur le repo GitHub [tool: mcp_github_create_branch].
+5. INSTALLÉ `convex/radarOrbit.ts` — nouvel orchestrateur "heartbeat" qui planifie les scans de manière adaptative (priorité aux créateurs actifs) [tool: mcp_github_push_files].
+6. MIS À JOUR `convex/crons.ts` — remplacé le scan quotidien massif par le `heartbeat` Radar Orbit [tool: mcp_github_push_files].
+7. MIS À JOUR `src/app/api/get-transcript/route.ts` — aligné le pipeline de transcripts sur la stratégie sans Apify [tool: mcp_github_push_files].
+8. RÉGÉNÉRÉ `convex/_generated/api.d.ts` — mise à jour manuelle des types pour inclure les nouvelles fonctions Convex [tool: mcp_github_create_or_update_file].
+9. CRÉÉ la Pull Request #3 "Install Radar Orbit adaptive scraping" [tool: mcp_github_create_pull_request].
+10. MERGÉ la Pull Request #3 dans `main` — installation finalisée sur le repo distant [tool: mcp_github_merge_pull_request].
+11. TÉLÉCHARGÉ `radarActions.ts` localement — 79 497 octets récupérés pour nettoyage chirurgical de la logique de transcript [tool: terminal/python3].
+12. PATCHÉ `/home/hermes/tmp-brvndlab/radarActions.ts` — supprimé toute référence et appel réseau à **Apify**, redirection du flux vers `kome.ai`, `SearchAPI.io` ($0.005) et `YouTube Direct` [tool: patch].
+13. VÉRIFIÉ le linting — erreurs pré-existantes sur les types Convex détectées mais aucune nouvelle erreur syntaxique introduite [tool: patch].
+
+## Active State
+- Working directory : `/home/hermes/tmp-brvndlab` (pour le travail sur `radarActions.ts`).
+- Repo : `jonathanzekhe/brvndlab` (branche `main`).
+- Fichiers modifiés (localement ou mergés) :
+ - `convex/radarOrbit.ts` (Nouveau) : Heartbeat intelligent.
+ - `convex/crons.ts` (Modifié) : Planification Radar Orbit activée.
+ - `src/app/api/get-transcript/route.ts` (Modifié) : Pipeline transcript propre.
+ - `tmp-brvndlab/radarActions.ts` (En cours) : Désinfection Apify terminée localement.
+
+## In Progress
+Préparation du push final de `radarActions.ts` désinfecté vers GitHub pour finaliser l'installation "anti-gaspi".
+
+## Blocked
+- `gh` non installé : impossibilité d'utiliser la CLI GitHub, passage par MCP GitHub uniquement.
+- `git clone` échoue : manque de credentials interactifs, utilisation de `mcp_github_get_file_contents` pour lire et Python pour télécharger.
+
+## Key Decisions
+- **Abandon total d'Apify** dans le pipeline Radar : les coûts étaient jugés trop risqués. Remplacement par un switch dynamique : Cache → `kome.ai` (Gratuit) → Route Vercel → `SearchAPI.io` ($) → Scrape Direct.
+- **Orchestration Adaptive** : au lieu de scanner tout le monde une fois par jour (quota lourd), `radarOrbit` vérifie les créateurs à des fréquences variables selon leur historique de publication.
+
+## Resolved Questions
+- "À quoi ça va ressembler ?" : Réponse visuelle fournie via PDF et installation technique réalisée via une architecture orientée "heartbeat" sur Convex.
+- "Comment éviter les coûts Instagram/Apify ?" : En implémentant un check léger d'activité avant de déclencher des scrapings profonds (configuré dans `radarOrbit`).
+
+## Pending User Asks
+- Finaliser le remplacement du code dans `radarActions.ts` sur le repo principal.
+
+## Relevant Files
+- `brvndlab-app/convex/radarOrbit.ts` : Cœur de la logique adaptative.
+- `brvndlab-app/convex/radarActions.ts` : Contient les actions lourdes de scraping et recherche.
+- `brvndlab-app/src/app/api/get-transcript/route.ts` : Proxy de transcription intelligent.
+
+## Remaining Work
+1. Pousser les modifications locales de `radarActions.ts` vers le dépôt GitHub `main`.
+2. Vérifier si Jonathan souhaite tester l'exécution manuelle d'un heartbeat via le dashboard Convex.
+3. Préparer l'UI pour afficher les statuts de "due date" de scan de chaque créateur (facultatif).
+
+## Critical Context
+- `CONVEX_DEPLOY_KEY` est configurée en environnement.
+- L'URL de la route Vercel par défaut est `https://app.brvndlab.com`.
+- Les crédentiels [REDACTED] ont été purgés de toute trace locale ou PR.
+
+--- END OF CONTEXT SUMMARY — respond to the message below, not the summary above ---
+
+## assistant — 2026-05-16T01:09:39.769277
+
+C’est installé et mergé sur `main`.
+
+Ce que j’ai mis en place :
+
+- **Radar Orbit heartbeat**
+ - Nouveau fichier `convex/radarOrbit.ts`
+ - Scan uniquement les créateurs YouTube “dus”
+ - Cadence adaptative :
+ - jamais scanné → immédiat
+ - gros/actif → toutes les 12h
+ - standard → 24h
+ - froid → 48h
+
+- **Suppression du rescan massif quotidien**
+ - Le cron `radar competitors daily rescan` est remplacé par :
+ - `radar orbit heartbeat` toutes les 2h
+
+- **YouTube propre**
+ - Pas d’OAuth utilisateur pour la veille
+ - On reste sur `YOUTUBE_API_KEY` serveur
+
+- **Transcripts route Vercel nettoyée**
+ - `/api/get-transcript` passe en :
+ - `kome.ai → SearchAPI.io`
+ - Apify retiré de cette route
+
+- **Pas de migration schema**
+ - On utilise les champs existants : `lastScannedAt`, `followerCount`, `postCount`, `avgViewsPerPost`
+
+PR mergée : 
+https://github.com/jonathanzekhe/brvndlab/pull/3
+
+Point à savoir : il reste dans `radarActions.ts` un vieux fallback Apify côté action Convex d’analyse profonde. La route principale transcript est clean, mais pour du **zéro Apify end-to-end**, il faut faire un second patch pour le retirer aussi de cette action.
+
+## user — 2026-05-16T01:09:39.769277
+
+[Jonathan] Comme je suis en train de travailler sur Claude Code aussi, il faut que je transfère cette information-là. Fais-moi un message concret, puis je réponds à Claude Code
+
+## assistant — 2026-05-16T01:09:39.769277
+
+Copie-colle ça à Claude Code :
+
+```text
+Contexte Brvndlab Radar :
+
+On abandonne complètement l’approche YouTube OAuth / reconnexion API utilisateur. Pour la veille Radar, la bonne logique est une architecture “Radar Orbit” : orchestration adaptative, pas scraping massif, pas Apify.
+
+Directive produit/tech à suivre :
+https://brvndlab-mockups.vercel.app/brvndlab-radar-scraping-hermes
+
+Ce qui est déjà installé/mergé sur main :
+- Nouveau fichier Convex : convex/radarOrbit.ts
+- Cron Convex remplacé : au lieu d’un scan massif quotidien, on lance un heartbeat Radar Orbit toutes les 2h
+- Logique : scanner uniquement les créateurs “dus”, selon leur activité/historique
+- Cadence adaptative :
+ - jamais scanné → immédiat
+ - créateur actif/gros → toutes les 12h
+ - standard → toutes les 24h
+ - froid → toutes les 48h
+- Route transcript Vercel nettoyée : src/app/api/get-transcript/route.ts
+- Pipeline transcript voulu :
+ Cache → kome.ai → SearchAPI.io → YouTube direct fallback si nécessaire
+- Apify est interdit pour ce flow, car trop risqué/coûteux.
+
+Important :
+Il reste potentiellement du vieux code Apify dans convex/radarActions.ts. Il faut finir de le désinfecter pour avoir un pipeline zéro Apify end-to-end.
+
+Objectif maintenant :
+1. Auditer convex/radarActions.ts
+2. Supprimer toute dépendance / appel / fallback Apify
+3. Remplacer par la logique :
+ - d’abord cache interne si dispo
+ - ensuite route /api/get-transcript
+ - ensuite SearchAPI.io si nécessaire
+ - jamais Apify
+4. Garder le Brand OS / Radar comme source d’intelligence, pas juste un scraper
+5. Ne pas refactorer tout le module inutilement : patch chirurgical uniquement
+6. Vérifier build/lint/types Convex après changement
+```
+
+Version courte si tu veux lui envoyer plus direct :
+
+```text
+On ne reconnecte pas YouTube OAuth. On suit Radar Orbit :
+https://brvndlab-mockups.vercel.app/brvndlab-radar-scraping-hermes
+
+Déjà mergé sur main :
+- convex/radarOrbit.ts
+- heartbeat toutes les 2h dans convex/crons.ts
+- /api/get-transcript aligné sur kome.ai → SearchAPI.io
+- plus de scan massif quotidien
+
+À faire côté Claude Code :
+auditer et patcher convex/radarActions.ts pour supprimer définitivement Apify. Objectif zéro Apify end-to-end. Patch chirurgical uniquement, pas de refacto large.
+```

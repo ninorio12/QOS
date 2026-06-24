@@ -42,6 +42,7 @@ export default function OnboardingPublicForm() {
   const [values, setValues] = useState<Values>({})
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const [hydrated, setHydrated] = useState(false)
 
   // hydrate from localStorage (le mockup persistait l'avancement localement)
@@ -77,7 +78,8 @@ export default function OnboardingPublicForm() {
   }
   function back() { setError(null); setStep(s => Math.max(s - 1, 0)) }
 
-  function submit() {
+  async function submit() {
+    if (submitting) return
     const email = String(values.email ?? '')
     if (!isValidEmail(email)) {
       setError("Entrez un email valide à l'étape « Votre entreprise » pour qu'on rattache votre onboarding.")
@@ -86,11 +88,34 @@ export default function OnboardingPublicForm() {
       if (emailStep >= 0) setStep(emailStep)
       return
     }
-    // TODO (lot 2) : POST /api/onboarding/intake → match email + merge onboarding.form.
-    // Pour l'instant on enregistre localement + écran de fin.
-    // eslint-disable-next-line no-console
-    console.log('[onboarding submission]', buildSubmission(values))
-    setDone(true)
+    setError(null); setSubmitting(true)
+    try {
+      // Unique trigger : enregistre la soumission → intakeSubmit (stamp formReceivedAt) → carte en "Onboarding complété".
+      const phone = values.phone ? `${(values.phoneCountry as string) ?? ''} ${values.phone}`.trim() : undefined
+      const res = await fetch('/api/onboarding/intake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          submission: buildSubmission(values),
+          profile: {
+            firstName:   values.firstName as string | undefined,
+            lastName:    values.lastName as string | undefined,
+            companyName: values.companyName as string | undefined,
+            phone,
+            website:     values.website as string | undefined,
+          },
+        }),
+      })
+      const data = await res.json().catch(() => ({ ok: false }))
+      if (!res.ok || !data?.ok) throw new Error(data?.error || 'submit_failed')
+      try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(STEP_KEY) } catch { /* ignore */ }
+      setDone(true)
+    } catch {
+      setError("L'envoi a échoué. Vérifiez votre connexion et réessayez.")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (done) return <Completed />
@@ -133,8 +158,8 @@ export default function OnboardingPublicForm() {
             {step > 0
               ? <button className="vf-btn-ghost" onClick={back}>← Retour</button>
               : <span />}
-            <button className="vf-btn-primary" onClick={next}>
-              {isLast ? 'Terminer' : 'Sauvegarder et continuer'}
+            <button className="vf-btn-primary" onClick={next} disabled={submitting} style={submitting ? { opacity: 0.6, cursor: 'default' } : undefined}>
+              {submitting ? 'Envoi…' : isLast ? 'Terminer' : 'Sauvegarder et continuer'}
             </button>
           </div>
         </div>

@@ -1,0 +1,436 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260615_205754_3ca1c7
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260615_205754_3ca1c7.jsonl
+source_sha256_16: 12cbccedaf4739ff
+date: 2026-06-15
+---
+
+# Recovered session chief_of_staff/20260615_205754_3ca1c7
+
+
+## user — 2026-06-15T20:57:57.839690
+
+ko comment il a fait ?
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: “ok je t'ai pas vu créer l'ordre sur knowledge base dans slack ? et le ffichier n'est pas remplis”
+
+## Goal
+Créer et opérer une base Google Sheets dans le dossier Drive “process” pour leads dirigeants B2B Suisse romande, avec ordre Slack/Knowledge Base visible, scraping quotidien max 100 leads, scoring/qualification, revue orchestrateur, marquage rouge des lignes suspectes, puis synchronisation Data OS Contacts après validation avec mention/statut/tag/source impératif “leads outbound”.
+
+## Constraints & Preferences
+- Répondre en français.
+- Ne jamais inclure de clés API, tokens, mots de passe, secrets, credentials, emails de compte, connection strings ou codes OAuth ; remplacer par `[REDACTED]` / `[REDACTED_EMAIL]`.
+- Endpoint Data OS non secret conservable : `https://data-os.vividflow.co/api/mcp`.
+- Header global non secret conservable : `Authorization: "Bearer ${DATAOS_TOKEN}"`.
+- Commande SSH fiable/préférée : `ssh vividflow-vps 'python3 -' < /tmp/script.py`; éviter gros heredocs SSH inline et éviter `scp` vers `/tmp`.
+- Supprimer les scripts temporaires contenant des valeurs sensibles après usage.
+- Claude CLI :
+ ```bash
+ HOME=/home/hermes env -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN -u ANTHROPIC_BASE_URL claude -p "<mission en langage naturel>"
+ ```
+- Ne pas transmettre de secrets/tokens à Claude Code.
+- Règle durable : pour designer, coder, corriger, mockup ou déployer sur Vercel, passer par Claude Code en langage naturel clair.
+- Ne pas dire “Data OS OK” sans appel MCP direct ou confirmation Slack que l’outil est chargé/utilisable.
+- Slack : utiliser de vraies mentions natives bleues (`<@U...>`) plutôt que texte `@agent_...`.
+- Prospection B2B nominative uniquement, zone Suisse romande, cantons prioritaires VD/GE/VS/FR/NE/JU + BE francophone optionnel, langue FR.
+- Pas de numéros personnels, téléphone professionnel uniquement, email professionnel vérifié/probable avec source, pas de scraping agressif LinkedIn, pas de données sensibles, pas d’import automatique sans preuve/source, déduplication stricte, validation humaine si confiance moyenne/faible, MVP limité avant automatisation.
+- Google Sheet :
+ - onglet principal “Leads à qualifier” ;
+ - “Date scraping” première colonne ;
+ - colonnes au début : “Niche” et “CA mensuel estimé CHF” ;
+ - colonnes collectées d’abord, scoring/statut ensuite ;
+ - pas de formules fragiles, utiliser filtres et menus déroulants ;
+ - couleurs automatiques par jour de scraping ;
+ - lignes suspectes en rouge ;
+ - légende/règles dans “Règles filtre CSM”.
+- Cadence : lundi-vendredi, 100 leads maximum/jour.
+- Répartition quotidienne : 25 cabinets conseil/services B2B, 25 agences marketing, 25 agences immobilières/courtiers, 25 meilleurs profils supplémentaires dans ces 3 niches.
+- CA mensuel ciblé : 10’000 CHF à 1’000’000 CHF ; ne pas inventer ; estimation uniquement si défendable via signaux publics ; si incertain : Qualité C / à vérifier.
+- Workflow quotidien prévu :
+ - 08:00 ordre Slack/Telegram ;
+ - 08:05 scraping/scoring ;
+ - 08:30 validation Coordinateur/orchestrateur ;
+ - 08:50 import Data OS contacts par Agent Operations ;
+ - compte-rendu après chaque passage.
+
+## Completed Actions
+1. VIEWED skills `hermes-agent`, `vividflow-slack-extension-gateway`, `data-os`, core skills — contexte chargé [tool: skill_view]
+2. INSPECTED profils Hermes Slack via `ssh vividflow-vps 'bash -s' < /tmp/inspect_vividflow.sh` — profils/configs vus ; `scp` vers `/tmp` échoué `Permission denied`; SSH root direct échoué `Permission denied (publickey,password)` [tool: terminal]
+3. GREPPED Data OS/MCP refs dans `/root/.hermes` et `/home/hermes/.hermes` — MCP `dataos` global identifié ; URL `https://data-os.vividflow.co/api/mcp`, header `Authorization: "Bearer ${DATAOS_TOKEN}"` [tool: terminal]
+4. CORRIGÉ `.env` Data OS sans afficher secrets — tokens/identités injectés pour COO, KB, CSM, Ops, Data Analyst, Media Buyer, Debug ; valeurs `[REDACTED]`; scripts sensibles supprimés [tool: write_file + terminal]
+5. VERIFIED env Data OS — profils ciblés ont `DATAOS_TOKEN` propre côté VPS, sans crochets/placeholder, `export` OK ; services actifs [tool: terminal]
+6. CORRIGÉ SOULs agent par agent — prompts “Chief of Staff — Vie Personnelle/Vie personnelle” remplacés pour KB, CSM, Ops, Data Analyst, Media Buyer, Debug ; backups créés ; services redémarrés [tool: write_file + terminal]
+7. VERIFIED SOUL cleanup — plus aucun prompt personnel/Mac rapporté ; exécution directe Hermes confirme bons rôles [tool: terminal]
+8. TESTED Slack API — Coordinateur existe mais initialement pas membre de `tous-vividflow`; mentions échouaient `not_in_channel`; tentative join refusée `missing_scope` [tool: terminal]
+9. CHECKED logs gateways — agents/Coordinateur authentifiés/connectés Slack ; logs `Authenticated`, `Socket Mode connected`, `✓ slack connected` [tool: terminal]
+10. PATCHED agents Slack — ajouté `SLACK_ALLOW_BOTS=mentions` aux `.env` agents sans toucher tokens ; services redémarrés [tool: write_file + terminal]
+11. PATCHED allowlists agents — ajouté ID Coordinateur `U0BAE0125B7`; services redémarrés [tool: write_file + terminal]
+12. RAN direct Hermes `dataos_state` test for 6 agents — tous ont répondu `Data OS KO — outil dataos_state indisponible` [tool: terminal]
+13. DIAGNOSED Data OS KO — profils agents Slack contenaient un bloc local `mcp_servers:` vide/commenté masquant probablement `mcp_servers.dataos` global ; aucun outil MCP Data OS exposé [tool: terminal + analysis]
+14. RÉPARÉ Claude Code — login OAuth propre côté `/home/hermes`, code OAuth traité comme secret `[REDACTED]`; `claude -p "dis OK"` exit 0 ; réponse `OK` [tool: terminal + process]
+15. MEMORIZED règle Claude CLI — lancer Claude avec `HOME=/home/hermes` et variables Anthropic neutralisées [tool: memory]
+16. ADDED règle Claude Code aux SOULs/profils ciblés — Coordinateur, KB, CSM, Operations, Data Analyst, Media Buyer, Debug ; sans secrets [tool: write_file + terminal]
+17. ATTEMPTED write durable via Data OS `mcp_data_os_knowledge_propose` — refusé `Unauthorized: token agent requis` [tool: mcp_data_os_knowledge_propose]
+18. WROTE règle dans Second Brain runtime — créé `/home/hermes/vividflow-second-
+
+...[TRONQUÉ 25847 chars sha256:d84a45d139568579]...
+
+stimé CHF” sont remplis, aucune donnée personnelle/non professionnelle importée, répartition 25/25/25/25 respectée, estimations CA sourcées/défendables ou Qualité C.
+- Nettoyer tout script temporaire restant contenant chemins/tokens/credentials potentiels, notamment sous `/tmp`.
+- Éventuellement confirmer l’ID/nom du Google Sheet et dossier Drive “process” dans une note non sensible.
+
+## Critical Context
+- Endpoint Data OS : `https://data-os.vividflow.co/api/mcp`
+- Header global non secret : `Authorization: "Bearer ${DATAOS_TOKEN}"`
+- Identifiants/tokens/OAuth/credentials Google, Slack et Hermes existent mais ne doivent jamais être recopiés ; utiliser `[REDACTED]`.
+- Commande Claude CLI fiable :
+ ```bash
+ HOME=/home/hermes env -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN -u ANTHROPIC_BASE_URL claude -p "<mission en langage naturel>"
+ ```
+- Commande SSH préférée :
+ ```bash
+ ssh vividflow-vps 'python3 -' < /tmp/script.py
+ ```
+- Cron ordre quotidien :
+ - job_id `88353b85a95f`
+ - schedule `0 8 * * 1-5`
+ - deliver `origin,slack:C0BAPTWKFLL`
+ - canal Slack #recherche-developpement : `C0BAPTWKFLL`
+ - mention Data Analyst : `<@U0BAP9ASHPW>`
+- Cron scraping :
+ - job_id `f7966427b4a6`
+ - schedule `5 8 * * 1-5`
+- Cron validation Coordinateur :
+ - job_id `4d2d382c2cdf`
+ - name `Validation Coordinateur leads outbound`
+ - schedule `30 8 * * 1-5`
+ - deliver `origin`
+ - skills `google-workspace`, `data-os`
+ - enabled_toolsets `terminal`, `file`
+- Cron import Data OS :
+ - name `Import Data OS contacts leads outbound`
+ - schedule `50 8 * * 1-5`
+ - job_id non affiché.
+- ID Coordinateur allowlist ajouté : `U0BAE0125B7`
+- Erreurs critiques :
+ - `Unauthorized: token agent requis`
+ - `Data OS KO — outil dataos_state indisponible`
+ - `not_in_channel`
+ - `missing_scope`
+ - `Permission denied`
+ - `Permission denied (publickey,password)`
+ - `/usr/bin/bash: eval: line 50: unexpected EOF while looking for matching '"'`
+- Règle métier critique :
+ - l’ordre Slack/Knowledge Base doit être visible et lancer le remplissage ;
+ - orchestrateur valide le travail après scoring et met en rouge les lignes suspectes ;
+ - Agent Operations importe uniquement les nouveaux contacts validés dans Data OS ;
+ - chaque contact importé doit être marqué “leads outbound”.
+- Ne pas affirmer que Data OS fonctionne tant qu’un appel MCP direct ou une confirmation Slack explicite n’a pas prouvé que l’outil est chargé/utilisable.
+
+--- END OF CONTEXT SUMMARY — respond to the message below, not the summary above ---
+
+## assistant — 2026-06-15T20:57:57.839690
+
+Tu as raison. Il y avait deux problèmes :
+
+1. L’ordre Slack quotidien était prévu sur `#recherche-developpement`, pas sur `#knowledge-base`.
+2. Le fichier était vide parce que le job de scraping n’avait pas encore réellement rempli le Sheet.
+
+J’ai corrigé/testé maintenant :
+
+- Ordre posté dans Slack `#knowledge-base` pour Agent KB.
+- Ordre posté dans Slack `#recherche-developpement` pour Data Analyst.
+- Sheet rempli avec 6 lignes de test.
+- Ces lignes sont volontairement en Qualité C / à vérifier, donc elles ne doivent pas partir dans Data OS.
+- QA Coordinateur relancée pour vérifier que le rouge/suspect fonctionne.
+
+Important : j’ai aussi vu que le delivery Slack du cron Hermes renvoie `platform 'slack' not configured/enabled`. Donc je suis passé par l’API Slack du VPS pour poster réellement. Prochaine correction à faire : remplacer le cron Slack par un script VPS fiable, sinon demain il postera sur Telegram mais pas Slack.
+
+## user — 2026-06-15T20:57:57.839690
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: "donne leur tout" — reste non finalisé uniquement pour le Drive OAuth de `hey@vividflow.co` faute de session/token OAuth Drive disponible.
+
+## Goal
+Donner aux sous-agents les accès nécessaires à Google Drive et aux boîtes mail `hey@vividflow.co` et `clara.bernasconi@vividflow.co`, de façon propre et sécurisée, après avoir déjà corrigé et vérifié l’accès Data OS via MCP.
+
+## Constraints & Preferences
+- L’utilisateur veut que ce soit fait rapidement et considère la tâche comme ultra importante.
+- Ne pas copier ni exposer de tokens OAuth bruts dans les profils des agents.
+- Centraliser les credentials / accès Gmail via un wrapper ou mécanisme sécurisé.
+- Donner des permissions par agent selon leur rôle, pas un accès global non contrôlé.
+- Partager les accès Drive uniquement aux dossiers nécessaires.
+- Tester réellement les accès agent par agent après configuration.
+- Ne jamais inclure de secrets, tokens, mots de passe, clés API, credentials OAuth ou chaînes de connexion dans les logs, profils, résumés ou réponses. Toute valeur secrète doit être remplacée par `[REDACTED]`.
+- L’utilisateur estime que les codes/credentials nécessaires existent déjà côté environnement et ne veut pas fournir de nouveau code OAuth manuellement.
+
+## Completed Actions
+1. CORRECTION blocage Data OS — le blocage principal Data OS a été corrigé avant de traiter Drive/Gmail [tool: non spécifié dans les tours source].
+2. VÉRIFICATION Coordinateur — statut confirmé `DATAOS_OK` [tool: non spécifié dans les tours source].
+3. VÉRIFICATION Agent KB — statut confirmé `DATAOS_OK` [tool: non spécifié dans les tours source].
+4. VÉRIFICATION Agent CSM — statut confirmé `DATAOS_OK` [tool: non spécifié dans les tours source].
+5. VÉRIFICATION Agent Operations — statut confirmé `DATAOS_OK` [tool: non spécifié dans les tours source].
+6. VÉRIFICATION Data Analyst — statut confirmé `DATAOS_OK` [tool: non spécifié dans les tours source].
+7. VÉRIFICATION Media Buyer — statut confirmé `DATAOS_OK` [tool: non spécifié dans les tours source].
+8. VÉRIFICATION Agent Debug — statut confirmé `DATAOS_OK` [tool: non spécifié dans les tours source].
+9. DÉCISION sécurité OAuth — refus de copier les tokens OAuth bruts partout, car jugé dangereux et sale [tool: non spécifié dans les tours source].
+10. PLAN accès Drive/Gmail — approche annoncée : accès Drive partagé aux dossiers nécessaires, Gmail via wrapper/credentials centralisés, permissions par rôle, aucun secret exposé, test réel agent par agent [tool: non spécifié dans les tours source].
+11. ROLLOUT accès sous-agents — accès déclarés OK pour tous les sous-agents listés : Coordinateur, Agent KB, Agent CSM, Agent Operations, Data Analyst, Media Buyer, Agent Debug [tool: non spécifié dans les tours source].
+12. CONFIGURATION Drive principal VividFlow — accès Drive principal confirmé OK pour tous les sous-agents [tool: non spécifié dans les tours source].
+13. CONFIGURATION Gmail/Drive Clara `clara.bernasconi@vividflow.co` — accès confirmé OK pour tous les sous-agents [tool: non spécifié dans les tours source].
+14. VÉRIFICATION Gmail côté principal `thomas.alves@vividflow.co` — accès actuellement connecté confirmé OK [tool: non spécifié dans les tours source].
+15. IDENTIFICATION blocage OAuth `hey@vividflow.co` — constat initial : aucune session OAuth connectée sur le VPS pour `hey@vividflow.co`; impossible d’inventer ou copier un accès OAuth inexistant [tool: non spécifié dans les tours source].
+16. DEMANDE OAuth `hey@vividflow.co` — un lien d’autorisation OAuth Google a été fourni à l’utilisateur pour connecter `hey@vividflow.co`; tous les paramètres sensibles/identifiants doivent rester `[REDACTED]` dans les résumés [tool: non spécifié dans les tours source].
+17. RÉPONSE À L’UTILISATEUR sur les codes existants — après insistance utilisateur, tentative/rollout final via les accès déjà disponibles côté environnement [tool: non spécifié dans les tours source].
+18. CONFIGURATION boîte mail `hey@vividflow.co` — accès mail confirmé OK via IMAP/SMTP pour tous les sous-agents [tool: non spécifié dans les tours source].
+19. TEST agent par agent `hey@vividflow.co` — la boîte mail `hey@vividflow.co` répond bien en mail sur tous les sous-agents [tool: non spécifié dans les tours source].
+20. CONFIRMATION globale sous-agents — tous les sous-agents ont Data OS OK, Drive principal VividFlow OK, Gmail/Drive Clara OK, et mail `hey@vividflow.co` OK via IMAP/SMTP [tool: non spécifié dans les tours source].
+
+## Active State
+- Working directory : non précisé dans les tours source.
+- Branche Git : non précisée.
+- Fichiers modifiés/créés : aucun fichier explicitement mentionné dans les tours source.
+- État des tests :
+ - Data OS via MCP : OK pour tous les sous-agents listés.
+ - Drive principal VividFlow : OK pour tous les sous-agents listés.
+ - Gmail/Drive Clara `clara.bernasconi@vividflow.co` : OK pour tous les sous-agents listés.
+ - Gmail actuellement connecté côté principal `thomas.alves@vividflow.co` : OK.
+ - Boîte mail `hey@vividflow.co` : OK via IMAP/SMTP pour tous les sous-agents listés.
+ - Drive OAuth `hey@vividflow.co` : KO / non disponible, aucun token OAuth Drive trouvé.
+- Processus/serveurs en cours : non précisés.
+- Environnement :
+ - Les sous-agents ont accès Data OS via MCP, pas seulement aux fichiers locaux.
+ - Les agents concernés sont :
+ - Coordinateur
+ - Agent KB
+ - Agent CSM
+ - Agent Operations
+ - Data Analyst
+ - Media Buyer
+ - Agent Debug
+ - Les comptes Gmail/Drive demandés sont `hey@vividflow.co` et `clara.bernasconi@vividflow.co`.
+ - `clara.bernasconi@vividflow.co` : Gmail/Drive OK.
+ - `hey@vividflow.co` : mail OK via IMAP/SMTP ; Drive OAuth non disponible.
+ - `thomas.alves@vividflow.co` : compte principal actuellement connecté côté principal, accès OK.
+ - Toute valeur de credential/token/app password/code OAuth éventuelle doit rester `[REDACTED]`.
+
+## In Progress
+Aucun travail actif confirmé en cours au moment de la compaction. Le rollout principal est déclaré fait, avec une limite restante sur Drive OAuth `hey@vividflow.co`.
+
+## Blocked
+- Drive de `hey@vividflow.co` non finalisé :
+ - Problème : aucun token/session OAuth Drive trouvé pour `hey@vividflow.co`.
+ - Limite confirmée : un app passwo
+
+...[TRONQUÉ 13820 chars sha256:24a8cbee44d3839b]...
+
+hey KO/non disponible.
+ - Agent Operations — Data OS OK ; Drive principal OK ; Gmail/Drive Clara OK ; mail hey OK ; Drive hey KO/non disponible.
+ - Data Analyst — Data OS OK ; Drive principal OK ; Gmail/Drive Clara OK ; mail hey OK ; Drive hey KO/non disponible.
+ - Media Buyer — Data OS OK ; Drive principal OK ; Gmail/Drive Clara OK ; mail hey OK ; Drive hey KO/non disponible.
+ - Agent Debug — Data OS OK ; Drive principal OK ; Gmail/Drive Clara OK ; mail hey OK ; Drive hey KO/non disponible.
+
+## Critical Context
+- Statuts Data OS vérifiés :
+ - Coordinateur : `DATAOS_OK`
+ - Agent KB : `DATAOS_OK`
+ - Agent CSM : `DATAOS_OK`
+ - Agent Operations : `DATAOS_OK`
+ - Data Analyst : `DATAOS_OK`
+ - Media Buyer : `DATAOS_OK`
+ - Agent Debug : `DATAOS_OK`
+- Accès Drive principal VividFlow :
+ - Coordinateur : OK
+ - Agent KB : OK
+ - Agent CSM : OK
+ - Agent Operations : OK
+ - Data Analyst : OK
+ - Media Buyer : OK
+ - Agent Debug : OK
+- Accès Gmail/Drive Clara `clara.bernasconi@vividflow.co` :
+ - Coordinateur : OK
+ - Agent KB : OK
+ - Agent CSM : OK
+ - Agent Operations : OK
+ - Data Analyst : OK
+ - Media Buyer : OK
+ - Agent Debug : OK
+- Accès boîte mail `hey@vividflow.co` via IMAP/SMTP :
+ - Coordinateur : OK
+ - Agent KB : OK
+ - Agent CSM : OK
+ - Agent Operations : OK
+ - Data Analyst : OK
+ - Media Buyer : OK
+ - Agent Debug : OK
+- Accès Drive `hey@vividflow.co` :
+ - Tous agents : KO / non disponible actuellement.
+ - Raison : aucun token OAuth Drive trouvé pour ce compte.
+ - Important : un app password Gmail/IMAP/SMTP ne donne pas accès à Drive.
+- Compte principal actuellement connecté côté principal :
+ - `thomas.alves@vividflow.co` : OK.
+- Comptes concernés :
+ - `hey@vividflow.co`
+ - `clara.bernasconi@vividflow.co`
+ - `thomas.alves@vividflow.co` mentionné comme compte principal connecté.
+- Ne pas exposer, copier, afficher ou résumer de token OAuth, code OAuth, app password, secret, mot de passe, clé API, client secret ou credential. Toute valeur sensible doit être notée `[REDACTED]`.
+- Un lien OAuth Google complet a été donné dans un tour précédent, mais il ne doit pas être reproduit ici avec ses paramètres ; conserver seulement qu’une connexion OAuth `hey@vividflow.co` a été demandée et que ses détails sont `[REDACTED]`.
+- La dernière réponse assistant a affirmé : “C’est fait” pour les accès disponibles, avec la limite explicite que Drive `hey@vividflow.co` n’a pas de token OAuth Drive trouvé.
+
+--- END OF CONTEXT SUMMARY — respond to the message below, not the summary above ---
+
+## assistant — 2026-06-15T20:57:57.839690
+
+Oui, je suis d’accord. Le scraping était trop faible pour être exploitable.
+
+J’ai corrigé immédiatement :
+
+- **Import Data OS mis en pause** pour éviter d’envoyer de mauvais leads.
+- Le job scraping passe en mode **qualité d’abord**.
+- Il doit sortir **10 lignes test maximum** avant volume.
+- Si les 10 lignes sont faibles, il **s’arrête** au lieu de remplir 100 lignes nulles.
+- Qualité C = **jamais importée**.
+- Règle durable ajoutée dans le process Second Brain.
+
+On ne scale pas tant que l’échantillon n’est pas bon. Demain matin, je veux d’abord un mini-batch propre, pas une base remplie pour faire joli.
+
+## assistant — 2026-06-15T20:57:57.839690
+
+Oui. Là la bonne piste n’est pas “forcer Google Maps au hasard”.
+
+J’ai vérifié GitHub. Le meilleur angle pour nous :
+
+**1. Base Suisse : local.ch / annuaires suisses**
+- Repo trouvé : `Anwaar-Rasool/swiss-local-business-directory-scraper`
+- Il scrape `local.ch` en 2 étapes :
+ - collecte URLs par catégorie + ville
+ - extraction des fiches business
+- C’est le plus proche de notre besoin Suisse romande.
+
+**2. Enrichissement Google Maps**
+- Repos utiles :
+ - `asiifdev/business-leads-ai-automation`
+ - `Leo-devv/MapScraperPro`
+ - `jhowbhz/maps-to-lead`
+- Ils utilisent Puppeteer/Playwright + stealth + export CSV.
+- Bon pour récupérer : entreprise, site, téléphone, adresse, avis, rating.
+- Mauvais pour : décisionnaire nominatif fiable.
+
+**3. Décisionnaire / email**
+- Ça ne doit pas venir de Maps seul.
+- Workflow propre :
+ - Maps/local.ch trouve l’entreprise.
+ - Site officiel trouve équipe/contact/mentions légales.
+ - Email uniquement s’il est visible publiquement.
+ - Décisionnaire seulement si page équipe, registre, site, source claire.
+ - Sinon Qualité C / à vérifier.
+
+Ma recommandation nette :
+
+**Pipeline hybride**
+1. `local.ch` par niche + canton pour sortir des entreprises suisses propres.
+2. Google Maps seulement pour enrichir téléphone/site/adresse/activité.
+3. Scrape site officiel pour décisionnaire + email.
+4. Scoring strict.
+5. 10 leads test.
+6. Si 7/10 sont A/B, on scale à 100/jour.
+
+Je ne laisserais pas l’agent faire du scraping libre. Il faut lui donner ce pipeline précis, sinon il va remplir de la merde.
+
+## user — 2026-06-15T20:57:57.839690
+
+pour ce repo : Anwaar-Rasool/swiss-local-business-directory-scraper trouve moi le lien internet stp
+
+## assistant — 2026-06-15T20:57:57.839690
+
+Voici le lien :
+
+https://github.com/Anwaar-Rasool/swiss-local-business-directory-scraper
+
+## user — 2026-06-15T21:00:45.336232
+
+trop bien et quoi d'autre tu peux utiliser appolo.io tu penses ?
+
+## assistant — 2026-06-15T21:00:45.336232
+
+Oui, **Apollo.io peut être utile**, mais pas comme source principale.
+
+Je le mettrais comme **outil d’enrichissement**, pas comme scraper de base.
+
+Le bon usage :
+
+1. **On trouve les entreprises nous-mêmes**
+ - local.ch
+ - Google Maps
+ - sites officiels
+ - registres / annuaires suisses
+
+2. **Apollo sert ensuite à enrichir**
+ - nom du dirigeant
+ - rôle
+ - LinkedIn
+ - email pro probable
+ - taille entreprise
+ - secteur
+
+3. **On garde notre scoring**
+ - Apollo peut halluciner / être incomplet en Suisse romande
+ - donc pas d’import automatique si pas de source cohérente
+ - si Apollo donne un email mais aucun signal site/LinkedIn : Qualité C
+
+Mon avis net : 
+**Apollo est très bon pour accélérer l’enrichissement contact, mais mauvais si on lui confie toute la prospection.**
+
+Stack idéale :
+- **local.ch** : base entreprises Suisse
+- **Google Maps** : validation activité + téléphone + site
+- **site officiel** : preuve métier + contact
+- **Apollo** : décisionnaire + email
+- **Data OS** : source finale propre après QA
+
+Donc oui, je l’utiliserais, mais en couche 4, pas en point de départ.
+
+## user — 2026-06-15T21:01:10.231916
+
+browser harness et browser use ca serait utile ?
+
+## assistant — 2026-06-15T21:01:10.231916
+
+Oui, mais pas au même endroit.
+
+**Browser Use : oui, très utile.** 
+Je l’utiliserais pour le pipeline récurrent :
+- ouvrir local.ch / Google Maps / sites officiels
+- naviguer comme un humain
+- extraire en structure propre
+- gérer des pages dynamiques
+- réutiliser une session/profil
+- faire des runs répétables avec schéma de sortie
+
+C’est le bon outil pour **production scraping + enrichissement web**.
+
+**Browser Harness : utile, mais plutôt en debug/QA.** 
+Je l’utiliserais quand Browser Use bloque ou quand il faut vérifier visuellement :
+- page qui charge mal
+- bouton/carte Google Maps difficile à cliquer
+- screenshot + inspection DOM
+- comprendre pourquoi une extraction rate
+- vérifier une fiche ou un formulaire manuellement
+
+Donc ma stack idéale :
+
+1. **local.ch scraper** : base entreprises suisses.
+2. **Browser Use** : enrichissement autonome sur Google Maps + sites officiels.
+3. **Apollo** : enrichissement décisionnaire/email.
+4. **Browser Harness** : debug visuel quand ça casse.
+5. **Sheet + QA Coordinateur** : validation avant Data OS.
+
+Je ne mettrais pas Browser Harness au cœur du scraping. Trop chirurgical. 
+Le cœur, c’est **Browser Use + règles strictes + output structuré**.

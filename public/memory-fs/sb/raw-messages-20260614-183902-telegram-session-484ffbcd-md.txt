@@ -1,0 +1,14 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260614_174131_383e9031.jsonl
+captured_at: 2026-06-14T18:39:02.110610
+platform: telegram
+type: conversation_delta
+---
+
+## assistant — 2026-06-14T18:11:59.239586
+
+Parfait. Maintenant il faut l’ajouter côté Hermes/VividFlow, sans coller le token ici. Fais ça : 1. Sur le serveur/config où tu mets les secrets VividFlow, ajoute une variable : ```env SLACK_AGENT_DEBUG_BOT_TOKEN=xoxb-... ``` 2. Garde aussi le **Signing Secret** de l’app : - Slack app → **Basic Information** - section **App Credentials** - copie **Signing Secret** - ajoute : ```env SLACK_AGENT_DEBUG_SIGNING_SECRET=... ``` Ensuite retourne dans Slack app : 3. Menu gauche → **Event Subscriptions** 4. Active **Enable Events** 5. Dans **Request URL**, il faudra mettre l’URL webhook Hermes. Si tu ne l’as pas sous la main, dis-moi **“donne l’URL”** et je vérifie côté serveur.
+
+## assistant — 2026-06-14T18:14:07.143520
+
+On ne met **pas d’URL** si on utilise Hermes en **Slack Socket Mode**. Fais plutôt ça : 1. Slack App → **Socket Mode** 2. Active **Enable Socket Mode** 3. Clique **Generate an app-level token** 4. Nom : `agent-debug-socket` 5. Scope : ```text connections:write ``` 6. Clique **Generate** 7. Copie le token qui commence par `xapp-` Ne me l’envoie pas ici. Ensuite dans **Event Subscriptions** : - Active **Enable Events** - Avec Socket Mode activé, Slack ne te demande normalement plus de Request URL. - Ajoute les events Bot : ```text app_mention message.im message.channels ``` Puis dis-moi **“xapp prêt”**.

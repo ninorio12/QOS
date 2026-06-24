@@ -16,7 +16,9 @@
 import { createHash, randomBytes } from "node:crypto"
 import { execFileSync } from "node:child_process"
 
-const SLUGS = ["coo", "agent-kb", "agent-support-client", "agent-operations", "agent-analyse"]
+// Roster = 7 agents (cf. SLUG_TO_ROLE dans convex/lib/permissions.ts). agent-media-buyer
+// et agent-debug ajoutés 2026-06-15 — ne JAMAIS les oublier sinon ils n'ont pas de token.
+const SLUGS = ["coo", "agent-kb", "agent-support-client", "agent-operations", "agent-analyse", "agent-media-buyer", "agent-debug"]
 // Décision produit (2026-06-13) : tokens PERMANENTS, aucune expiration.
 
 if (!process.env.CONVEX_DEPLOY_KEY) {

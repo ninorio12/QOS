@@ -19,7 +19,10 @@ const NOISE = new Set([
   'memory.update', 'heartbeat', 'task.comment',
   'performance.task_updated', 'performance.task_created',
 ])
-const isImportant = (ev: string) => !NOISE.has(ev)
+// On ne notifie QUE les événements métier (lead créé/perdu, R1 booké, connaissance…).
+// La cadence prospection à fort volume (appels, NRP, température, leads interne…) est exclue :
+// c'est elle qui faisait afficher « 9+ » en permanence pour rien.
+const isImportant = (ev: string) => !NOISE.has(ev) && !ev.startsWith('prospection.')
 
 // Libellés/couleurs lisibles pour les événements métier (sinon fallback doctrine).
 const EVENT_LABELS: Record<string, { label: string; color: string }> = {
@@ -49,6 +52,7 @@ function fmtTime(s: string) {
 export default function NotificationBell() {
   const [open, setOpen]         = useState(false)
   const [lastSeen, setLastSeen] = useState('')
+  const [mounted, setMounted]   = useState(false)   // évite le flash « 9+ » avant lecture du lastSeen (localStorage)
   const ref = useRef<HTMLDivElement>(null)
 
   const raw   = (useQuery(api.osActivities.list, { limit: 80 }) ?? []) as Activity[]
@@ -57,6 +61,7 @@ export default function NotificationBell() {
   // Dernier « vu » persisté (par navigateur).
   useEffect(() => {
     try { setLastSeen(localStorage.getItem(SEEN_KEY) ?? '') } catch { /* noop */ }
+    setMounted(true)
   }, [])
 
   const unread = useMemo(() => items.filter(a => a.createdAt > lastSeen).length, [items, lastSeen])
@@ -80,10 +85,10 @@ export default function NotificationBell() {
     <div ref={ref} className="relative">
       <button
         onClick={() => { if (!open) markSeen(); setOpen(o => !o) }}
-        className="w-8 h-8 rounded-full bg-[#E4E6E1] flex items-center justify-center hover:bg-[#D8DAD5] transition-colors relative"
+        className="w-7 h-7 rounded-full bg-[#E4E6E1] dark:bg-soren-elevated flex items-center justify-center hover:bg-[#D8DAD5] dark:hover:bg-soren-border transition-colors relative"
       >
-        <Bell size={14} className="text-soren-muted" />
-        {unread > 0 && (
+        <Bell size={13} className="text-soren-muted" />
+        {mounted && unread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-[#FF4D00] flex items-center justify-center text-[9px] font-bold text-white px-0.5">
             {unread > 9 ? '9+' : unread}
           </span>

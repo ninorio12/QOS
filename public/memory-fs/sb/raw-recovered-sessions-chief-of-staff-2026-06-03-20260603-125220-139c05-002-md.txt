@@ -1,0 +1,587 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260603_125220_139c05
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260603_125220_139c05.jsonl
+source_sha256_16: 5ac6c0e3b37be783
+date: 2026-06-03
+---
+
+# Recovered session chief_of_staff/20260603_125220_139c05
+
+
+## assistant — 2026-06-03T13:13:42.753142
+
+Oui. On ne doit pas “mettre le WebUI Hermes tel quel” dans ton Data OS.
+
+On doit reprendre **sa logique utile** et la reconstruire proprement en **Convex + Vercel**, pour que moi/les agents puissions l’utiliser ensuite.
+
+## Verdict
+
+Le WebUI Hermes actuel est trop lié au runtime local/OAuth/profil Hermes. 
+Pour ton Data OS, il faut créer une **couche agentique native**, avec 4 modules simples :
+
+1. **Agents**
+2. **Missions**
+3. **Journal**
+4. **Mémoire**
+
+C’est ça qu’on donne à Claude Code.
+
+---
+
+## Architecture cible
+
+### Frontend
+- Next.js sur Vercel
+- UI dans ton Data OS actuel
+- sidebar existante conservée
+- pas de dashboard Hermes copié-collé
+- design VividFlow : dark, orange, SaaS propre
+
+### Backend
+- Convex = source de vérité
+- Clerk = auth / workspace / org
+- Hermes = runtime externe qui exécute
+- Data OS = cockpit visible
+
+### Loop central
+
+```text
+Utilisateur / Slack / Telegram / Data OS
+→ crée une Mission
+→ Convex enregistre
+→ Convex déclenche ou expose à Hermes
+→ Hermes exécute
+→ résultats dans Convex
+→ Data OS affiche run, logs, actions, mémoire
+```
+
+---
+
+## Les 4 modules à créer
+
+## 1. Agents
+
+But : gérer les “personnes IA” disponibles.
+
+Exemples :
+- Chief of Staff
+- CMO Visuel
+- Service Client
+- Ops Système
+- Data Analyst / GBrain
+
+### UI
+Page `/agents`
+
+Chaque agent affiche :
+- nom
+- rôle
+- statut : actif / pause / erreur
+- canal : Telegram / Slack / Data OS
+- autonomie : lecture seule / propose / exécute avec validation
+- dernière activité
+- bouton “Voir”
+
+### Détail agent
+Page `/agents/[agentId]`
+
+Sections :
+- Mission
+- Sources de vérité
+- Permissions
+- Outils autorisés
+- Mémoire liée
+- Dernières missions
+- Derniers logs
+
+### Tables Convex
+
+```ts
+agents
+- workspaceId
+- name
+- slug
+- role
+- description
+- status
+- runtimeProfile
+- defaultModel
+- autonomyLevel
+- allowedTools
+- channels
+- createdAt
+- updatedAt
+```
+
+```ts
+agentSouls
+- workspaceId
+- agentId
+- version
+- content
+- status
+- createdBy
+- createdAt
+```
+
+```ts
+agentTools
+- workspaceId
+- agentId
+- toolKey
+- scope
+- mode // read, propose, execute
+- requiresApproval
+```
+
+---
+
+## 2. Missions
+
+But : remplacer les conversations floues par des exécutions traçables.
+
+Une mission = “fais ça”, avec statut, agent, résultat, logs.
+
+### UI
+Page `/missions`
+
+Colonnes :
+- Nouvelle
+- En cours
+- En attente validation
+- Terminée
+- Échec
+
+Chaque carte :
+- titre
+- agent assigné
+- priorité
+- source : Telegram / Slack / Data OS / Cron
+- statut
+- deadline éventuelle
+
+### Créer une mission
+Bouton “Nouvelle mission”
+
+Champs :
+- titre
+- objectif
+- agent
+- contexte
+- priorité
+- mode :
+ - brouillon
+ - proposition
+ - exécution avec validation
+
+### Détail mission
+Page `/missions/[missionId]`
+
+Afficher :
+- objectif initial
+- contexte
+- agent responsable
+- étapes
+- tool calls
+- résultat final
+- actions proposées
+- validations humaines
+- coût approximatif
+- erreurs
+
+### Tables Convex
+
+```ts
+missions
+- workspaceId
+- title
+- objective
+- source
+- sourceRef
+- assignedAgentId
+- status
+- priority
+- mode
+- createdBy
+- createdAt
+- updatedAt
+- completedAt
+```
+
+```ts
+agentRuns
+- workspaceId
+- missionId
+- agentId
+- runtime
+- provider
+- model
+- status
+- input
+- outputSummary
+- error
+- startedAt
+- endedAt
+- tokenUsage
+- costEstimate
+```
+
+```ts
+agentRunSteps
+- workspaceId
+- runId
+- type // reasoning, tool_call, tool_result, message, error
+- title
+- content
+- metadata
+- createdAt
+```
+
+---
+
+## 3. Journal
+
+But : audit/log clair de tout ce que les agents font.
+
+C’est le “qui a fait quoi, quand, pourquoi”.
+
+### UI
+Page `/journal`
+
+Filtres :
+- agent
+- mission
+- source
+- type d’événement
+- date
+- erreur seulement
+
+Événements :
+- mission créée
+- agent lancé
+- outil appelé
+- action proposée
+- action validée
+- action exécutée
+- mémoire mise à jour
+- erreur runtime
+- message envoyé
+
+### Tables Convex
+
+```ts
+auditLogs
+- workspaceId
+- actorType // human, agent, system
+- actorId
+- eventType
+- entityType
+- entityId
+- summary
+- before
+- after
+- metadata
+- createdAt
+```
+
+```ts
+usageEvents
+- workspaceId
+- agentId
+- runId
+- provider
+- model
+- inputTokens
+- outputTokens
+- costEstimate
+- createdAt
+```
+
+### Règle importante
+Le Journal est append-only. 
+On ne modifie pas l’historique. On ajoute des événements.
+
+---
+
+## 4. Mémoire
+
+But : rendre visible et contrôlable ce que les agents savent.
+
+Pas toute la mémoire brute. Seulement :
+- faits durables
+- décisions
+- préférences
+- règles opérationnelles
+- connaissance client/projet
+- liens vers GBrain/Second Brain
+
+### UI
+Page `/memoire`
+
+Vues :
+- Faits
+- Décisions
+- Règles
+- Clients / projets
+- À valider
+- Obsolète
+
+Chaque mémoire :
+- contenu
+- scope : workspace / client / agent / privé
+- source
+- agent créateur
+- statut : actif / à valider / archivé
+- dernière mise à jour
+
+### Tables Convex
+
+```ts
+memories
+- workspaceId
+- scope
+- scopeId
+- agentId
+- type // fact, decision, rule, preference, client_context
+- content
+- sourceType
+- sourceRef
+- confidence
+- status
+- createdBy
+- createdAt
+- updatedAt
+```
+
+```ts
+memoryLinks
+- workspaceId
+- memoryId
+- entityType
+- entityId
+```
+
+---
+
+## Module transverse : Actions & Approvals
+
+Indispensable.
+
+Un agent ne doit pas envoyer, supprimer, modifier ou publier sans trace.
+
+### Tables
+
+```ts
+agentActions
+- workspaceId
+- missionId
+- runId
+- agentId
+- actionType
+- targetType
+- targetId
+- payload
+- status // proposed, approved, rejected, executed, failed
+- requiresApproval
+- createdAt
+- executedAt
+```
+
+```ts
+approvals
+- workspaceId
+- actionId
+- requestedByAgentId
+- status
+- decidedBy
+- decisionNote
+- createdAt
+- decidedAt
+```
+
+### UI
+Une action proposée doit apparaître dans :
+- mission détail
+- page approvals
+- éventuellement homepage “Attention requise”
+
+---
+
+## Intégration Hermes
+
+Il ne faut pas que Convex appelle Hermes comme une boîte noire sans suivi.
+
+### Pattern propre
+
+```text
+Convex mission créée
+→ Convex crée agentRun pending
+→ action Convex appelle endpoint Hermes
+→ Hermes prend missionId/runId
+→ Hermes exécute
+→ Hermes POST updates vers Convex
+→ Convex met à jour runs/steps/actions/logs
+```
+
+### Endpoints à prévoir côté Data OS
+
+```ts
+POST /api/hermes/run
+```
+
+Lance une mission vers Hermes.
+
+Payload :
+```json
+{
+ "workspaceId": "...",
+ "missionId": "...",
+ "agentId": "...",
+ "objective": "...",
+ "context": "...",
+ "mode": "propose"
+}
+```
+
+```ts
+POST /api/hermes/callback
+```
+
+Hermes renvoie :
+```json
+{
+ "runId": "...",
+ "status": "running|completed|failed",
+ "step": {...},
+ "output": "...",
+ "actions": [...]
+}
+```
+
+---
+
+## Ce que Claude Code doit coder en premier
+
+Pas tout. Le bon MVP :
+
+### Sprint 1 — socle agentique
+- tables Convex :
+ - `agents`
+ - `missions`
+ - `agentRuns`
+ - `agentRunSteps`
+ - `agentActions`
+ - `approvals`
+ - `auditLogs`
+ - `memories`
+- pages :
+ - `/agents`
+ - `/missions`
+ - `/journal`
+ - `/memoire`
+- seed de 4 agents :
+ - Chief of Staff
+ - CMO Visuel
+ - Service Client
+ - Ops Système
+
+### Sprint 2 — mission run stub
+- créer mission depuis UI
+- choisir agent
+- créer `agentRun`
+- simuler réponse agent
+- créer 3 steps
+- créer 1 action proposée
+- valider/rejeter action
+- écrire audit log
+
+### Sprint 3 — vrai bridge Hermes
+- endpoint `/api/hermes/run`
+- endpoint `/api/hermes/callback`
+- token serveur sécurisé
+- Hermes peut écrire :
+ - run status
+ - steps
+ - final output
+ - actions proposées
+ - memory candidates
+
+---
+
+## Règles produit à donner à Claude Code
+
+Très important :
+
+- Ne pas copier le WebUI Hermes visuellement.
+- Garder le shell VividFlow/Data OS actuel.
+- Reprendre la logique Hermes : sessions, runs, logs, skills, cron, tools.
+- Convex est la source de vérité.
+- Hermes est le moteur d’exécution.
+- Les agents ne modifient rien sans audit.
+- Les actions sensibles passent par approval.
+- Tout est workspace-scoped.
+- Pas de localStorage comme source de vérité.
+- Pas de fausse donnée décorative après le MVP stub.
+- Les modules doivent être utilisables par moi ensuite via API.
+
+---
+
+## Nommage recommandé dans la sidebar
+
+Je mettrais :
+
+- **Agents**
+- **Missions**
+- **Journal**
+- **Mémoire**
+
+Pas :
+- Équipe IA
+- Activités
+- Base de connaissance
+- Tâches IA
+
+Trop générique. Là, on veut sentir un système opératoire agentique.
+
+---
+
+## Prompt court pour Claude Code
+
+Tu peux lui donner ça :
+
+```text
+Build the VividFlow Data OS agentic layer in the existing Next.js + Convex + Clerk app.
+
+Create 4 modules: Agents, Missions, Journal, Mémoire.
+
+Do not copy Hermes WebUI visually. Preserve the current VividFlow shell and design. Rebuild Hermes-like runtime concepts natively with Convex as source of truth.
+
+Implement Convex tables and functions for:
+agents, agentSouls, agentTools, missions, agentRuns, agentRunSteps, agentActions, approvals, auditLogs, usageEvents, memories, memoryLinks.
+
+MVP flow:
+1. User creates a mission from /missions.
+2. Mission is assigned to an agent.
+3. Convex creates an agentRun.
+4. A stub runtime writes 3 run steps.
+5. It proposes one agentAction.
+6. Human approves/rejects the action.
+7. Everything is visible in Journal and auditLogs.
+8. Mémoire shows memory candidates or durable facts.
+
+Every table must be workspace-scoped.
+Every mutation must check Clerk/Convex auth and workspace access.
+No localStorage source of truth.
+No fake decorative dashboards.
+Build real Convex queries/mutations.
+Run typecheck/build and verify pages.
+```
+
+---
+
+Mon avis net : **on arrête de forcer le WebUI Hermes. On reconstruit son cerveau dans ton Data OS.** 
+C’est ça qui sera scalable et utilisable par les agents.

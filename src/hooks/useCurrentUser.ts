@@ -1,11 +1,11 @@
 'use client'
 import { useEffect } from 'react'
-import { useUser } from '@clerk/nextjs'
+import { useSafeUser } from '@/lib/clerkSafe'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 
 export function useCurrentUser() {
-  const { user, isLoaded } = useUser()
+  const { user, isLoaded } = useSafeUser()
   const sync = useMutation(api.users.syncFromClerk)
   useEffect(() => {
     if (!user) return

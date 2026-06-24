@@ -143,7 +143,7 @@ export const AGENT_PROFILES: AgentProfile[] = [
   {
     id: 'agent-support-client', name: 'AGENT SUPPORT CLIENT', role: 'Suivi client',
     mission: 'Router le flux entrant en discard / tâche / recherche / capture durable, sans accumuler de bruit.',
-    owner: 'COO', status: 'active', channels: ['slack'], avatar: '/agents/support.png',
+    owner: 'COO', status: 'active', channels: ['slack'], avatar: '/agents/operations.png',
     soul: {
       purpose: 'Traiter l’entrant à faible friction et router sans junk.',
       protects: 'Une boîte d’entrée propre — pas d’accumulation de bruit.',
@@ -187,7 +187,7 @@ export const AGENT_PROFILES: AgentProfile[] = [
   {
     id: 'agent-operations', name: 'AGENT OPERATIONS', role: 'Exécution opérationnelle',
     mission: 'Livrer des tranches de produit/code scoped avec tests, diffs minimaux et preuves de vérification.',
-    owner: 'COO', status: 'active', channels: ['slack'], avatar: '/agents/operations.png',
+    owner: 'COO', status: 'active', channels: ['slack'], avatar: '/agents/support.png',
     soul: {
       purpose: 'Exécuter des tranches scoped, testées et prouvées.',
       protects: 'La qualité d’exécution : petits diffs, tests, preuves.',
@@ -274,6 +274,92 @@ export const AGENT_PROFILES: AgentProfile[] = [
     health: { lastRun: '2026-06-06T06:30:00Z', pendingValidations: 1, costToday: '0,63 CHF' },
     updatedAt: '2026-06-06',
   },
+  {
+    id: 'agent-media-buyer', name: 'AGENT MEDIA BUYER', role: 'Acquisition payante / media buying',
+    mission: 'Piloter l’acquisition payante : campagnes, budgets, créas et reporting d’audience — sans engager de dépense sans validation.',
+    owner: 'COO', status: 'active', channels: ['slack', 'dataos'], avatar: '/agents/media-buyer.png',
+    soul: {
+      purpose: 'Faire tourner l’acquisition payante de façon mesurée : préparer campagnes, créas et budgets, le dirigeant valide la dépense.',
+      protects: 'Le budget : aucune montée de budget ni lancement de campagne sans greenlight humain.',
+      priorities: ['Acquisition payante', 'Créas & angles', 'Budgets', 'Reporting', 'Optimisation'],
+      neverDo: ['Augmenter un budget sans greenlight', 'Lancer une campagne sans greenlight', 'Envoyer en externe sans greenlight'],
+      tone: 'Orienté chiffres, ROAS-first, concret.', autonomyLevel: 'Borné — prépare et propose ; la dépense reste validée par l’humain.',
+    },
+    personality: { responseStyle: 'Hypothèses chiffrées + plan de test', detailLevel: 'KPI clairs (CAC, ROAS, CTR)', challengeLevel: 'Refuse de scaler une créa non prouvée', voice: 'GPT-5.5 · mode acquisition', avoids: ['Brûler du budget à l’aveugle', 'Promettre sans donnée'] },
+    memoryAccess: {
+      supermemoryContainers: [], gbrainScopes: ['gbrain (MCP)'],
+      secondBrainPaths: ['~/.hermes/profiles/media-buyer/'], dataOsModules: ['content', 'activities', 'session_search', 'todo'],
+      readRules: ['GBrain-first lookup', 'Reporting plateformes'],
+      writeRules: ['Briefs créas', 'Candidats de campagne'],
+      forbiddenScopes: ['Dépense / lancement hors greenlight'],
+    },
+    activeSkills: [
+      { name: 'vividflow-acquisition-strategy', family: 'Skills internes', path: 'vividflow-acquisition-strategy', status: 'active' },
+      { name: 'vividflow-cmo-content-production', family: 'Skills internes', path: 'vividflow-cmo-content-production', status: 'active' },
+      { name: 'gbrain', family: 'Skills natifs', path: 'gbrain', status: 'active' },
+      { name: 'gstack-for-hermes', family: 'Skills natifs', path: 'gstack-for-hermes', status: 'active' },
+    ],
+    internalRules: {
+      mandatoryRules: ['Tester avant de scaler', 'KPI explicites (CAC / ROAS)', 'GBrain-first pour le contexte produit'],
+      forbiddenActions: ['augmenter un budget sans greenlight', 'lancer une campagne sans greenlight', 'external-send sans greenlight'],
+      escalationRules: ['Greenlight humain avant toute dépense ou montée de budget'],
+      validationRules: ['Validation humaine sur budget et lancement'],
+      sourcesOfTruth: ['GBrain', 'Reporting plateformes', 'swarm.yaml'],
+      confidentialityLimits: ['Pas d’exposition des données d’audience hors périmètre'],
+    },
+    toolsPermissions: {
+      allowedTools: ['gbrain', 'web', 'file', 'session_search', 'todo', 'skills', 'terminal'], forbiddenTools: [],
+      allowedWithoutValidation: ['Préparer des créas', 'Construire un plan de test', 'Analyser le reporting'], requiresValidation: ['budget-change', 'campaign-launch', 'external-send'],
+      executionChannels: ['wrapper media-buyer', 'Slack'], riskLevel: 'medium',
+    },
+    linkedTaskIds: [], linkedActivityIds: [],
+    health: { lastRun: '2026-06-15T09:00:00Z', pendingValidations: 0, costToday: '0,00 CHF' },
+    updatedAt: '2026-06-15',
+  },
+  {
+    id: 'agent-debug', name: 'AGENT DEBUG ENGINEER', role: 'Debug / diagnostic technique',
+    mission: 'Diagnostiquer incidents et régressions : reproduire, isoler la cause racine, proposer un correctif prouvé — sans fix destructif sans validation.',
+    owner: 'COO', status: 'active', channels: ['slack', 'dataos'], avatar: '/agents/debug.png',
+    soul: {
+      purpose: 'Comprendre la panne avant de la corriger : reproduire, isoler la cause racine, prouver le correctif.',
+      protects: 'La stabilité : pas de correctif destructif ni de push sans greenlight.',
+      priorities: ['Reproduction', 'Cause racine', 'Correctif prouvé', 'Régression', 'Post-mortem'],
+      neverDo: ['Action destructive sans greenlight', 'Push sans greenlight', 'Merge sans greenlight'],
+      tone: 'Méthodique, factuel, hypothèse → preuve.', autonomyLevel: 'Borné — diagnostic en autonomie, correctif sous greenlight.',
+    },
+    personality: { responseStyle: 'Hypothèse → test → preuve', detailLevel: 'Trace d’investigation claire', challengeLevel: 'Refuse de patcher sans cause racine', voice: 'GPT-5.5 · mode debug', avoids: ['Patch à l’aveugle', 'Masquer un symptôme'] },
+    memoryAccess: {
+      supermemoryContainers: [], gbrainScopes: ['gbrain (MCP)'],
+      secondBrainPaths: ['~/.hermes/profiles/debug/'], dataOsModules: ['activities', 'tasks', 'session_search'],
+      readRules: ['GBrain-first lookup', 'Logs & traces', 'codebase-inspection'],
+      writeRules: ['Notes d’investigation', 'Candidats de correctif'],
+      forbiddenScopes: ['destructif / push / merge hors greenlight'],
+    },
+    activeSkills: [
+      { name: 'systematic-debugging', family: 'Skills natifs', path: 'systematic-debugging', status: 'active' },
+      { name: 'node-inspect-debugger', family: 'Skills natifs', path: 'node-inspect-debugger', status: 'active' },
+      { name: 'python-debugpy', family: 'Skills natifs', path: 'python-debugpy', status: 'active' },
+      { name: 'codebase-inspection', family: 'Skills natifs', path: 'codebase-inspection', status: 'active' },
+      { name: 'claude-code', family: 'Skills natifs', path: 'claude-code', status: 'active' },
+      { name: 'gbrain', family: 'Skills natifs', path: 'gbrain', status: 'active' },
+    ],
+    internalRules: {
+      mandatoryRules: ['Reproduire avant de corriger', 'Isoler la cause racine', 'Preuve de non-régression'],
+      forbiddenActions: ['destructif sans greenlight', 'push sans greenlight', 'merge sans greenlight'],
+      escalationRules: ['Greenlight humain avant correctif destructif, push ou merge'],
+      validationRules: ['Test de reproduction + preuve du correctif avant merge'],
+      sourcesOfTruth: ['Codebase', 'Logs / traces', 'GBrain'],
+      confidentialityLimits: ['Pas d’exposition de secrets dans les traces'],
+    },
+    toolsPermissions: {
+      allowedTools: ['terminal', 'file', 'gbrain', 'session_search', 'web', 'skills', 'todo'], forbiddenTools: [],
+      allowedWithoutValidation: ['Reproduire', 'Investiguer', 'Inspecter le code & les logs'], requiresValidation: ['merge', 'push', 'destructive'],
+      executionChannels: ['wrapper debug', 'Slack'], riskLevel: 'high',
+    },
+    linkedTaskIds: [], linkedActivityIds: [],
+    health: { lastRun: '2026-06-15T09:00:00Z', pendingValidations: 0, costToday: '0,00 CHF' },
+    updatedAt: '2026-06-15',
+  },
 ]
 
 export const profileById = (id: string) => AGENT_PROFILES.find(p => p.id === id)
@@ -292,6 +378,8 @@ export const SEED_HEARTBEATS: Record<string, Heartbeat[]> = {
   'agent-support-client':  [{ id: 'hb-sc-1', when: 'Tous les jours · 09:00', request: 'Check des risques clients', status: 'actif' }],
   'agent-operations':      [{ id: 'hb-op-1', when: 'Toutes les heures', request: 'Traiter les relances dues', status: 'actif' }],
   'agent-kb':              [{ id: 'hb-kb-1', when: 'Tous les jours · 06:30', request: 'Qualifier les nouvelles notes', status: 'actif' }],
+  'agent-media-buyer':     [{ id: 'hb-mb-1', when: 'Tous les jours · 08:30', request: 'Reporting acquisition (CAC / ROAS) & alertes budget', status: 'actif' }],
+  'agent-debug':           [{ id: 'hb-dbg-1', when: 'Toutes les heures', request: 'Scan des erreurs/incidents récents', status: 'actif' }],
 }
 
 const HEARTBEATS_KEY = 'vf:agentHeartbeats:v1'

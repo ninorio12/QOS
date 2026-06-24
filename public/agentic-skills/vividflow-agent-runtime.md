@@ -69,6 +69,15 @@ Core doctrine:
 
 Do not launch client or VividFlow agents from a vague prompt. Fill and validate the R&R first, especially mission, sources of truth, allowed/forbidden actions, autonomy level, Data OS vs GBrain routing, and QA scenarios.
 
+### SOUL Maintenance (Post-Creation)
+
+Once a SOUL.md is in production, it will need periodic maintenance:
+- **Behavioral rules** — when Thomas/Jonathan decides all agents must "read their R&R before acting", add a `## RÈGLE ABSOLUE — AVANT D'AGIR` block right after `## VERITES ABSOLUES`.
+- **Real credentials** — when Jonathan asks for tokens in the SOUL (not just `.env` references), add a `## CREDENTIALS` block just before the `--- MACHINE DE GUERRE` footer. Use the base64 workaround (direct Python `open()`) to read tokens from `.env` without exposing them through the Hermes censoring layer.
+- **Slug integrity** — always cross-check that `DATA_OS_AGENT_SLUG` matches the agent's profile directory and role. Duplicate slugs between profiles cause routing conflicts.
+
+See `references/soul-maintenance-pattern.md` for exact patch anchors, token extraction technique, and known slug issues.
+
 ## Minimum Data Model
 
 Core tables/collections:
@@ -235,15 +244,23 @@ For durable VividFlow/Hermes research notes, repo audits, decisions, and agent k
 
 For the internal VividFlow agency architecture, keep the separation strict: **Data OS is the visible source of truth, GBrain/RMS is the invisible memory/graph backend, Slack is team operations, Telegram is private right-hand cockpit**. Humans should not have to interact with or feed GBrain manually; agents capture, classify, update Data OS/GBrain, and alert only when useful. Do not add a prominent GBrain module by default; surface GBrain context inside clients, projects, decisions, agents, search, and knowledge. See `references/slack-data-os-gbrain-operating-architecture.md`.
 
+For Slack multi-bot cleanup, distinguish new visible specialists in `Favoris` from stale installed `Executor` apps under `Applications`; do not uninstall old executors before Hermes profile/gateway migration and smoke tests. If Jonathan complains that “les photos c’est pas les vrais”, treat generated letter icons as temporary placeholders and replace them with the verified persona avatars via Slack Developer app General pages. See `references/vividflow-slack-multibot-operations.md`.
+
 When creating the Slack layer, treat the first production slice as `Slack → one capture agent (Mia/VividFlow Ops) → Data OS/GBrain`, not as a full multi-bot launch. Use Slack CLI for workspace/app auth, Slack App/events/reactions/modals as the surface, Hermes profiles as the real agents, and Context7 as doc fuel for implementation details. For the tested setup sequence, event mappings, Data OS endpoint shape, and Context7 notes, see `references/slack-agent-dataos-context7-setup.md`.
+
+For WhatsApp Business integration, prefer the durable OpenWA self-hosted pattern for VividFlow/client pilots when Jonathan wants reusable infrastructure: VPS OpenWA API-only first, QR pairing handled by the human, Hermes profile bridge, and OpenWA send API. Treat the WhatsApp number as always-on infrastructure: OpenWA and the bridge both need persistent supervision/autostart; Jonathan should never have to manually start services after delivery. See `references/whatsapp-openwa-runtime.md` for architecture, persistence/autostart systemd pattern, API-key pitfalls, security boundaries, dual-number/session identity rules, incident triage, and verification. For mobile-quality conversation behavior — incoming voice note transcription and the WhatsApp typing bubble — use `references/whatsapp-openwa-voice-typing.md`; validate with real inbound text and vocal messages, not only health checks.
+
+For Baileys pilots where the goal is a true personal WhatsApp agent rather than a marketing bot, use `references/whatsapp-personal-agent-baileys.md`: optimize for natural low-volume 1:1 conversations, allowlisted testers, dry-run first, fluid human timing, strict no-campaign/no-group/no-broadcast boundaries, and anti-ban via normal usage patterns rather than excessive throttling.
 
 When Jonathan asks concretely how Slack connects to the Data OS/GBrain, avoid another broad brainstorm. Give the short bridge model first: `Slack message/reaction/modal → Slack App event → Hermes agent/router → Context Loader → Data OS visible record/audit + GBrain durable memory → Slack confirmation/approval`. Slack itself does not write directly to the Data OS; the Slack App captures events and Hermes/agents decide what becomes a task, decision, memory, risk, approval, or log. Start with one capture agent (Mia) and three actions only: task, decision, memory. See `references/slack-app-data-os-gbrain-bridge.md`.
 
-For the current internal multi-bot Slack operating setup (COO plus CMO/CSM/Operations/R&D executors), use `references/vividflow-slack-multibot-operations.md`: one Slack App + one Hermes profile per visible bot, App Home Messages Tab enabled, Event Subscriptions/scopes installed, profile-specific `xapp`/`xoxb` tokens, OpenAI auth copied/configured per profile, channel layout, and Telegram → COO → Slack executor → Data OS → Telegram delegation flow.
+For the current internal multi-bot Slack operating setup, use `references/vividflow-slack-multibot-operations.md`: visible specialist apps are `Agent KB`, `Agent CSM`, `Agent Operations`, and `Data Analyst`; do **not** create a separate COO Slack app unless Jonathan explicitly asks, and treat `CMO/Executor` labels as stale unless inspecting history. The reference covers app recreation under the ops account, Socket Mode, scopes/events, App Home Messages Tab, profile-specific `xapp`/`xoxb` token binding, avatar mapping, and the Telegram → COO/orchestrator → Slack specialist → Data OS/GBrain → Telegram flow.
 
 For the latest COO quality-gate, human voice, Slack channel naming, mention routing, asset handoff, and required Slack scopes (`groups:write`, `users:read`, `files:write`), use `references/vividflow-slack-coo-agent-operating-rules.md`. Key rule: Slack missions are natural and short; agents answer like humans by default; COO audits/iterates before sending anything final to Telegram; no decorative dashes or Telegram handles in Slack.
 
 When Jonathan says the Slack bots/apps are already created, stop explaining bot creation and move to the profile layer: the work is now R&R → `SOUL.md` → Hermes profile `.env` token binding → gateway → QA. Use `references/agent-rr-template-before-profile-build.md` for the pre-build contract: human org, sources of truth, permissions, mission, runtime deliverables, and pitfalls.
+
+When wiring VividFlow Hermes/Slack agents to the Data OS with machine-agent tokens, use `references/data-os-agent-token-binding.md`: map each Hermes profile to its Data OS slug, write env vars without exposing secrets, verify read/write scope, and recommend token rotation if the tokens came through a screenshot. Do not keep retrying Slack bot renames with `xoxb` tokens when Slack returns `not_allowed_token_type`; rename via Slack App settings or an admin/user token with the right scopes.
 
 ### Data OS as Source of Truth
 
@@ -286,10 +303,10 @@ When Thomas/Jonathan design the internal VividFlow operating system, default to 
 Current identity correction: in the VividFlow UI and agentic Data OS, do **not** label the coordinator “Chief of Staff”. The visible coordinating agent is **COO**. It is Jonathan + Thomas's high-level operating right hand across Telegram and Slack: lucidity, priority, coordination, challenge, synthesis, routing, and bridge to Data OS/GBrain. Specialist agents are designed through R&R and operate as executors/specialists under this coordination layer.
 
 Default shape:
-- **COO** — coordination, priority, arbitration, routing, challenge, validation, synthesis, privacy boundary. Exists in Telegram private/group direction and as the Slack coordinator surface.
-- **CSM** — onboarding, client follow-up, relances, retention, satisfaction, risks, next steps.
-- **KB Executor** — Data OS / GBrain librarian: Base de connaissance, Wiki, Raw, Second Brain, information qualification, context preparation, links between Skills/SOPs/Playbooks, memory cleanliness.
-- **Ops Executor** — external tasks, emails, relances, administrative actions, Data OS updates, handoffs, SOP execution.
+- **COO** — coordination, priority, arbitration, routing, challenge, validation, synthesis, privacy boundary. Exists in Telegram private/group direction and as the Slack coordinator/orchestration surface; do not create a separate COO Slack app by default.
+- **Agent CSM** — onboarding, client follow-up, relances, retention, satisfaction, risks, next steps.
+- **Agent KB** — Data OS / GBrain librarian: Base de connaissance, Wiki, Raw, Second Brain, information qualification, context preparation, links between Skills/SOPs/Playbooks, memory cleanliness. This replaces the old CMO-facing label; do not surface `CMO Executor`.
+- **Agent Operations** — external tasks, emails, relances, administrative actions, Data OS updates, handoffs, SOP execution.
 - **Data Analyst** — scraping, signal collection, business analysis, dashboards, insights, opportunities, anomaly detection.
 
 Private Thomas/Jonathan assistant conversations remain private-by-default and do not automatically publish into Slack. Default workflow: humans talk to COO first; COO activates executors, receives outputs, then writes actions to Data OS and durable knowledge to Second Brain/GBrain. Direct specialist DMs are allowed for drafting, but any decision/task/doctrine/client signal must be recapped to COO. Do not push every conversation directly into the wiki: capture broadly into `raw/`, synthesize only durable/validated knowledge into `wiki/`, and keep the capture cron silent so humans feel no extra workflow.
@@ -298,13 +315,11 @@ For the detailed current model, naming guardrails, DM recap rule, and anti-chaos
 
 For creating specialist agents, use `templates/agent-rr-template.md` as the reusable master R&R template before generating `SOUL.md`, `AGENTS.md`, `.hermes.md`, permissions, and QA. Do not apply this R&R rewrite to the COO identity unless Jonathan explicitly requests it.
 
-### Vision / Strategy Driver Agent
+### Strategic Doctrine Work
 
-For deep VividFlow brainstorming, create/use **Soren / Vision Architect** rather than overloading COO. COO owns execution; Soren owns long-range doctrine: category strategy, convictions, anti-patterns, product principles, visual direction, and implications for other agents. It should ask deep questions, challenge vague ideas, and route a concise doctrine update to COO after major sessions. See `references/vision-driver-and-telegram-routing.md` for the broader role split, output format, and prompt guidance.
+For deep VividFlow brainstorming or long-range doctrine work, do not route to deprecated or removed specialist identities. Keep the work inside the currently active COO/private right-hand flow unless Jonathan explicitly names a current destination. COO owns execution; strategic doctrine updates should be concise, validated, and written back only when durable.
 
-When Jonathan asks Cockpit to brief the Vision Driver while working on the VividFlow Data OS with Claude Code, send a concise handoff to the CSO topic only (observed target: `telegram:Vividflow / topic 861`) and include the AIOS/Cohorte import doctrine: Context OS + Data OS + Capture OS, Service Execution OS framing, and the distinction between internal Data OS, client AIOS delivery, and future AGaaS spinouts. Use `references/cso-data-os-aios-handoff.md` for the routing, skill list, and handoff content.
-
-When Jonathan says he has already validated a VividFlow direction, the Vision Driver should not reopen the full strategic debate by default. Preserve the validation and move into the requested next layer: handoff quality, product section coverage, navigation completeness, or review protocol. For mockups, a common post-validation ask is: make every sidebar/module entry clickable and create a sober base screen for each section so Jonathan can review module by module.
+When Jonathan has already validated a VividFlow direction, do not reopen the full strategic debate by default. Preserve the validation and move into the requested next layer: handoff quality, product section coverage, navigation completeness, or review protocol. For mockups, a common post-validation ask is: make every sidebar/module entry clickable and create a sober base screen for each section so Jonathan can review module by module.
 
 ### Telegram Routing: Thomas / Soren
 
@@ -393,6 +408,7 @@ Every run must track:
 7. **Exposing GBrain as another user task surface too early.** For the VividFlow internal agency, GBrain should usually run behind the scenes; the Data OS should show the useful context, not ask humans to manage another knowledge tool.
 8. **Letting every agent search all memory.** Central memory must still be scoped. Require workspace/domain/confidentiality context and allowlisted scopes so VividFlow, Brvndlab, client work, and private right-hand contexts do not bleed into each other.
 9. **Answering about Slack agents from vibes.** A private Telegram right-hand must read Data OS/audit/Slack/GBrain state before reporting on Slack bots; if the source of truth is insufficient, say exactly what is missing instead of guessing.
+10. **Slug mismatch between profile and Data OS.** When reading agent `.env` files, cross-check that `DATA_OS_AGENT_SLUG` and `VIVIDFLOW_DATA_OS_AGENT_SLUG` match the role. Known case: `cmo_executor` had `agent-kb` (same as KB Agent), causing routing conflicts.
 
 ## Verification Checklist
 

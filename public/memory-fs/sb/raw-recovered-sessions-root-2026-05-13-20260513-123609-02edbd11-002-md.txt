@@ -1,0 +1,77 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260513_123609_02edbd11
+source_file: /home/hermes/.hermes/sessions/20260513_123609_02edbd11.jsonl
+source_sha256_16: c8e5cefa46b59199
+date: 2026-05-13
+---
+
+# Recovered session root/20260513_123609_02edbd11
+
+
+## assistant — 2026-05-13T18:26:45.468635
+
+Update après l’interruption gateway :
+
+## Ce qui s’est passé
+
+Le redémarrage du gateway a bien eu lieu. 
+Ensuite j’ai vérifié les logs et j’ai repéré un problème précis :
+
+```txt
+Invalid schema for function 'mcp_gbrain_extract_facts'
+array schema missing items
+```
+
+En clair : **GBrain est bien installé**, mais un des outils MCP exposés par GBrain (`extract_facts`) a un schéma JSON non compatible avec le provider actuel (`gpt-5.5 / OpenAI Codex`). Ça peut casser les réponses du bot avec une erreur 400.
+
+## Ce que j’ai corrigé
+
+J’ai laissé **GBrain installé et utilisable en CLI**, mais j’ai désactivé temporairement son MCP dans Hermes :
+
+```txt
+gbrain serve → disabled
+```
+
+État actuel :
+
+- Gateway Hermes : **actif**
+- Telegram : **OK**
+- GBrain CLI : **OK**
+- Brain local : **OK**
+- MCP GBrain : **désactivé temporairement pour éviter les crashs**
+- Erreurs 400 après redémarrage : **aucune détectée**
+
+## État GBrain
+
+GBrain reste opérationnel sur le VPS :
+
+```txt
+/home/hermes/gbrain
+/home/hermes/brain
+/home/hermes/.gbrain/brain.pglite
+```
+
+Stats actuelles :
+
+- Pages : 2
+- Chunks : 2
+- Tags : 5
+
+Recherche CLI OK :
+
+```bash
+gbrain search "VividFlow"
+```
+
+## Conclusion
+
+Le système est stable.
+
+Décision propre : 
+**GBrain reste installé comme second brain, mais son MCP est coupé tant qu’on n’a pas patché/filtré le schéma cassé.**
+
+Donc pas de risque de casser Telegram avec des erreurs 400.

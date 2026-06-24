@@ -30,6 +30,34 @@ async function logAct(c: ConvexHttpClient, actorType: string, actorId: string, a
 }
 const initials = (name: string) => (name || 'X').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
+// ───── Records : accès live tl;dv + Fathom (pour l'agent qui synthétise) ─────
+const TLDV_BASE = 'https://pasta.tldv.io/v1alpha1'
+const FATHOM_BASE = 'https://api.fathom.ai/external/v1'
+async function tldvMeetings(): Promise<any[]> {
+  const k = process.env.TLDV_API_KEY; if (!k) return []
+  try { const r = await fetch(`${TLDV_BASE}/meetings`, { headers: { 'x-api-key': k } }); const d = await r.json(); return d.results ?? d.meetings?.results ?? d.meetings ?? (Array.isArray(d) ? d : []) } catch { return [] }
+}
+async function fathomMeetings(): Promise<any[]> {
+  const k = process.env.FATHOM_API_KEY; if (!k) return []
+  try { const r = await fetch(`${FATHOM_BASE}/meetings?include_transcript=true`, { headers: { 'X-Api-Key': k } }); const d = await r.json(); return d.items ?? d.results ?? d.meetings ?? (Array.isArray(d) ? d : []) } catch { return [] }
+}
+const tldvId = (m: any) => String(m.id ?? m._id ?? '')
+const fathomId = (m: any) => `fathom-${m.recording_id ?? m.id ?? m.url ?? ''}`
+const isoDay = (w: any) => { try { return w ? new Date(w).toISOString().slice(0, 10) : '' } catch { return '' } }
+function fathomTranscriptText(m: any): string {
+  const segs = Array.isArray(m.transcript) ? m.transcript : []
+  return segs.map((s: any) => `${s.speaker?.display_name ?? s.speaker ?? ''}: ${s.text ?? ''}`.trim()).filter((l: string) => l.length > 2).join('\n')
+}
+async function tldvTranscriptText(id: string): Promise<string> {
+  const k = process.env.TLDV_API_KEY; if (!k) return ''
+  try {
+    const r = await fetch(`${TLDV_BASE}/meetings/${id}/transcript`, { headers: { 'x-api-key': k } })
+    const d = await r.json()
+    const raw: any[] = d.data ?? d.transcript ?? d.segments ?? (Array.isArray(d) ? d : [])
+    return raw.map((s: any) => `${s.speaker ?? s.speakerName ?? s.name ?? ''}: ${s.text ?? s.content ?? s.transcript ?? ''}`.trim()).filter((l: string) => l.length > 2).join('\n')
+  } catch { return '' }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Tool = { name: string; description: string; inputSchema: Record<string, unknown>; run: (a: any, actor: string) => Promise<unknown>; log?: (a: any, r: any) => { eventType: string; summary: string; entityType?: string; entityId?: string } }
 const obj = (props: Record<string, unknown>, required: string[] = []) => ({ type: 'object', properties: props, required, additionalProperties: true })
@@ -40,9 +68,9 @@ const TOOLS: Tool[] = [
   { name: 'contacts_list', description: 'Liste les contacts (source de vérité).', inputSchema: obj({}), run: () => cx().query(api.crm_contacts.list, {}) },
   { name: 'contacts_get', description: 'Récupère un contact par id.', inputSchema: obj({ id: Sx.string }, ['id']), run: (a) => cx().query(api.crm_contacts.get, { id: a.id }) },
   {
-    name: 'contacts_create', description: "Crée un contact. name (requis), email, phone, company, source, statut (lead|client|perdu), metier, niche.",
-    inputSchema: obj({ name: Sx.string, email: Sx.string, phone: Sx.string, company: Sx.string, source: Sx.string, statut: Sx.string, metier: Sx.string, niche: Sx.string }, ['name']),
-    run: (a) => { const [firstName, ...rest] = (a.name || 'Contact').split(' '); return cx().mutation(api.crm_contacts.create, { firstName, lastName: rest.join(' ') || undefined, email: a.email, phone: a.phone, companyName: a.company, source: a.source, statut: a.statut ?? 'lead', metier: a.metier, niche: a.niche }) },
+    name: 'contacts_create', description: "Crée un contact — REMPLIR LA FICHE EN ENTIER : name (requis), email, phone, company, source, statut (lead|client|perdu), metier, niche, city, postalCode, country, canton, website, linkedinUrl, address.",
+    inputSchema: obj({ name: Sx.string, email: Sx.string, phone: Sx.string, company: Sx.string, source: Sx.string, statut: Sx.string, metier: Sx.string, niche: Sx.string, city: Sx.string, postalCode: Sx.string, country: Sx.string, canton: Sx.string, website: Sx.string, linkedinUrl: Sx.string, address: Sx.string }, ['name']),
+    run: (a) => { const [firstName, ...rest] = (a.name || 'Contact').split(' '); return cx().mutation(api.crm_contacts.create, { firstName, lastName: rest.join(' ') || undefined, email: a.email, phone: a.phone, companyName: a.company, source: a.source, statut: a.statut ?? 'lead', metier: a.metier, niche: a.niche, city: a.city, postalCode: a.postalCode, country: a.country, canton: a.canton, website: a.website, linkedinUrl: a.linkedinUrl, address1: a.address }) },
     log: (a, r) => ({ eventType: 'contact.created', summary: `Contact créé : ${a.name}`, entityType: 'contact', entityId: String(r) }),
   },
   {
@@ -267,7 +295,7 @@ const TOOLS: Tool[] = [
   },
 
   // ───────────── Prospection (cockpit caller, Nouveau lead → R1) ─────────────
-  { name: 'prospection_list', description: 'Liste les cartes de prospection (jointes au contact). Board = colonnes lead_a_traiter|r1_booke|perdu (filtre column). Phase 1/2/3 internes. Filtres: column, phase, temperature, channel, status, search.', inputSchema: obj({ column: Sx.string, phase: Sx.string, temperature: Sx.string, channel: Sx.string, status: Sx.string, search: Sx.string }), run: (a) => cx().query(api.osProspection.list, a) },
+  { name: 'prospection_list', description: 'Liste les cartes de prospection (jointes au contact). Board = colonnes leads_a_traiter|leads_interne|nrp1|nrp2|nrp3|nrp4|rdv_booke|a_suivre|perdu (filtre column ; alias anciens tolérés). Phase 1/2/3 internes. Filtres: column, phase, temperature, channel, status, search.', inputSchema: obj({ column: Sx.string, phase: Sx.string, temperature: Sx.string, channel: Sx.string, status: Sx.string, search: Sx.string }), run: (a) => cx().query(api.osProspection.list, a) },
   {
     name: 'prospection_create_or_link_contact', description: "Crée un lead de prospection. Déduplique le contact (phone/email/linkedin/nom+entreprise), crée/lie le Contact (statut lead, stage Nouveau lead), crée la carte prospection + le lead Pipeline. fullName requis.",
     inputSchema: obj({ fullName: Sx.string, companyName: Sx.string, phone: Sx.string, email: Sx.string, linkedinUrl: Sx.string, source: Sx.string, niche: Sx.string, canton: Sx.string, channel: Sx.string, temperature: Sx.string }, ['fullName']),
@@ -352,6 +380,9 @@ const TOOLS: Tool[] = [
 
   // ───────────── Media buyer (cockpit Meta) ─────────────
   { name: 'media_buyer_board', description: "Board média Meta. level optionnel (creative|adset|campaign).", inputSchema: obj({ level: Sx.string }), run: (a) => cx().query(api.mediaBuyer.board, { level: a.level }) },
+  { name: 'meta_creatives', description: "Créas Meta Ads LIVE avec leurs VISUELS : imageUrl, thumbnailUrl, videoSource (URL de la vidéo) + insights calculés (spend, ctr, hookRate=thumbstop, holdRate, frequency, cpa, roas, leads). Pour JUGER une créa visuellement : récupère son imageUrl/videoSource ici, puis REGARDE-la avec ta vision. datePreset (last_7d|last_14d|last_30d, défaut last_14d), limit, activeOnly (true par défaut).", inputSchema: obj({ datePreset: Sx.string, limit: Sx.number, activeOnly: Sx.bool }), run: (a) => cx().action(api.metaAds.creatives, { datePreset: a.datePreset || undefined, limit: a.limit || undefined, activeOnly: a.activeOnly }) },
+  { name: 'meta_creatives_stored', description: "Créas Meta stockées dans le Data OS (synchronisées) avec leurs VISUELS (imageUrl, thumbnailUrl, videoSource) + métriques. Lecture rapide depuis le Data OS (pas d'appel Meta). Pour juger une créa : prends son imageUrl/videoSource et REGARDE-la avec ta vision.", inputSchema: obj({}), run: () => cx().query(api.metaAds.listStored, {}) },
+  { name: 'meta_creatives_sync', description: "Synchronise les créas Meta (avec images/vidéos + insights) dans le Data OS. datePreset (last_7d|last_14d|last_30d|last_90d).", inputSchema: obj({ datePreset: Sx.string }), run: (a) => cx().action(api.metaAds.syncCreatives, { datePreset: a.datePreset || undefined }) },
   {
     name: 'media_buyer_upsert', description: "Crée/maj une métrique d'annonce. level+name+spend requis ; id pour update ; campaign,adset,roas,cpa,ctr,hookRate,frequency,results,verdictOverride(scale|watch|kill).",
     inputSchema: obj({ id: Sx.string, level: Sx.string, name: Sx.string, campaign: Sx.string, adset: Sx.string, thumbUrl: Sx.string, periodFrom: Sx.string, periodTo: Sx.string, spend: Sx.number, roas: Sx.number, cpa: Sx.number, ctr: Sx.number, hookRate: Sx.number, frequency: Sx.number, results: Sx.number, verdictOverride: Sx.string, source: Sx.string }, ['level', 'name', 'spend']),
@@ -398,14 +429,80 @@ const TOOLS: Tool[] = [
     log: (a) => ({ eventType: 'confirmation.linked', summary: 'Confirmation liée au contact', entityType: 'confirmation_intake', entityId: a.id }),
   },
 
+  // ───────────── Outbound (loop email outbound — machine à états) ─────────────
+  { name: 'outbound_list', description: "Liste les leads outbound (état de la loop). Filtre etape ∈ a_auditer|audit_ok|a_corriger|rejete|deck_a_faire|pret_envoi|email_envoye|relance|importe|froid.", inputSchema: obj({ etape: Sx.string }), run: (a) => cx().query(api.outboundLeads.list, { etape: a.etape || undefined }) },
+  {
+    name: 'outbound_create', description: "Ajoute un lead outbound (état 'a_auditer', dédup par email). firstName requis ; lastName, email, company, role, niche, canton, website, source(preuve/url), score(A|B|C), note. NE JAMAIS inventer : champ inconnu = vide.",
+    inputSchema: obj({ firstName: Sx.string, lastName: Sx.string, email: Sx.string, company: Sx.string, role: Sx.string, niche: Sx.string, canton: Sx.string, website: Sx.string, source: Sx.string, score: Sx.string, note: Sx.string }, ['firstName']),
+    run: (a, actor) => cx().mutation(api.outboundLeads.create, { firstName: a.firstName, lastName: a.lastName, email: a.email, company: a.company, role: a.role, niche: a.niche, canton: a.canton, website: a.website, source: a.source, score: a.score, note: a.note, createdBy: actor }),
+    log: (a, r) => ({ eventType: 'outbound.created', summary: `Lead outbound : ${a.firstName} ${a.company ?? ''}`.trim(), entityType: 'outbound_lead', entityId: String((r as { id?: string })?.id ?? '') }),
+  },
+  {
+    name: 'outbound_set_stage', description: "Change l'étape d'un lead outbound (audit COO, deck, envoi…). id + etape requis ; score(A|B|C), agentResponsable(data_analyst|coo|csm|ops), note(raison/blocage), deckUrl. etape ∈ a_auditer|audit_ok|a_corriger|rejete|deck_a_faire|pret_envoi|email_envoye|relance|importe|froid.",
+    inputSchema: obj({ id: Sx.string, etape: Sx.string, score: Sx.string, agentResponsable: Sx.string, note: Sx.string, deckUrl: Sx.string }, ['id', 'etape']),
+    run: (a) => cx().mutation(api.outboundLeads.setStage, { id: a.id, etape: a.etape, score: a.score, agentResponsable: a.agentResponsable, note: a.note, deckUrl: a.deckUrl }),
+    log: (a) => ({ eventType: 'outbound.stage', summary: `Outbound → ${a.etape}`, entityType: 'outbound_lead', entityId: a.id }),
+  },
+
+  // ───────────── Closing (cockpit closer — bio + appels) ─────────────
+  { name: 'closing_calls', description: "Liste les appels R1/R2 à préparer (file closer) avec contact, quiz, objections, synthèse R1, bio.", inputSchema: obj({}), run: () => cx().query(api.closing.upcomingCalls, {}) },
+  {
+    name: 'closing_save_bio', description: "Écrit la BIO 'brief de bras-droit' générée sur un appel. id (os_sales_calls) + bioMarkdown requis.",
+    inputSchema: obj({ id: Sx.string, bioMarkdown: Sx.string }, ['id', 'bioMarkdown']),
+    run: (a) => cx().mutation(api.closing.saveBio, { id: a.id, bioMarkdown: a.bioMarkdown }),
+    log: (a) => ({ eventType: 'closing.bio', summary: 'Bio closing générée', entityType: 'sales_call', entityId: a.id }),
+  },
+  {
+    name: 'closing_schedule_call', description: "Crée/maj un appel R1/R2 planifié (dédup par externalId iClosed). title + stage('R1'|'R2') requis ; contactId, date, externalId, meetLink.",
+    inputSchema: obj({ title: Sx.string, stage: Sx.string, contactId: Sx.string, date: Sx.string, externalId: Sx.string, meetLink: Sx.string, quizJson: Sx.string, calendarLabel: Sx.string, calendarSlug: Sx.string, calendarColor: Sx.string }, ['title', 'stage']),
+    run: (a) => cx().mutation(api.closing.scheduleCall, { title: a.title, stage: a.stage, contactId: a.contactId, date: a.date, externalId: a.externalId, meetLink: a.meetLink, quizJson: a.quizJson, calendarLabel: a.calendarLabel, calendarSlug: a.calendarSlug, calendarColor: a.calendarColor }),
+    log: (a, r) => ({ eventType: 'closing.scheduled', summary: `Appel ${a.stage} : ${a.title}`, entityType: 'sales_call', entityId: String((r as { id?: string })?.id ?? '') }),
+  },
+  { name: 'closing_synced_ids', description: "Liste les externalId iClosed déjà importés (pour dédup le sync).", inputSchema: obj({}), run: () => cx().query(api.closing.syncedExternalIds, {}) },
+  {
+    name: 'onboarding_schedule_kickoff', description: "Le client a réservé son KICKOFF sur iClosed (event Kick-off) → renseigne la date/heure (startTime ISO), coche kickoffPlanned et avance la carte client en « Kickoff booké ». email OU contactId requis + startTime.",
+    inputSchema: obj({ email: Sx.string, contactId: Sx.string, startTime: Sx.string, externalId: Sx.string }, ['startTime']),
+    run: (a) => cx().mutation(api.onboarding.scheduleKickoff, { email: a.email, contactId: a.contactId, startTime: a.startTime, externalId: a.externalId }),
+    log: (a, r) => ({ eventType: 'onboarding.kickoff_scheduled', summary: `Kickoff réservé : ${a.email ?? a.contactId}`, entityType: 'onboarding', entityId: String((r as { contactId?: string })?.contactId ?? '') }),
+  },
+
   // ───────────── Records (méta bibliothèque) ─────────────
-  { name: 'records_list', description: 'Méta de tous les records (synthèse, tags, liens).', inputSchema: obj({}), run: () => cx().query(api.recordNotes.list, {}) },
+  { name: 'records_list', description: 'Méta de tous les records (synthèse, tags, liens, auteur de synthèse).', inputSchema: obj({}), run: () => cx().query(api.recordNotes.list, {}) },
   { name: 'records_get', description: "Méta d'un record. recordId requis.", inputSchema: obj({ recordId: Sx.string }, ['recordId']), run: (a) => cx().query(api.recordNotes.get, { recordId: a.recordId }) },
   {
-    name: 'records_patch', description: "Met à jour la méta d'un record. recordId requis ; synthesis, tags[], name, linkedContactId, linkedLeadId.",
+    name: 'records_meetings',
+    description: "Liste TOUS les meetings du module Records (tl;dv + Fathom) avec leur état de synthèse. Renvoie [{recordId, title, date, source, hasSynthesis, synthesisBy}]. Utilise-le pour savoir quels transcripts restent à synthétiser (hasSynthesis=false).",
+    inputSchema: obj({}),
+    run: async () => {
+      const [tl, fa, meta] = await Promise.all([tldvMeetings(), fathomMeetings(), cx().query(api.recordNotes.list, {}) as Promise<Record<string, any>>])
+      const rows = [
+        ...tl.map((m: any) => ({ recordId: tldvId(m), title: m.name ?? m.title ?? 'Réunion', date: isoDay(m.happenedAt ?? m.started_at ?? m.date), source: 'tldv' })),
+        ...fa.map((m: any) => ({ recordId: fathomId(m), title: m.meeting_title ?? m.title ?? 'Réunion', date: isoDay(m.recording_start_time ?? m.created_at), source: 'fathom' })),
+      ].filter(r => r.recordId)
+      return rows.map(r => ({ ...r, hasSynthesis: !!(meta[r.recordId]?.synthesis), synthesisBy: meta[r.recordId]?.synthesisBy ?? '' }))
+        .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+    },
+  },
+  {
+    name: 'record_transcript',
+    description: "Transcript texte complet d'un meeting. recordId requis (de records_meetings). Marche pour tl;dv et Fathom. Lis-le puis écris la synthèse via records_patch.",
+    inputSchema: obj({ recordId: Sx.string }, ['recordId']),
+    run: async (a) => {
+      const id = String(a.recordId ?? '')
+      if (id.startsWith('fathom-')) {
+        const fa = await fathomMeetings()
+        const m = fa.find((x: any) => fathomId(x) === id)
+        return { recordId: id, source: 'fathom', transcript: m ? fathomTranscriptText(m) : '', found: !!m }
+      }
+      const text = await tldvTranscriptText(id)
+      return { recordId: id, source: 'tldv', transcript: text, found: text.length > 0 }
+    },
+  },
+  {
+    name: 'records_patch', description: "Met à jour la méta d'un record. recordId requis ; synthesis, tags[], name, linkedContactId, linkedLeadId. Quand tu écris une synthesis, elle est automatiquement signée par toi (auteur) et horodatée.",
     inputSchema: obj({ recordId: Sx.string, synthesis: Sx.string, tags: Sx.strArr, name: Sx.string, linkedContactId: Sx.string, linkedLeadId: Sx.string }, ['recordId']),
-    run: (a) => cx().mutation(api.recordNotes.patch, { recordId: a.recordId, synthesis: a.synthesis, tags: a.tags, name: a.name, linkedContactId: a.linkedContactId, linkedLeadId: a.linkedLeadId }),
-    log: (a) => ({ eventType: 'record.updated', summary: 'Record mis à jour', entityType: 'record', entityId: a.recordId }),
+    run: (a, actor) => cx().mutation(api.recordNotes.patch, { recordId: a.recordId, synthesis: a.synthesis, tags: a.tags, name: a.name, linkedContactId: a.linkedContactId, linkedLeadId: a.linkedLeadId, synthesisBy: actor }),
+    log: (a) => ({ eventType: 'record.updated', summary: a.synthesis ? 'Synthèse record écrite' : 'Record mis à jour', entityType: 'record', entityId: a.recordId }),
   },
   {
     name: 'records_remove', description: "Supprime la méta d'un record. recordId requis.",

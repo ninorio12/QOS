@@ -1,0 +1,1337 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260507_131135_6662d0
+source_file: /home/hermes/.hermes/sessions/20260507_131135_6662d0.jsonl
+source_sha256_16: 88cc33b3a34ffcf9
+date: 2026-05-07
+---
+
+# Recovered session root/20260507_131135_6662d0
+
+
+## user — 2026-05-07T13:16:43.609223
+
+[The user sent a text document: 'brvndlab-sauvegarde-topics _1_.md'. Its content has been included below. The file is also saved at: /Users/businessmanagement/.hermes/cache/documents/doc_8135d92f54e1_brvndlab-sauvegarde-topics (1).md]
+
+[Jonathan] [Content of brvndlab-sauvegarde-topics _1_.md]:
+# Sauvegarde Brvndlab - contexte des topics
+
+Date : 2026-05-06
+Objet : sauvegarde simple du contexte pour repartir proprement dans les prochains topics Telegram.
+
+## 1. Décision modèle et méthode de travail
+
+- Jonathan a fait la mise à jour et veut maintenant travailler sur **Codex avec GPT-5.5**.
+- On ne doit plus utiliser GLM pour le développement Brvndlab.
+- Hermes reste le cockpit / orchestrateur Telegram.
+- Pour le code, l'objectif est de passer par Codex / environnement dev connecté, pas par bricolage local.
+
+## 2. Ce qu'on a clarifié sur Brvndlab
+
+Brvndlab est le SaaS prioritaire de Jonathan.
+
+Stack cible :
+
+- Frontend : Next.js
+- Backend / database : Convex
+- Auth : Clerk
+- Paiement : Stripe, avec Whop prévu / présent dans la logique business
+- Déploiement : Vercel
+- Domaine production : `app.brvndlab.com`
+- Repo GitHub : `https://github.com/jonathanzekhe/brvndlab.git`
+
+Règle importante côté backend :
+
+- Ne jamais passer `clerkUserId` depuis le client vers Convex.
+- L'identité utilisateur doit être récupérée côté backend via l'auth, idéalement avec Clerk / `ctx.auth.getUserIdentity()` selon la stack finale.
+
+## 3. Organisation des topics / sous-agents Brvndlab
+
+Jonathan veut des topics Telegram séparés pour parler directement aux responsables.
+
+Le cockpit / COO reste l'assistant principal. Le COO n'est pas un topic séparé obligatoire.
+
+Structure validée côté Brvndlab :
+
+### CSM / Customer Success + Growth
+
+Responsabilités :
+
+- Onboarding clients
+- Satisfaction client
+- Support utilisateur
+- Analyse feedbacks
+- Détection churn
+- Améliorations produit basées sur les retours clients
+- Stratégie issue de la mémoire client / mémoire dorée
+
+### Content & Visual Marketing
+
+Responsabilités :
+
+- Stratégie contenu
+- Scripts YouTube
+- Idées de vidéos
+- Calendrier éditorial
+- Thumbnails
+- Ads / créas publicitaires
+- Landing pages côté communication
+- Lead magnets
+- Cohérence visuelle old money / Brvndlab
+
+### Market Intelligence
+
+Responsabilités :
+
+- Veille concurrents
+- Tendances SaaS personal branding
+- Marché FR et EN
+- Positionnement
+- Opportunités marché
+- Analyse d'acteurs similaires
+
+### Revenue Growth
+
+Responsabilités :
+
+- MRR
+- Churn
+- LTV
+- Pricing
+- Funnel
+- Conversion
+- Stripe / Whop
+- Opportunités croissance
+
+### Tech Excellence
+
+Responsabilités :
+
+- Développement front-end
+- Développement back-end
+- Bugs
+- UX/UI produit
+- Performance
+- Infrastructure
+- Déploiements Vercel
+- Convex / Clerk / Stripe côté technique
+
+## 4. Ce qui a été fait côté agents / cronjobs
+
+Des jobs ont été créés précédemment pour simuler les sous-agents avec heartbeat.
+
+Sous-agents créés / prévus :
+
+- CSM Brvndlab
+- Content Engine Brvndlab
+- Market Intelligence Brvndlab
+- Revenue Ops Brvndlab
+- Tech & Product Brvndlab
+- COO Dashboard Brvndlab
+
+Heartbeat demandé par Jonathan :
+
+- Préférence finale : toutes les 2 minutes
+- Possibilité future : 1 minute si la consommation de tokens reste acceptable
+
+Point important :
+
+- Les anciens jobs étaient configurés avec `glm-4.5-flash` via provider `zai`.
+- Comme Jonathan a basculé vers Codex GPT-5.5, il faudra revoir ces jobs pour éviter GLM si on les conserve.
+
+## 5. Groupe Telegram Brvndlab
+
+Groupe identifié :
+
+- Nom : Brvndlab
+- Chat ID observé : `-1003616611166`
+
+Jonathan veut des topics Telegram dans ce groupe pour les sous-agents.
+
+Attention : une tentative précédente a probablement envoyé un message dans le groupe, mais la vraie création technique des topics n'a pas été vérifiée de manière fiable.
+
+## 6. Accès aux stacks
+
+Jonathan a demandé comment donner les accès pour que l'assistant puisse travailler sur l'ensemble du business, surtout modifier le code front-end et back-end.
+
+Ordre prévu :
+
+1. Vercel
+2. Convex
+3. Clerk
+
+Clarification sécurité :
+
+- Accès par email collaborateur : plus simple pour dashboards et permissions complètes.
+- Accès par API keys : plus contrôlé, meilleur pour sécurité, suffisant pour beaucoup d'actions dev.
+- Pour modifier le code, le plus important reste l'accès GitHub / Codex, puis les tokens nécessaires à Vercel, Convex, Clerk.
+
+À retenir :
+
+- Jonathan préfère une approche sécurisée.
+- Il ne connaît pas l'email système Hermes et n'est pas à l'aise de donner un accès complet aveugle.
+- Les API keys / tokens à permissions limitées sont probablement l'approche à privilégier.
+
+## 7. Vercel observé dans les sessions précédentes
+
+Vercel CLI détecté :
+
+- Version : `50.41.0`
+- Scope valide observé : `jonathanzekhe-4288s-projects`
+
+Projets observés :
+
+- `brvndlab-app`
+- `brvndlab-mockups`
+
+Déploiement production observé pour Brvndlab :
+
+- URL de preview / déploiement : `https://brvndlab-nplrai7vh-jonathanzekhe-4288s-projects.vercel.app`
+- Statut observé : Ready
+- Environnement : Production
+
+Autre projet observé :
+
+- `brvndlab-mockups`
+- Exemple URL : `https://brvndlab-mockups-n2ro1k96b-jonathanzekhe-4288s-projects.vercel.app`
+
+Points à corriger / vérifier :
+
+- Le codebase local n'était pas correctement lié à Vercel.
+- Certaines commandes Vercel logs ont échoué à cause d'options incompatibles.
+- Il faudra relier proprement le projet ou travailler directement via GitHub + Vercel.
+
+## 8. Convex observé dans les sessions précédentes
+
+Convex CLI :
+
+- Version observée : `1.34.1`
+
+URL Convex observée :
+
+- `https://majestic-chameleon-876.eu-west-1.convex.cloud`
+
+Problème observé :
+
+- La variable `CONVEX_DEPLOYMENT` semblait contenir un format invalide avec un suffixe de type token après `|`.
+- Erreur Convex : `InvalidDeploymentName: Instance name must be no longer than 64 characters`
+
+Conclusion :
+
+- Le backend production n'a pas forcément été prouvé cassé.
+- Ce qui est sûr : la config locale Convex était incohérente pour le CLI.
+
+À faire :
+
+- Vérifier les variables d'environnement Convex dans Vercel.
+- Vérifier le dashboard Convex.
+- Nettoyer la config locale / Codex si nécessaire.
+
+## 9. Clerk observé / point de contradiction
+
+Stack cible annoncée : Clerk.
+
+Mais inspection précédente du repo local :
+
+- `package.json` ne montrait pas clairement `@clerk/nextjs` comme dépendance directe.
+- Le code semblait utiliser `@convex-dev/auth` et `useConvexAuth`.
+- La production exposait pourtant des éléments Clerk dans le HTML :
+ - domaine Clerk : `clerk.brvndlab.com`
+ - sign in : `/sign-in`
+ - fallback : `/dashboard`
+
+Conclusion :
+
+- Il y a probablement une divergence entre la stack cible, la prod et le repo local inspecté.
+- À vérifier proprement avec Codex sur le repo actuel.
+
+## 10. Repo local / problème précédent
+
+Une tentative locale a été faite sur `/Users/businessmanagement/brvndlab`.
+
+Ce qui s'est passé :
+
+- Le repo existait déjà, donc le clone GitHub a échoué car le dossier n'était pas vide.
+- Les dépendances étaient installées.
+- `npm run 
+
+...[TRONQUÉ 15809 chars sha256:c598b43adf8a8ec8]...
+
+er une branche, livrer une preview Vercel, puis faire valider avant merge.
+
+Sous-agents / topics Brvndlab :
+
+1. CSM / Customer Success + Growth
+2. Content & Visual Marketing
+3. Market Intelligence
+4. Revenue Growth
+5. Tech Excellence
+
+Règles de communication :
+
+- Toujours en français de France.
+- Tutoyer Jonathan.
+- Répondre court, direct, actionnable.
+- Utiliser `on` / `nous`, pas une posture solo.
+- Ne pas parler anglais.
+- Ne pas utiliser de mots vides.
+- Ne pas faire de suppositions temporelles.
+- Distinguer faits vérifiés, hypothèses et prochaines actions.
+
+Règles produit / tech :
+
+- Brand OS est la source de vérité centrale.
+- Boucle de valeur : Brand OS → Contenu → Smart Links → Leads → Mémoire dorée.
+- Règle auth importante : ne jamais passer `clerkUserId` en argument client vers Convex.
+- Vérifier la divergence actuelle possible entre Clerk et Convex Auth.
+- Vérifier la config Convex, Vercel, Clerk et ESLint avant gros développement.
+
+Priorités produit :
+
+- Publication native YouTube / Instagram / TikTok.
+- Intégrations Calendly, Whop, Systeme.io.
+- Analytics.
+- Smart Links.
+- Leads.
+- Mémoire dorée.
+- Messaging.
+- Calendrier avancé.
+- Radar IA.
+
+## 19. Résumé ultra-court pour nouveau topic
+
+Contexte à coller si besoin :
+
+Brvndlab est le SaaS prioritaire de Jonathan Zekhe, stack cible Next.js + Convex + Clerk + Stripe + Vercel, repo `https://github.com/jonathanzekhe/brvndlab.git`, prod `app.brvndlab.com`. Jonathan veut travailler avec Codex GPT-5.5, plus GLM, en mode GitHub + Vercel preview, pas local. Les sous-agents/topics Brvndlab sont : CSM, Content & Visual Marketing, Market Intelligence, Revenue Growth, Tech Excellence. Priorités produit : publication native YouTube/Instagram/TikTok, intégrations Calendly/Whop/Systeme.io, Analytics, Smart Links, Leads, Mémoire dorée. Points à vérifier : divergence Clerk vs Convex Auth, config Convex locale invalide, ESLint cassé, vraie création des topics Telegram.
+
+
+Tu es le développeur full stack de Brvndlab. Tu travailles sur la stack de Claude Code et tu utilises tous les outils disponibles aujourd'hui pour pouvoir développer la solution de Brvndlab en fonction des éléments qui vont être fournis 
+
+https://github.com/jonathanzekhe/brvndlab.git. Voici le repo GitHub. Connecte-toi dessus et envoie-moi le lien de prévisualisation du coup de la plateforme et on va commencer à développer un peu tout ça. On va reprendre de là où on s'est arrêté.
+
+
+Prenons aussi en considération tout ce qu'il y a dans ce topique
+
+## user — 2026-05-07T13:16:43.609223
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: “Ok maintenant passons au SmartLink. Let's go” — quasi terminé, reste uniquement finalisation post-déploiement : vérifier état UI après clic CTA live, reconfirmer smoke HTTP si besoin, mettre todo à jour, puis compte-rendu court à Jonathan.
+
+## Goal
+Jonathan veut reprendre **Smart Links** proprement dans Brvndlab, avec approche produit/design mature :
+- partir du brief, skills, mockup canonique et data réelle ;
+- zéro fake stats / fake data / contenu permanent inutile ;
+- rendre Smart Links utile même vide ;
+- clarifier le flow : destination réelle → lien tracké partageable ;
+- préserver `https://app.brvndlab.com` ;
+- déployer seulement après tests/build/smoke live.
+
+Objectif Brvndlab global :
+- continuer le SaaS live `https://app.brvndlab.com` ;
+- gérer frontend/backend/Vercel/Convex/Clerk/Stripe/GitHub/tests/déploiements ;
+- préserver auth, paiement, data, secrets, coûts et actions client réelles ;
+- niveau Tech Excellence Brvndlab, pas UI superficielle.
+
+## Constraints & Preferences
+- Réponses simples, directes, opérationnelles, tutoiement, posture “on/nous”.
+- Brvndlab priorité #1.
+- Utiliser Codex GPT-5.5 pour dev Brvndlab ; ne plus utiliser GLM pour code Brvndlab.
+- Base vérité = GitHub + Vercel + Convex + Clerk, pas ancien repo local isolé.
+- Repo canonique : `https://github.com/jonathanzekhe/brvndlab.git`
+- Prod : `https://app.brvndlab.com`
+- Stack : Next.js 16.2.2, React 19.2.4, Convex, Clerk, Stripe, Vercel, Tailwind CSS 4, Vitest.
+- Auth/Convex : ne jamais passer `clerkUserId` ou email depuis client vers Convex ; utiliser `ctx.auth.getUserIdentity()` backend ; auth = Clerk.
+- Prod directe OK pour UI/produit faible risque : code → tests/build → prod cloud Vercel → smoke live → rollback si problème.
+- Validation explicite requise pour suppressions/migrations/data, secrets/API keys, coûts, messages client réels, auth critique, Stripe/paiement, données utilisateurs critiques, merge/déploiement risqué.
+- Déploiement prod Vercel recommandé :
+ ```bash
+ vercel --prod --token "$VERCEL_TOKEN" --scope jonathanzekhe-4288s-projects --yes
+ ```
+- Ne pas utiliser `vercel build --prod` + `vercel deploy --prebuilt --prod` local : incident Clerk `Publishable key not valid`.
+- `git push` ≠ déployé ; toujours confirmer `app.brvndlab.com` live.
+- Smoke test live obligatoire après prod ; UI consommant API = curl/API live obligatoire.
+- Secrets uniquement dans `/Users/businessmanagement/.hermes/.env`, jamais affichés ; tout token collé chat/Telegram est compromis et doit être révoqué.
+- UI Brvndlab : noir pro/old money, accents champagne/orangé, less is more, SaaS mature, zéro fake data, pixel-perfect.
+- Avant UI : charger skills Brvndlab + skills Claude importés, lire brief si doute, auditer live/code/patterns, utiliser Gemini Design MCP, proposer direction avant code.
+- Règle scellée : **si doute, brief avant code**.
+- Smart Links :
+ - zéro donnée fictive ;
+ - Smart Link = lien tracké généré depuis destination/source publication ;
+ - Destination = URL finale réelle configurée par user ;
+ - `/r/[slug]` critique ;
+ - 1 Smart Link = 1 source publication ;
+ - analytics détaillées seulement avec vraie donnée ;
+ - page principale mature/sobre.
+- GHL non connecté, #4 roadmap, exclu de `BANKING_PLATFORMS`; cash KPI = Stripe + Whop only.
+
+## Completed Actions
+1. CHARGÉ skills initiaux Brvndlab — `github-repo-management`, `nextjs-development-setup`, `business/Brvndlab COO Orchestration` consultés [tool: skill_view]
+2. VÉRIFIÉ environnement local — `git`, `gh`, `node`, `npm`, `npx`, `vercel`, `claude` présents [tool: terminal]
+3. CLONÉ/MIS À JOUR repo — `/Users/businessmanagement/dev/brvndlab-claude`, repo à jour `main/origin/main` [tool: terminal]
+4. LU contexte projet — `/Users/businessmanagement/dev/brvndlab-claude/CLAUDE.md` [tool: read_file]
+5. INSTALLÉ dépendances — `npm ci` dans `brvndlab-app`, succès [tool: terminal]
+6. LIÉ Vercel — projet `brvndlab-app`, succès [tool: terminal]
+7. TIRÉ env prod Vercel — `.vercel/.env.production.local` créé, valeurs non affichées [tool: terminal]
+8. VALIDÉ build initial avec env prod locale — `npm run build`, succès [tool: terminal]
+9. VALIDÉ tests initiaux — `npm test`, 36 tests passés [tool: terminal]
+10. IDENTIFIÉ lint global KO — `npm run lint`, 402 problèmes : 146 erreurs, 256 warnings [tool: terminal]
+11. SMOKE TEST prod initial — `/` 200, `/sign-in` 200, `/dashboard` redirect auth OK [tool: terminal]
+12. CONFIGURÉ accès Hermes — GitHub/Vercel/Convex tokens sauvegardés dans `/Users/businessmanagement/.hermes/.env`, valeurs `[REDACTED]`; accès OK [tool: terminal]
+13. VÉRIFIÉ Convex prod — `npx convex env list --prod`, sortie `CONVEX_ACCESS_OK`; prod `accurate-cormorant-297` [tool: terminal]
+14. CRÉÉ skill autonomie Brvndlab — `business/brvndlab-autonomous-dev` [tool: skill_manage]
+15. ANALYSÉ mockup Smart Links — `https://brvndlab-mockups.vercel.app/brvndlab-smart-links-final` [tool: browser_navigate, browser_snapshot, browser_vision]
+16. RÉÉCRIT Smart Links v1 mockup — `src/app/(app)/smart-links/page.tsx`, `DestinationsManager.tsx`, `CustomDomainSection.tsx` [tool: write_file]
+17. VALIDÉ Smart Links v1 — tests 36/36, ESLint ciblé OK, build OK [tool: terminal]
+18. COMMIT/PUSH/PR v1 — commit `1a595a8 feat(smart-links): align page with final mockup`, PR #1 mergée [tool: terminal]
+19. DÉPLOYÉ preview puis prod v1 — incident prod Clerk via prébuild local `Publishable key not valid`; rollback puis prod cloud OK [tool: terminal]
+20. DOUBLE SMOKE TEST prod v1 — `/`, `/sign-in`, `/smart-links`, `/dashboard` OK/redirect auth OK [tool: terminal]
+21. SUPPRIMÉ fake data Smart Links — retrait stats/pays/visiteurs/percentages/demo data [tool: execute_code]
+22. VÉRIFIÉ zéro-data — recherche `DEMO_GEO|6851|1547|Top 5 pays|VISITEURS UNIQUES|Lead magnet pricing|@jonathan|yt-scaler` → 0 résultat [tool: search_files]
+23. PATCHÉ wording destination — `iClosed` remplacé par `Call`, copy destinations simplifiée [tool: patch]
+24. VALIDÉ zéro-data — ESLint ciblé OK, `npm test` OK, build OK [tool: terminal]
+25. COMMIT/PUSH zéro-data — commit `fe0d77e fix(smart-links): remove demo data from page` sur `main` [tool: terminal]
+26. DÉPLOYÉ prod zéro-data — alias `app.brvndlab.com` vers `brvndlab-kxzxo39zw-jonathanzekhe-4288s-projects.vercel.app` [tool: terminal]
+27. SMOKE TEST zéro-data — `/`, `/sign-in`, `/smart-links`, `/dashboard` OK ; console navigateur 0 erreur [tool
+
+...[TRONQUÉ 22108 chars sha256:b8b39f5aa6028b13]...
+
+flow complet destination → Smart Link → `/r/[slug]`.
+7. Prochaine itération Smart Links : auditer data réelle Convex, tester création destination/lien/redirect, copier lien si user auth réel/test, analytics avancées uniquement vraie donnée.
+
+## Critical Context
+- Production : `https://app.brvndlab.com`
+- Smart Links : `https://app.brvndlab.com/smart-links`
+- Dernier alias prod connu :
+ `app.brvndlab.com -> brvndlab-5un0fvzef-jonathanzekhe-4288s-projects.vercel.app`
+- Derniers commits connus :
+ - `1a595a8 feat(smart-links): align page with final mockup`
+ - `fe0d77e fix(smart-links): remove demo data from page`
+ - `6e1ede5 fix(smart-links): simplify page hierarchy`
+ - dernier commit : `feat(smart-links): clarify creation flow` ; hash à récupérer via `git log --oneline -1`.
+- Vercel project/scope :
+ - project `brvndlab-app`
+ - scope `jonathanzekhe-4288s-projects`
+- Convex :
+ - `CONVEX_ACCESS_OK`
+ - production deployment `accurate-cormorant-297`
+ - autre repère `majestic-chameleon-876`
+- Commande prod :
+ ```bash
+ cd /Users/businessmanagement/dev/brvndlab-claude/brvndlab-app
+ set -a
+ . /Users/businessmanagement/.hermes/.env >/dev/null 2>&1
+ set +a
+ vercel --prod --token "$VERCEL_TOKEN" --scope jonathanzekhe-4288s-projects --yes
+ ```
+- Commande à éviter :
+ ```bash
+ vercel build --prod --token "$VERCEL_TOKEN"
+ vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --yes
+ ```
+ Raison : `Publishable key not valid`.
+- Build local avec env prod :
+ ```bash
+ set -a
+ . .vercel/.env.production.local
+ set +a
+ npm run build
+ ```
+- Derniers checks Smart Links :
+ ```text
+ npx eslint 'src/app/(app)/smart-links/page.tsx' 'src/components/smart-links/DestinationsManager.tsx' -> exit 0
+ npm test -> exit 0
+ npm run build avec env prod -> exit 0
+ fake data search ciblée -> 0 résultat
+ vercel --prod -> exit 0
+ vercel alias set ... app.brvndlab.com -> exit 0
+ browser console post-déploiement -> pas d’erreurs visibles
+ ```
+- MCP :
+ - `gemini-design-mcp` OK
+ - `context7` OK
+ - `playwright` OK
+ - `github` OK
+ - `vercel` OK
+- GHL scellé :
+ - pas connecté ;
+ - #4 intégrations restantes ;
+ - `BANKING_PLATFORMS = ["stripe", "whop"]`, exclut iClosed et GHL ;
+ - Cash KPI = Stripe + Whop only.
+- Important relationnel : Jonathan avait dit que l’agent n’avait pas compris Brvndlab/design/logique Smart Links. Continuer avec écoute, ne pas se défendre, ne pas recoder vite sans audit, workflow outillé obligatoire.
+
+--- END OF CONTEXT SUMMARY — respond to the message below, not the summary above ---
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Le clic a révélé un souci visuel : écran noir après ouverture destination. Je stoppe le “tout est OK”, j’inspecte et je corrige avant de te livrer.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Je vois encore deux placeholders hérités “iClosed/Jonathan” dans le modal destination. Ce n’est pas acceptable avec nos règles actuelles. Je les retire maintenant, puis re-déploie.
+
+## user — 2026-05-07T13:16:43.609223
+
+You've reached the maximum number of tool-calling iterations allowed. Please provide a final response summarizing what you've found and accomplished so far, without calling any more tools.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Smart Links v1 est repris et live.
+
+Ce que j’ai fait :
+
+- Audit rapide live + code + backend Smart Links.
+- Vérifié la logique réelle :
+ - `Smart Link` = lien tracké `/r/[slug]`.
+ - `Destination` = URL finale réutilisable.
+ - Stats réelles uniquement : clics, opt-ins, bookings, ventes, CA.
+ - Zéro fake data.
+- Utilisé Gemini Design MCP pour cadrer le bloc UI.
+- Refonte faible risque de `/smart-links` :
+ - header plus clair : `Acquisition / Smart Links`.
+ - CTA principal : créer/configurer selon état réel.
+ - carte explicative sombre premium.
+ - bloc `Destinations` visible mais secondaire.
+ - empty state intelligent :
+ - si aucune destination → “Configurer une destination”
+ - si destinations existantes → “Créer un Smart Link”
+ - stats globales affichées seulement si vrais liens existants.
+- Nettoyé les placeholders sales dans le modal destination :
+ - supprimé `iClosed`, `jonathan`, `Lead magnet pricing`
+ - remplacé par :
+ - `Ex : Page de vente, Newsletter, Appel stratégique`
+ - `https://ton-domaine.com/offre`
+
+Vérifications passées :
+
+- ESLint ciblé : OK
+- Tests : `36/36` OK
+- Build Next : OK
+- Déploiement prod Vercel : OK
+- Alias prod : `https://app.brvndlab.com` pointe bien vers le dernier déploiement.
+- Smoke test :
+ - `/` 200
+ - `/sign-in` 200
+ - `/smart-links` 200
+ - `/dashboard` redirige vers sign-in OK
+ - `/r/slug-inexistant-smoke-test` 404 OK
+- Smoke navigateur :
+ - page Smart Links visible
+ - modal Destinations visible
+ - modal Ajouter une destination visible
+ - placeholders corrigés visibles
+ - console sans erreur JS
+
+Commits poussés :
+
+- `1f3da41 feat(smart-links): clarify creation flow`
+- `3083ff9 fix(smart-links): neutralize destination placeholders`
+
+Lien live :
+
+https://app.brvndlab.com/smart-links
+
+Point important : j’ai détecté un faux signal “écran noir” pendant le test navigateur, mais c’était lié à un contexte `about:blank` après interaction/snapshot. En rechargeant la page et en retestant, le modal fonctionne bien.
+
+## user — 2026-05-07T13:16:43.609223
+
+[Jonathan] Il y a des choses qui me portent à confusion. La destination, tu as mes chaînes YouTube. Tu sais, j'ai mes chaînes YouTube, Iclose, Instagram. Je ne suis pas sûr que c'est la même logique que ce qu'on avait choisi initialement dans le mock-up final. Ce n'est vraiment pas ça.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Oui, tu as raison. J’ai mal resserré la logique.
+
+J’ai confondu deux niveaux :
+
+- **Destination** = là où on envoie le trafic 
+ Exemples : iClosed, Calendly, page de vente, Whop, newsletter, lead magnet.
+
+- **Source / canal / publication** = d’où vient le trafic 
+ Exemples : chaîne YouTube principale, chaîne YouTube secondaire, Instagram, bio, story, post, vidéo précise, email.
+
+Dans le mockup final, la logique n’était pas “configure juste une destination puis crée un lien”. C’était plutôt :
+
+1. **Tu choisis la source de trafic**
+ - YouTube
+ - Instagram
+ - TikTok
+ - LinkedIn
+ - Email
+ - Web
+ - potentiellement tes chaînes YouTube spécifiques si elles sont connectées
+
+2. **Tu choisis la publication / contexte**
+ - vidéo YouTube précise
+ - bio Instagram
+ - story
+ - post
+ - newsletter
+ - campagne
+
+3. **Tu choisis la destination**
+ - iClosed / Calendly
+ - page de vente
+ - Whop
+ - lead magnet
+ - newsletter
+ - autre URL finale
+
+4. **Brvndlab génère un Smart Link unique**
+ - 1 source précise → 1 destination précise → 1 lien tracké
+ - sinon l’attribution devient floue.
+
+Donc oui : si tu as tes chaînes YouTube, Instagram et iClosed, il ne faut pas les mettre dans le même panier “destinations”.
+
+Correction produit à faire :
+
+- Renommer mentalement le flow en **Source → Destination → Smart Link**.
+- Ajouter une vraie notion de **Sources connectées** :
+ - YouTube : chaînes / vidéos
+ - Instagram : compte / bio / posts / stories
+ - Email / Web : manuel
+- Garder **Destinations** pour les URLs finales uniquement :
+ - iClosed
+ - Calendly
+ - Whop
+ - page de vente
+ - lead magnet
+- Revoir l’écran Smart Links pour montrer :
+ - “Sources” en premier, parce que c’est l’attribution.
+ - “Destinations” en second, parce que c’est la redirection.
+ - “Liens créés” comme résultat.
+
+Je ne vais pas patcher à l’aveugle maintenant. Il faut qu’on reparte du mockup final proprement et qu’on corrige la structure produit, pas juste le wording.
+
+Ma recommandation :
+
+**Smart Links doit devenir :**
+- Bloc 1 : **Sources connectées**
+ - YouTube, Instagram, TikTok, LinkedIn, Email, Web
+ - avec états connecté / manuel / bientôt
+- Bloc 2 : **Destinations**
+ - iClosed, Calendly, Whop, page de vente, lead magnet
+- Bloc 3 : **Liens trackés**
+ - source précise + destination + slug + stats réelles
+
+Et le bouton principal devrait être :
+**Créer un lien tracké**
+puis wizard :
+1. Source
+2. Destination
+3. Nom / slug
+4. Création
+
+Tu as raison de le relever : ce qui est live actuellement est une amélioration UI, mais pas encore la bonne logique Smart Links finale.
+
+## user — 2026-05-07T13:16:43.609223
+
+[Jonathan] Je n'ai pas compris. Qu'est-ce qu'on fait là?
+
+## assistant — 2026-05-07T13:16:43.609223
+
+On corrige le tir.
+
+Là, j’ai trop simplifié Smart Links en mode :
+
+> Destination → lien tracké
+
+Mais la vraie logique produit doit être :
+
+> **Source → Destination → Smart Link**
+
+## Concrètement
+
+Un Smart Link doit répondre à 2 questions :
+
+1. **D’où vient le trafic ?**
+ - Chaîne YouTube principale
+ - Vidéo YouTube précise
+ - Instagram bio
+ - Story Instagram
+ - Email
+ - Pub
+ - etc.
+
+2. **Où on envoie le trafic ?**
+ - iClosed
+ - Calendly
+ - page de vente
+ - Whop
+ - lead magnet
+ - newsletter
+ - etc.
+
+Ensuite Brvndlab génère :
+
+> `app.brvndlab.com/r/mon-lien`
+
+Et ce lien permet de savoir :
+
+> “Cette vidéo YouTube / cette story Instagram a généré X clics, X leads, X bookings, X ventes.”
+
+## Ce qui ne va pas actuellement
+
+La page live parle trop de **destinations** en premier.
+
+Donc ça donne l’impression que :
+- YouTube
+- Instagram
+- iClosed
+- page de vente
+
+sont tous dans la même catégorie.
+
+Alors que non :
+
+- **YouTube / Instagram** = sources de trafic.
+- **iClosed / page de vente / Whop** = destinations finales.
+
+## Ce qu’on fait maintenant
+
+On va refaire Smart Links autour de cette structure simple :
+
+### 1. Sources
+“D’où vient le trafic ?”
+
+Exemples :
+- YouTube
+- Instagram
+- TikTok
+- LinkedIn
+- Email
+- Web
+- Manuel
+
+### 2. Destinations
+“Où on envoie les gens ?”
+
+Exemples :
+- iClosed
+- Calendly
+- Whop
+- page de vente
+- lead magnet
+- newsletter
+
+### 3. Smart Links
+“Les liens trackés créés”
+
+Chaque ligne montre :
+- source
+- destination
+- lien
+- clics
+- ventes / CA réel si disponible
+
+## Prochaine action
+
+Je reprends le mockup final et je transforme la page actuelle pour qu’elle affiche clairement :
+
+**Sources → Destinations → Liens trackés**
+
+Pas de fake data. 
+Pas de mélange YouTube/iClosed. 
+Pas de gros guide inutile. 
+
+On repart sur la vraie logique.
+
+## user — 2026-05-07T13:16:43.609223
+
+[Jonathan] Est-ce que tu comprends la logique de ça? https://brvndlab-mockups.vercel.app/brvndlab-smart-links-final
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Je vais le réouvrir et te répondre sur la logique produit, pas sur l’UI au premier degré.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Oui, je comprends mieux maintenant.
+
+La logique du mockup n’est **pas** “source → destination → lien” avec une sélection explicite de YouTube/Instagram comme je l’ai reformulé.
+
+La logique exacte du mockup est plus simple :
+
+## 1. Tu préconfigures des destinations habituelles
+
+Ce sont les endroits où tu veux envoyer le trafic :
+
+- iClosed
+- Newsletter
+- Lead magnet
+- page de vente
+- Whop
+- Calendly
+- etc.
+
+Elles sont définies une fois.
+
+## 2. Quand tu publies quelque part, tu crées un lien en 2 questions
+
+Le modal dit clairement :
+
+### Question 1 
+**Vers quelle destination ?**
+
+Exemples :
+- iClosed
+- Newsletter
+- Lead magnet
+
+### Question 2 
+**Où vas-tu coller ce lien ?**
+
+Là, tu écris librement :
+- Vidéo YouTube · Comment scaler un business à 6 chiffres
+- Story Insta du 5 mai
+- Pub Meta · Black Friday
+- Bio Instagram
+- Newsletter du mardi
+- Post LinkedIn viral
+- Podcast épisode 47
+
+Donc YouTube / Instagram / Meta / LinkedIn ne sont **pas forcément des objets à sélectionner** dans ce mockup.
+
+Ils sont déduits depuis le nom / contexte du lien.
+
+## 3. Brvndlab génère automatiquement le slug
+
+Exemple :
+
+- tu choisis : `iClosed`
+- tu écris : `Vidéo YouTube · Comment scaler un business à 6 chiffres`
+- Brvndlab génère : `brvnd.co/@jonathan/yt-scaler`
+
+Puis il tracke :
+- clics
+- ventes
+- CA
+- géo
+- visiteurs
+- attribution par lien
+
+## 4. La page principale sert à piloter les liens créés
+
+La table n’affiche pas “sources” comme colonne séparée.
+
+Elle affiche :
+
+- nom du lien / contexte de publication
+- destination
+- clics
+- ventes
+- CA
+
+Donc la “source” est contenue dans le **nom du lien** :
+- “Vidéo YouTube…”
+- “Story Instagram…”
+- “Bio TikTok…”
+- “Newsletter…”
+
+## 5. Ce que j’ai mal compris
+
+J’ai voulu formaliser trop fort en séparant :
+
+- Sources
+- Destinations
+- Smart Links
+
+Mais le mockup cherche justement à éviter ça.
+
+La vraie promesse est :
+
+> **1 bouton, 2 questions.**
+> Tu choisis où envoyer les gens.
+> Tu dis où tu vas coller le lien.
+> Brvndlab fait le reste.
+
+Donc oui : la version live actuelle est encore trop “configuration de destination”. 
+Elle doit revenir à la logique du mockup :
+
+- section principale : **Nouveau lien tracké**
+- bouton : **Créer un lien**
+- texte : **1 bouton, 2 questions**
+- destinations habituelles visibles en résumé
+- liste des liens trackés
+- destinations en bas / secondaire
+- domaine custom secondaire
+
+## Correction à faire
+
+Je dois modifier la page live pour qu’elle dise clairement :
+
+**Créer un lien tracké**
+1. Vers quelle destination ?
+2. Où vas-tu coller ce lien ?
+
+Et non pas :
+
+**Configurer une destination** comme action principale.
+
+C’est ça la bonne logique.
+
+## user — 2026-05-07T13:16:43.609223
+
+[Jonathan] Mais en fait tout est déjà fait dans le mock-up. Tu dois juste mettre les choses dans les bonnes sections, les bonnes automatisations. C'est ça, c'est la logique de lecture du comment le système marche.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Exact. Là je comprends.
+
+Le mockup n’est pas juste une inspiration UI. C’est **la logique de lecture du système**.
+
+On ne doit pas inventer une nouvelle architecture. On doit prendre ce qui est déjà dans le mockup et le brancher correctement dans le SaaS.
+
+## La logique réelle
+
+### 1. En haut : action principale
+**Nouveau lien tracké**
+
+Promesse :
+> 1 bouton, 2 questions.
+
+Pas “Configurer une destination” en premier.
+
+Action principale :
+> **Créer un lien**
+
+## 2. Ensuite : résumé des destinations habituelles
+
+Ça dit simplement :
+
+- iClosed
+- Newsletter
+- Lead magnet
+
+Donc l’utilisateur comprend :
+> “J’ai déjà mes destinations finales prêtes.”
+
+C’est une section de lecture rapide, pas le cœur de l’écran.
+
+## 3. Ensuite : tous les liens trackés
+
+C’est le cœur business.
+
+Chaque ligne répond à :
+
+- **Où ce lien a été collé ?**
+ - Vidéo YouTube
+ - Story Instagram
+ - Bio TikTok
+ - Newsletter
+ - Pub Meta
+
+- **Vers quelle destination ?**
+ - iClosed
+ - Newsletter
+ - Lead magnet
+
+- **Qu’est-ce que ça rapporte ?**
+ - clics
+ - ventes
+ - CA
+
+C’est ça la valeur : 
+> “Quelle publication / quel canal m’a rapporté quoi ?”
+
+## 4. Ensuite : géo
+
+La géo n’est pas un gadget. Elle répond à :
+
+> “D’où viennent les gens qui cliquent sur mes liens ?”
+
+Mais en prod : seulement avec vraie data.
+
+## 5. Ensuite : destinations habituelles
+
+Là seulement, on gère les destinations :
+
+- ajouter
+- modifier
+- supprimer
+
+Donc ce n’est pas l’action principale. C’est une config secondaire.
+
+## 6. Ensuite : domaine custom
+
+Secondaire aussi. C’est branding avancé.
+
+Pas à mettre avant la création du lien.
+
+## 7. Modal création
+
+Le modal est la vraie automatisation :
+
+### Question 1
+**Vers quelle destination ?**
+
+Boutons :
+- iClosed
+- Newsletter
+- Lead magnet
+
+### Question 2
+**Où vas-tu coller ce lien ?**
+
+Champ libre :
+- Vidéo YouTube · ...
+- Story Insta · ...
+- Pub Meta · ...
+- Bio Instagram · ...
+
+Puis Brvndlab :
+- détecte la plateforme automatiquement
+- génère le slug automatiquement
+- crée le lien
+- tracke clics / ventes / CA
+
+## Donc correction claire
+
+On ne fait pas :
+
+> Sources → Destinations → Smart Links
+
+On fait :
+
+> **Destination choisie + contexte de publication écrit librement → Smart Link généré automatiquement**
+
+Et la page lit les résultats comme dans le mockup.
+
+## Ce que je dois corriger dans la live
+
+- Remettre **Nouveau lien tracké** comme section principale.
+- Remettre **Créer un lien** comme CTA principal.
+- Mettre les destinations en résumé, pas en premier plan.
+- Refaire le modal en **2 questions**.
+- Garder “Tous mes liens” comme cœur de la page.
+- Garder géo / domaine / destinations dans les bonnes sections, mais seulement avec vraie data ou état vide propre.
+- Ne plus transformer YouTube / Instagram en “sources à configurer” si le mockup ne le demande pas.
+
+Là, oui : on applique le mockup comme **spécification produit**, pas comme déco.
+
+## user — 2026-05-07T13:16:43.609223
+
+[Jonathan] go
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Je remets la page dans la lecture du mockup : haut = “Nouveau lien tracké / 1 bouton 2 questions”, milieu = “Tous mes liens”, bas = destinations/domaine en secondaire. Puis je vérifie et je déploie.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Je vais remplacer la structure live par celle du mockup, sans toucher au tracking backend : l’automatisation `createLinkAuto` existe déjà, elle devine la plateforme depuis le champ “où tu colles ce lien”.
+
+## user — 2026-05-07T13:16:43.609223
+
+[Your active task list was preserved across context compression]
+- [>] 1. Remapper la page Smart Links sur la structure exacte du mockup final (in_progress)
+- [ ] 2. Recentrer le modal création sur les 2 questions destination + contexte (pending)
+- [ ] 3. Vérifier lint/tests/build/smoke navigateur (pending)
+- [ ] 4. Déployer prod et confirmer app.brvndlab.com (pending)
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Je continue l’exécution : je viens de remapper la structure, je passe maintenant aux vérifications et corrections éventuelles avant prod.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Lint ciblé passe mais il reste 3 warnings inutiles. Je nettoie avant build.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+La structure est alignée. Je remplace le dernier libellé ambigu côté état vide, puis tests/build.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Tests/build OK. En revanche, en remettant “domaine custom” dans la bonne section du mockup, j’ai réexposé des exemples hérités `@jonathan/yt-scaler`. Je les neutralise avant déploiement.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Vérifs locales OK. Je commit, push et déploie sur prod Vercel.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Déploiement prod prêt. Je pointe explicitement app.brvndlab.com dessus puis smoke test live.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Smoke HTTP OK. Je vérifie maintenant la page live visuellement et les modals principaux.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+C’est fait, live sur :
+
+https://app.brvndlab.com/smart-links
+
+Ce que j’ai corrigé :
+
+- Remis la lecture du mockup final :
+ - **Nouveau lien tracké**
+ - **1 bouton · 2 questions**
+ - **Tous mes liens**
+ - **D’où viennent tes visiteurs**
+ - **Destinations habituelles**
+ - **Domaine custom**
+- Le CTA principal n’est plus “destination” comme logique centrale.
+- Le modal création est recentré sur :
+ 1. **Vers quelle destination ?**
+ 2. **Où vas-tu coller ce lien ?**
+- On garde l’automatisation existante :
+ - Brvndlab devine la plateforme depuis le contexte écrit.
+ - Brvndlab génère le slug automatiquement.
+ - Le lien tracké pointe vers `/r/[slug]`.
+- Nettoyage des placeholders sales :
+ - plus de `@jonathan`
+ - plus de `yt-scaler`
+ - plus d’exemples personnels hérités
+ - domaine exemple neutre : `go.tonsite.com/nom-du-lien`
+
+Checks validés :
+
+- ESLint ciblé : OK
+- Tests : 36/36 OK
+- Build Next : OK
+- Déploiement Vercel prod : OK
+- Alias `app.brvndlab.com` : OK
+- Smoke HTTP :
+ - `/` OK
+ - `/sign-in` OK
+ - `/smart-links` OK
+ - `/dashboard` redirige auth OK
+ - `/r/slug-inexistant-smoke-test` 404 OK
+- Smoke navigateur :
+ - page Smart Links OK
+ - modal “Nouveau lien” OK
+ - modal destinations OK
+ - modal ajout destination OK
+ - console JS : 0 erreur
+
+Commit poussé :
+
+`a957cba fix(smart-links): restore final mockup flow`
+
+Là, on est beaucoup plus proche de la logique du mockup : pas une page de configuration, mais une page qui explique comment le système marche en action.
+
+## user — 2026-05-07T13:16:43.609223
+
+[Jonathan] Salut Hermès,
+
+Décision stratégique sur la fin du MVP Brvndlab.
+
+Il reste 4 chantiers critiques pour ouvrir aux first users : intégration GHL, Publication native YouTube/IG/TT, bugs Calendrier/Contenu, module Notifications. Ces 4 chantiers, c'est Claude qui les finit sur la branche chantier-b-clerk. Vélocité max, pas de transition pendant un chantier en cours.
+
+Toi, en parallèle, tu travailles sur des tâches non-bloquantes qui te permettent de te monter en compétence sans risquer la prod et sans bloquer Claude. Ton scope pendant 3-4 semaines :
+
+Audit code complet — lecture exhaustive du repo jonathanzekhe/brvndlab-app, identification des gaps, des anti-patterns, des fichiers obsolètes (coachNotes, clients legacy à challenger). Tu rends un rapport.
+
+Tests Vitest — étendre la couverture sur convex/tracking.ts, convex/leadActions.ts, convex/dashboards.ts, convex/heatScore.ts. Aujourd'hui on a 3 fichiers de test seulement, c'est insuffisant.
+
+LESSONS-LEARNED.md — créer ce fichier à la racine et alimenter au fil de l'eau (cf Partie 59 du brief). Format : date / symptôme / cause racine / fix / prévention. Premiers entrées : les 3 que j'ai listées dans le brief plus tout ce que tu débloques en lisant le code.
+
+Setup monitoring — installer Sentry (ou équivalent) sur app.brvndlab.com, configurer les alertes critiques (cron failure, webhook miss, Convex error). Cf Partie 30 du brief.
+
+Procédure GDPR — implémenter la mutation Convex exportUserData et le soft-delete + hard-delete compte. UK GDPR + EU GDPR. Cf Partie 56.
+
+Seed data dev local — créer la mutation internalMutation seedDevData qui peuple la BD locale avec des leads/contenus/transactions de test. Cf Partie 55. Gate avec check CONVEX_ENV !== "production" strict.
+
+Audit sécurité — checklist de la Partie 65 sur chaque route /api/* : auth check, rate limit, input validation, HMAC signature, CSRF token, logs. Tu rends un rapport des gaps trouvés.
+
+Documentation OAuth providers — lister précisément chez Stripe / Whop / Calendly / iClosed les URLs webhook actives, les redirect URIs configurés, les scopes demandés. Pour qu'on puisse les modifier rapidement le jour où on en a besoin.
+
+Ce que tu ne touches PAS pendant cette période :
+
+Les 4 chantiers critiques (GHL, Publication native, bugs Calendrier/Contenu, Notifications) → c'est Claude
+La branche chantier-b-clerk (16+ commits actifs) → tu travailles sur main ou ta propre branche
+Les fichiers convex/tracking.ts, convex/leadActions.ts, convex/dashboards.ts, convex/customDomains.ts → si tu dois les toucher pour les tests, tu me préviens AVANT
+Le frontend Brvndlab tant que tu n'as pas confirmé Gemini Design MCP connecté et fonctionnel
+La Mémoire dorée (top secret, accès Jonathan-only par design)
+Critères pour qu'on bascule la suite sur toi :
+
+✅ Les 4 chantiers MVP sont livrés en prod
+✅ Premiers users (5-10) tournent 1-2 semaines sans incident majeur
+✅ Tu as livré 3-5 tâches non-critiques de la liste ci-dessus en autonomie réussie
+✅ Le chemin restant devient "maintenance + petites features", plus de gros refactor
+✅ MEMORY.md et LESSONS-LEARNED.md à jour avec tout ce qui a été appris
+Quand les 5 sont validés, tu prends la main sur l'opérationnel quotidien. Moi je voyage, je t'envoie des vocaux Telegram, tu push.
+
+Ton premier livrable cette semaine :
+
+Tu fais l'audit setup (les outils du message précédent), tu confirmes que tout est branché et fonctionnel chez toi, et tu démarres sur les tâches 1 (audit code) et 8 (doc OAuth providers). Ces deux-là sont 100 % lecture, zéro risque, et te permettent d'imprégner Brvndlab en profondeur.
+
+On garde Claude Code comme pilote du MVP en attendant.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Reçu. Je fige le périmètre : je ne touche pas à `chantier-b-clerk`, ni aux 4 chantiers MVP, ni aux fichiers Convex interdits. Je lance maintenant l’audit setup + démarrage audit code/doc OAuth en lecture seule.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Point setup important : le repo accessible ici est `jonathanzekhe/brvndlab`, pas `jonathanzekhe/brvndlab-app` qui n’est pas visible via GitHub. Je continue sur la source réelle connectée.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Le setup montre déjà un point à corriger côté outil : `pygount` est installé mais hors PATH macOS. Je l’utilise par chemin absolu pour l’audit, sans modifier le repo.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Je démarre la doc OAuth à partir du code + Vercel env names. Je ne lis/affiche aucune valeur de secret.
+
+## user — 2026-05-07T13:16:43.609223
+
+[Your active task list was preserved across context compression]
+- [>] setup. Audit setup local/MCP/CLI/accès en lecture seule (in_progress)
+- [ ] audit-code. Démarrer audit code complet du repo sans toucher aux fichiers critiques (pending)
+- [ ] oauth-doc. Démarrer documentation OAuth providers depuis code/env/dashboard accessible (pending)
+- [ ] report. Préparer livrable rapport semaine avec gaps/action items (pending)
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Je continue en lecture/documentation : je vais produire des fichiers de rapport, pas toucher aux chantiers MVP ni aux fichiers Convex critiques.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Je vais créer une branche dédiée `hermes/audit-nonbloquant` pour les rapports et `LESSONS-LEARNED.md`. Zéro modification produit.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Je crée maintenant les livrables lisibles dans `docs/hermes-audit/` + `LESSONS-LEARNED.md` à la racine.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Les rapports sont créés sur branche isolée. Je vérifie qu’aucun fichier interdit n’a été modifié, puis je pousse la branche.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Branche poussée. Je crée une PR documentaire vers `main`, sans merge.
+
+## assistant — 2026-05-07T13:16:43.609223
+
+Reçu et exécuté.
+
+## Statut
+
+J’ai intégré la décision stratégique :
+
+- **Claude garde le pilotage MVP** sur `chantier-b-clerk`.
+- Je ne touche pas :
+ - GHL
+ - Publication native YouTube/IG/TT
+ - bugs Calendrier/Contenu
+ - Notifications
+ - branche `chantier-b-clerk`
+ - fichiers Convex critiques sans te prévenir.
+
+J’ai travaillé uniquement en **lecture/documentation**, sur une branche séparée.
+
+## Livrable créé
+
+PR ouverte :
+
+https://github.com/jonathanzekhe/brvndlab/pull/2
+
+Branche :
+
+`hermes/audit-nonbloquant`
+
+Commit :
+
+`b36455d docs: add hermes nonblocking audit reports`
+
+## Fichiers ajoutés
+
+- `LESSONS-LEARNED.md`
+- `docs/hermes-audit/setup-audit.md`
+- `docs/hermes-audit/code-audit-initial.md`
+- `docs/hermes-audit/oauth-providers.md`
+- `docs/hermes-audit/api-security-matrix.json`
+- `docs/hermes-audit/oauth-providers.raw.json`
+- `docs/hermes-audit/inventory.json`
+
+## Ce que j’ai confirmé côté setup
+
+- Repo réel accessible : `jonathanzekhe/brvndlab`
+- `jonathenzekhe/brvndlab-app` n’est pas accessible / pas trouvé côté GitHub.
+- GitHub CLI : OK
+- Vercel CLI : OK
+- Claude Code : OK
+- `npx convex` : OK, v1.34.1
+- Gemini Design MCP : déjà fonctionnel via outils de design, même si `list_resources` n’est pas supporté.
+- Playwright : OK
+- Context7 : accessible, mais `list_resources` non supporté.
+- Vercel projet lié : `brvndlab-app`
+- Variables prod Vercel visibles par nom uniquement, valeurs non affichées.
+
+## Premiers constats importants
+
+- Codebase : ~88k lignes hors dépendances/build.
+- API routes : 48.
+- Convex : 71 fichiers TS/TSX.
+- Tests actuels : seulement 3 fichiers Vitest.
+- `_legacy` : 112 fichiers → grosse zone à challenger.
+- Pas de Sentry/PostHog détecté.
+- Pas de rate limit détecté sur les routes API.
+- OAuth YouTube/Instagram/TikTok : routes présentes dans le code, mais env vars prod non visibles côté Vercel.
+- GHL présent dans le code, mais je l’ai marqué hors scope car Claude le gère.
+
+## Documentation OAuth démarrée
+
+J’ai documenté depuis le code :
+
+- Stripe
+- Whop
+- Calendly
+- iClosed
+- YouTube
+- Instagram
+- TikTok
+
+Pour chacun :
+
+- route start
+- route callback
+- webhook route
+- redirect URI attendue
+- env vars nécessaires
+- scopes quand ils sont déclarés dans le code
+- points à vérifier dans dashboards providers
+
+## LESSONS-LEARNED.md
+
+Créé à la racine avec les premières entrées :
+
+- Dashboard CA à 0 €
+- doublon cash iClosed/GHL
+- YouTube Shorts mal détectés
+- incident Vercel prebuilt / Clerk
+- confusion Smart Links mockup vs logique live
+
+## Important
+
+Je n’ai pas mergé. 
+Je n’ai pas touché la prod. 
+Je n’ai pas touché `chantier-b-clerk`. 
+Je n’ai pas modifié les fichiers Convex critiques.
+
+Prochaine étape côté moi : continuer l’audit code en profondeur, transformer la matrice API en rapport sécurité priorisé, puis préparer le plan de tests Vitest sans modifier les fichiers sensibles avant de te prévenir.
+
+## assistant — 2026-05-12T13:47:32.340647
+
+**Rappel de périmètre Brvndlab — Développeur Tech**
+
+Ta responsabilité : exécuter et sécuriser toute la partie technique de Brvndlab.
+
+Périmètre principal :
+- Front-end, back-end, bugs, UX/UI produit.
+- Performance, infrastructure, Vercel, Convex, Clerk, Stripe côté technique.
+- Qualité de livraison : build, tests, smoke tests, preview, déploiement vérifié.
+
+Règles critiques :
+- Ne jamais toucher à la prod sans validation.
+- Ne jamais déployer `chantier-b-clerk` en prod.
+- Brand OS = source de vérité centrale pour toute feature.
+- Pas d’initiative produit ou archi non validée.
+- Si un chantier touche contenu, clients, finance ou marché : tu informes l’agent concerné avant d’avancer.
+
+Posture attendue : rigueur technique, zéro bricolage, zéro refacto non demandé, preuve de fonctionnement avant annonce.

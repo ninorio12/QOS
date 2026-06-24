@@ -5,37 +5,47 @@ import { createPortal } from 'react-dom'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import {
-  DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCenter,
+  DndContext, DragOverlay, closestCenter,
   useDroppable, type DragStartEvent, type DragEndEvent, type DragOverEvent,
 } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus, X, AlertTriangle, Trash2, Check, MessageSquare, Send, User, Pencil, Save, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, X, AlertTriangle, Trash2, Check, MessageSquare, Send, User, Pencil, Save, ChevronLeft, ChevronRight, Target, RotateCcw, ExternalLink } from 'lucide-react'
 import Select from '@/components/ui/Select'
 import { AGENT_PROFILES } from '@/components/agentic/agentProfiles'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
-import { useCoarsePointer } from '@/hooks/useCoarsePointer'
+import { useKanbanSensors } from '@/hooks/useKanbanSensors'
 
 type Comment = { authorType: string; authorId: string; authorName?: string; authorAvatar?: string; text: string; at: string }
 type Task = {
-  id: string; title: string; description?: string; status: string; priority: string
+  id: string; title: string; description?: string; objective?: string; status: string; priority: string
   assigneeType: string; assigneeId?: string; source: string; order?: number
+  linkedClientId?: string
+  objectiveAchieved?: boolean; completionNote?: string; completedAt?: string
   comments?: Comment[]
   createdBy: string; createdAt: string; updatedAt: string
+}
+
+// Une tâche validée reste dans la colonne « Validé » HISTORY_DAYS jours, puis bascule dans la table Historique.
+const HISTORY_DAYS = 5
+function isRecentDone(t: Task): boolean {
+  const ts = t.completedAt ?? t.updatedAt
+  if (!ts) return true
+  return (Date.now() - new Date(ts).getTime()) < HISTORY_DAYS * 86_400_000
 }
 
 const COLUMNS = [
   { id: 'todo',        label: 'À faire',  color: '#6B7280' },
   { id: 'in_progress', label: 'En cours', color: '#3462EE' },
-  { id: 'human',       label: 'Bloqué',   color: '#D97706' },
-  { id: 'history',     label: 'Historique', color: '#9CA3AF' },
+  { id: 'urgent',      label: 'Urgent',   color: '#DC2626' },
+  { id: 'done',        label: 'Validé',   color: '#16A34A' },
 ]
 // Colonne → statut persisté (le drop met à jour le statut)
-const COL_STATUS: Record<string, string> = { todo: 'todo', in_progress: 'in_progress', human: 'blocked', history: 'done' }
+const COL_STATUS: Record<string, string> = { todo: 'todo', in_progress: 'in_progress', urgent: 'urgent', done: 'done' }
 function columnOf(status: string): string {
-  if (status === 'done' || status === 'cancelled') return 'history'
-  if (status === 'blocked') return 'human'
-  if (status === 'in_progress') return 'in_progress'
+  if (status === 'done' || status === 'cancelled') return 'done'
+  if (status === 'urgent') return 'urgent'
+  if (status === 'in_progress' || status === 'blocked') return 'in_progress'
   return 'todo'
 }
 
@@ -44,6 +54,31 @@ function initials(name: string): string {
   const words = name.trim().split(/\s+/).filter(w => /[a-zA-ZÀ-ÿ0-9]/.test(w[0] ?? ''))
   const ini = ((words[0]?.[0] ?? '') + (words[1]?.[0] ?? '')).toUpperCase()
   return ini || (name.replace(/[^a-zA-Z0-9]/g, '')[0] ?? '?').toUpperCase()
+}
+
+// ── Vue « Par agent » : palette d'accent (style Équipe IA) + résolution du profil ──
+type AP = (typeof AGENT_PROFILES)[number]
+const AGENT_ACCENT: Record<string, string> = {
+  coo: '#FF4D00', 'agent-analyse': '#6366F1', 'agent-support-client': '#1A5C38',
+  'agent-operations': '#0F766E', 'agent-kb': '#3462EE', 'agent-media-buyer': '#E8836A', 'agent-debug': '#DC2626',
+}
+const accentOf = (id: string) => AGENT_ACCENT[id] ?? '#6B7280'
+// Lisibilité carte : titre tronqué à N mots (les agents écrivent parfois trop long).
+function clampWords(s: string | undefined, n: number): string {
+  const w = (s ?? '').trim().split(/\s+/).filter(Boolean)
+  return w.length <= n ? (s ?? '').trim() : w.slice(0, n).join(' ') + '…'
+}
+// L'assigneeId d'une tâche peut être l'id-slug (créée par un agent via MCP) OU le nom (créée dans l'UI) → on résout les deux.
+function agentOf(t: Task): AP | null {
+  if (t.assigneeType !== 'agent') return null
+  const v = (t.assigneeId ?? '').toLowerCase().trim()
+  return AGENT_PROFILES.find(a => a.id.toLowerCase() === v || a.name.toLowerCase() === v) ?? null
+}
+// Avatar agent (image /agents/*.png, fallback pastille couleur + initiales).
+function AgentFace({ id, name, avatar, size = 26 }: { id: string; name: string; avatar?: string; size?: number }) {
+  const [err, setErr] = useState(false)
+  if (avatar && !err) return <img src={avatar} alt="" onError={() => setErr(true)} className="rounded-full object-cover border border-soren-border flex-shrink-0" style={{ width: size, height: size }} />
+  return <span className="rounded-full flex items-center justify-center font-bold text-white flex-shrink-0" style={{ width: size, height: size, fontSize: Math.round(size * 0.4), background: accentOf(id) }}>{initials(name)}</span>
 }
 
 // Badge minimaliste : avatar de l'agent (img) ou pastille d'initiales pour les profils.
@@ -111,12 +146,27 @@ function CardBody({ t, onValidate, overlay = false }: { t: Task; onValidate?: (e
           ${done ? 'bg-[#16A34A] text-white' : 'border-[1.5px] border-[#C8CBD0] text-transparent hover:border-[#16A34A] hover:text-[#16A34A]'}`}>
         <Check size={10} strokeWidth={3} />
       </button>
-      <p className={`text-[11px] font-normal text-soren-text leading-snug line-clamp-2 ${done ? 'line-through text-soren-subtle' : ''}`}>{t.title}</p>
-      {t.description && <p className="text-[10px] text-soren-muted leading-snug line-clamp-2">{t.description}</p>}
+      {/* Pulse « en cours » — la carte est vivante quand un agent bosse dessus */}
+      {t.status === 'in_progress' && !overlay && (
+        <span className="absolute top-2 right-2 flex h-2 w-2" title="En cours">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3462EE] opacity-60" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-[#3462EE]" />
+        </span>
+      )}
+      <p title={t.title} className={`text-[11px] font-semibold text-soren-text leading-snug truncate ${done ? 'line-through text-soren-subtle' : ''}`}>{clampWords(t.title, 4)}</p>
+      {t.description && <p title={t.description} className="text-[10px] text-soren-muted leading-snug line-clamp-3">{t.description}</p>}
       <div className="flex items-center gap-1">
         <AssigneeChip t={t} />
-        {t.priority === 'urgent' && !done && (
+        {t.status === 'urgent' && !done && (
           <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#FEF2F2] text-[#DC2626]"><AlertTriangle size={9} /> Urgent</span>
+        )}
+        {t.objective && <span title="Objectif défini" className="flex-shrink-0 inline-flex"><Target size={11} className="text-soren-subtle" /></span>}
+        {/* Lien vers la fiche lead/client liée */}
+        {t.linkedClientId && (
+          <a href={`/contacts/${t.linkedClientId}`} onPointerDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}
+            title="Ouvrir la fiche" className="inline-flex items-center gap-0.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#3462EE] hover:bg-[#E0E7FF] transition-colors">
+            <ExternalLink size={9} /> Fiche
+          </a>
         )}
         {/* Avatars des commentateurs — en bas à droite */}
         {(t.comments?.length ?? 0) > 0 && (
@@ -134,12 +184,11 @@ function CardBody({ t, onValidate, overlay = false }: { t: Task; onValidate?: (e
 // ── Card triable (dnd-kit)
 function SortableTaskCard({ t, onOpen, onValidate, wasDragged, onMove, canPrev = false, canNext = false }: { t: Task; onOpen: () => void; onValidate: (e: React.MouseEvent) => void; wasDragged: React.MutableRefObject<boolean>; onMove?: (t: Task, dir: number) => void; canPrev?: boolean; canNext?: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging, transform, transition } = useSortable({ id: t.id, transition: { duration: 200, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' } })
-  const coarse = useCoarsePointer()
   const stop = (e: React.SyntheticEvent) => e.stopPropagation()
   return (
     <div ref={setNodeRef} {...attributes}
       style={{ opacity: isDragging ? 0.3 : 1, transform: CSS.Transform.toString(transform), transition }}>
-      <div {...(coarse ? {} : listeners)} onClick={() => { if (!wasDragged.current) onOpen() }} className="md:cursor-grab md:active:cursor-grabbing">
+      <div {...listeners} onClick={() => { if (!wasDragged.current) onOpen() }} className="cursor-grab active:cursor-grabbing">
         <CardBody t={t} onValidate={onValidate} />
       </div>
       {/* déplacer entre colonnes — mobile (au doigt) */}
@@ -163,16 +212,46 @@ function Column({ col, tasks, isOver, onOpen, onValidate, wasDragged, mobileActi
 }) {
   const { setNodeRef } = useDroppable({ id: col.id })
   return (
-    <div className={`${mobileActive ? 'flex w-full' : 'hidden md:flex'} flex-col md:w-56 flex-shrink-0`}>
+    <div className={`${mobileActive ? 'flex w-full' : 'hidden md:flex'} flex-col md:w-48 flex-shrink-0`}>
       <div className="flex items-center gap-1.5 mb-1.5 px-1">
         <span className="w-2 h-2 rounded-full" style={{ background: col.color }} />
         <span className="text-[11px] font-bold text-soren-text leading-tight">{col.label}</span>
         <span className="text-[9px] font-bold bg-soren-card border border-soren-border text-soren-muted px-1.5 py-0.5 rounded-full">{tasks.length}</span>
       </div>
       <div ref={setNodeRef}
-        className={`flex-1 flex flex-col gap-1.5 rounded-xl p-1.5 overflow-y-auto transition-colors min-h-[120px] ${isOver ? 'bg-[#FF4D00]/10 ring-1 ring-[#FF4D00]/40' : 'bg-black/[0.03]'} ${col.id === 'history' ? 'opacity-90' : ''}`}>
+        className={`flex-1 flex flex-col gap-1.5 rounded-xl p-1.5 overflow-y-auto transition-colors min-h-[120px] ${isOver ? 'bg-[#FF4D00]/10 ring-1 ring-[#FF4D00]/40' : 'bg-black/[0.03]'} ${col.id === 'done' ? 'opacity-90' : ''}`}>
         <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map(t => <SortableTaskCard key={t.id} t={t} onOpen={() => onOpen(t)} onValidate={e => onValidate(t, e)} wasDragged={wasDragged} onMove={onMove} canPrev={colIndex > 0} canNext={colIndex < colCount - 1} />)}
+        </SortableContext>
+        {tasks.length === 0 && <p className="text-[10px] text-soren-subtle text-center py-5">—</p>}
+      </div>
+    </div>
+  )
+}
+
+// ── Colonne « par agent » : les tâches d'un agent. Drop d'une carte = réassignation.
+function AgentColumn({ agent, tasks, isOver, onOpen, onValidate, wasDragged }: {
+  agent: { id: string; name: string; role: string; avatar?: string }; tasks: Task[]; isOver: boolean
+  onOpen: (t: Task) => void; onValidate: (t: Task, e: React.MouseEvent) => void; wasDragged: React.MutableRefObject<boolean>
+}) {
+  const { setNodeRef } = useDroppable({ id: `agentcol:${agent.id}` })
+  const accent = accentOf(agent.id)
+  const open = tasks.filter(t => t.status !== 'done' && t.status !== 'cancelled').length
+  return (
+    <div className="flex flex-col w-48 flex-shrink-0">
+      <div className="flex items-center gap-1.5 mb-1.5 px-1">
+        <AgentFace id={agent.id} name={agent.name} avatar={agent.avatar} size={20} />
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold text-soren-text leading-tight truncate">{agent.name}</p>
+          <p className="text-[8px] text-soren-subtle leading-tight truncate">{agent.role}</p>
+        </div>
+        <span className="text-[8.5px] font-bold text-white px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: accent }}>{open}</span>
+      </div>
+      <div ref={setNodeRef}
+        className={`flex-1 flex flex-col gap-1.5 rounded-xl p-1.5 overflow-y-auto min-h-[120px] transition-colors border-t-2 ${isOver ? 'bg-[#FF4D00]/10 ring-1 ring-[#FF4D00]/40' : 'bg-black/[0.03]'}`}
+        style={{ borderTopColor: accent }}>
+        <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+          {tasks.map(t => <SortableTaskCard key={t.id} t={t} onOpen={() => onOpen(t)} onValidate={e => onValidate(t, e)} wasDragged={wasDragged} />)}
         </SortableContext>
         {tasks.length === 0 && <p className="text-[10px] text-soren-subtle text-center py-5">—</p>}
       </div>
@@ -193,8 +272,8 @@ function TaskModal({ task, onClose }: { task: Task | null; onClose: () => void }
   const [mounted, setMounted] = useState(false)
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
+  const [objective, setObjective] = useState(task?.objective ?? '')
   const [assignee, setAssignee] = useState(task ? `${task.assigneeType}:${task.assigneeId ?? ''}` : '')
-  const [urgent, setUrgent] = useState(task?.priority === 'urgent')
   const [comment, setComment] = useState('')
   const [editIdx, setEditIdx] = useState<number | null>(null)
   const [editText, setEditText] = useState('')
@@ -217,7 +296,7 @@ function TaskModal({ task, onClose }: { task: Task | null; onClose: () => void }
   function save() {
     if (!title.trim()) return
     const a = assignee ? parseAssignee(assignee) : { assigneeType: 'human', assigneeId: '' }
-    const fields = { title: title.trim(), description: description.trim() || undefined, assigneeType: a.assigneeType, assigneeId: a.assigneeId || undefined, priority: urgent ? 'urgent' : 'normal' }
+    const fields = { title: title.trim(), description: description.trim() || undefined, objective: objective.trim() || undefined, assigneeType: a.assigneeType, assigneeId: a.assigneeId || undefined }
     if (task) update({ id: task.id as never, ...fields }); else create(fields)
     onClose()
   }
@@ -226,30 +305,40 @@ function TaskModal({ task, onClose }: { task: Task | null; onClose: () => void }
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-soren-card rounded-3xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden" style={{ animation: 'fadeSlideUp 200ms ease-out both' }}>
-        <div className="px-6 py-4 border-b border-soren-border flex items-center justify-between gap-3">
+      <div className="relative bg-soren-card rounded-3xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden max-h-[90vh]" style={{ animation: 'fadeSlideUp 200ms ease-out both' }}>
+        <div className="px-6 py-4 border-b border-soren-border flex items-center justify-between gap-3 flex-shrink-0">
           <h2 className="text-base font-black text-soren-text">{task ? 'Modifier la tâche' : 'Nouvelle tâche'}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-soren-elevated flex items-center justify-center hover:bg-[#E5E7EB]"><X size={14} className="text-soren-muted" /></button>
         </div>
-        <div className="px-6 py-5 flex flex-col gap-3">
+        <div className="px-6 py-5 flex flex-col gap-3 overflow-y-auto">
           <label className="flex flex-col gap-1">
             <span className="text-[10px] font-bold uppercase tracking-wide text-soren-subtle">Titre</span>
             <input autoFocus value={title} onChange={e => setTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') save() }}
               placeholder="Titre de la tâche…" className="w-full bg-soren-elevated rounded-xl px-3 py-2 text-[13px] font-semibold text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#FF4D00]/30" />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-soren-subtle">Description</span>
-            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} maxLength={240}
-              placeholder="Courte description (optionnel)…" className="w-full bg-soren-elevated rounded-xl px-3 py-2 text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none resize-none leading-relaxed" />
+            <span className="text-[10px] font-bold uppercase tracking-wide text-soren-subtle flex items-center gap-1"><Target size={11} className="text-[#FF4D00]" /> Objectif à atteindre</span>
+            <input value={objective} onChange={e => setObjective(e.target.value)} maxLength={140}
+              placeholder="Résultat concret qui valide la tâche…" className="w-full bg-soren-elevated rounded-xl px-3 py-2 text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none" />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-soren-text">Description</span>
+            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={8} maxLength={4000}
+              placeholder="Décris la tâche en détail…" className="w-full bg-soren-elevated rounded-xl px-3.5 py-3 text-[13px] text-soren-text placeholder-[#9CA3AF] outline-none resize-y leading-relaxed min-h-[140px]" />
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-[10px] font-bold uppercase tracking-wide text-soren-subtle">Assigné à</span>
             <Select value={assignee} onChange={setAssignee} options={assigneeOptions} placeholder="Assigner à…" className="w-full" />
           </label>
-          <button onClick={() => setUrgent(u => !u)}
-            className={`self-start inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-colors ${urgent ? 'bg-[#FEF2F2] border-[#FECACA] text-[#DC2626]' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>
-            <AlertTriangle size={12} /> Urgent
-          </button>
+
+          {task && (task.status === 'done' || task.status === 'cancelled') && task.objectiveAchieved !== undefined && (
+            <div className={`rounded-xl px-3 py-2.5 border ${task.objectiveAchieved ? 'bg-[#16A34A]/8 border-[#16A34A]/25' : 'bg-[#DC2626]/8 border-[#DC2626]/25'}`}>
+              <p className={`text-[11px] font-bold flex items-center gap-1.5 ${task.objectiveAchieved ? 'text-[#16A34A]' : 'text-[#DC2626]'}`}>
+                {task.objectiveAchieved ? <><Check size={12} /> Objectif atteint</> : <><X size={12} /> Objectif non atteint</>}
+              </p>
+              {task.completionNote && <p className="text-[12px] text-soren-text mt-1 leading-relaxed">{task.completionNote}</p>}
+            </div>
+          )}
 
           {task && (
             <div className="flex flex-col gap-2 pt-2 mt-1 border-t border-soren-border">
@@ -271,7 +360,7 @@ function TaskModal({ task, onClose }: { task: Task | null; onClose: () => void }
                       onBlur={() => saveEdit(i)}
                       className="w-full mt-1 bg-soren-card border border-soren-border rounded-lg px-2 py-1 text-[12px] text-soren-text outline-none focus:ring-2 focus:ring-[#FF4D00]/30" />
                   ) : (
-                    <p className="text-[12px] text-soren-text mt-1 pl-[24px]">{c.text}</p>
+                    <p className="text-[12px] text-soren-text mt-1 pl-[24px] max-h-40 overflow-y-auto whitespace-pre-wrap break-words">{c.text}</p>
                   )}
                 </div>
               ))}
@@ -284,7 +373,7 @@ function TaskModal({ task, onClose }: { task: Task | null; onClose: () => void }
             </div>
           )}
         </div>
-        <div className="px-6 py-3 border-t border-soren-border flex items-center justify-between gap-3">
+        <div className="px-6 py-3 border-t border-soren-border flex items-center justify-between gap-3 flex-shrink-0">
           {task ? (
             <button onClick={() => { removeT({ id: task.id as never }); onClose() }} className="flex items-center gap-1.5 text-[11px] font-semibold text-soren-muted hover:text-[#DC2626]"><Trash2 size={12} /> Supprimer</button>
           ) : <span />}
@@ -296,6 +385,88 @@ function TaskModal({ task, onClose }: { task: Task | null; onClose: () => void }
       </div>
     </div>,
     document.body
+  )
+}
+
+// ── Fiche de validation : « l'objectif est-il atteint ? » (au drop sur Validé ou via la coche)
+function CompletionModal({ task, onCancel, onConfirm }: { task: Task; onCancel: () => void; onConfirm: (achieved: boolean, note: string) => void }) {
+  const [mounted, setMounted] = useState(false)
+  const [achieved, setAchieved] = useState<boolean | null>(null)
+  const [note, setNote] = useState('')
+  useEffect(() => setMounted(true), [])
+  if (!mounted) return null
+  return createPortal(
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative bg-soren-card rounded-3xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden" style={{ animation: 'fadeSlideUp 200ms ease-out both' }}>
+        <div className="px-6 py-4 border-b border-soren-border flex items-center gap-2.5">
+          <span className="w-7 h-7 rounded-full bg-[#16A34A]/12 flex items-center justify-center"><Check size={14} className="text-[#16A34A]" /></span>
+          <h2 className="text-base font-black text-soren-text">Valider la tâche</h2>
+        </div>
+        <div className="px-6 py-5 flex flex-col gap-4">
+          <div>
+            <p className="text-[12px] font-semibold text-soren-text">{task.title}</p>
+            {task.objective
+              ? <p className="text-[11px] text-soren-muted mt-1.5 flex gap-1.5"><Target size={13} className="mt-0.5 flex-shrink-0 text-[#FF4D00]" /> {task.objective}</p>
+              : <p className="text-[11px] text-soren-subtle mt-1.5 italic">Aucun objectif défini pour cette tâche.</p>}
+          </div>
+          <div>
+            <p className="text-[12px] font-semibold text-soren-text mb-2">L&apos;objectif est-il atteint ?</p>
+            <div className="flex gap-2">
+              <button onClick={() => setAchieved(true)} className={`flex-1 py-2 rounded-xl text-[12px] font-semibold border transition-colors ${achieved === true ? 'bg-[#16A34A] text-white border-[#16A34A]' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>Oui</button>
+              <button onClick={() => setAchieved(false)} className={`flex-1 py-2 rounded-xl text-[12px] font-semibold border transition-colors ${achieved === false ? 'bg-[#DC2626] text-white border-[#DC2626]' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>Non</button>
+            </div>
+          </div>
+          {achieved !== null && (
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-soren-subtle">{achieved ? 'Qu’avez-vous accompli ?' : 'Qu’est-ce qui reste / pourquoi ?'}</span>
+              <textarea autoFocus value={note} onChange={e => setNote(e.target.value)} rows={3}
+                placeholder={achieved ? 'Brève description du résultat…' : 'Optionnel…'}
+                className="w-full bg-soren-elevated rounded-xl px-3 py-2 text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none resize-none leading-relaxed" />
+            </label>
+          )}
+        </div>
+        <div className="px-6 py-3 border-t border-soren-border flex items-center justify-end gap-2">
+          <button onClick={onCancel} className="text-[12px] font-semibold text-soren-muted hover:text-soren-text px-3 py-2">Annuler</button>
+          <button onClick={() => onConfirm(achieved === true, note.trim())} disabled={achieved === null || (achieved === true && !note.trim())}
+            className="flex items-center gap-1.5 bg-[#16A34A] text-white text-[12px] font-semibold px-5 py-2 rounded-full hover:bg-[#15803d] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"><Check size={13} /> Valider</button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
+// ── Colonne « Historique » : tâches validées il y a plus de 5 jours.
+// Même structure qu'une colonne du board (en-tête + zone), mais lecture seule (pas de drop).
+function HistoryColumn({ tasks, onOpen, onRestore, mobileActive = true }: { tasks: Task[]; onOpen: (t: Task) => void; onRestore: (t: Task) => void; mobileActive?: boolean }) {
+  return (
+    <div className={`${mobileActive ? 'flex w-full' : 'hidden md:flex'} flex-col md:w-48 flex-shrink-0`}>
+      <div className="flex items-center gap-1.5 mb-1.5 px-1">
+        <span className="w-2 h-2 rounded-full bg-soren-subtle" />
+        <span className="text-[11px] font-bold text-soren-text leading-tight">Historique</span>
+        <span className="text-[9px] font-bold bg-soren-card border border-soren-border text-soren-muted px-1.5 py-0.5 rounded-full">{tasks.length}</span>
+      </div>
+      <div className="flex-1 flex flex-col gap-1.5 rounded-xl p-1.5 overflow-y-auto min-h-[120px] bg-black/[0.03]">
+        {tasks.map(t => (
+          <div key={t.id} onClick={() => onOpen(t)}
+            className="group rounded-lg border border-soren-border bg-black/[0.02] hover:bg-black/[0.04] px-2.5 py-2 cursor-pointer flex flex-col gap-1 transition-colors opacity-90">
+            <div className="flex items-start gap-1.5">
+              <p className="flex-1 min-w-0 text-[11px] text-soren-text/70 line-through truncate" title={t.title}>{t.title}</p>
+              <button onClick={e => { e.stopPropagation(); onRestore(t) }} title="Restaurer dans le board"
+                className="flex-shrink-0 text-soren-subtle hover:text-soren-text transition-all opacity-0 group-hover:opacity-100"><RotateCcw size={12} /></button>
+            </div>
+            <div className="flex items-center gap-2 text-[9.5px]">
+              {t.objectiveAchieved === undefined ? <span className="text-soren-subtle">—</span>
+                : t.objectiveAchieved ? <span className="inline-flex items-center gap-0.5 text-[#16A34A] font-semibold"><Check size={10} /> Atteint</span>
+                : <span className="inline-flex items-center gap-0.5 text-[#DC2626] font-semibold"><X size={10} /> Non atteint</span>}
+              <span className="ml-auto text-soren-subtle whitespace-nowrap tabular-nums">{new Date(t.completedAt ?? t.updatedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: '2-digit' })}</span>
+            </div>
+          </div>
+        ))}
+        {tasks.length === 0 && <p className="text-[10px] text-soren-subtle text-center py-6">—</p>}
+      </div>
+    </div>
   )
 }
 
@@ -315,12 +486,16 @@ export default function TachesView() {
   const [mobileCol, setMobileCol] = useState<string>(COLUMNS[0].id)  // colonne affichée sur mobile
   const [activeId, setActiveId] = useState<string | null>(null)
   const [overCol, setOverCol] = useState<string | null>(null)
+  const [view, setView] = useState<'status' | 'agent'>('status')
+  const [overAgentId, setOverAgentId] = useState<string | null>(null)
+  const [pendingValidate, setPendingValidate] = useState<Task | null>(null)
+  const [pendingOrder, setPendingOrder] = useState<number>(0)
 
   // Mirror live data → local (sauf pendant un drag, pour ne pas écraser l'optimiste)
   useEffect(() => { if (!draggingRef.current) setLocal(remoteTasks) }, [remoteTasks])
 
   const editTask = local.find(t => t.id === editId) ?? null
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 10 } }))
+  const sensors = useKanbanSensors()
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
@@ -337,18 +512,68 @@ export default function TachesView() {
   const byCol = useMemo(() => {
     const m: Record<string, Task[]> = {}
     for (const c of COLUMNS) m[c.id] = []
-    for (const t of boardTasks) m[columnOf(t.status)].push(t)
+    for (const t of boardTasks) {
+      const c = columnOf(t.status)
+      if (c === 'done' && !isRecentDone(t)) continue   // ancienne tâche validée → table Historique
+      m[c].push(t)
+    }
     for (const c of COLUMNS) m[c.id].sort((a, b) => (b.order ?? 0) - (a.order ?? 0))
     return m
   }, [boardTasks])
 
+  // Historique : tâches validées il y a plus de HISTORY_DAYS jours (plus récentes en haut).
+  const history = useMemo(() =>
+    boardTasks
+      .filter(t => columnOf(t.status) === 'done' && !isRecentDone(t))
+      .sort((a, b) => ((b.completedAt ?? b.updatedAt) < (a.completedAt ?? a.updatedAt) ? -1 : 1)),
+    [boardTasks])
+
+  // Vue « par agent » : tâches groupées par agent (toutes colonnes ; on masque les vieilles validées).
+  const STATUS_WEIGHT: Record<string, number> = { urgent: 0, in_progress: 1, blocked: 1, todo: 2, done: 3, cancelled: 3 }
+  const byAgent = useMemo(() => {
+    const m: Record<string, Task[]> = {}
+    for (const a of AGENT_PROFILES) m[a.id] = []
+    const unassigned: Task[] = []
+    for (const t of local) {
+      if (columnOf(t.status) === 'done' && !isRecentDone(t)) continue
+      const a = agentOf(t)
+      if (a) m[a.id].push(t); else unassigned.push(t)
+    }
+    const sortFn = (a: Task, b: Task) => (STATUS_WEIGHT[a.status] ?? 2) - (STATUS_WEIGHT[b.status] ?? 2) || (b.order ?? 0) - (a.order ?? 0)
+    for (const k of Object.keys(m)) m[k].sort(sortFn)
+    unassigned.sort(sortFn)
+    return { m, unassigned }
+  }, [local])
+
   function validate(t: Task, e: React.MouseEvent) {
     e.stopPropagation()
-    update({ id: t.id as never, status: (t.status === 'done' || t.status === 'cancelled') ? 'todo' : 'done' })
+    // Restaurer une tâche validée → direct ; valider une tâche active → fiche objectif.
+    if (t.status === 'done' || t.status === 'cancelled') { update({ id: t.id as never, status: 'todo' }); return }
+    setPendingOrder(t.order ?? Date.now()); setPendingValidate(t)
+  }
+
+  function restoreTask(t: Task) {
+    setLocal(prev => prev.map(x => x.id === t.id ? { ...x, status: 'todo' } : x))
+    update({ id: t.id as never, status: 'todo' })
+  }
+
+  function confirmValidate(achieved: boolean, note: string) {
+    const t = pendingValidate
+    if (!t) return
+    const now = new Date().toISOString()
+    setLocal(prev => prev.map(x => x.id === t.id ? { ...x, status: 'done', order: pendingOrder, objectiveAchieved: achieved, completionNote: note, completedAt: now } : x))
+    update({ id: t.id as never, status: 'done', order: pendingOrder, objectiveAchieved: achieved, completionNote: note || undefined, completedAt: now })
+    setPendingValidate(null)
   }
 
   function handleDragStart({ active }: DragStartEvent) { setActiveId(active.id as string); wasDragged.current = true; draggingRef.current = true }
   function handleDragOver({ over }: DragOverEvent) {
+    if (view === 'agent') {
+      const oid = over?.id as string | undefined
+      if (!oid) { setOverAgentId(null); return }
+      setOverAgentId(oid.startsWith('agentcol:') ? oid.slice('agentcol:'.length) : (agentOf(local.find(t => t.id === oid) as Task)?.id ?? null))
+      return
+    }
     if (!over) { setOverCol(null); return }
     const oid = over.id as string
     setOverCol(COLUMNS.some(c => c.id === oid) ? oid : columnOf(local.find(t => t.id === oid)?.status ?? 'todo'))
@@ -359,13 +584,14 @@ export default function TachesView() {
     const target = COLUMNS[idx + dir]
     if (!target) return
     const targetStatus = COL_STATUS[target.id]
+    if (target.id === 'done' && columnOf(t.status) !== 'done') { setPendingOrder(t.order ?? Date.now()); setPendingValidate(t); return }
     setLocal(prev => prev.map(x => x.id === t.id ? { ...x, status: targetStatus } : x))
     update({ id: t.id as never, status: targetStatus })
     setMobileCol(target.id)
   }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
-    setActiveId(null); setOverCol(null)
+    setActiveId(null); setOverCol(null); setOverAgentId(null)
     setTimeout(() => { wasDragged.current = false }, 50)
     setTimeout(() => { draggingRef.current = false }, 600)
     if (!over) return
@@ -373,6 +599,16 @@ export default function TachesView() {
     const overId = over.id as string
     const moved = local.find(t => t.id === id)
     if (!moved) return
+
+    // Vue « par agent » : un drop réassigne la tâche à l'agent de la colonne cible.
+    if (view === 'agent') {
+      let targetAgentId: string | null = overId.startsWith('agentcol:') ? overId.slice('agentcol:'.length) : null
+      if (!targetAgentId) { const ot = local.find(t => t.id === overId); targetAgentId = ot ? (agentOf(ot)?.id ?? null) : null }
+      if (!targetAgentId || targetAgentId === '__none' || agentOf(moved)?.id === targetAgentId) return
+      setLocal(prev => prev.map(t => t.id === id ? { ...t, assigneeType: 'agent', assigneeId: targetAgentId! } : t))
+      update({ id: id as never, assigneeType: 'agent', assigneeId: targetAgentId })
+      return
+    }
 
     const targetCol = COLUMNS.some(c => c.id === overId) ? overId : columnOf(local.find(t => t.id === overId)?.status ?? 'todo')
     const targetStatus = COL_STATUS[targetCol]
@@ -390,6 +626,8 @@ export default function TachesView() {
     else newOrder = Date.now()
 
     if (columnOf(moved.status) === targetCol && (moved.order ?? 0) === newOrder) return
+    // Entrée dans « Validé » → fiche de validation (objectif atteint ?) avant de figer le statut.
+    if (targetCol === 'done' && columnOf(moved.status) !== 'done') { setPendingOrder(newOrder); setPendingValidate(moved); return }
     setLocal(prev => prev.map(t => t.id === id ? { ...t, status: targetStatus, order: newOrder } : t))
     update({ id: id as never, status: targetStatus, order: newOrder })
   }
@@ -398,22 +636,33 @@ export default function TachesView() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="px-6 pt-5 pb-2.5 flex-shrink-0 flex items-center gap-2">
+      <div className="px-6 pt-4 pb-3 flex-shrink-0 flex items-center gap-3">
+        {/* Toggle de vue */}
+        <div className="inline-flex items-center gap-0.5 bg-soren-elevated rounded-full p-0.5 flex-shrink-0">
+          {([['status', 'Statuts'], ['agent', 'Par agent']] as const).map(([v, label]) => (
+            <button key={v} onClick={() => setView(v)}
+              className={`text-[10px] font-semibold px-3 py-1 rounded-full transition-colors ${view === v ? 'bg-soren-card text-soren-text shadow-sm' : 'text-soren-muted hover:text-soren-text'}`}>{label}</button>
+          ))}
+        </div>
+        {/* Filtre par agent — avatars seuls (nom au survol) pour tenir sur une ligne */}
+        {view === 'status' && (
+          <div className="flex items-center gap-1 overflow-x-auto min-w-0 kanban-scroll">
+            <button onClick={() => setAgent('all')} title="Tous les agents"
+              className={`flex-shrink-0 text-[9px] font-bold px-2 h-[26px] rounded-full border transition-colors ${agent === 'all' ? 'bg-soren-sidebar text-white border-soren-sidebar' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>Tous</button>
+            {AGENT_PROFILES.map(a => (
+              <button key={a.id} onClick={() => setAgent(a.name)} title={a.name}
+                className={`flex-shrink-0 rounded-full transition-all ${agent === a.name ? 'ring-2 ring-[#FF4D00] ring-offset-1' : 'opacity-55 hover:opacity-100'}`}>
+                <AgentFace id={a.id} name={a.name} avatar={a.avatar} size={26} />
+              </button>
+            ))}
+          </div>
+        )}
         <button onClick={() => setCreating(true)}
-          className="ml-auto flex items-center gap-1.5 bg-[#FF4D00] text-white text-[11px] font-semibold px-3.5 py-1.5 rounded-full hover:bg-[#e64500] transition-colors"><Plus size={13} /> Nouvelle tâche</button>
+          className="ml-auto flex-shrink-0 flex items-center gap-1.5 bg-[#FF4D00] text-white text-[11px] font-semibold px-3.5 py-1.5 rounded-full hover:bg-[#e64500] transition-colors"><Plus size={13} /> Nouvelle tâche</button>
       </div>
 
-      <div className="px-6 pb-3 flex-shrink-0 flex items-center gap-1.5 flex-wrap">
-        {['all', ...AGENT_PROFILES.map(a => a.name)].map(name => (
-          <button key={name} onClick={() => setAgent(name)}
-            className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${agent === name ? 'bg-soren-sidebar text-white border-soren-sidebar' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>
-            {name === 'all' ? 'Tous' : name}
-          </button>
-        ))}
-      </div>
-
-      {/* Sélecteur de colonne — mobile */}
-      <div className="md:hidden flex gap-1.5 overflow-x-auto px-3 pb-2.5 flex-shrink-0 kanban-scroll">
+      {/* Sélecteur de colonne — mobile (vue statuts uniquement) */}
+      <div className={`${view === 'agent' ? 'hidden' : 'md:hidden'} flex gap-1.5 overflow-x-auto px-3 pb-2.5 flex-shrink-0 kanban-scroll`}>
         {COLUMNS.map(c => {
           const on = c.id === mobileCol
           return (
@@ -424,17 +673,41 @@ export default function TachesView() {
             </button>
           )
         })}
+        {history.length > 0 && (
+          <button onClick={() => setMobileCol('history')}
+            className={`flex-none flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border transition-colors ${mobileCol === 'history' ? 'bg-[#FF4D00] border-[#FF4D00]' : 'bg-soren-card border-soren-border'}`}>
+            <span className={`text-[11px] font-semibold whitespace-nowrap ${mobileCol === 'history' ? 'text-white' : 'text-soren-muted'}`}>Historique</span>
+            <span className={`text-[10px] font-bold leading-none px-1.5 py-0.5 rounded-full ${mobileCol === 'history' ? 'bg-white/25 text-white' : 'bg-soren-elevated text-soren-subtle'}`}>{history.length}</span>
+          </button>
+        )}
       </div>
 
-      <div className="flex-1 overflow-x-auto px-3 md:px-6 pb-6">
+      <div className="flex-1 min-h-0 overflow-x-auto px-3 md:px-6 pb-2">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-          <div className="flex gap-3 h-full md:min-w-max">
-            {COLUMNS.map((c, ci) => (
-              <Column key={c.id} col={c} tasks={byCol[c.id] ?? []} isOver={overCol === c.id}
-                onOpen={t => setEditId(t.id)} onValidate={validate} wasDragged={wasDragged} mobileActive={c.id === mobileCol}
-                colIndex={ci} colCount={COLUMNS.length} onMove={moveTask} />
-            ))}
-          </div>
+          {view === 'agent' ? (
+            <div className="flex gap-2 h-full md:min-w-max">
+              {AGENT_PROFILES.map(a => (
+                <AgentColumn key={a.id} agent={a} tasks={byAgent.m[a.id] ?? []} isOver={overAgentId === a.id}
+                  onOpen={t => setEditId(t.id)} onValidate={validate} wasDragged={wasDragged} />
+              ))}
+              {byAgent.unassigned.length > 0 && (
+                <AgentColumn agent={{ id: '__none', name: 'Non assigné', role: 'Humains & non assignées' }}
+                  tasks={byAgent.unassigned} isOver={overAgentId === '__none'}
+                  onOpen={t => setEditId(t.id)} onValidate={validate} wasDragged={wasDragged} />
+              )}
+            </div>
+          ) : (
+            <div className="flex gap-2 h-full md:min-w-max">
+              {COLUMNS.map((c, ci) => (
+                <Column key={c.id} col={c} tasks={byCol[c.id] ?? []} isOver={overCol === c.id}
+                  onOpen={t => setEditId(t.id)} onValidate={validate} wasDragged={wasDragged} mobileActive={c.id === mobileCol}
+                  colIndex={ci} colCount={COLUMNS.length} onMove={moveTask} />
+              ))}
+              {history.length > 0 && (
+                <HistoryColumn tasks={history} onOpen={t => setEditId(t.id)} onRestore={restoreTask} mobileActive={mobileCol === 'history'} />
+              )}
+            </div>
+          )}
           {typeof document !== 'undefined' && createPortal(
             <DragOverlay>{activeTask && <CardBody t={activeTask} overlay />}</DragOverlay>,
             document.body
@@ -444,6 +717,7 @@ export default function TachesView() {
 
       {creating && <TaskModal task={null} onClose={() => setCreating(false)} />}
       {editTask && <TaskModal task={editTask} onClose={() => setEditId(null)} />}
+      {pendingValidate && <CompletionModal task={pendingValidate} onCancel={() => setPendingValidate(null)} onConfirm={confirmValidate} />}
     </div>
   )
 }

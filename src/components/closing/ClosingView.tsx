@@ -1,12 +1,20 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, type ReactNode } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import {
-  Building2, Clock, CheckCircle2, AlertTriangle, Zap, Calendar, Wallet,
-  Search, Phone, FileText, Target,
-} from 'lucide-react'
+import { Save, Phone, FileText, ShieldAlert, MessageSquareQuote, List, CalendarDays, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Search, Check } from 'lucide-react'
+
+// Date du RDV : « 25 juin » ou « 25 juin 14:30 » si l'heure est présente.
+function fmtRdv(d?: string | null): string {
+  if (!d) return ''
+  const dt = new Date(d)
+  if (isNaN(dt.getTime())) return d
+  const date = dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+  const hasTime = /[T ]\d{2}:\d{2}/.test(d)
+  return hasTime ? `${date} ${dt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` : date
+}
 
 type Intake = {
   companyType?: string; headcount?: string; monthlyRevenue?: string; costliestFunction?: string
@@ -15,97 +23,295 @@ type Intake = {
 type Call = {
   id: string; title?: string; date?: string | null; kind: string; name: string
   company?: string | null; initials: string; prepReady: boolean
-  contact?: { id: string; fullName: string; company?: string; email?: string; phone?: string } | null
+  contactId?: string | null
+  contact?: { id: string; fullName: string; company?: string; email?: string; phone?: string; role?: string; niche?: string; canton?: string } | null
   intake?: Intake | null; notes?: string | null
+  objections?: string[]; wonObjection?: string | null; r1Synthesis?: string | null
+  bioMarkdown?: string | null; bioGeneratedAt?: string | null; bioBy?: string | null
+  bookingAnswers?: { q: string; a: string }[]
+  quizAnswers?: { q: string; a: string }[]
+  calendarLabel?: string | null; calendarSlug?: string | null; calendarColor?: string | null
 }
 
-const SCOPES = [
-  { k: 'today', label: "Aujourd'hui" },
-  { k: 'week', label: 'Cette semaine' },
-  { k: 'all', label: 'Tous' },
+// Grille de Q/R (questionnaire) : question en gris, réponse(s) en puces/texte léger, codes humanisés.
+// Jeux de questions canoniques de chaque quiz (affichés en entier, même sans réponse).
+const QUIZ_DIAGNOSTIC = [
+  "Dans quel secteur évolue ton entreprise ?",
+  "Quel est ton chiffre d'affaires mensuel ?",
+  "Quel est ton rôle dans l'entreprise ?",
+  "À quelle échéance souhaitez-vous engager ce type de transformation dans votre entreprise ?",
 ]
+const QUIZ_CONFIRMATION = [
+  "Quel type d'entreprise dirigez-vous ?",
+  "Combien de personnes travaillent aujourd'hui dans l'entreprise ?",
+  "Quel est votre chiffre d'affaires mensuel approximatif ?",
+  "Quelle fonction vous coûte le plus de temps, d'argent ou d'énergie aujourd'hui ?",
+  "À combien estimez-vous le coût mensuel ou le temps humain mobilisé sur ces tâches répétitives ?",
+  "Pourquoi voulez-vous installer des agents IA maintenant ?",
+  "Si l'audit révèle une opportunité claire, quand aimeriez-vous lancer une première installation ?",
+  "Avez-vous déjà prévu un budget pour intégrer l'IA dans vos opérations ?",
+  "Votre nom complet",
+  "Votre société",
+]
+const QUIZ_BOOKING = [
+  "Quel est votre activité ?",
+  "Aujourd'hui, comment trouvez-vous vos nouveaux clients ?",
+  "Combien de mandats exclusifs votre agence signe-t-elle en moyenne par mois ?",
+  "Combien d'agents commerciaux ou de collaborateurs travaillent actuellement dans votre agence ?",
+]
+// Normalise une question pour matcher réponse captée <-> question canonique.
+const normQ = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '')
 
-function QCard({ icon: Icon, label, value, sub, accent }: { icon: React.ElementType; label: string; value?: string; sub?: string; accent?: boolean }) {
+// Une réponse en chips (multi) ou texte (simple), codes humanisés. Vide si pas de réponse.
+function AnswerValue({ a }: { a?: string }) {
+  if (!a) return <span className="text-soren-subtle">&nbsp;</span>
+  const parts = a.split(/\s*;\s*/).map(s => s.trim()).filter(Boolean)
+  return parts.length > 1
+    ? <div className="flex flex-wrap gap-1">{parts.map((p, j) => <span key={j} className="text-[10.5px] font-medium px-1.5 py-0.5 rounded-full bg-soren-elevated text-soren-text">{pretty(p)}</span>)}</div>
+    : <span className="text-[12px] font-medium text-soren-text">{pretty(parts[0] ?? '')}</span>
+}
+
+// Accordéon d'un quiz : toutes ses questions, réponse si captée, vide sinon. Déroulant.
+function QuizAccordion({ title, color, questions, answerMap, defaultOpen = false }: {
+  title: string; color: string; questions: string[]; answerMap: Map<string, string>; defaultOpen?: boolean
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  const answered = questions.filter(q => answerMap.get(normQ(q))).length
   return (
-    <div className="bg-soren-card border border-soren-border rounded-2xl p-3.5">
-      <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-soren-subtle">
-        <Icon size={13} className="text-soren-accent" />{label}
+    <div className="border border-soren-border rounded-2xl mt-3 overflow-hidden">
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-soren-elevated/50 transition-colors">
+        <span className="flex items-center gap-2 font-semibold text-[12.5px] text-soren-text"><span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />{title}</span>
+        <span className="flex items-center gap-2 text-[11px] text-soren-subtle">{answered}/{questions.length} répondu{answered > 1 ? 's' : ''}{open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</span>
+      </button>
+      {open && (
+        <div className="px-4 pb-4 pt-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {questions.map((q, i) => (
+            <div key={i} className="bg-soren-elevated/40 border border-soren-border rounded-xl p-3 flex flex-col h-full">
+              <div className="text-[10.5px] text-soren-subtle leading-snug mb-1.5">{q}</div>
+              <div className="leading-snug min-h-[18px] mt-auto pt-1.5 border-t border-soren-border/60"><AnswerValue a={answerMap.get(normQ(q))} /></div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Humanise les codes bruts iClosed (issue d'appel, etc.) en libellés lisibles.
+const ENUM_FR: Record<string, string> = {
+  NO_SHOW: 'No-show', NO_SALE: 'Pas de vente', SALE: 'Vente', WON: 'Gagné', LOST: 'Perdu',
+  FOLLOW_UP: 'À relancer', FOLLOWUP: 'À relancer', RESCHEDULED: 'Reprogrammé', CANCELLED: 'Annulé',
+  CANCELED: 'Annulé', DISQUALIFIED: 'Non qualifié', SHOW: 'Présent', BOOKED: 'Booké', PENDING: 'En attente',
+}
+const pretty = (s: string) => ENUM_FR[(s || '').trim().toUpperCase()] ?? s
+
+// Rendu inline du gras markdown (**x**).
+// Brief closer : 4 cards persona ÉDITABLES (Qui est X, Son caractère, Ses attentes, Ses peurs).
+const BRIEF_KEYS: { key: string; match: RegExp }[] = [
+  { key: 'qui',       match: /qui es/i },
+  { key: 'caractere', match: /caract/i },
+  { key: 'attentes',  match: /attente|motiv/i },
+  { key: 'peurs',     match: /peur|frein/i },
+]
+const briefTitle = (key: string, firstName: string) =>
+  key === 'qui' ? `Qui est ${firstName} ?` : key === 'caractere' ? 'Son caractère' : key === 'attentes' ? 'Ses attentes' : 'Ses peurs'
+
+function parseBrief(md: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (!md) return out
+  md.split(/^##\s+/m).map(s => s.trim()).filter(Boolean).forEach(chunk => {
+    const nl = chunk.indexOf('\n')
+    const title = (nl === -1 ? chunk : chunk.slice(0, nl)).trim()
+    const body = (nl === -1 ? '' : chunk.slice(nl + 1)).trim()
+    const hit = BRIEF_KEYS.find(k => k.match.test(title))
+    if (hit) out[hit.key] = body
+  })
+  return out
+}
+
+function EditableBrief({ callId, md, name }: { callId: string; md: string; name: string }) {
+  const saveBio = useMutation(api.closing.saveBio)
+  const firstName = ((name || '').trim().split(/\s+/)[0] || name || 'ce lead').replace(/\[.*\]/, '').trim()
+  const [vals, setVals] = useState<Record<string, string>>(() => parseBrief(md))
+  useEffect(() => { setVals(parseBrief(md)) }, [callId]) // eslint-disable-line react-hooks/exhaustive-deps
+  const persist = (next: Record<string, string>) => {
+    const newMd = BRIEF_KEYS.map(k => `## ${briefTitle(k.key, firstName)}\n${(next[k.key] || '').trim()}`).join('\n\n')
+    saveBio({ id: callId as never, bioMarkdown: newMd, by: 'manual' })
+  }
+  return (
+    <div className="flex flex-col gap-3.5">
+      {BRIEF_KEYS.map(k => (
+        <div key={k.key} className="rounded-2xl border border-soren-border bg-soren-card p-4 focus-within:border-[#C8CBD0] transition-colors">
+          <div className="text-[13px] font-bold text-soren-text mb-2">{briefTitle(k.key, firstName)}</div>
+          <textarea
+            value={vals[k.key] ?? ''}
+            onChange={e => setVals(v => ({ ...v, [k.key]: e.target.value }))}
+            onBlur={() => persist(vals)}
+            placeholder="- À compléter…"
+            className="w-full bg-transparent text-[12.5px] leading-[1.8] text-soren-text resize-y outline-none min-h-[110px] placeholder:text-soren-subtle" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function fmtTime(d?: string | null): string {
+  if (!d) return ''
+  const dt = new Date(d)
+  return isNaN(dt.getTime()) || !/[T ]\d{2}:\d{2}/.test(d) ? '' : dt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+}
+
+// Vue Agenda : les R1/R2 bookés sur un calendrier mensuel, cliquables vers la prep.
+function CalendarAgenda({ calls, onPick }: { calls: Call[]; onPick: (id: string) => void }) {
+  const now = new Date()
+  const [cur, setCur] = useState<{ y: number; m: number }>({ y: now.getFullYear(), m: now.getMonth() })
+  const first = new Date(cur.y, cur.m, 1)
+  const startDow = (first.getDay() + 6) % 7 // lundi = 0
+  const nDays = new Date(cur.y, cur.m + 1, 0).getDate()
+  const cells: (number | null)[] = [...Array(startDow).fill(null), ...Array.from({ length: nDays }, (_, i) => i + 1)]
+  while (cells.length % 7) cells.push(null)
+
+  const byDay = new Map<number, Call[]>()
+  for (const c of calls) {
+    if (!c.date) continue
+    const d = new Date(c.date)
+    if (d.getFullYear() === cur.y && d.getMonth() === cur.m) {
+      const k = d.getDate(); const arr = byDay.get(k) ?? []; arr.push(c); byDay.set(k, arr)
+    }
+  }
+  const isToday = (day: number) => now.getFullYear() === cur.y && now.getMonth() === cur.m && now.getDate() === day
+  const monthLabel = first.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+  const btn = "w-8 h-8 rounded-lg border border-soren-border bg-soren-card flex items-center justify-center text-soren-muted hover:border-[#C8CBD0]"
+
+  return (
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="text-[15px] font-bold capitalize">{monthLabel}</div>
+        </div>
+        <div className="flex gap-1.5">
+          <button className={btn} onClick={() => setCur(c => c.m === 0 ? { y: c.y - 1, m: 11 } : { ...c, m: c.m - 1 })}><ChevronLeft size={16} /></button>
+          <button className="px-3 h-8 rounded-lg border border-soren-border bg-soren-card text-[12px] font-medium text-soren-muted hover:border-[#C8CBD0]" onClick={() => setCur({ y: now.getFullYear(), m: now.getMonth() })}>Aujourd&apos;hui</button>
+          <button className={btn} onClick={() => setCur(c => c.m === 11 ? { y: c.y + 1, m: 0 } : { ...c, m: c.m + 1 })}><ChevronRight size={16} /></button>
+        </div>
       </div>
-      <div className={`text-sm font-semibold mt-1.5 leading-snug ${accent ? 'text-emerald-600' : 'text-soren-text'}`}>
-        {value || <span className="text-soren-subtle font-normal">—</span>}
-        {sub && <span className="block font-normal text-soren-muted text-[12.5px] mt-0.5">{sub}</span>}
+      <div className="grid grid-cols-7 gap-px bg-soren-border border border-soren-border rounded-xl overflow-hidden">
+        {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(d => (
+          <div key={d} className="bg-soren-elevated text-[10px] font-semibold uppercase tracking-wide text-soren-subtle text-center py-2">{d}</div>
+        ))}
+        {cells.map((day, i) => (
+          <div key={i} className="bg-soren-card min-h-[96px] p-1.5">
+            {day && (
+              <>
+                <div className={`text-[11px] font-semibold mb-1 ${isToday(day) ? 'text-[#FF4D00]' : 'text-soren-muted'}`}>{day}</div>
+                <div className="flex flex-col gap-1">
+                  {(byDay.get(day) ?? []).map(c => (
+                    <button key={c.id} onClick={() => onPick(c.id)} title={`${c.calendarLabel ?? c.kind} · ${c.name}`}
+                      className={`text-left text-[10px] font-semibold px-1.5 py-1 rounded-md truncate hover:brightness-95 border-l-2 ${c.calendarColor ? '' : c.kind === 'R2' ? 'bg-emerald-100 text-emerald-700 border-emerald-400' : 'bg-blue-100 text-blue-700 border-blue-400'}`}
+                      style={c.calendarColor ? { background: c.calendarColor + '1A', borderColor: c.calendarColor, color: '#1A1A1E' } : undefined}>
+                      {fmtTime(c.date) && <span className="opacity-60">{fmtTime(c.date)} </span>}{c.name}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   )
 }
 
 export default function ClosingView() {
-  const [scope, setScope] = useState('week')
-  const calls = (useQuery(api.closing.upcomingCalls, { scope }) ?? null) as Call[] | null
+  const calls = (useQuery(api.closing.upcomingCalls, {}) ?? null) as Call[] | null
   const [openId, setOpenId] = useState<string | null>(null)
   const saveNote = useMutation(api.closing.saveCallNote)
   const [note, setNote] = useState('')
+  const params = useSearchParams()
+  const focusContact = params.get('contact')
+
+  // Deep-link ?contact= → sélectionne l'appel de ce contact (bouton "Closing" de la fiche).
+  useEffect(() => {
+    if (focusContact && calls) {
+      const c = calls.find(x => x.contactId === focusContact)
+      if (c) setOpenId(c.id)
+    }
+  }, [focusContact, calls])
 
   const selected = useMemo(() => calls?.find(c => c.id === openId) ?? calls?.[0] ?? null, [calls, openId])
   useEffect(() => { setNote(selected?.notes ?? '') }, [selected?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loading = calls === null
+  const [view, setView] = useState<'liste' | 'agenda'>('liste')
+  const [search, setSearch] = useState('')
+  const filteredCalls = (calls ?? []).filter(c => {
+    const t = search.trim().toLowerCase()
+    return !t || `${c.name} ${c.company ?? ''}`.toLowerCase().includes(t)
+  })
+
+  const viewToggle = (
+    <div className="flex bg-soren-elevated border border-soren-border rounded-[10px] p-[3px] text-[12px] font-medium flex-shrink-0">
+      <button onClick={() => setView('liste')} className={`px-3 py-1.5 rounded-[7px] inline-flex items-center gap-1.5 ${view === 'liste' ? 'bg-soren-card text-soren-text shadow-sm' : 'text-soren-muted'}`}><List size={13} />Liste</button>
+      <button onClick={() => setView('agenda')} className={`px-3 py-1.5 rounded-[7px] inline-flex items-center gap-1.5 ${view === 'agenda' ? 'bg-soren-card text-soren-text shadow-sm' : 'text-soren-muted'}`}><CalendarDays size={13} />Calendrier</button>
+    </div>
+  )
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* header */}
-      <div className="px-6 pt-5 pb-3 flex items-end justify-between border-b border-soren-border flex-shrink-0">
-        <div>
-          <h1 className="text-[21px] font-bold tracking-tight">Closing — Préparation d'appel</h1>
-          <p className="text-[12px] text-soren-muted mt-0.5">Tes R1 &amp; R2 à venir, prêts à dérouler. Fiche contact + réponses du formulaire de confirmation.</p>
-        </div>
-        <div className="flex bg-soren-elevated border border-soren-border rounded-[10px] p-[3px] text-[12px] font-medium">
-          {SCOPES.map(s => (
-            <button key={s.k} onClick={() => setScope(s.k)}
-              className={`px-3 py-1.5 rounded-[7px] ${scope === s.k ? 'bg-soren-card text-soren-text shadow-sm' : 'text-soren-muted'}`}>{s.label}</button>
-          ))}
-        </div>
+      {/* Onglets Liste / Calendrier — toujours visibles en tête du module Closing. */}
+      <div className="flex items-center gap-3 px-4 pt-4 pb-3 flex-shrink-0">
+        {viewToggle}
+        <span className="text-[12px] text-soren-muted">{loading ? 'Chargement…' : (() => {
+          const all = calls ?? []
+          const nR2 = all.filter(c => c.kind === 'R2').length
+          return `${all.length} call${all.length > 1 ? 's' : ''}${all.length ? ` · ${all.length - nR2} R1 · ${nR2} R2` : ''}`
+        })()}</span>
       </div>
 
-      <div className="flex-1 grid grid-cols-[340px_1fr] overflow-hidden">
-        {/* call list */}
+      {view === 'agenda' ? (
+        <div className="flex-1 overflow-y-auto">
+          <CalendarAgenda calls={calls ?? []} onPick={(id) => { setOpenId(id); setView('liste') }} />
+        </div>
+      ) : (
+      <div className="flex-1 grid grid-cols-[300px_1fr] overflow-hidden">
+        {/* liste des appels */}
         <div className="border-r border-soren-border overflow-y-auto p-3.5 bg-soren-elevated/40">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-soren-subtle px-2 pb-2.5">
-            {loading ? 'Chargement…' : `${calls?.length ?? 0} appel${(calls?.length ?? 0) > 1 ? 's' : ''} à venir`}
+          {/* Recherche contact */}
+          <div className="flex items-center gap-2 bg-soren-elevated border border-soren-border rounded-xl px-3 py-2 mb-2.5">
+            <Search size={13} className="text-soren-subtle flex-shrink-0" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un contact…"
+              className="flex-1 bg-transparent text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none" />
           </div>
-          {!loading && calls?.length === 0 && (
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-soren-subtle px-2 pb-2.5">
+            {loading ? 'Chargement…' : `${filteredCalls.length} appel${filteredCalls.length > 1 ? 's' : ''}`}
+          </div>
+          {!loading && filteredCalls.length === 0 && (
             <div className="text-[12.5px] text-soren-muted px-2 py-6 leading-relaxed">
-              Aucun appel planifié sur cette période. Les R1/R2 apparaissent ici depuis le pipeline / iClosed.
+              {search ? 'Aucun contact trouvé.' : "Aucun appel. Les R1/R2 arrivent ici dès qu'ils sont bookés sur iClosed."}
             </div>
           )}
-          {calls?.map(c => {
+          {filteredCalls.map(c => {
             const sel = selected?.id === c.id
+            const sub = [c.company, c.date ? `Rendez-vous ${fmtRdv(c.date)}` : null].filter(Boolean).join(' · ')
             return (
-              <button key={c.id} onClick={() => setOpenId(c.id)}
-                className={`w-full text-left bg-soren-card border rounded-[13px] p-3 mb-2.5 transition-all ${sel ? 'border-soren-accent ring-[3px] ring-soren-accent/10' : 'border-soren-border hover:border-[#C8CBD0]'}`}>
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${c.kind === 'R2' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>{c.kind}</span>
-                  <span className="font-semibold text-[13.5px]">{c.name}</span>
+              <div key={c.id} role="button" tabIndex={0} onClick={() => setOpenId(c.id)}
+                className={`cursor-pointer text-left px-3 py-2 rounded-xl mb-1.5 transition-colors ${sel ? 'bg-[#FF4D00] text-white' : 'hover:bg-soren-elevated text-soren-text'}`}>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 ${sel ? 'bg-white/25 text-white' : c.kind === 'R2' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{c.kind}</span>
+                  <span className="font-semibold text-[12px] truncate flex-1 min-w-0">{c.name}</span>
                 </div>
-                {c.company && <div className="text-[12px] text-soren-muted mt-0.5">{c.company}</div>}
-                <div className="flex items-center gap-2 mt-2 text-[11.5px] text-soren-muted">
-                  {c.date && <span className="inline-flex items-center gap-1"><Clock size={12} />{c.date}</span>}
-                  <span className={`ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold ${c.prepReady ? 'text-emerald-600' : 'text-amber-600'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${c.prepReady ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                    {c.prepReady ? 'Prep prête' : 'Formulaire manquant'}
-                  </span>
-                </div>
-              </button>
+                <div className={`text-[10px] mt-0.5 truncate ${sel ? 'text-white/70' : 'text-soren-subtle'}`}>{sub || 'Sans date'}</div>
+              </div>
             )
           })}
         </div>
 
-        {/* prep sheet */}
+        {/* fiche de prep */}
         <div className="overflow-y-auto p-6">
           {!selected ? (
             <div className="h-full flex flex-col items-center justify-center text-soren-muted gap-3">
               <Phone size={30} className="opacity-40" />
-              <p className="text-[13px]">Sélectionne un appel pour préparer la fiche.</p>
+              <p className="text-[13px]">Sélectionne un appel.</p>
             </div>
           ) : (
             <>
@@ -113,51 +319,102 @@ export default function ClosingView() {
                 <div className="w-12 h-12 rounded-[13px] bg-soren-elevated border border-soren-border flex items-center justify-center font-bold text-[17px] text-soren-accent">{selected.initials}</div>
                 <div>
                   <h2 className="text-[19px] font-bold tracking-tight">{selected.name}</h2>
-                  <div className="text-[13px] text-soren-muted mt-0.5">
-                    {selected.company ? `${selected.company} · ` : ''}
-                    <b className={selected.kind === 'R2' ? 'text-orange-600' : 'text-blue-600'}>{selected.kind}{selected.date ? ` · ${selected.date}` : ''}</b>
+                  <div className="flex items-center flex-wrap gap-2 mt-1 text-[13px] text-soren-muted">
+                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${selected.kind === 'R2' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{selected.kind}</span>
+                    {selected.calendarSlug && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={/out/i.test(selected.calendarSlug)
+                          ? { background: '#FCE7F3', color: '#EC4899' }
+                          : { background: '#E0F2FE', color: '#0284C7' }}>
+                        {/out/i.test(selected.calendarSlug) ? 'OUTBOUND' : 'INBOUND'}
+                      </span>
+                    )}
+                    {selected.calendarLabel && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ background: (selected.calendarColor ?? '#888888') + '1A', color: selected.calendarColor ?? '#6B7280' }}>
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: selected.calendarColor ?? '#888888' }} />
+                        {selected.calendarLabel}{selected.calendarSlug ? ` · ${selected.calendarSlug}` : ''}
+                      </span>
+                    )}
+                    {selected.company && <span>{selected.company}</span>}
+                    {selected.date && <span>· Rendez-vous {fmtRdv(selected.date)}</span>}
                   </div>
                 </div>
               </div>
 
-              {selected.intake ? (
-                <>
-                  <span className="inline-flex items-center gap-1.5 text-[11px] text-soren-muted bg-soren-elevated border border-soren-border px-2.5 py-1 rounded-full my-4">
-                    <CheckCircle2 size={12} className="text-emerald-600" />Réponses captées via le formulaire de confirmation · liées à la fiche contact
+              {/* Brief closer : 4 cards persona éditables + marque de passage de l'agent */}
+              <div className="flex items-center gap-2 mt-5 mb-3">
+                <span className="text-[12px] font-bold uppercase tracking-wide text-soren-muted">Brief closer</span>
+                {selected.bioBy === 'agent-operations' && (
+                  <span title={`Brief rédigé par Agent Operations${selected.bioGeneratedAt ? ' le ' + new Date(selected.bioGeneratedAt).toLocaleDateString('fr-FR') : ''}`}
+                    className="flex items-center gap-1.5 pl-1 pr-2.5 py-0.5 rounded-full bg-soren-elevated flex-shrink-0">
+                    <span className="relative flex-shrink-0">
+                      <img src="/agents/operations.png" alt="" className="w-5 h-5 rounded-full object-cover" />
+                      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#16A34A] border border-soren-elevated flex items-center justify-center"><Check size={6} className="text-white" strokeWidth={3.5} /></span>
+                    </span>
+                    <span className="text-[10px] font-semibold text-soren-text whitespace-nowrap">Agent Operations</span>
                   </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    <QCard icon={Building2} label="Profil entreprise" value={selected.intake.companyType} sub={[selected.intake.headcount, selected.intake.monthlyRevenue].filter(Boolean).join(' · ')} />
-                    <QCard icon={Target} label="Douleur n°1" value={selected.intake.costliestFunction} />
-                    <QCard icon={Wallet} label="Coût des tâches répétitives" value={selected.intake.repetitiveCost} />
-                    <div className="col-span-2"><QCard icon={Zap} label="Pourquoi l'IA maintenant" value={selected.intake.whyNow} /></div>
-                    <QCard icon={Calendar} label="Timing" value={selected.intake.timing} />
-                    <QCard icon={Wallet} label="Budget IA" value={selected.intake.budget} accent />
+                )}
+                {selected.bioBy === 'manual' && selected.bioGeneratedAt && (
+                  <span className="text-[10px] text-soren-subtle whitespace-nowrap">édité le {new Date(selected.bioGeneratedAt).toLocaleDateString('fr-FR')}</span>
+                )}
+                <span className="flex-1 h-px bg-soren-border" />
+              </div>
+              <EditableBrief callId={selected.id} md={selected.bioMarkdown ?? ''} name={selected.name} />
+
+              {/* Objections déjà surmontées (R2) */}
+              {(selected.kind === 'R2' && (selected.wonObjection || (selected.objections?.length ?? 0) > 0)) && (
+                <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-700 mb-2"><ShieldAlert size={13} /> Au R1 : déjà traité (ne pas rouvrir)</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selected.wonObjection && <span className="text-[11.5px] font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-800">surmonté : {selected.wonObjection}</span>}
+                    {(selected.objections ?? []).map((o, i) => <span key={i} className="text-[11.5px] font-medium px-2 py-1 rounded-full bg-emerald-100/70 text-emerald-700">{o}</span>)}
                   </div>
-                </>
-              ) : (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 my-4 flex items-start gap-3 text-[13px]">
-                  <AlertTriangle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div><b className="text-amber-800">Formulaire de confirmation non rempli</b><div className="text-amber-700 mt-0.5">Pas encore de réponses liées à ce prospect. La fiche contact reste disponible pour préparer l'appel.</div></div>
                 </div>
               )}
 
-              <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide text-soren-muted mt-6 mb-3">Notes du closer<span className="flex-1 h-px bg-soren-border" /></div>
+              {/* Synthèse du R1 (R2) */}
+              {selected.kind === 'R2' && selected.r1Synthesis && (
+                <div className="mt-4 rounded-xl border border-soren-border bg-soren-card p-4">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-soren-muted mb-2"><MessageSquareQuote size={13} /> Synthèse du R1</div>
+                  <p className="text-[12.5px] text-soren-text leading-relaxed whitespace-pre-line">{selected.r1Synthesis}</p>
+                </div>
+              )}
+
+              {/* Tous les questionnaires en accordéons : toutes les questions, réponse si captée, vide sinon */}
+              {(() => {
+                const answerMap = new Map<string, string>()
+                for (const qa of [...(selected.bookingAnswers ?? []), ...(selected.quizAnswers ?? [])]) {
+                  if (qa.q && qa.a) answerMap.set(normQ(qa.q), qa.a)
+                }
+                return (
+                  <>
+                    <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide text-soren-muted mt-6 mb-1">Questionnaires<span className="flex-1 h-px bg-soren-border" /></div>
+                    <QuizAccordion title="Quiz Meta Ads (diagnostic)" color="#1877F2" questions={QUIZ_DIAGNOSTIC} answerMap={answerMap} />
+                    <QuizAccordion title="Quiz confirmation" color="#FF4D00" questions={QUIZ_CONFIRMATION} answerMap={answerMap} />
+                    <QuizAccordion title="Réservation iClosed (Audit IA offert)" color="#10B981" questions={QUIZ_BOOKING} answerMap={answerMap} defaultOpen />
+                  </>
+                )
+              })()}
+
+              <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide text-soren-muted mt-6 mb-3">Notes du closer · retour après appel<span className="flex-1 h-px bg-soren-border" /></div>
               <textarea value={note} onChange={e => setNote(e.target.value)}
-                onBlur={() => selected && saveNote({ id: selected.id as any, notes: note })}
-                placeholder="Plan d'appel, ce qui a été dit, prochains pas… (sauvegardé sur l'appel)"
+                onBlur={() => selected && saveNote({ id: selected.id as never, notes: note })}
+                placeholder="Retour après l'appel : ce qui a été dit, objections rencontrées, prochaine étape…"
                 className="w-full bg-soren-card border border-soren-border rounded-[13px] p-3.5 text-[13px] min-h-[100px] outline-none focus:border-soren-accent resize-y" />
-              <div className="flex justify-end gap-2.5 mt-4">
+              <div className="flex justify-end gap-2 mt-3">
                 {selected.contact && (
-                  <a href={`/contacts?id=${selected.contact.id}`} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[11px] text-[13.5px] font-semibold border border-soren-border bg-soren-card"><FileText size={15} />Ouvrir la fiche contact</a>
+                  <a href={`/contacts?c=${encodeURIComponent(selected.contact.id)}`} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] font-semibold border border-soren-border bg-soren-card text-soren-muted hover:text-soren-text"><FileText size={12} />Fiche contact</a>
                 )}
-                <button onClick={() => selected && saveNote({ id: selected.id as any, notes: note })}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[11px] text-[13.5px] font-semibold bg-soren-text text-white"><CheckCircle2 size={15} />Enregistrer la prep</button>
+                <button onClick={() => selected && saveNote({ id: selected.id as never, notes: note })}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] font-semibold bg-[#FF4D00] text-white hover:brightness-110"><Save size={12} />Enregistrer</button>
               </div>
               <div className="h-6" />
             </>
           )}
         </div>
       </div>
+      )}
     </div>
   )
 }

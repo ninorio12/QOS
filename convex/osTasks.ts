@@ -21,6 +21,7 @@ export const create = mutation({
   args: {
     title:           v.string(),
     description:     v.optional(v.string()),
+    objective:       v.optional(v.string()),
     status:          v.optional(v.string()),
     priority:        v.optional(v.string()),
     assigneeType:    v.optional(v.string()),
@@ -36,10 +37,18 @@ export const create = mutation({
   handler: async (ctx, a) => {
     const now = new Date().toISOString()
     const createdBy = a.createdBy ?? "human:thomas"
+    // Idempotence : une tâche poussée depuis une source identifiée (ex. action item d'un record)
+    // ne doit pas être recréée en double si on rouvre/repousse. Dédup sur (source, sourceRef, title).
+    if (a.sourceRef) {
+      const dup = (await ctx.db.query("os_tasks").collect())
+        .find(t => t.workspaceId === WORKSPACE && t.source === (a.source ?? "dataos") && t.sourceRef === a.sourceRef && t.title === a.title)
+      if (dup) return dup._id
+    }
     const id = await ctx.db.insert("os_tasks", {
       workspaceId: WORKSPACE,
       title: a.title,
       description: a.description,
+      objective: a.objective,
       status: a.status ?? "todo",
       priority: a.priority ?? "normal",
       assigneeType: a.assigneeType ?? "human",
@@ -66,6 +75,10 @@ export const update = mutation({
     id:             v.id("os_tasks"),
     title:          v.optional(v.string()),
     description:    v.optional(v.string()),
+    objective:         v.optional(v.string()),
+    objectiveAchieved: v.optional(v.boolean()),
+    completionNote:    v.optional(v.string()),
+    completedAt:       v.optional(v.string()),
     status:         v.optional(v.string()),
     priority:       v.optional(v.string()),
     assigneeType:   v.optional(v.string()),

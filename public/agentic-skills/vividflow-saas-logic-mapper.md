@@ -205,6 +205,8 @@ For les modules Data OS / Fiches clients qui doivent relier onboarding et exécu
 
 Pour les modules d’acquisition Data OS inspirés de Sheets/Excel, surtout Prospection et Performance setter, applique `references/vividflow-dataos-acquisition-prospection-performance.md` : Contacts source de vérité, Prospection = tracker horizontal premium Phase 1/2/3 en cellules, R1 booké via Calendrier, Performance = production R1 setter uniquement.
 
+Pour les modules agentiques Data OS (`Équipe IA`, `Tâches`, `Activités`, `Base de connaissance`) et les sujets mémoire/Second Brain/GBrain/skills/SOPs, applique `references/vividflow-dataos-agentic-second-brain.md` : ne pas proposer Obsidian externe par défaut; `Activités` doit devenir le Second Brain interne relié aux agents, tâches, clients, preuves, décisions et SOP candidates.
+
 Pour un audit ou une reprise de code VividFlow Service Execution OS/Vercel, applique aussi `references/vividflow-service-execution-os-prod-readiness.md` : confirmer le repo Vercel exact, inventorier les changements locaux, traiter d’abord auth/secrets/quotas IA/webhooks/data env, et ne pas confondre VividFlow avec Brand Lab.
 
 Pour chaque bouton/lien/action qui mène vers une page ou déclenche une API, préciser :

@@ -1,0 +1,326 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260520_010314_f9ab79
+source_file: /home/hermes/.hermes/sessions/20260520_010314_f9ab79.jsonl
+source_sha256_16: c59ba6d973ad9450
+date: 2026-05-20
+---
+
+# Recovered session root/20260520_010314_f9ab79
+
+
+## assistant — 2026-05-20T01:04:18.783912
+
+Oui, tl;dv doit devenir une **source centrale** du Data OS.
+
+## Règle simple
+
+Chaque call tl;dv doit automatiquement créer/mettre à jour :
+
+```text
+1. Record brut
+2. Résumé
+3. Décisions
+4. Tâches
+5. Leads / clients mentionnés
+6. Risques
+7. Promesses faites
+8. Next actions
+9. Log d’audit
+```
+
+## Flow idéal
+
+```text
+tl;dv nouveau call
+→ Mia récupère transcript
+→ Mia extrait infos utiles
+→ Data OS / Records se met à jour
+→ Pipeline/Clients/Tâches/Decisions se mettent à jour
+→ Hermes assigne les actions
+→ vous recevez seulement les blocages ou validations
+```
+
+## Dans le Data OS actuel
+
+La section importante existe déjà :
+
+```text
+Bibliothèque → Records
+```
+
+Elle doit devenir le hub tl;dv.
+
+Chaque record doit avoir des boutons/actions :
+
+```text
+Générer résumé
+Extraire tâches
+Créer/mettre à jour client
+Créer décision
+Préparer CDC
+Préparer pitchdeck R2
+Envoyer à Hermes
+```
+
+## Mia concrètement
+
+Mia doit scanner chaque nouveau tl;dv et faire ça :
+
+```text
+Si call client/prospect
+→ créer/mettre à jour fiche client/lead
+
+Si action mentionnée
+→ créer tâche dans Équipe IA ou Équipe VividFlow
+
+Si décision prise
+→ ajouter au decision log
+
+Si info stratégique
+→ envoyer à Soren
+
+Si besoin dev
+→ envoyer à Atlas
+
+Si coordination
+→ envoyer à Hermes
+```
+
+## Exemple
+
+Call tl;dv : “Audit Schmid Signature”
+
+Mia crée :
+
+```text
+Client : Schmid Signature
+Call : Audit Schmid Signature
+Résumé : ...
+Tâches :
+- préparer CDC
+- envoyer recap
+- créer proposition
+Risques :
+- accès outils manquant
+Décisions :
+- partir sur audit IA immobilier
+Owner :
+- Mia pour doc
+- Hermes pour suivi
+```
+
+## Priorité à construire
+
+```text
+1. Sync auto tl;dv → Records
+2. Extraction auto → Tasks / Decisions / Clients
+3. Hermes assigne derrière
+4. Brief quotidien : “voici ce que tl;dv a créé”
+```
+
+Donc oui : avec votre usage, **tl;dv doit être une entrée prioritaire au même niveau que Telegram**.
+
+## user — 2026-05-20T01:04:18.783912
+
+Ok maintenant comment les bots vont se donner l’information entre les topics
+
+## assistant — 2026-05-20T01:04:18.783912
+
+Ils ne doivent pas “se parler au hasard” entre topics. 
+Il faut un **bus central** :
+
+```text
+Data OS + Hermes
+```
+
+## Principe
+
+```text
+Les topics = lieux de discussion
+Le Data OS = mémoire/source de vérité
+Hermes = routeur/COO
+```
+
+Les bots ne déplacent pas l’info en copiant-collant partout. 
+Ils créent des objets structurés :
+
+```text
+Tâche
+Décision
+Lead
+Client
+Call
+Risque
+Doc
+Signal
+```
+
+Puis Hermes route.
+
+---
+
+## Flow standard
+
+```text
+Message dans un topic
+→ Mia extrait l’info
+→ Mia écrit dans Data OS
+→ Hermes lit la nouvelle entrée
+→ Hermes assigne au bon bot/topic
+→ le bot exécute
+→ résultat + preuve dans Data OS
+```
+
+---
+
+## Exemple concret
+
+Topic `Vision` :
+
+```text
+Jonathan : il faut rendre le Data OS plus premium visuellement.
+```
+
+Mia capture :
+
+```text
+Décision/Signal :
+- Sujet : DA Data OS premium
+- Source : Vision
+- Owner recommandé : Soren
+- Action dev potentielle : Atlas
+```
+
+Hermes crée :
+
+```text
+Tâche 1 → Soren : clarifier direction visuelle
+Tâche 2 → Atlas : appliquer sur dashboard après validation
+```
+
+Puis Hermes poste dans les bons topics :
+
+```text
+@Soren Clarifie la direction visuelle Data OS premium.
+Source : Vision / message Jonathan.
+```
+
+```text
+@Atlas En attente brief Soren. Prépare audit UI dashboard.
+```
+
+---
+
+## Règle de transmission
+
+Chaque bot ne transmet que 4 choses :
+
+```text
+1. Ce qui a été capturé
+2. Ce qui a été décidé
+3. Ce qui doit être fait
+4. Ce qui bloque
+```
+
+Pas de blabla.
+
+---
+
+## Format commun obligatoire
+
+```text
+TYPE :
+SOURCE :
+RÉSUMÉ :
+OWNER :
+ACTION :
+STATUT :
+LIEN DATA OS :
+```
+
+Exemple :
+
+```text
+TYPE : Décision produit
+SOURCE : Vision
+RÉSUMÉ : rendre Data OS plus premium visuellement
+OWNER : Soren
+ACTION : créer brief DA
+STATUT : Assigned
+LIEN DATA OS : /decisions/123
+```
+
+---
+
+## Qui fait quoi ?
+
+### Mia
+```text
+Capture + range.
+```
+
+Elle pousse vers Data OS.
+
+### Hermes
+```text
+Route + assigne.
+```
+
+Il envoie vers le bon topic/bot.
+
+### Soren
+```text
+Produit la vision/brief.
+```
+
+Il renvoie le résultat à Hermes/Data OS.
+
+### Atlas
+```text
+Exécute le dev.
+```
+
+Il renvoie preview/diff/statut à Hermes/Data OS.
+
+---
+
+## Important
+
+Les bots ne doivent pas dépendre de Telegram pour la mémoire.
+
+Telegram sert à discuter. 
+Le Data OS sert à transmettre.
+
+Sinon vous perdez l’info dans les topics.
+
+---
+
+## Règle simple pour vous
+
+Vous parlez dans le topic naturel.
+
+```text
+Vision → idées/DA/stratégie
+Dev → demandes SaaS
+COO → coordination
+KB/Data OS → recherche/correction d’info
+Privé → perso/confidentiel
+```
+
+Ensuite :
+
+```text
+Mia capture
+Hermes route
+Les bots exécutent
+```
+
+Vous ne devez pas faire le transfert manuellement.
+
+## assistant — 2026-05-20T08:22:23.786119
+
+Jonathan a déplacé l’appel à 8h45, il a une petite urgence.

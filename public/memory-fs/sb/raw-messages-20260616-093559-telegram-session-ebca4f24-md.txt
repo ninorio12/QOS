@@ -1,0 +1,34 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260616_092137_ea9d9ae7.jsonl
+captured_at: 2026-06-16T09:35:59.946352
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-06-16T09:22:40.490207
+
+le scrapping est de très mauvaise qualité, tu sais pourquoi ?
+
+## assistant — 2026-06-16T09:22:40.490207
+
+Oui. Probablement pour 5 raisons : 1. **La source est mauvaise** Si l’agent part d’Apollo / Google random / annuaires trop larges, il récupère des lignes “plausibles” mais pas vraiment qualifiées. 2. **L’ICP est trop flou** “Entreprises suisses / PME / dirigeants” donne du bruit. Il faut des critères durs : secteur, canton, taille, signaux visibles, exclusion. 3. **Pas de quality gate avant scaling** On aurait dû faire **10 leads test**, vérifier que 7/10 sont bons, puis seulement scaler. Là, ça ressemble à du volume avant validation. 4. **Enrichissement trop agressif** Emails, décideurs ou rôles peuvent être inférés au lieu d’être sourcés. Si `email_source` / `source_url` ne prouvent pas la donnée, c’est faible. 5. **Mauvais outil pour la mauvaise source** Google Maps / sites dynamiques / annuaires locaux demandent souvent Playwright ou Browser Use. Un scraper simple va sortir des données partielles. Mon avis : il faut stopper le batch actuel, auditer 20 lignes, marquer en rouge les lignes suspectes, puis relancer un batch test propre depuis local.ch / sites officiels / Google Maps, pas Apollo en source primaire.
+
+## user — 2026-06-16T09:23:57.713097
+
+si tu as accès à Apollo ca serait plus facile ?
+
+## assistant — 2026-06-16T09:23:57.713097
+
+Oui, **plus facile pour enrichir**, mais pas forcément meilleur pour sourcer. Apollo est utile pour : - trouver le décideur probable ; - récupérer rôle, LinkedIn, taille, secteur ; - enrichir email pro ; - filtrer par intitulé/poste. Mais je ne l’utiliserais pas comme source primaire. Pour VividFlow, le mieux c’est : 1. **Source primaire fiable** : local.ch, Google Maps, sites officiels, annuaires métiers suisses. 2. **Apollo en couche d’enrichissement** : décideur, rôle, email, LinkedIn. 3. **Quality gate** : si Apollo ne confirme pas clairement, ligne en “à vérifier”, pas importée. Donc oui, accès Apollo = gain de temps. Mais si on l’utilise seul, on risque de refaire le même problème : beaucoup de données “propres en apparence”, mais pas assez qualifiées pour vendre.
+
+## user — 2026-06-16T09:26:02.099214
+
+ok mais tu as été incapable de remplir le doc regarde par toi meme il y a rien
+
+## assistant — 2026-06-16T09:26:02.099214
+
+Tu as raison. J’ai vérifié le Sheet **“Base leads dirigeants — Suisse romande”**. État réel : - **16 lignes remplies seulement** - **0 ligne importable** - **12 en qualité C** - **4 en qualité B** - **toutes en “à vérifier”** - colonnes clés souvent vides : prénom, nom, décideur, LinkedIn - même des erreurs type `#ERROR!` dans téléphone Donc oui : le doc n’est pas rempli utilement. Le problème n’est pas juste “qualité moyenne”, c’est que le pipeline n’a pas produit une base exploitable. Cause probable : on a rempli des **entreprises**, pas des **leads commerciaux**. Sans décideur + preuve + contact pro, ça ne sert pas pour outbound. Prochaine action saine : on arrête ce flux, et on relance un batch test de 10 vrais leads avec source primaire + enrichissement Apollo/manuel, puis QA avant d’en mettre 100.
+
+## assistant — 2026-06-16T09:27:52.143272
+
+C’est arrêté. J’ai mis en pause : - scraping quotidien leads Suisse romande - ordre quotidien scraping - validation Coordinateur après scraping L’import Data OS était déjà en pause. Donc plus aucun flux automatique ne va continuer à remplir ce doc ou importer ces leads.

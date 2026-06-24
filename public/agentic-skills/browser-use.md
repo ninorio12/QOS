@@ -57,6 +57,7 @@ Use **browser-harness** when:
 - TypeScript import: `import { BrowserUse } from "browser-use-sdk/v3"`
 - Auth header for raw REST: `X-Browser-Use-API-Key`.
 - Base API: `https://api.browser-use.com/api/v3`
+- Low-cost auth smoke test: `GET https://api.browser-use.com/api/v3/billing/account` with the API key header. Expect HTTP `200`; print only project/plan metadata and redact the key.
 
 ### Minimal Cloud agent
 

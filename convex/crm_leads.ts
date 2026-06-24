@@ -72,13 +72,14 @@ export const updateStage = mutation({
 })
 
 export const updateStatus = mutation({
-  args: { id: v.id("crm_leads"), status: v.string() },
+  args: { id: v.id("crm_leads"), status: v.string(), reason: v.optional(v.string()), stage: v.optional(v.string()), objection: v.optional(v.string()) },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.id, { status: args.status })
-    // Reverse sync : perte depuis le Pipeline → propage à la Prospection/Contact
+    // Reverse sync : perte depuis le Pipeline → propage à la Prospection/Contact.
+    // Raison/étape/objection RÉELLES portées en 1 seul appel (plus de PUT séparé qui écrasait par "autre").
     if (args.status === "lost") {
       const lead = await ctx.db.get(args.id)
-      if (lead?.contactId) await markLost(ctx, lead.contactId, { reason: "autre" })
+      if (lead?.contactId) await markLost(ctx, lead.contactId, { reason: args.reason ?? "autre", stage: args.stage, objection: args.objection })
     }
   },
 })

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Upload, FileText, Users, GitMerge, Building2, Check, AlertCircle, ChevronRight, Layers } from 'lucide-react'
 import { type Contact, getAvatarColor, getInitials } from './types'
 import { type GHLPipelineData } from '@/components/pipeline/types'
@@ -19,14 +20,35 @@ function classifyPipeline(name: string): 'acquisition' | 'reactivation' | null {
   return null
 }
 
-// ─── CRM fields to map to ─────────────────────────────────────
+// ─── CRM fields to map to (= colonnes du tableau Contacts ; Étape & Objections sont dérivées) ───
 const GHL_FIELDS = [
   { key: 'firstName',   label: 'Prénom' },
   { key: 'lastName',    label: 'Nom' },
   { key: 'email',       label: 'E-mail' },
   { key: 'phone',       label: 'Téléphone' },
   { key: 'companyName', label: 'Entreprise' },
+  { key: 'metier',      label: 'Métier' },
+  { key: 'niche',       label: 'Niche' },
+  { key: 'source',      label: 'Source (inbound / outbound / recommandation)' },
+  { key: 'statut',      label: 'Statut (lead / client / perdu)' },
+  { key: 'country',     label: 'Pays (Suisse, France…)' },
+  { key: 'canton',      label: 'Canton / Région' },
   { key: '_ignore',     label: 'Ignorer cette colonne' },
+]
+
+// Colonnes affichées dans l'aperçu d'import (miroir du tableau Contacts).
+const PREVIEW_COLS: { key: string; label: string }[] = [
+  { key: 'firstName',   label: 'Prénom' },
+  { key: 'lastName',    label: 'Nom' },
+  { key: 'email',       label: 'E-mail' },
+  { key: 'phone',       label: 'Téléphone' },
+  { key: 'companyName', label: 'Entreprise' },
+  { key: 'metier',      label: 'Métier' },
+  { key: 'niche',       label: 'Niche' },
+  { key: 'source',      label: 'Source' },
+  { key: 'statut',      label: 'Statut' },
+  { key: 'country',     label: 'Pays' },
+  { key: 'canton',      label: 'Canton / Région' },
 ]
 
 type Step = 1 | 2 | 3 | 4
@@ -58,6 +80,12 @@ function autoMap(headers: string[]): Mapping {
     else if (/mail/.test(l))             mapping[h] = 'email'
     else if (/t[eé]l|phone|mobile/.test(l)) mapping[h] = 'phone'
     else if (/entreprise|company|soci/.test(l)) mapping[h] = 'companyName'
+    else if (/m[eé]tier|profession|fonction/.test(l)) mapping[h] = 'metier'
+    else if (/niche|secteur|industrie/.test(l)) mapping[h] = 'niche'
+    else if (/source|origine|canal/.test(l)) mapping[h] = 'source'
+    else if (/statut|status/.test(l))    mapping[h] = 'statut'
+    else if (/pays|country/.test(l))     mapping[h] = 'country'
+    else if (/canton|r[eé]gion/.test(l)) mapping[h] = 'canton'
     else                                 mapping[h] = '_ignore'
   })
   return mapping
@@ -150,7 +178,7 @@ export default function ImportModal({
   // ── Build mapped rows ────────────────────────────────────────
   function buildMappedRows() {
     return rows.map(row => {
-      const out: Record<string, string> = { firstName: '', lastName: '', email: '', phone: '', companyName: '' }
+      const out: Record<string, string> = { firstName: '', lastName: '', email: '', phone: '', companyName: '', metier: '', niche: '', source: '', statut: '', country: '', canton: '' }
       headers.forEach(h => {
         const ghlKey = mapping[h]
         if (ghlKey && ghlKey !== '_ignore') out[ghlKey] = row[h] ?? ''
@@ -182,10 +210,17 @@ export default function ImportModal({
     }
   }
 
+  // Fermeture clavier (Échap).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   const mappedPreview = step >= 3 ? buildMappedRows().slice(0, 5) : []
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
 
       <div className="relative bg-soren-card rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]">
@@ -299,13 +334,17 @@ export default function ImportModal({
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-soren-text">Télécharger votre fichier CSV</h3>
                 <a
-                  href="data:text/csv;charset=utf-8,Prénom,Nom,E-mail,Téléphone,Entreprise%0AJean,Dupont,jean@exemple.fr,+33600000000,Dupont BTP"
+                  href="data:text/csv;charset=utf-8,Prénom,Nom,E-mail,Téléphone,Entreprise,Métier,Niche,Source,Statut,Canton%0AJean,Dupont,jean@exemple.fr,+41791234567,Dupont SA,Architecte,Immobilier,outbound,lead,VD"
                   download="template_contacts.csv"
                   className="text-xs text-soren-muted underline hover:text-soren-text"
                 >
                   Télécharger le modèle CSV
                 </a>
               </div>
+              <p className="text-[11px] text-soren-subtle -mt-2">
+                Colonnes : Prénom, Nom, E-mail, Téléphone, Entreprise, Métier, Niche, Source, Statut, Canton.
+                <span className="text-soren-muted"> Source = </span>inbound / outbound / recommandation<span className="text-soren-muted"> · Statut = </span>lead / client / perdu<span className="text-soren-muted"> · Canton = </span>code à 2 lettres (VD, GE, ZH…). Champs en plus optionnels.
+              </p>
 
               <div
                 onDragOver={e => { e.preventDefault(); setDragging(true) }}
@@ -405,12 +444,12 @@ export default function ImportModal({
 
               {/* Preview table */}
               {mappedPreview.length > 0 && (
-                <div className="border border-soren-border rounded-xl overflow-hidden">
+                <div className="border border-soren-border rounded-xl overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-[#F9F9F7] border-b border-soren-border">
                       <tr>
-                        {['Prénom', 'Nom', 'E-mail', 'Téléphone', 'Entreprise'].map(c => (
-                          <th key={c} className="px-3 py-2.5 text-left text-[11px] font-semibold text-soren-muted uppercase tracking-wide">{c}</th>
+                        {PREVIEW_COLS.map(c => (
+                          <th key={c.key} className="px-3 py-2.5 text-left text-[11px] font-semibold text-soren-muted uppercase tracking-wide whitespace-nowrap">{c.label}</th>
                         ))}
                       </tr>
                     </thead>
@@ -421,19 +460,19 @@ export default function ImportModal({
                         const isDark   = color === '#FF4D00' || color === '#EFE347'
                         return (
                           <tr key={i} className="border-b border-[#F0F0EE] last:border-0">
-                            <td className="px-3 py-2.5">
-                              <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
-                                  style={{ background: color, color: isDark ? '#111111' : '#ffffff' }}>
-                                  {initials}
-                                </div>
-                                <span className="text-xs text-soren-text">{r.firstName}</span>
-                              </div>
-                            </td>
-                            <td className="px-3 py-2.5 text-xs text-[#374151]">{r.lastName}</td>
-                            <td className="px-3 py-2.5 text-xs text-[#374151]">{r.email || '—'}</td>
-                            <td className="px-3 py-2.5 text-xs text-[#374151]">{r.phone || '—'}</td>
-                            <td className="px-3 py-2.5 text-xs text-[#374151]">{r.companyName || '—'}</td>
+                            {PREVIEW_COLS.map(c => (
+                              <td key={c.key} className="px-3 py-2.5 text-xs text-[#374151] whitespace-nowrap">
+                                {c.key === 'firstName' ? (
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                                      style={{ background: color, color: isDark ? '#111111' : '#ffffff' }}>
+                                      {initials}
+                                    </div>
+                                    <span className="text-soren-text">{r.firstName || '—'}</span>
+                                  </div>
+                                ) : (r[c.key] || '—')}
+                              </td>
+                            ))}
                           </tr>
                         )
                       })}
@@ -450,23 +489,21 @@ export default function ImportModal({
               <div className="bg-soren-elevated rounded-xl px-4 py-3 text-sm text-soren-text">
                 <span className="font-bold">{buildMappedRows().length} contacts</span> prêts à être importés.
               </div>
-              <div className="border border-soren-border rounded-xl overflow-hidden">
+              <div className="border border-soren-border rounded-xl overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-[#F9F9F7] border-b border-soren-border">
                     <tr>
-                      {['Prénom', 'Nom', 'E-mail', 'Téléphone', 'Entreprise'].map(c => (
-                        <th key={c} className="px-3 py-2.5 text-left text-[11px] font-semibold text-soren-muted uppercase tracking-wide">{c}</th>
+                      {PREVIEW_COLS.map(c => (
+                        <th key={c.key} className="px-3 py-2.5 text-left text-[11px] font-semibold text-soren-muted uppercase tracking-wide whitespace-nowrap">{c.label}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {buildMappedRows().slice(0, 8).map((r, i) => (
                       <tr key={i} className="border-b border-[#F0F0EE] last:border-0">
-                        <td className="px-3 py-2.5 text-xs text-soren-text">{r.firstName || '—'}</td>
-                        <td className="px-3 py-2.5 text-xs text-[#374151]">{r.lastName || '—'}</td>
-                        <td className="px-3 py-2.5 text-xs text-[#374151]">{r.email || '—'}</td>
-                        <td className="px-3 py-2.5 text-xs text-[#374151]">{r.phone || '—'}</td>
-                        <td className="px-3 py-2.5 text-xs text-[#374151]">{r.companyName || '—'}</td>
+                        {PREVIEW_COLS.map(c => (
+                          <td key={c.key} className={`px-3 py-2.5 text-xs whitespace-nowrap ${c.key === 'firstName' ? 'text-soren-text' : 'text-[#374151]'}`}>{r[c.key] || '—'}</td>
+                        ))}
                       </tr>
                     ))}
                   </tbody>
@@ -528,6 +565,7 @@ export default function ImportModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

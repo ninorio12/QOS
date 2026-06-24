@@ -1,0 +1,519 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260516_010617_367908
+source_file: /home/hermes/.hermes/sessions/20260516_010617_367908.jsonl
+source_sha256_16: 17e111d4c3aa18e3
+date: 2026-05-16
+---
+
+# Recovered session root/20260516_010617_367908
+
+
+## user — 2026-05-16T01:09:37.239151
+
+[Thomas] fait des recherche pour réparer et débuger pour éviter que ⚠️ Gateway shutting down — Your current task will be interrupted survienne encore et créer le skill
+
+## assistant — 2026-05-16T01:09:37.239151
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+None.
+
+## Goal
+Mettre en place une veille automatique quotidienne à 21h sur X/Twitter et le web pour détecter les nouveautés IA pertinentes pour Jonathan/Thomas/VividFlow/Hermes/Brvndlab, avec recherches larges sur des mots-clés IA, agents, dirigeants et comptes influents.
+
+## Constraints & Preferences
+- Langue de communication : français.
+- L’utilisateur veut une veille “agressive”/large, avec beaucoup de recherches et scraping.
+- Priorité à X/Twitter si possible, mais fallback web accepté si l’accès X n’est pas configuré.
+- Le rapport doit être livré automatiquement dans le thread/topic d’origine.
+- Fuseau horaire système : `Europe/Zurich`, heure locale CEST.
+- Ne jamais exposer ni recopier de secrets/API keys/tokens ; toute valeur sensible doit être remplacée par `[REDACTED]`.
+- Pour X/Twitter :
+ - Skill `xitter` existe mais nécessite des credentials X API.
+ - `xurl` a été demandé comme skill pour le cron, mais l’authentification/installation n’était pas confirmée par la commande de statut.
+ - Consigne incluse dans le cron : ne jamais lire `~/.xurl`, ne pas utiliser `--verbose` ni de flags secrets.
+
+## Completed Actions
+1. DIAGNOSTIC gateway Hermes — recherche initiale des causes du message `⚠️ Gateway shutting down — Your current task will be interrupted` via statut gateway, systemd user status, journaux récents, processus, disque/mémoire et recherche dans `/home/hermes/.hermes/logs` ; la recherche a trouvé 242 matches liés à shutdown/interruption/erreurs [tool: terminal, search_files].
+2. VÉRIFICATION service/config/process — inspection du unit file `hermes-gateway`, journaux kernel autour de la fenêtre suspecte, top RSS mémoire, config Hermes pertinente et log `/home/hermes/.hermes/logs/gateway-shutdown-diag.log` autour de la ligne 540 ; root cause confirmée : `oom-kill`, pic mémoire du service à environ 5.9G sur VPS 8G sans swap [tool: terminal, read_file].
+3. AJOUT swap persistant — tentative d’ajout d’un swapfile 4G sur `/swapfile`, avec entrée `/etc/fstab` et `vm.swappiness=20`; première commande a fini avec `exit 127`, mais les vérifications suivantes ont confirmé le swap actif [tool: terminal].
+4. VÉRIFICATION swap/mémoire — contrôle via `/usr/sbin/swapon --show`, `free -h`, grep `/etc/fstab`/`/etc/sysctl.conf`, et top RSS ; swap de 4G actif, gateway toujours running [tool: terminal].
+5. INSPECTION code gateway — recherche des chaînes `Gateway shutting down`, `current task will be interrupted`, `shutting down` dans `/home/hermes/.hermes/hermes-agent`, puis lecture de `/home/hermes/.hermes/hermes-agent/gateway/run.py` vers la ligne 2700 pour comprendre le message d’arrêt [tool: search_files, read_file].
+6. CRÉATION skill runbook — création du skill `hermes-gateway-oom-shutdown` en catégorie `devops`, contenant un runbook complet de triage/prévention pour les cas `Gateway shutting down`, interruption de tâche, systemd restarts, OOM kill, SIGTERM/SIGKILL, swap, isolation cgroup, cleanup prudent et restart propre [tool: skill_manage].
+7. VALIDATION skill runbook — consultation du skill `hermes-gateway-oom-shutdown` et vérification finale du statut gateway/service/swap/mémoire ; tâches todo marquées complétées [tool: skill_view, terminal, todo].
+8. CONSULTATION skills X — lecture des skills `hermes-agent`, `xitter`, `xurl` pour préparer la création du cron de veille X/Twitter. Le skill `xitter` est présent mais indique que les variables `X_API_KEY`, `X_API_SECRET`, `X_BEARER_TOKEN`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET` sont manquantes ; aucune valeur de credentials n’a été conservée [tool: skill_view].
+9. VÉRIFICATION date/timezone — commande `date -Is` et `timedatectl`; sortie importante :
+ - `2026-05-15T23:09:24+02:00`
+ - timezone : `Europe/Zurich (CEST, +0200)`
+ - NTP actif
+ [tool: terminal].
+10. CRÉATION cron veille X/IA — création du cron `Veille X quotidienne — nouveautés IA agents`, ID `d8aaadc1d0d6`, schedule `0 21 * * *`, répétition `forever`, livraison `origin`, toolsets activés `web`, `terminal`, `file`, skills `xurl`, `hermes-agent`; prochain run prévu `2026-05-16T21:00:00+02:00` [tool: cronjob].
+11. LISTE crons — vérification de la liste des jobs cron : 4 jobs existants, dont le nouveau cron de veille X/IA actif/scheduled [tool: cronjob].
+12. RÉPONSE utilisateur — confirmation que le cron est créé, actif, livré dans le topic Telegram, avec détail des sources/mots-clés/comptes surveillés et note que `xurl` ne semblait pas installé/authentifié donc fallback web prévu [assistant].
+
+## Active State
+- Système :
+ - Heure locale vérifiée : `Europe/Zurich`, CEST `+02:00`.
+ - Gateway Hermes actif au moment de la dernière vérification.
+ - Swap 4G actif sur `/swapfile`.
+ - `vm.swappiness=20` ajouté/présent.
+- Cron jobs :
+ - Nouveau job actif :
+ - ID : `d8aaadc1d0d6`
+ - Nom : `Veille X quotidienne — nouveautés IA agents`
+ - Schedule : `0 21 * * *`
+ - Repeat : `forever`
+ - Deliver : `origin`
+ - State : `scheduled`
+ - Enabled : `true`
+ - Next run : `2026-05-16T21:00:00+02:00`
+ - Skills : `xurl`, `hermes-agent`
+ - Toolsets : `web`, `terminal`, `file`
+ - Autres jobs listés :
+ - `72b6da615eae` — `VividFlow IA — veille agentique lisible`, schedule `0 9 * * *`, actif, dernier statut `ok`.
+ - `3bbf057b2497` — `VividFlow Immobilier Suisse — veille stratégique`, schedule `0 18 * * *`, actif, dernier statut `ok`.
+ - `6e57934e58ee` — `vividflow-tracker-watchdog`, schedule `every 2m`, désactivé/paused, script `tracker_watchdog.sh`, `no_agent: true`.
+- Skills :
+ - `hermes-gateway-oom-shutdown` créé et validé.
+ - `xitter` consulté : setup requis car credentials X API manquants.
+ - `xurl` demandé/attaché au cron, mais son statut d’auth n’a pas retourné de confirmation utilisable dans la sortie visible.
+- Tests :
+ - Aucun test logiciel formel lancé.
+ - Vérification fonctionnelle faite via `cronjob list` et vérifications système.
+
+## In Progress
+Aucun travail en cours. La demande de cron 21h a été exécutée et confirmée.
+
+## Blocked
+- Accès X/Twitter robuste non garanti :
+ - Le skill `xitter` signale des variables d’environnement X API manquantes :
+ - `X_API_KEY`
+ - `X_API_SECRET`
+ - `X_BEARER_TOKEN`
+ - `X_ACCESS_TOKEN`
+ - `X_ACCESS_TOKEN_SECRET`
+ - Aucune valeur de credential n’a été conservée.
+ - La
+
+...[TRONQUÉ 13062 chars sha256:2d4698bb6eecf9d7]...
+
+les messages.
+ - Vérifier ensuite `xurl auth status` ou équivalent.
+- Sur la stabilité gateway :
+ - Surveiller si le swap suffit.
+ - Isoler les gros workloads à l’avenir via `systemd-run --user --scope -p MemoryMax=5G -p MemorySwapMax=2G ...`.
+ - Pour les serveurs long-lived, utiliser PM2 ou des services systemd séparés, pas des processus enfants du gateway.
+ - Examiner prudemment les processus lourds/orphelins comme `next-server` (~2.4G RSS observé précédemment), sans les tuer à l’aveugle.
+
+## Critical Context
+- Message problématique initial côté Hermes :
+ - `⚠️ Gateway shutting down — Your current task will be interrupted`
+- Cause confirmée :
+ - `oom-kill`
+ - Service `hermes-gateway.service`
+ - Pic mémoire environ `5.9G`
+ - VPS `8G`
+ - Absence de swap avant correction
+- Correction stabilité :
+ - Swap : `/swapfile`
+ - Taille : `4G`
+ - Persistant via `/etc/fstab`
+ - `vm.swappiness=20`
+- Commande recommandée pour builds lourds hors gateway :
+ ```bash
+ systemd-run --user --scope -p MemoryMax=5G -p MemorySwapMax=2G bash -lc 'cd /path/to/app && npm run build'
+ ```
+- Cron veille IA/X créé :
+ - ID : `d8aaadc1d0d6`
+ - Nom : `Veille X quotidienne — nouveautés IA agents`
+ - Schedule : `0 21 * * *`
+ - Timezone effective : `Europe/Zurich`
+ - Prochain run : `2026-05-16T21:00:00+02:00`
+ - Livraison : `origin`
+ - Skills : `xurl`, `hermes-agent`
+ - Toolsets : `web`, `terminal`, `file`
+- Prompt du cron, en substance :
+ - Veille agressive des nouveautés IA sur X/Twitter et web.
+ - Rechercher nouveautés agents IA, frameworks d’agents, outils dev IA, modèles, providers, infra, open source, acquisitions/levées, benchmarks, changements produits/API, signaux faibles.
+ - Sources : X/Twitter via `xurl` si disponible/authentifié ; fallback web avec `site:x.com`, `site:twitter.com`, GitHub releases/issues, blogs officiels, docs, Hacker News, Product Hunt, Reddit si pertinent.
+ - Mots-clés/comptes : Hermes, OpenClaw, OpenAI/Codex, Claude Code, Gemini CLI, Cursor, Windsurf, Devin, MCP, agents IA, Browser Use, LangChain, LlamaIndex, Sam Altman, Greg Brockman, Dario Amodei, Demis Hassabis, Elon/xAI, Arthur Mensch, Aravind Srinivas, Karpathy, Vercel, Cursor, NousResearch, OpenRouter, etc.
+ - Format demandé : TL;DR, signaux importants, opportunités VividFlow/Hermes/Brvndlab, comptes/posts notables, bruit ignoré, prochaines actions.
+- Credentials :
+ - Des credentials X sont requis par `xitter`, mais absents/non configurés.
+ - Toute valeur de credential éventuelle doit rester `[REDACTED]`.
+
+## user — 2026-05-16T01:09:37.239151
+
+[Thomas] Installe ce qu’il faut et fait ta première veille a chaque fois je veux savoir si on est a jour niveau ia est ce que nos solution doivent se renouveller est ce que de nouvelles IA solutions agents ou peu importe viennent d’arriver ou nouveautés qui va changer les choses allez go
+
+## user — 2026-05-16T01:09:37.239151
+
+[Your active task list was preserved across context compression]
+- [>] 1. Installer et vérifier xurl sans exposer de secrets (in_progress)
+- [ ] 2. Lancer une première veille IA maintenant avec sources X/web/GitHub (pending)
+- [ ] 3. Mettre à jour le cron si besoin pour intégrer le fallback scraping robuste (pending)
+- [ ] 4. Livrer le briefing à Thomas/Jonathan (pending)
+
+## assistant — 2026-05-16T01:09:37.239151
+
+Thomas, c’est fait.
+
+## Installation / infra
+
+- `xurl` installé sur le VPS : `/home/hermes/.local/bin/xurl`
+- Vérification faite sans exposer de secrets.
+- Statut actuel : **pas encore authentifié X/Twitter** 
+ → `No apps registered. Use 'xurl auth apps add' to register one.`
+
+Donc la veille tourne déjà en mode **web + GitHub + HN + arXiv**, et basculera sur X dès qu’on configure l’app X Developer.
+
+J’ai aussi renforcé le cron quotidien de 21h pour qu’il cherche large et réponde explicitement à :
+- est-ce qu’on est à jour ?
+- est-ce qu’une nouvelle IA/agent/framework change la donne ?
+- est-ce que VividFlow / Hermes / Brvndlab doivent se renouveler ?
+
+## Première veille IA — verdict rapide
+
+### TL;DR
+
+- **Oui, on est globalement à jour sur la direction** : agents, skills, MCP, mémoire, browser/computer-use, orchestration multi-agents.
+- **Le marché accélère fort côté agents dev autonomes** : Claude Code, Codex, Gemini CLI et LangGraph bougent très vite.
+- **Notre priorité doit être l’industrialisation** : skills propres, mémoire fiable, agents spécialisés, supervision, sécurité, benchmarks internes.
+- **Signal fort** : les nouveaux outils se concentrent moins sur “chat IA” et plus sur *agent runtime + mémoire + contexte produit + sécurité + contrôle d’exécution*.
+- **À tester / surveiller** : Claude Code agents view, OpenAI Codex repair loops, LangGraph durable resume, Browser Use Box, MCP context tools.
+
+## Nouveautés importantes repérées
+
+### 1. Claude Code pousse très fort sur les agents autonomes
+
+Sources :
+- https://github.com/anthropics/claude-code/releases/tag/v2.1.143
+- https://github.com/anthropics/claude-code/releases/tag/v2.1.142
+- https://github.com/anthropics/claude-code/releases/tag/v2.1.139
+
+Points importants :
+- `claude agents` s’améliore.
+- Agent view : liste des sessions Claude Code actives, bloquées ou terminées.
+- `/goal` permet de donner un objectif durable que Claude continue à poursuivre.
+- Plus de flags pour lancer/configurer des agents background.
+- Les plugins avec `SKILL.md` sont mieux exposés comme skills.
+
+Impact :
+- **À surveiller de très près.**
+- Hermes est déjà dans la bonne philosophie, mais Claude Code pousse l’expérience “agents visibles + objectifs persistants + plugins/skills”.
+- Pour VividFlow, ça confirme qu’on doit penser nos agents comme un **système opérationnel**, pas juste des prompts.
+
+Action :
+- Comparer notre cockpit Hermes vs Claude Code `agents view` / `/goal`.
+- Voir si notre futur tracker doit afficher : agent, objectif, état, blocage, artifacts, prochaine action.
+
+---
+
+### 2. OpenAI Codex évolue vite côté sandbox + repair loops
+
+Sources :
+- https://github.com/openai/codex/releases/tag/rust-v0.131.0-alpha.21
+- https://openai.com/index/building-codex-windows-sandbox/
+- https://developers.openai.com/cookbook/examples/codex/build_iterative_repair_loops_with_codex
+
+Points importants :
+- Plusieurs releases Codex alpha en quelques jours.
+- OpenAI documente le sandboxing Windows.
+- Cookbook sur les boucles de réparation itératives avec Codex.
+
+Impact :
+- **Important pour notre stack dev agentique.**
+- La vraie valeur n’est pas juste “coder avec IA”, mais : exécuter → observer erreur → réparer → vérifier → recommencer.
+- C’est exactement ce qu’on veut pour Brvndlab / VividFlow.
+
+Action :
+- Formaliser nos workflows dev Hermes en boucle :
+ 1. spec
+ 2. implémentation
+ 3. test
+ 4. screenshot/UX
+ 5. correction
+ 6. PR ou déploiement
+
+---
+
+### 3. LangGraph 1.2.0 : durabilité / reprise après crash
+
+Source :
+- https://github.com/langchain-ai/langgraph/releases/tag/1.2.0
+
+Points importants :
+- `durable error-handler resume across host crashes`
+- Amélioration checkpointing / reprise.
+- Gestion plus robuste d’exécutions longues.
+
+Impact :
+- **Très pertinent pour Hermes et les agents long-running.**
+- Ça touche directement notre problème : éviter que les agents perdent le fil si gateway/restart/crash.
+- Pas forcément à adopter tel quel, mais à benchmarker comme pattern.
+
+Action :
+- Étudier comment LangGraph gère la reprise durable.
+- Comparer avec Hermes cron/session/kanban/goal.
+- Voir si certains patterns doivent être copiés dans nos agents.
+
+---
+
+### 4. MCP continue d’exploser, mais beaucoup de bruit
+
+Sources :
+- https://github.com/modelcontextprotocol/python-sdk/releases/tag/v1.27.1
+- https://github.com/alperhankendi/Ctxo
+- https://docs.storiesonboard.com/en/articles/14625286-storiesonboard-model-context-protocol-mcp-server-overview
+
+Signal :
+- De plus en plus d’outils “donner du contexte produit/code aux agents”.
+- Exemple intéressant : Ctxo, MCP pour donner aux agents dependency graph, git intent, blast radius, health change.
+
+Impact :
+- **Très aligné avec VividFlow.**
+- Nos agents ne doivent pas juste lire des fichiers ; ils doivent comprendre :
+ - dépendances
+ - risque de changement
+ - intention produit
+ - blast radius
+ - état business/client
+
+Action :
+- À moyen terme : créer nos propres MCP/outils internes pour Brvndlab :
+ - contexte Brand OS
+ - contexte client
+ - métriques usage
+ - décisions produit
+ - état des modules
+
+---
+
+### 5. Browser-use / computer-use devient un vrai front stratégique
+
+Sources :
+- https://github.com/browser-use/bux
+- https://github.com/monkeysee-ai/rotunda
+- https://github.com/NaradaAI/narada-python-sdk
+- arXiv : https://arxiv.org/abs/2605.13631v1
+- arXiv : https://arxiv.org/abs/2605.12481v1
+
+Signaux :
+- Browser Use Box : agent Claude Code 24/7 pour automation navigateur + Telegram + vraie instance browser.
+- Rotunda : browser built for agents.
+- Narada : computer use for agentic process automation.
+- Papers récents sur sécurité des computer-use agents et orchestration GUI + tools.
+
+Impact :
+- **Important pour les agents opérationnels VividFlow.**
+- Beaucoup de tâches business réelles passent par navigateur : dashboards, CRM, outils clients, plateformes, scraping, vérification.
+- Mais risque sécurité/prompt injection augmente.
+
+Action :
+- On doit avoir une stratégie claire :
+ - agents browser-use isolés
+ - permissions limitées
+ - logs/audit
+ - pas d’accès secrets large
+ - confirmation humaine sur actions sensibles
+
+---
+
+### 6. Recherche académique : skills, graphes de skills, dette technique agentique
+
+Sources :
+- https://arxiv.org/abs/2605.13716v1 — SkillOps
+- https://arxiv.org/abs/2605.12039v1 — SkillGraph
+- https://arxiv.org/abs/2605.11928v1 — tool-use sim-to-real
+- https://arxiv.org/abs/2605.09730v2 — RubricRefine
+
+Signal fort :
+- Le sujet qui arrive : **gérer les skills comme un vrai écosystème logiciel**.
+- Dette technique des skills.
+- Graphes de dépendance entre skills.
+- Pré-exécution/refinement pour éviter les mauvais tool calls.
+
+Impact :
+- **Très important pour Hermes/VividFlow.**
+- On fait déjà des skills, mais il faut éviter qu’ils deviennent un bazar.
+- Le vrai avantage compétitif sera :
+ - skills propres
+ - versionnés
+ - maintenus
+ - testés
+ - reliés aux agents/projets
+
+Action :
+- Créer une discipline “SkillOps VividFlow” :
+ - chaque bug complexe → skill
+ - chaque skill obsolète → patch
+ - skills critiques pin / audit
+ - skills par domaine : Brvndlab, Hermes, VividFlow, agents, devops
+
+## Est-ce que nos solutions doivent se renouveler ?
+
+### Pas besoin de pivoter.
+
+Mais il faut **renforcer 4 axes** :
+
+1. **Agent runtime**
+ - agents durables
+ - objectifs persistants
+ - reprise après crash
+ - état visible
+
+2. **Mémoire + skills**
+ - pas juste mémoire conversationnelle
+ - vraie librairie de procédures
+ - skill graph / skill hygiene
+
+3. **Contexte produit**
+ - Brand OS / Data OS / décisions / clients doivent être accessibles aux agents comme contexte structuré
+
+4. **Sécurité / contrôle**
+ - browser agents isolés
+ - permissions
+ - confirmations sur actions sensibles
+ - audit trail
+
+## Actions que je recommande
+
+1. **Configurer X Developer pour xurl**
+ - Sans ça, on rate une partie des signaux early sur X.
+ - Je peux te donner le bloc exact à exécuter côté humain, sans jamais passer les secrets dans Telegram.
+
+2. **Créer une mini matrice “Agent Stack VividFlow”**
+ - Hermes
+ - Claude Code
+ - Codex
+ - Gemini CLI
+ - Browser Use
+ - LangGraph
+ - MCP
+ - Critères : autonomie, mémoire, reprise, browser, sécurité, coût, intégration.
+
+3. **Tester Browser Use Box / BUX**
+ - Pour voir si ça complète Hermes sur les tâches navigateur 24/7.
+ - Source : https://github.com/browser-use/bux
+
+4. **S’inspirer de Claude Code agent view**
+ - Notre futur cockpit doit montrer les agents comme des opérateurs :
+ - mission
+ - état
+ - blocage
+ - dernière action
+ - prochaine action
+ - coût / temps / risque
+
+5. **Formaliser SkillOps**
+ - C’est un vrai avantage Hermes/VividFlow.
+ - Les papers récents confirment que la qualité des skills devient stratégique.
+
+## Bruit ignoré
+
+J’ai ignoré :
+- petits repos GitHub récents avec 0-1 star sans traction claire
+- projets “AI agent framework” génériques
+- posts HN très faibles sans preuve d’adoption
+- annonces non liées à agents, dev tooling, MCP, browser/computer-use ou mémoire
+
+## Statut final
+
+- Veille quotidienne 21h : **active**
+- Prompt renforcé : **fait**
+- xurl installé : **fait**
+- X auth : **à configurer manuellement**
+- Première veille : **faite**
+
+Conclusion : on est dans le bon couloir. Mais la barre monte vite : le marché converge vers des **agents persistants, outillés, observables, sécurisés, avec mémoire/skills maintenus comme du software**. C’est exactement là qu’on doit pousser VividFlow/Hermes.
+
+## user — 2026-05-16T01:16:59.593900
+
+[The user sent a voice message~ Here's what they said: "ok très bien c'est un peu long mais ok maintenant à chaque fois que tu fais la veille je facture au revoir un message où tu dis concrètement vous êtes en retard, vous êtes largement de lance en avance où ça va attention il y a ça ça ça alors ce que vous pouvez faire ajouter qui pourrait être bien telle chose parce que ça permettrait de faire telle chose extra"]
+
+[Thomas]
+
+## assistant — 2026-05-16T01:16:59.593900
+
+C’est ajusté.
+
+À partir de maintenant, la veille IA de 21h commencera par un verdict clair :
+
+- 🔴 **EN RETARD**
+- 🟠 **ATTENTION**
+- 🟢 **À JOUR**
+- 🚀 **EN AVANCE**
+
+Et ensuite format court :
+
+1. **Verdict concret** : où on se situe et pourquoi.
+2. **Ce qui change vraiment** : 1 à 3 nouveautés max.
+3. **Ce qu’on devrait ajouter/tester** : action + “ça permettrait de…”.
+4. **Impact VividFlow / Hermes / Brvndlab** : adopter, surveiller, ignorer.
+5. **Bruit ignoré** : une ligne.
+
+J’ai mis à jour le cron directement. Plus de pavé de veille sauf si tu demandes une analyse longue.
+
+## user — 2026-05-16T01:19:03.897924
+
+[Thomas] Ok fait le second message pour celle de ce soir
+
+## assistant — 2026-05-16T01:19:03.897924
+
+🟠 **ATTENTION — on est à jour, mais la vitesse côté agents dev augmente fort.**
+
+**Verdict concret :** 
+Vous n’êtes pas en retard. La direction VividFlow/Hermes est bonne : agents, skills, mémoire, MCP, orchestration. Par contre, Claude Code, Codex, Gemini CLI et LangGraph avancent vite sur un point clé : **agents persistants, supervisables, capables de reprendre après erreur/crash**.
+
+**Ce qui change vraiment :**
+- **Claude Code pousse l’agent view + objectifs persistants** : voir les agents actifs, bloqués, terminés, avec `/goal`. 
+ Source : https://github.com/anthropics/claude-code/releases
+- **OpenAI Codex formalise les boucles de réparation** : exécuter → détecter erreur → corriger → retester. 
+ Source : https://developers.openai.com/cookbook/examples/codex/build_iterative_repair_loops_with_codex
+- **LangGraph améliore la reprise durable après crash** : important pour agents long-running. 
+ Source : https://github.com/langchain-ai/langgraph/releases/tag/1.2.0
+
+**Ce qu’on devrait ajouter/tester :**
+1. **Un écran “Agent Status” dans notre cockpit** 
+ Ça permettrait de voir : agent actif, mission, blocage, dernière action, prochaine action.
+
+2. **Une boucle standard de dev agentique** 
+ Spec → code → test → screenshot → correction → validation. 
+ Ça permettrait d’éviter les agents qui “font du code” sans vraie vérification.
+
+3. **Un système SkillOps plus propre** 
+ Skills critiques, skills obsolètes, skills par projet. 
+ Ça permettrait de ne pas accumuler une mémoire procédurale sale.
+
+**Impact :**
+- **Hermes** : renforcer visibilité, objectifs persistants, reprise, skills.
+- **VividFlow** : très bon positionnement si on transforme ça en vrai système opératoire interne.
+- **Brvndlab** : pas de pivot, mais à terme les agents doivent exploiter le Brand OS comme contexte central.
+
+**Bruit ignoré :** 
+Beaucoup de petits frameworks agents sans traction claire. Rien qui justifie un changement brutal aujourd’hui.
+
+## user — 2026-05-16T01:19:40.934288
+
+[The user sent a voice message~ Here's what they said: "Je veux que ça soit encore plus court et plus tranchant."]
+
+[Thomas]
+
+## assistant — 2026-05-16T01:19:40.934288
+
+Ajusté.
+
+Nouveau format : **max 6 lignes**, un seul signal, une seule action.
+
+Exemple pour ce soir :
+
+🟠 **ATTENTION — vous êtes à jour, mais Claude Code prend de l’avance sur la supervision d’agents.** 
+**SIGNAL** — Agent view + `/goal` rendent les agents plus pilotables : https://github.com/anthropics/claude-code/releases 
+**ACTION** — Ajouter une vue “Agent Status” dans notre cockpit. 
+**POURQUOI** — Voir qui bosse, qui bloque, quoi relancer. 
+**IMPACT** — Hermes/VividFlow : adopter. Brvndlab : surveiller. 
+**BRUIT** — Petits frameworks agents sans traction : ignorés.

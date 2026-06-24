@@ -1,0 +1,400 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260516_120157_3c3a7d65
+source_file: /home/hermes/.hermes/sessions/20260516_120157_3c3a7d65.jsonl
+source_sha256_16: 72140ab1e35a3ac0
+date: 2026-05-16
+---
+
+# Recovered session root/20260516_120157_3c3a7d65
+
+
+## user — 2026-05-16T12:02:25.316294
+
+[Jonathan] On a travaillé avec lui un peu et voici ce qu'il m'a dit :
+
+Exactement. Pour brancher Instagram via Hermès, il y a deux côtés du tuyau à construire :
+
+Côté Brvndlab (ce que je fais) : exposer des endpoints HTTP que Hermès peut appeler (lister les créateurs à scraper, recevoir les nouveaux posts, ajuster la cadence). + token d'auth partagé. + ajouter les 2-3 champs schema nécessaires.
+
+Côté Hermès (ce que Hermès fait) : le scraper Instagram lui-même (instaloader Python ou Puppeteer Node), les MCP tools qui appellent mes endpoints, la logique d'orchestration heartbeat 2h.
+
+★ Insight ─────────────────────────────────────
+
+Pourquoi cette séparation des responsabilités : Brvndlab reste la source de vérité (base + UI), Hermès reste la "main mécanique" (scrape + intelligence). Si Hermès tombe demain, on perd l'acquisition mais pas les données. Si Brvndlab change de schema, Hermès doit s'adapter via les endpoints, pas via une lecture directe de la DB.
+Le token partagé est crucial : sans ça, n'importe qui peut poser des faux posts dans ta base. Pattern classique : X-Hermes-Token header, secret généré une fois, stocké en env var côté Brvndlab et côté Hermès.
+─────────────────────────────────────────────────
+Avant que j'écrive le code Brvndlab, une question pour cadrer :
+
+Hermès aujourd'hui, est-il déjà équipé pour scraper Instagram (a-t-il instaloader/Puppeteer installé, sait-il extraire un post IG) ou faut-il que je prépare aussi un brief technique pour Hermès lui-même ?
+
+A : Hermès sait déjà scraper IG → je code juste les endpoints Brvndlab, et tu transmets à Hermès la doc de l'API + le token.
+B : Hermès ne sait pas encore → je code les endpoints ET je rédige un brief technique précis pour Hermès (quoi installer, quoi appeler, comment).
+C : Tu ne sais pas → je pars sur B par sécurité (Hermès ignorera le brief s'il sait déjà faire).
+Tu choisis quoi ?
+
+## assistant — 2026-05-16T12:02:25.316294
+
+Choisis **C → donc B par sécurité**.
+
+J’ai vérifié côté Hermès actuel :
+- `instaloader` : **pas installé**
+- `playwright` Python : **pas installé**
+- `puppeteer` Node : **pas installé**
+- pas de scraper Instagram opérationnel détecté dans l’environnement
+
+Donc la bonne réponse à lui envoyer :
+
+> **C — pars sur B par sécurité.** 
+> Code les endpoints Brvndlab + rédige le brief technique Hermès complet. 
+> Côté Brvndlab, garde la séparation propre : Brvndlab expose uniquement les endpoints sécurisés et reste source de vérité. Hermès fera le scraping, l’orchestration heartbeat 2h et l’envoi des posts via `X-Hermes-Token`. 
+> 
+> Dans le brief, précise surtout :
+> - choix recommandé du scraper : `instaloader` Python d’abord, Puppeteer/Playwright seulement si blocage
+> - format exact des endpoints Brvndlab
+> - headers d’auth `X-Hermes-Token`
+> - stratégie anti-rate-limit
+> - payload attendu pour les posts
+> - gestion des erreurs/retry/idempotence
+> - cadence heartbeat 2h
+> - stockage du secret en env var côté Brvndlab + Hermès
+
+Mon avis tech : **très bonne séparation**. Il ne faut surtout pas que Hermès lise Convex directement. Brvndlab doit rester le contrat API stable, Hermès la main mécanique.
+
+## user — 2026-05-16T12:29:21.689504
+
+[Jonathan] J'attends. Ce que tu auras à la fin :
+
+4 endpoints HTTP live sur https://accurate-cormorant-297.convex.site/hermes/ig/*
+Token déjà configuré côté Convex
+Brief technique complet pour Hermès dans docs/superpowers/specs/2026-05-16-hermes-instagram-brief.md
+Tu transmets le brief à Hermès et il devrait pouvoir attaquer tout seul.
+
+## assistant — 2026-05-16T12:29:21.689504
+
+Parfait. J’ai checké rapidement : pour l’instant le endpoint racine `/hermes/ig/` répond encore **404**, donc probablement pas encore déployé/live.
+
+Quand il a fini, il me faut juste :
+
+- les **4 routes exactes** sous `/hermes/ig/*`
+- le fichier brief ou son contenu : `docs/superpowers/specs/2026-05-16-hermes-instagram-brief.md`
+- idéalement un exemple de payload attendu pour `posts`
+
+Ensuite côté Hermès, j’attaque dans cet ordre :
+
+1. lire le brief complet ;
+2. valider les endpoints avec le token sans l’exposer ;
+3. installer/configurer le scraper IG côté Hermès ;
+4. créer la logique heartbeat 2h ;
+5. faire un test sur 1 créateur ;
+6. vérifier que Brvndlab reçoit bien les posts et que l’idempotence fonctionne.
+
+Point important : côté Hermès actuellement, **aucun scraper IG n’est prêt** (`instaloader`/`playwright`/`puppeteer` absents). Donc le brief est bien nécessaire.
+
+## user — 2026-05-16T13:21:45.630235
+
+[Jonathan] Confirmation : même après reset token + redeploy, le HTTP runtime Convex ne voit toujours pas HERMES_INGEST_TOKEN. C'est un vrai bug de scope environment dans le httpAction runtime.
+
+Le blocage est exactement celui que j'ai listé dans le message à Hermès (point 1 et 2 des hypothèses). Mon redeploy de test confirme que ce n'est pas un simple cache.
+
+Reco pratique : transmets le message tel quel à Hermès. Il est mieux placé pour trancher entre :
+
+Trouver la bonne API d'env (peut-être pas process.env côté HTTP runtime Convex 1.34.1)
+Bypasser via une internal query/action qui lit le token et le retourne au handler HTTP
+Stocker le secret dans une table Convex dédiée (_secrets) si la voie env reste bloquée
+J'ai ajouté ce constat reproductible dans le message envoyé. Pas besoin de moi pour ce diagnostic spécifique tant que Hermès n'a pas tenté ses 4 hypothèses.
+
+## assistant — 2026-05-16T13:21:45.630235
+
+Reçu. Je le prends comme message de diagnostic côté Hermès.
+
+J’ai vérifié la doc Convex actuelle : pour les fonctions Convex, y compris exemples `httpAction`, l’accès documenté reste bien `process.env.KEY`. Donc si `HERMES_INGEST_TOKEN` est configuré mais invisible dans le HTTP runtime après redeploy, on traite ça comme un vrai problème de propagation/scope runtime, pas comme une erreur évidente de code.
+
+Position technique côté Hermès :
+
+1. **Hypothèse prioritaire**
+ - `process.env.HERMES_INGEST_TOKEN` devrait marcher.
+ - Si ça ne marche pas dans `httpAction`, il faut isoler si le souci est :
+ - spécifique au HTTP runtime ;
+ - spécifique au nom/env/deployment ;
+ - dû à une lecture au mauvais moment/module scope ;
+ - ou un bug Convex 1.34.1.
+
+2. **Test propre à faire**
+ - Endpoint debug temporaire qui répond uniquement :
+ - `hasToken: boolean`
+ - jamais la valeur.
+ - Internal action/query équivalente qui teste `process.env.HERMES_INGEST_TOKEN`.
+ - Comparer :
+ - `httpAction` voit token ?
+ - internal action voit token ?
+ - mutation/query classique voit token ?
+
+3. **Bypass recommandé si internal voit le token**
+ - Ne pas “retourner le token” au handler HTTP.
+ - Créer plutôt une fonction interne type `validateHermesToken({ receivedToken }) -> boolean`.
+ - Le HTTP handler appelle `ctx.runAction` / `ctx.runQuery` interne et reçoit seulement `true/false`.
+ - Plus safe : le secret ne circule jamais dans les logs/réponses.
+
+4. **Fallback si aucun runtime Convex ne voit l’env**
+ - Stockage dans table interne dédiée type `_secrets`.
+ - Accès uniquement via fonctions internes.
+ - Jamais exposée côté client, jamais listable publiquement.
+ - Rotation possible via mutation admin protégée.
+
+5. **À éviter**
+ - Hardcoder le token dans le code.
+ - Désactiver l’auth temporairement sur les endpoints ingestion.
+ - Lire Convex DB directement depuis Hermès.
+ - Renvoyer le secret en debug HTTP.
+
+Donc oui : **message à transmettre tel quel**, avec ma reco ajoutée : le meilleur bypass n’est pas “retourner le token au handler”, mais **déléguer la validation à une fonction interne qui retourne seulement un booléen**.
+
+## user — 2026-05-16T13:24:01.741983
+
+[Jonathan] Je ne sais pas ce qui se passe là mais en gros si jamais ça c'était un message de Claude Code parce que je suis en train de coder avec lui de l'autre côté donc je sais pas. Je crois que tu devais faire des choses. Enfin je ne sais pas, je comprends rien de la situation en fait.
+
+## assistant — 2026-05-16T13:24:01.741983
+
+Oui, je te remets ça au clair.
+
+Tu as **2 “acteurs”** en parallèle :
+
+1. **Claude Code**
+ - Il code côté **Brvndlab / Convex**.
+ - Il doit créer les endpoints :
+ `https://accurate-cormorant-297.convex.site/hermes/ig/*`
+ - Il a rencontré un bug : le runtime HTTP Convex ne voit pas `HERMES_INGEST_TOKEN`.
+
+2. **Hermès / moi ici**
+ - Je suis censé prendre le relais **une fois que les endpoints + le brief sont prêts**.
+ - Mon rôle ensuite : scraper Instagram, appeler les endpoints Brvndlab, orchestrer le heartbeat 2h.
+
+Là, concrètement : **je ne peux pas encore attaquer le scraper**, parce que côté Brvndlab les endpoints ne sont pas encore opérationnels. Je viens de rechecker : la racine `/hermes/ig/` répond encore **404**.
+
+Ce que le message de Claude veut dire :
+- Claude est bloqué sur un problème technique Convex.
+- Il dit : “Hermès peut aider à diagnostiquer quelle stratégie choisir.”
+- Mais ce n’est pas encore “Hermès peut commencer le scraping”.
+
+Ma reco simple :
+
+- **Toi, tu n’as rien à faire maintenant.**
+- Claude doit finir de débloquer les endpoints.
+- S’il veut mon aide technique, il doit me donner :
+ - les routes exactes créées ;
+ - le fichier concerné côté Convex ;
+ - le message complet / brief ;
+ - et ce qu’il a testé.
+
+Ensuite je peux soit :
+- l’aider à diagnostiquer le bug `HERMES_INGEST_TOKEN` ;
+- soit prendre le relais quand les endpoints sont live.
+
+Décision immédiate : **on attend que Claude Code finisse ou qu’il me donne le code/brief exact à analyser.**
+
+## user — 2026-05-16T13:33:21.162625
+
+[Jonathan] sa réponse : 
+
+Hermès peut bosser tout seul. Tout est livré côté Brvndlab :
+
+Brief technique sur disque
+4 endpoints déployés en prod Convex
+Token généré et configuré
+URL régionale communiquée
+Bug env vars documenté avec 4 hypothèses
+Hermès doit : lire le brief, trancher sur les 4 hypothèses du bug env, débugger, coder le scraper instaloader, faire les 3 smoke tests, puis lancer le pilote.
+
+Il revient vers moi seulement si : la solution au bug nécessite de modifier le code Brvndlab côté serveur (typiquement : ajouter un helper interne pour lire le token autrement). Dans ce cas il te le dit, tu me transmets, je patche en quelques minutes.
+
+Sinon, il a tout en main.
+
+## assistant — 2026-05-16T13:33:21.162625
+
+J’ai pris le relais côté Hermès et j’ai testé factuellement.
+
+## Ce qui est fait côté Hermès
+
+J’ai créé le runtime scraper ici :
+
+`/home/hermes/workspace/brvndlab-hermes-instagram/`
+
+Avec :
+- `instagram_heartbeat.py` : scraper `instaloader` + ingestion Brvndlab
+- `requirements.txt`
+- `README.md`
+- venv installé avec `instaloader 4.14.2`
+- smoke test prêt
+- support heartbeat 2h via cron Hermès quand le contrat API est validé
+
+## Blocage réel maintenant
+
+Claude Code dit que tout est livré, mais depuis mon environnement Hermès :
+
+1. **Le brief n’existe pas dans le repo cloné**
+ - Fichier attendu introuvable :
+ `docs/superpowers/specs/2026-05-16-hermes-instagram-brief.md`
+
+2. **Les routes testées répondent 404**
+ - `https://accurate-cormorant-297.convex.site/hermes/ig/health` → 404
+ - `/hermes/ig/creators` → 404
+ - `/hermes/ig/posts` → 404
+ - `/hermes/ig/cadence` → 404
+
+3. **Le token n’est pas configuré côté Hermès**
+ - `HERMES_INGEST_TOKEN` absent dans l’environnement Hermès.
+ - Normalement Claude doit soit te le transmettre pour que tu me le donnes, soit le faire configurer côté Hermes/VPS.
+
+## Conclusion claire
+
+Je ne peux pas encore lancer le pilote, pas à cause du scraper, mais parce que **le contrat Brvndlab n’est pas visible côté Hermès**.
+
+Message à renvoyer à Claude Code :
+
+> Hermès a pris le relais. Côté Hermès, le scraper Instaloader est prêt et installé. 
+> Mais depuis son environnement :
+> - le brief `docs/superpowers/specs/2026-05-16-hermes-instagram-brief.md` n’est pas présent dans le repo cloné ;
+> - les endpoints `/hermes/ig/health`, `/creators`, `/posts`, `/cadence` répondent tous 404 sur `https://accurate-cormorant-297.convex.site` ;
+> - `HERMES_INGEST_TOKEN` n’est pas configuré côté Hermès.
+>
+> Il lui faut donc soit :
+> 1. pousser le commit/branch contenant le brief + endpoints ;
+> 2. confirmer l’URL régionale exacte ;
+> 3. fournir/configurer le token côté Hermès.
+>
+> Une fois ces 3 points réglés, Hermès lance les 3 smoke tests puis le pilote.
+
+Donc là, **ce n’est pas à toi de diagnostiquer**. Il faut juste que Claude aligne les artefacts avec ce que Hermès peut réellement voir.
+
+## user — 2026-05-16T14:14:33.311296
+
+[Jonathan] Réponse aux 3 blocages
+
+1. Brief + endpoints disponibles sur GitHub
+
+Branche dédiée poussée : hermes/instagram-endpoints sur jonathanzekhe/brvndlab
+
+Commit : 1f8f535a9925c20610e10572c9b9b4e2ed4419cb
+
+Contenu :
+
+brvndlab-app/docs/superpowers/specs/2026-05-16-hermes-instagram-brief.md (brief technique complet, 10 KB)
+brvndlab-app/convex/http.ts (4 routes HTTP)
+brvndlab-app/convex/hermesIngest.ts (logique métier)
+brvndlab-app/convex/schema.ts (3 nouveaux champs sur competitorTracking)
+Pour récupérer côté Hermès :
+
+
+git fetch origin
+git checkout hermes/instagram-endpoints
+# ou directement :
+git show origin/hermes/instagram-endpoints:brvndlab-app/docs/superpowers/specs/2026-05-16-hermes-instagram-brief.md > brief.md
+2. URL exacte des endpoints
+
+Tu testais sur https://accurate-cormorant-297.convex.site → cette URL retourne 404 globalement.
+
+URL prod correcte (régionale eu-west-1) :
+
+
+https://accurate-cormorant-297.eu-west-1.convex.site
+Paths exacts (tu testais des paths qui n'existent pas) :
+
+GET /hermes/ig/creators-due (pas /creators)
+POST /hermes/ig/heartbeat (pas /health)
+POST /hermes/ig/ingest-post (pas /posts)
+POST /hermes/ig/update-cadence (pas /cadence)
+Pas de /health exposé (à ajouter si besoin, dis-le moi).
+
+3. Token
+
+Le token est déjà configuré côté Brvndlab. Tu dois le stocker côté Hermès en env var :
+
+
+HERMES_INGEST_TOKEN=8a58cd3dc8df3fc872abc192f4df91c3d5a17d2882dc3224f88a80399fb464c6
+BRVNDLAB_API_BASE=https://accurate-cormorant-297.eu-west-1.convex.site
+Important : bug env actuellement non résolu côté Brvndlab. Quand tu vas appeler les endpoints avec le bon token, tu vas recevoir HTTP 500 {"error":"HERMES_INGEST_TOKEN non configuré côté Convex"}. Le token EST set en env Convex prod (vérifié), mais process.env.HERMES_INGEST_TOKEN retourne undefined dans le runtime HTTP de Convex 1.34.1 malgré plusieurs redéploiements.
+
+Tu as les 4 hypothèses dans le brief (§ Blocage à diagnostiquer en premier). Si tu trouves la fix et qu'elle nécessite un patch côté Brvndlab convex/http.ts, dis-le moi : je patche en quelques minutes.
+
+Une fois ces 3 points réglés, tu enchaînes les 3 smoke tests décrits dans le brief (§ 9), puis le pilote sur 2-3 créateurs.
+
+## assistant — 2026-05-16T14:14:33.311296
+
+J’ai repris proprement. Statut clair :
+
+## Fait côté Hermès
+
+- Branche récupérée : `hermes/instagram-endpoints`
+- Commit vérifié : `1f8f535a9925c20610e10572c9b9b4e2ed4419cb`
+- Brief lu.
+- Token configuré côté Hermès **sans l’exposer**.
+- Base URL corrigée côté Hermès :
+ `https://accurate-cormorant-297.eu-west-1.convex.site`
+- Scraper Hermès adapté aux vrais endpoints :
+ - `GET /hermes/ig/creators-due`
+ - `POST /hermes/ig/heartbeat`
+ - `POST /hermes/ig/ingest-post`
+ - `POST /hermes/ig/update-cadence`
+
+Runtime prêt ici :
+
+`/home/hermes/workspace/brvndlab-hermes-instagram/instagram_heartbeat.py`
+
+## Smoke test exécuté
+
+Commande :
+
+```bash
+python instagram_heartbeat.py smoke
+```
+
+Résultat :
+
+- `creators-due` → **HTTP 500**
+- erreur retournée :
+ `HERMES_INGEST_TOKEN non configuré côté Convex`
+- `heartbeat` et `ingest-post` non exécutés car aucun créateur récupérable avant auth.
+
+Donc le bug est confirmé côté prod Convex : **Hermès envoie bien le token, mais `process.env.HERMES_INGEST_TOKEN` est undefined dans le runtime HTTP.**
+
+## Diagnostic
+
+Je tranche : la bonne première fix est **helper interne de validation**, pas table `_secrets` tout de suite.
+
+Raison :
+- la doc Convex indique bien `process.env.KEY`;
+- mais le bug semble spécifique au `httpAction` runtime ;
+- donc on teste/contourne en lisant le token depuis une `internalQuery`, puis le HTTP handler reçoit seulement `true/false`.
+
+Si l’internal runtime voit aussi `undefined`, alors seulement on passe au fallback `_secrets`.
+
+## Message à transmettre à Claude Code
+
+> Hermès a confirmé le bug en prod. 
+> Le scraper est prêt et les env côté Hermès sont configurées. 
+> Smoke test sur `GET /hermes/ig/creators-due` avec le bon token + bonne URL régionale retourne :
+> `HTTP 500 {"error":"HERMES_INGEST_TOKEN non configuré côté Convex"}`
+>
+> Donc le token arrive côté Hermès, mais `process.env.HERMES_INGEST_TOKEN` est bien undefined dans `convex/http.ts`.
+>
+> Fix recommandée par Hermès : déplacer la validation du token dans une `internalQuery` côté `convex/hermesIngest.ts`, appelée depuis `http.ts`, qui retourne uniquement `{ ok: boolean, reason }`, jamais le secret.
+>
+> Patch préparé côté Hermès :
+> `/home/hermes/workspace/brvndlab-hermes-instagram/brvndlab-convex-auth-fix.patch`
+>
+> À faire côté Brvndlab :
+> 1. ajouter `_validateHermesToken` dans `convex/hermesIngest.ts`
+> 2. rendre `requireHermesAuth` async dans `convex/http.ts`
+> 3. remplacer les 4 appels `requireHermesAuth(request)` par `await requireHermesAuth(ctx, request)`
+> 4. lancer `npx convex codegen`
+> 5. redeploy Convex prod
+>
+> J’ai vérifié localement après patch : les erreurs `http.ts` disparaissent après `npx convex codegen`. Il reste uniquement 2 erreurs TypeScript préexistantes dans `convex/radarActions.ts` sur `market: string` vs `"fr" | "en"`, hors patch auth.
+
+## Important
+
+Je ne lance pas le cron/pilote tant que ce patch n’est pas déployé, sinon on va juste spammer du 500 toutes les 2h.

@@ -1,0 +1,736 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260513_203412_0ecac5
+source_file: /home/hermes/.hermes/sessions/20260513_203412_0ecac5.jsonl
+source_sha256_16: 0679e938a9840b9a
+date: 2026-05-13
+---
+
+# Recovered session root/20260513_203412_0ecac5
+
+
+## user — 2026-05-13T20:34:44.741805
+
+[Thomas] Tu es le Full-Stack Developer (Front-End & Back-End) de VividFlow, une plateforme AGaaS (Agent-as-a-Service) propulsée par l’intelligence artificielle.
+
+Ton rôle est de concevoir, développer, optimiser et faire évoluer l’ensemble de l’écosystème technique de VividFlow. Tu es responsable à la fois de l’expérience utilisateur côté front-end et de l’architecture serveur côté back-end, avec un haut niveau d’exigence en matière de performance, scalabilité, sécurité et qualité produit.
+
+Tu réfléchis comme un ingénieur logiciel senior, un builder de startup et un développeur orienté produit.
+
+Tes responsabilités incluent :
+
+• Créer des interfaces modernes, fluides et responsives 
+• Développer des APIs et infrastructures back-end scalables 
+• Concevoir une architecture propre, maintenable et performante 
+• Intégrer des systèmes IA, automatisations, APIs et workflows d’agents 
+• Optimiser l’UX/UI, les temps de chargement et les performances globales 
+• Gérer les bases de données, l’authentification, le cloud et la sécurité 
+• Écrire un code propre, documenté et prêt pour la production 
+• Proposer des améliorations techniques et des fonctionnalités innovantes 
+• Adopter une mentalité startup : rapidité d’exécution, efficacité et scalabilité 
+
+Compétences techniques attendues :
+- React / Next.js
+- Node.js / Python
+- Tailwind CSS
+- PostgreSQL / MongoDB
+- APIs REST & WebSockets
+- APIs OpenAI & intégrations IA
+- Docker / Vercel / AWS
+- Systèmes d’authentification
+- Workflows d’automatisation
+
+Règles de comportement :
+- Toujours proposer des solutions structurées et scalables
+- Prioriser une architecture propre et maintenable
+- Expliquer clairement les décisions techniques
+- Suggérer les meilleures pratiques et optimisations
+- Réfléchir comme un ingénieur de startup technologique haut niveau
+- Trouver l’équilibre entre vitesse d’exécution et qualité du code
+- Garder en priorité l’expérience utilisateur et l’impact business
+
+Tu ne développes pas simplement des fonctionnalités : tu construis l’infrastructure du futur de VividFlow.
+
+## assistant — 2026-05-13T20:34:44.741805
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: "ok explique moi cette fonctionnalité stp et comment l'utiliser à bon essiant" (concernant GBrain).
+
+## Goal
+Migrer et stabiliser l’environnement Hermes/Cockpit/VividFlow du local macOS vers un VPS Hostinger, sans fuite de secrets ni perte de données, avec conservation des cron jobs et de la mémoire. Le VPS est l'infra de production 24/7. Mise en place d'un "Second Brain" (GBrain) pour la mémoire stratégique long terme.
+
+## Constraints & Preferences
+- Réponse et travail en français.
+- Remplacer tout secret/credential par `[REDACTED]`.
+- VPS cible : Hostinger (Ubuntu), user `hermes`.
+- Local macOS : reste uniquement en backup froid, interdiction de double-run gateway/cron.
+- Tailscale : utilisé pour la connectivité privée VPS ↔ local.
+- Sécurité : SSH par clé uniquement, pas de dashboard public.
+- GBrain : stockage de l'historique décisionnel et doctrine produit ; ne pas utiliser pour les secrets ou tâches temporaires.
+
+## Completed Actions
+[...]
+30. GÉNÉRATION clé SSH VPS `ssh-keygen -t ed25519 -f ~/.ssh/vps_to_local_ed25519` — clé créée pour autoriser l'accès vers le Mac local [tool: terminal]
+31. VÉRIFICATION connectivité Tailscale — `vividflow-local` (100.95.131.99) identifié comme cible [tool: terminal]
+32. TENTATIVE accès SSH automatisé — échec car besoin d'ajout manuel de la clé publique dans `authorized_keys` sur macOS [tool: terminal]
+33. TEST SSH manuel (après intervention utilisateur) — `LOCAL_SSH_OK`, accès au Mac depuis le VPS validé [tool: terminal]
+34. NETTOYAGE local — désactivation du LaunchAgent Hermes local et arrêt des processus gateway pour éviter les doublons [tool: terminal]
+35. INSTALLATION Bun & GBrain sur VPS — `bun 1.3.14` et `gbrain 0.33.1.0` installés dans `/home/hermes/gbrain` [tool: terminal]
+36. INITIALISATION Brain — création de la base PGLite dans `~/.gbrain/` et de la structure de dossiers dans `~/brain/` [tool: terminal]
+37. INDEXATION test — ajout du premier document `projects/vividflow-vps-migration.md` (2 chunks, 5 tags) [tool: terminal]
+38. CONFIGURATION systemd — ajout du PATH Bun au service `hermes-gateway` via un fichier d'override [tool: terminal]
+39. DIAGNOSTIC MCP — identification d'une erreur `Invalid schema` (400) sur l'outil `mcp_gbrain_extract_facts` provoquant des instabilités [tool: terminal]
+40. STABILISATION — désactivation temporaire du MCP GBrain dans `config.yaml` tout en gardant GBrain utilisable via CLI [tool: terminal]
+41. RESTART gateway — exécution d'un redémarrage forcé via `systemd-run` pour recharger la configuration propre [tool: terminal]
+42. EXPLICATION pédagogique — détail de l'utilité de GBrain (doctrine produit, décisions, stratégie) vs mémoire courte Hermes [tool: assistant]
+
+## Active State
+- Environnement principal : VPS Hostinger (`srv1601285`), user `hermes`.
+- IPs : Publique `76.13.52.163`, Tailscale `100.101.47.27`.
+- Gateway Telegram : Actif via systemd (user).
+- Cron jobs : Actifs côté VPS.
+- Mac local : Connecté via Tailscale (`100.95.131.99`), service Hermes stoppé.
+- GBrain : Installé sur VPS, fonctionnel en CLI, mais MCP désactivé dans Hermes pour éviter erreurs de schéma OpenAI.
+- Brain Path : `/home/hermes/brain/`.
+- Key : `~/.ssh/vps_to_local_ed25519`.
+
+## In Progress
+- Suivi de la stabilité du gateway après redémarrage.
+- Observation du comportement de GBrain en CLI avant réactivation MCP.
+
+## Blocked
+- MCP GBrain : Désactivé car le schéma JSON de `extract_facts` (missing items in array) cause des erreurs 400 avec les modèles OpenAI récents. Nécessite un patch ou un filtrage de schéma.
+
+## Key Decisions
+- La migration est finalisée : le VPS est la seule source de vérité pour le bot.
+- Désactivation préventive du MCP GBrain pour garantir l'uptime de la gateway Telegram malgré le bug de schéma.
+- Utilisation de GBrain pour la "Mémoire Stratégique" (fichiers Markdown) tandis que la mémoire Hermes reste pour les "Faits Rapides".
+
+## Resolved Questions
+- Comment accéder au Mac depuis le VPS ? Via Tailscale + Clé SSH `vps_to_local_ed25519` ajoutée au Mac.
+- Est-ce que le bot tourne en double ? Non, le LaunchAgent local a été déchargé et les procs tués.
+- C'est quoi GBrain ? Un second brain structuré pour stocker la doctrine, les décisions et les analyses long terme.
+
+## Pending User Asks
+- Aucun (l'explication sur GBrain a été fournie).
+
+## Relevant Files
+- `/home/hermes/.hermes/config.yaml` : Config VPS (Tirith off, MCP GBrain off).
+- `/home/hermes/brain/` : Dossier racine de la connaissance structurée.
+- `/home/hermes/finish-local-link.sh` : Script de test de liaison VPS -> Mac.
+- `/home/hermes/.config/systemd/user/hermes-gateway.service.d/override.conf` : Injection du PATH Bun pour le service.
+
+## Remaining Work
+- Investiguer le patch du schéma MCP GBrain pour réactivation sécurisée.
+- Proposer l'installation de skillpacks (perplexity, academic, etc.) si besoin.
+- Organiser les premières notes de doctrine "VividFlow OS" dans GBrain.
+
+## Critical Context
+- Clé publique VPS pour accès local : `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBAPfnZXUSQ6LFXB1Aro+XLKkjAHUJ8z//rWZZPrAjdW vividflow-vps-to-local`.
+- Chat ID Telegram COO : `-1003616611166` (Topic 145).
+- Toutes les credentials (.env, auth.json) sont migrées et protégées : `[REDACTED]`.
+
+## user — 2026-05-13T20:34:44.741805
+
+[Thomas] ok mon Claude code a généré le code pour le saas il faut que tu travail dessus
+
+## assistant — 2026-05-13T20:34:44.741805
+
+Oui. J’ai pris le chantier.
+
+## Repo trouvé
+
+Sur le Mac local :
+
+```txt
+/Users/businessmanagement/workspace/vividflow-agaas
+```
+
+Remote GitHub :
+
+```txt
+https://github.com/ninorio12/vividflow-agaas.git
+```
+
+Stack détectée :
+
+- Next.js 16 canary
+- React
+- Tailwind
+- Supabase encore présent
+- Clerk + Convex foundation déjà ajoutés
+- App Router
+- Webhooks Meta / Twilio / Vapi / Cal
+
+## Ce que j’ai fait
+
+### 1. Audit rapide
+
+J’ai vérifié :
+
+- structure app
+- package scripts
+- env
+- middleware/auth
+- Supabase client
+- Clerk/Convex provider
+- état Git
+- build Next
+
+### 2. Premier blocage corrigé
+
+Le build cassait à cause des variables Supabase absentes :
+
+```txt
+@supabase/ssr: Your project's URL and API key are required
+```
+
+J’ai créé un `.env.local` local avec des placeholders non sensibles pour permettre le dev/build local.
+
+Il est bien ignoré par Git :
+
+```txt
+.env.local
+```
+
+Donc aucun secret commité.
+
+### 3. Next.js 16 : middleware migré
+
+Next affichait ce warning :
+
+```txt
+middleware file convention is deprecated. Please use proxy instead.
+```
+
+J’ai migré :
+
+```txt
+middleware.ts → proxy.ts
+```
+
+Et renommé :
+
+```ts
+export async function middleware(...)
+```
+
+en :
+
+```ts
+export async function proxy(...)
+```
+
+### 4. Validation
+
+Build production OK :
+
+```txt
+bun run build
+✓ Compiled successfully
+✓ TypeScript OK
+✓ 15/15 pages générées
+```
+
+Typecheck OK :
+
+```txt
+bunx tsc --noEmit
+```
+
+Smoke test `/login` OK :
+
+```txt
+SMOKE_LOGIN_OK
+CLERK_GATED_OK
+```
+
+J’ai aussi coupé le serveur dev après test pour ne rien laisser tourner.
+
+## État Git actuel
+
+Modifs non commit :
+
+```txt
+D middleware.ts
+?? proxy.ts
+```
+
+Je n’ai pas commit/push sans feu vert.
+
+## Verdict technique
+
+Le code est exploitable comme base, mais il est encore hybride :
+
+- Une grosse partie CRM tourne encore sur Supabase.
+- Clerk + Convex sont présents, mais pas encore cœur système.
+- Pour VividFlow cible, il faudra migrer progressivement vers :
+ - Clerk orgs
+ - Convex workspace data
+ - Conversations-first CRM
+ - agent actions auditables
+
+## Prochaine étape utile
+
+Je recommande maintenant :
+
+1. Faire un commit propre de cette stabilisation.
+2. Auditer les pages CRM une par une.
+3. Identifier ce qui reste Supabase.
+4. Créer le plan de migration Convex/Clerk.
+5. Prioriser le vrai MVP VividFlow :
+ - Conversations
+ - Contacts
+ - Pipeline
+ - Agent suggestions
+ - Approval actions
+
+Le chantier est pris en main.
+
+## user — 2026-05-13T20:34:44.741805
+
+[The user sent a voice message but I can't listen to it right now — no STT provider is configured. A direct message has already been sent to the user with setup instructions.]
+
+[Thomas]
+
+## assistant — 2026-05-13T20:34:44.741805
+
+Fait **sans redémarrer le gateway**.
+
+## Install OK
+
+J’ai installé `faster-whisper` dans l’environnement Python utilisé par Hermes :
+
+```txt
+/home/hermes/.hermes/hermes-agent/venv/bin/python
+```
+
+Version installée :
+
+```txt
+faster-whisper 1.2.1
+```
+
+## Config STT OK
+
+Config activée :
+
+```yaml
+stt:
+ enabled: true
+ provider: local
+ local:
+ model: base
+```
+
+## Test OK
+
+J’ai testé :
+
+```txt
+IMPORT_OK
+MODEL_READY
+```
+
+Donc le modèle local `base` charge correctement en CPU/int8.
+
+## Gateway
+
+Je n’ai pas restart le gateway.
+
+État actuel :
+
+```txt
+hermes-gateway: active
+```
+
+Important : comme on n’a pas restart, la transcription Telegram ne sera probablement prise en compte qu’au prochain `/restart` ou redémarrage du service.
+
+Mais l’installation est prête.
+
+## user — 2026-05-13T20:34:44.741805
+
+[Thomas] Pourquoi mes notes vocal sont en anglais et pas ffrançaisrançais
+
+## assistant — 2026-05-13T20:34:44.741805
+
+Parce que la config STT était en **auto-détection** :
+
+```yaml
+language: ''
+```
+
+Donc Whisper essayait de deviner la langue. Sur des vocaux courts, avec bruit, accent, ou mots anglais/tech, il peut basculer en anglais ou produire une transcription bizarre.
+
+J’ai corrigé :
+
+```yaml
+stt:
+ provider: local
+ local:
+ language: fr
+```
+
+Donc maintenant il doit forcer le français.
+
+Point important : il faudra probablement **redémarrer le gateway Hermes** pour que Telegram prenne la nouvelle config STT.
+
+Commande côté gateway :
+
+```txt
+/restart
+```
+
+Ou je peux le faire côté serveur si tu veux.
+
+Après redémarrage, les prochains vocaux devraient être transcrits en français.
+
+## user — 2026-05-13T20:34:44.741805
+
+[Thomas] OK alors je te demande un audit et de Brainstorm sur le GitHub donné par Nino Rio alors il s’agit du code du CRM. SAS qui s’appelle Soren qu’on va modifier en vie flow. Maintenant la première partie des modules c’est la partie CRM en arrière-plan y a l’MCP de GHL donc ça tourne avec GHL et ça sur Subes. Maintenant le truc qu’il faut faire c’est qu’on va s’affranchir de GHL et au lieu d’écrire sur on va compter sur Convex donc il faut récupérer exactement le fontaine la même fontaine et juste en arrière faut que tu utilises des Guide Repo, comme Twenty, et d’autres si tu considères qu’on peut mieux faire pour créer un environnement en arrière-plan CRM ultrapuissant pour la deuxième partie des modules. C’est le module c’est module argentique pour le module qu’on Equipee on a attache log et on a notamment, on a d’autres choses, on sait partie-là en fait en arrière plan on va mettre le Dashboard natif de Hermès donc littéralement voilà tu peux utiliser les Dash bord natif ont été créés par un nourrice et ça et en fait faut que tu implémente ça dans Soren. Donc là il faut juste que tu gardes les couleurs de Soren etc. mais il faut vraiment que tu tues code comme le le code natif de nous research. DONC TU VAS CONTINUER A CODER LA SOLUTION faut s’assurer que tout fonctionne que ce soit fonctionnel et bein sur que ca peut tourner en saas
+
+## user — 2026-05-13T20:34:44.741805
+
+[Your active task list was preserved across context compression]
+- [>] brainstorm. Proposer 2-3 approches et recommander une architecture (in_progress)
+- [ ] gate. Demander validation avant code lourd (pending)
+
+## assistant — 2026-05-13T20:34:44.741805
+
+Thomas, j’ai audité le repo Soren / VividFlow et brainstormé l’architecture cible.
+
+## Verdict rapide
+
+Le code actuel est une bonne base UI, mais le backend est encore trop “prototype” :
+
+- CRM actuellement branché sur **Supabase**
+- Auth encore partiellement Supabase, même si **Clerk + Convex** sont déjà amorcés
+- Webhooks Twilio / Vapi / Meta écrivent directement en DB
+- Références GHL encore présentes dans les modèles : `ghl_contact_id`, `ghl_conversation_id`
+- Module agentique `/workspace` existe déjà, mais c’est surtout une **mock UI**
+- Le design VividFlow/Soren est propre : noir, orange `#FA5001`, glassmorphism — à garder
+
+Donc oui : on peut transformer ça en SaaS VividFlow propre, mais il faut éviter de juste “traduire Supabase vers Convex”. Il faut poser une vraie architecture CRM + agentique.
+
+## Ce que je recommande
+
+Architecture en 2 moteurs :
+
+### 1. CRM Engine — inspiré de Twenty
+
+On reprend les bons patterns de Twenty, pas tout le monstre.
+
+Objets centraux :
+
+- `workspaces`
+- `workspaceMembers`
+- `contacts`
+- `companies`
+- `opportunities`
+- `properties`
+- `pipelines`
+- `pipelineStages`
+- `tasks`
+- `notes`
+- `conversations`
+- `messages`
+- `timelineEvents`
+- `attachments`
+- `views`
+
+L’idée : chaque action CRM crée une trace dans `timelineEvents`.
+
+Exemple :
+
+- nouveau message WhatsApp
+- lead créé
+- statut pipeline changé
+- note ajoutée
+- agent propose une action
+- humain approuve
+- action exécutée
+
+Ça donne un CRM puissant, auditable, multi-tenant, prêt SaaS.
+
+### 2. Agentic Engine — inspiré Hermes / Nous Research
+
+Le module agentique ne doit pas juste être une page “agents”.
+
+Il faut créer une vraie couche :
+
+- `agents`
+- `agentRuns`
+- `agentMessages`
+- `agentActions`
+- `approvals`
+- `auditLogs`
+- `toolConnections`
+- `usageEvents`
+
+Principe fort : **rien de sensible ne part sans validation humaine**, sauf actions explicitement autorisées.
+
+Exemple :
+
+L’agent lit une conversation, détecte :
+
+> “Prospect chaud, budget 1.2M, cherche villa à Lausanne, veut visiter cette semaine.”
+
+Il propose :
+
+- créer/opportunité
+- enrichir contact
+- créer tâche de rappel
+- rédiger réponse WhatsApp
+
+Mais le SaaS demande validation avant exécution.
+
+C’est exactement la promesse VividFlow : pas un chatbot, un OS agentique.
+
+## Les 3 approches possibles
+
+### Option A — Migration simple Supabase → Convex
+
+On remplace les queries Supabase par Convex sur les pages existantes.
+
+Avantages :
+
+- rapide
+- peu risqué
+- on garde presque tout l’UI
+
+Limites :
+
+- architecture moyenne
+- pas assez différenciant
+- agentique ajouté après coup
+
+Je ne recommande pas comme cible finale.
+
+### Option B — Rebuild CRM propre dans Convex, UI conservée
+
+On garde le front Soren/VividFlow, mais on reconstruit le backend proprement :
+
+- Clerk pour auth/orgs
+- Convex pour DB/actions
+- schéma CRM inspiré Twenty
+- timeline native
+- conversations natives
+- agents en deuxième couche
+
+Avantages :
+
+- propre
+- scalable
+- SaaS-ready
+- bonne base produit
+- on garde les couleurs/UI existantes
+
+C’est mon choix recommandé.
+
+### Option C — Architecture full agentique d’abord
+
+On construit d’abord le cockpit agents/Hermes, puis on branche CRM autour.
+
+Avantages :
+
+- vision très forte
+- différenciation directe
+
+Risques :
+
+- trop ambitieux
+- CRM pas assez solide
+- risque de construire du “wow” avant le socle business
+
+Je ne recommande pas en premier.
+
+## Recommandation finale
+
+On part sur **Option B**.
+
+Ordre d’exécution :
+
+1. Stabiliser auth Clerk + workspaces
+2. Créer le schéma Convex CRM propre
+3. Migrer Dashboard / Prospects / Biens / Pipeline / Devis vers Convex
+4. Supprimer Supabase du runtime
+5. Remplacer les champs GHL par un système `externalRefs`
+6. Créer `conversations` + `messages` natifs
+7. Ajouter `timelineEvents`
+8. Brancher le module agentique :
+ - agents
+ - runs
+ - proposed actions
+ - approvals
+ - audit logs
+9. Intégrer progressivement les patterns Hermes dashboard dans `/workspace`, en gardant le skin VividFlow
+
+## Première tranche de code que je propose
+
+Je ne touche pas encore au gros refacto sans validation.
+
+Première tranche propre :
+
+- Créer le schéma Convex CRM :
+ - `workspaces`
+ - `workspaceMembers`
+ - `contacts`
+ - `properties`
+ - `opportunities`
+ - `pipelines`
+ - `pipelineStages`
+ - `tasks`
+ - `notes`
+ - `conversations`
+ - `messages`
+ - `timelineEvents`
+ - `agents`
+ - `agentRuns`
+ - `agentActions`
+ - `approvals`
+ - `auditLogs`
+
+- Ajouter les fonctions Convex CRUD minimales pour :
+ - prospects/contacts
+ - biens/properties
+ - pipeline/opportunities
+
+- Migrer d’abord `/prospects` ou `/pipeline` pour valider le pattern.
+
+Mon conseil : on commence par **Prospects/Contacts**, parce que c’est le cœur CRM et le moins risqué.
+
+Valide-moi juste ça :
+
+**On part sur Option B et je commence par migrer Prospects/Contacts vers Convex ?**
+
+## user — 2026-05-13T20:43:08.022898
+
+[System note: Your previous turn was interrupted before you could process the last tool result(s). The conversation history contains tool outputs you haven't responded to yet. Please finish processing those results and summarize what was accomplished, then address the user's new message below.]
+
+[Thomas] La notion de Soren, c’est simplement l’ancien Saas qu’on utilise comme base parce que on part pas de 0
+
+## assistant — 2026-05-13T20:43:08.022898
+
+Oui, clair. Je corrige le cadrage :
+
+**Soren = base de code / base UI.** 
+Pas le produit final, pas une marque à garder, pas une donnée à préserver.
+
+On ne part pas de zéro côté front, mais on repart de zéro côté data/backend.
+
+## Ce que j’ai acté
+
+- On garde le **front existant** :
+ - design
+ - couleurs
+ - pipeline
+ - layout
+ - logique UX déjà posée
+
+- On remplace le backend par :
+ - **Convex**
+ - **Clerk**
+ - zéro GHL comme dépendance centrale
+ - zéro Supabase à terme
+
+- On ne migre pas les anciennes données :
+ - contacts
+ - prospects
+ - pipelines
+ - leads
+ - biens
+ - propositions 
+ → tout repart propre.
+
+- La partie agentique :
+ - backend Convex
+ - logique Hermes
+ - dashboard Hermes repris comme base fonctionnelle
+ - rebrandé VividFlow côté interface
+
+## J’ai commencé le code
+
+J’ai ajouté la fondation Convex CRM dans le repo.
+
+Nouveaux modèles ajoutés dans `convex/schema.ts` :
+
+- `contacts`
+- `properties`
+- `pipelines`
+- `pipelineStages`
+- `opportunities`
+- `proposals`
+- `conversations`
+- `messages`
+- `tasks`
+- `notes`
+- `timelineEvents`
+- `externalRefs`
+- `webhookEvents`
+
+Et j’ai gardé / intégré la couche agentique déjà amorcée :
+
+- `agents`
+- `agentRuns`
+- `agentActions`
+- `auditLogs`
+- `usageEvents`
+
+J’ai aussi ajouté `convex/crm.ts` avec les premières fonctions :
+
+- `listContacts`
+- `createContact`
+- `listProperties`
+- `createProperty`
+- `listOpportunities`
+- `createOpportunity`
+- `moveOpportunity`
+
+Chaque action importante crée déjà un `timelineEvent`.
+
+## Validation technique
+
+TypeScript OK :
+
+```txt
+bunx tsc --noEmit
+```
+
+Build OK :
+
+```txt
+bun run build
+✓ Compiled successfully
+✓ 15/15 pages generated
+```
+
+## État actuel
+
+Modifs non commit :
+
+```txt
+M convex/schema.ts
+?? convex/crm.ts
+D middleware.ts
+?? proxy.ts
+```
+
+`middleware.ts → proxy.ts` vient de la migration Next 16 déjà faite.
+
+## Prochaine étape
+
+Maintenant je migre le premier module front vers Convex.
+
+Je commence par **Prospects → Contacts**, parce que c’est le cœur du CRM et ça valide tout le pattern :
+
+- la page garde le même design
+- les données viennent de Convex
+- création contact via mutation Convex
+- plus d’appel Supabase sur cette page
+- timeline auto créée en arrière-plan
+
+Ensuite on fera Pipeline, Biens, Propositions.

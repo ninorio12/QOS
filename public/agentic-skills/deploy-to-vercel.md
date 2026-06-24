@@ -36,6 +36,28 @@ Attention au plan Pro: il n’est généralement nécessaire que pour ajouter un
 - Si une action implique `git push`, demande l'accord de l'utilisateur avant de pousser.
 - Vérifie toujours si le dossier pointe déjà vers un projet `.vercel/` avant de relinker.
 
+## Live visual mockup iteration on an existing Vercel project
+
+When the user corrects “we are working on Vercel”, says “c’est toujours le même”, or asks for another section/mock-up of the same visual project, recover the existing project before creating anything new. Search recent sessions and local output folders, then inspect `.vercel/project.json` and `vercel whoami`. Patch the actual files and redeploy the same project/alias; do not generate a standalone image or a new unrelated Vercel project unless explicitly requested.
+
+Fast pattern:
+```bash
+# from the recovered project folder
+cat .vercel/project.json 2>/dev/null
+XDG_DATA_HOME=/home/hermes/.local/share vercel whoami 2>/dev/null
+python3 -m http.server 8765  # optional local static check
+XDG_DATA_HOME=/home/hermes/.local/share vercel deploy --prod --yes --public
+python3 - <<'PY'
+import urllib.request
+url='https://<alias>.vercel.app/'
+r=urllib.request.urlopen(url, timeout=15)
+html=r.read().decode('utf-8','ignore')
+print(r.status, 'expected snippet' in html)
+PY
+```
+
+For visual DA mockups, if the user asks for a centered image/video section, make the page itself show the variants with a center-stack layout; avoid default left/right marketing sections.
+
 ## One-off public static document deploy
 
 When the user asks to publish a generated document/deck/war-room for sharing:
@@ -95,6 +117,23 @@ cat .vercel/project.json 2>/dev/null || cat .vercel/repo.json 2>/dev/null
 vercel whoami 2>/dev/null
 vercel teams list --format json 2>/dev/null
 ```
+
+## VividFlow official-domain convention
+
+For VividFlow shareable Vercel links, prefer official `vividflow.co` subdomains over scattered `.vercel.app` links whenever possible. Use `.vercel.app` for previews/proofs only, then alias production/shareable deploys to a clear subdomain such as `start.vividflow.co`, `onboarding.vividflow.co`, `clients.vividflow.co`, `ops.vividflow.co`, `demo.vividflow.co`, or `preview.vividflow.co`.
+
+Known pattern from the existing VividFlow setup:
+```bash
+npx vercel deploy --prod --yes --public
+npx vercel alias set <deployment-url> onboarding.vividflow.co
+npx vercel inspect onboarding.vividflow.co
+```
+If Vercel shows the alias but public DNS does not resolve, create/verify this DNS record at the external DNS provider:
+- type: `CNAME`
+- name: subdomain label, e.g. `onboarding`
+- value: `cname.vercel-dns.com`
+
+Do not claim the official subdomain is live until HTTP/DNS verification passes.
 
 ## Vercel project inventory
 
@@ -313,15 +352,23 @@ Pour QA mobile, `--window-size=390,1400` seul peut être trompeur: Chrome headle
 - **Vanity `.vercel.app` alias stuck behind Vercel auth**: if a clean alias like `lp-clientops.vercel.app` returns 401 after being manually assigned to another project's deployment, remove the alias and create/link a dedicated project with that exact project name, then deploy `--prod --yes --public`. The natural project alias is often public where the manual alias stayed protected. See `references/vercel-vanity-project-alias-recovery.md`.
 - **Raw deployment URL can stay 401 while the alias is public**: after `vercel deploy --prod --yes --public`, Vercel may print both a deployment URL like `<url>>-<team>.vercel.app` and `Aliased: <url>>.vercel.app`. The raw deployment URL can still return 401, while the aliased project URL returns 200. For public static artifacts, verify and deliver the alias, not the raw deployment URL. This is not a failure if the alias passes HTTP/snippet/login checks.
 - **Custom aliases NOT auto-updated on `--prod` deploy**: `vercel deploy --prod` auto-aliases the primary domain (e.g. `<client-dashboard-domain>`) but does NOT update other custom aliases (e.g. `<client-dashboard-url>`). After deploy, manually re-alias: `npx vercel alias set <new-deployment-url> <alias-name>`. Check existing aliases with `npx vercel alias ls`. This caused a 10-day stale deployment being served at a user-facing URL.
+- **VividFlow outbound deck alias stale after deploy**: When deploying `vividflow-outbound`, the `.vividflow.co` aliases (transgate, staffelbach-partner, etc.) are auto-updated by `vercel --prod` (because they alias the primary project URL, not secondary domains). BUT a subagent can create a new deployment that doesn't update aliases if it deploys to a different project or without `--prod`. Always verify LIVE after deploy:
+  ```bash
+  curl -s https://<deck>.vividflow.co/deck.js | grep -c "data-deck-next"
+  # Must return 1 — if 0, the old deployment is still live
+  ```
+  If the handler is missing, redeploy from the project root with `vercel --prod` and re-verify the alias.
 - **Custom domain access mismatch**: a domain can resolve to Vercel while the current CLI team cannot alias it. If `vercel alias set <deployment> <domain>` returns `403 You don't have access to the domain`, stop claiming prod is fixed. Verify with `vercel teams ls`, `vercel inspect <url>>`, DNS/headers, and tell the user you need access to the owning Vercel team/project or a DNS/domain transfer. A patched `.vercel.app` URL is only a staging/proof URL until the canonical domain is repointed.
 - **GitHub push ≠ canonical domain updated**: when the source repo is found and patched, push the commit, then poll the canonical domain asset/HTML for the expected snippet. If it stays stale, check GitHub Actions/statuses and Vercel project ownership. The repo may deploy from a different Vercel account, a nested root directory, or no Git integration at all. In that case, deploy a proof `.vercel.app` URL from the nested app folder, but report the canonical domain as still stale until the owner promotes/redeploys from the owning account.
 - **Nested static LP folders**: marketing LP repos often store the deployable app below a nested path like `ClientOps/Marketing/lp-vercel/` with its own `vercel.json`. Run Vercel commands from that folder, not the repo root, and inspect `.vercel/project.json` there before linking. If absent, `vercel deploy` may create a new project under the current CLI account; useful for proof deploys, dangerous if you claim it fixes the production domain.
+- **Small CTA/link replacement on a live static marketing site**: when Jonathan asks to “just update the site” with a URL, do not pause to over-explain. Act surgically: fetch the live HTML, count old/new URL occurrences, locate the source by exact title/copy/assets if normal content search fails (e.g. search for unique assets like `vividflow-icon.png`), patch every occurrence, deploy, then verify the canonical domain has `old_count=0` and `new_count>0`.
 - **Static SPA title/terminology fixes from a live deployment**: if source is not available and the fix is tiny (title/meta/rendered copy), mirror `index.html` + `/assets/*`, patch HTML and JS bundles, redeploy to the existing Vercel project, then verify canonical alias HTML + JS snippets. See `references/static-lp-domain-rescue.md`.
 - **Cross-account static LP recovery with owner token**: if the canonical domain is owned by another Vercel account, a project ID alone is not enough. Use an owner token safely, deploy from a clean copy of the nested static folder with `.vercel/project.json` pointed to the owner project, then verify the canonical domain's JS asset for the fixed snippet. See `references/cross-account-static-lp-domain-recovery.md`.
 - **Tracking pixel installs on static marketing funnels**: for LP/VSL + thank-you pages, patch every public HTML page before `</head>`, include the noscript fallback, deploy from the nested static app folder, and verify the canonical domain HTML for pixel ID + `fbevents.js` + PageView snippets. See `references/static-marketing-pixel-install.md`.
 - **Static VSL / thank-you video swaps**: when replacing Wistia/YouTube embeds on static funnels, search all old provider IDs, patch from the nested deploy folder, add a cache-bust when scripts/assets may be cached, and verify alias HTML for new ID present + old provider absent. Headless Chrome can hang on YouTube embeds; after one timeout, switch to fast HTML verification. See `references/static-vsl-video-swap.md`.
 - `static-document-consistency-audit.md`.
 - **Markdown rendered with visible `1|` line numbers**: this usually means the source Markdown was built from tool-rendered `read_file` output, not raw file contents. Clean the `.md`, rebuild semantic HTML, redeploy, then verify `not re.search(r'>\\s*\\d+\\|', html)` on the live alias. See `references/static-markdown-document-rendering.md`.
+- **Funnel-hack/source clone project names can leak the source brand**: when cloning a competitor/reference funnel for VividFlow, do not name the workspace/Vercel project with the source brand if the URL will be shared. Use a neutral VividFlow slug (`vividflow-audit-confirmation`, `vividflow-thank-you`) and grep not only visible HTML but also `package.json`, lockfile, `.vercel/project.json`, and final alias for old-brand leakage before delivering.
 - `vercel link --yes` peut lier silencieusement au mauvais projet
 - ne pas supposer qu'un dossier = un projet Vercel dédié
 - ne pas pousser sur git sans accord explicite

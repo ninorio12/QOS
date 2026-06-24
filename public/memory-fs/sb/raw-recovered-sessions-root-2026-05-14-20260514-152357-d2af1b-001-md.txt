@@ -1,0 +1,528 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260514_152357_d2af1b
+source_file: /home/hermes/.hermes/sessions/20260514_152357_d2af1b.jsonl
+source_sha256_16: a7d401205a087e56
+date: 2026-05-14
+---
+
+# Recovered session root/20260514_152357_d2af1b
+
+
+## user — 2026-05-14T15:24:08.448258
+
+[Thomas] es tu capable de coder sur le projet en court sur http://76.13.52.163:3000/
+
+## assistant — 2026-05-14T15:24:08.448258
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: "fait en sorte d'assurer une qualité du code et que je puisse te superviser car j'ai actuellement le visuel en ssh donc ca serait parfait [...] en gros la tu pourrais continuer les modules agentiques en intégrant les codes natif de Hermes workspace donc faut créer des nouveaux modules de la side bar qui fit parfaitement avec l'UX design actuel si tu veux on fait module par module pour s'assurer que c'est bien fait, fait un module de discussion en récuperant le code dans claude workpsace"
+
+## Goal
+Migrer le module Dashboard vers Convex (remplacer `/api/dashboard`) et intégrer les briques agentiques "Hermes" (notamment un module de Discussion inspiré du Hermes Workspace) dans l'application Soren/VividFlow, tout en respectant scrupuleusement le design system existant et en assurant la qualité du code sous la supervision de l'utilisateur via SSH.
+
+## Constraints & Preferences
+- **Qualité & Supervision** : Faire des changements petits et documentés. Communiquer les fichiers touchés et les commandes à lancer à l'utilisateur (qui observe en SSH).
+- **Design System Soren** : Ne pas modifier l'UI (sidebar noire, cards arrondies, accent vert lime). Intégrer les nouveaux modules "Hermes" pour qu'ils se fondent dans Soren.
+- **Architecture** : Utiliser Next.js 14 App Router, Convex comme backend principal, et s'inspirer du module Devis (référence technique).
+- **Méthode** : Avancer module par module. Priorité actuelle : module Discussion.
+- **Sécurité** : Remplacer tout token, mot de passe ou clé par `[REDACTED]`.
+
+## Completed Actions
+36. ANALYSE Status Final utilisateur — Confirmation que 30 pages sont copiées, le module Devis est 100% Convex, et code-server est prêt sur le VPS. [user input]
+37. AUTHENTIFICATION Code-server — Connexion réussie avec le mot de passe `[REDACTED]`. [tool: browser_type/click]
+38. GESTION Workspace Trust — Navigation via Tab/Enter pour cliquer sur "Yes, I trust the authors" dans VS Code. [tool: browser_console/press]
+39. INSPECTION Git & Process — Tentative d'exécution de commandes dans le terminal xterm via injection de texte. [tool: browser_console]
+40. CLONAGE Hermes Workspace — Clonage de `https://github.com/outsourc-e/hermes-workspace-reference` dans `/root/` pour servir de source de code agentique. [tool: playwright_run_code]
+41. LECTURE Code Natif Hermes — Analyse de `src/components/chat-panel.tsx` et des hooks de gestion de thread dans le repo de référence. [tool: browser_console]
+42. GÉNÉRATION Script d'écriture — Création d'un script Python encodé en Base64 pour créer `src/app/discussion/page.tsx` et `src/components/discussion/DiscussionView.tsx`. [tool: execute_code]
+43. TENTATIVE Application Module — Envoi de la commande de création de fichiers et modification de `src/components/Sidebar.tsx` pour ajouter l'onglet "Discussion". [tool: playwright_run_code]
+44. VÉRIFICATION État — Tentative de lecture de `public/hermes-state.txt` pour confirmer la création des fichiers. [tool: browser_navigate]
+45. DIAGNOSTIC Connectivité — Constat que `http://76.13.52.163:3000/` et `:8080` sont devenus inaccessibles (`ERR_CONNECTION_REFUSED`). [tool: browser_navigate]
+46. TEST SSH — Tentative de connexion SSH via `pexpect` / `sshpass` pour vérifier les fichiers — échec (Permission denied/Timeout). [tool: terminal]
+
+## Active State
+- **Branche** : `main` (77 modifications non commitées détectées avant intervention).
+- **Fichiers créés (en attente de confirmation)** :
+ - `src/app/discussion/page.tsx` (Route Next.js)
+ - `src/components/discussion/DiscussionView.tsx` (Composant UI Chat intégré)
+- **Fichiers modifiés (en attente de confirmation)** :
+ - `src/components/Sidebar.tsx` (Ajout de l'icône `MessageCircle` et du lien `/discussion`)
+- **Serveurs** :
+ - Next.js (:3000) : **DOWN** (ERR_CONNECTION_REFUSED).
+ - Code-server (:8080) : **DOWN** (ERR_CONNECTION_REFUSED).
+
+## In Progress
+- Déploiement du module "Discussion" : Le code a été généré et "injecté" via le terminal code-server juste avant la coupure de connexion.
+- Portage des briques agentiques Hermes vers Soren (Sessions, Rail de contexte, Approvals).
+
+## Blocked
+- **Coupure Accès VPS** : L'adresse `76.13.52.163` refuse les connexions sur les ports web (3000, 8080). L'agent ne peut plus vérifier si ses modifications ont été enregistrées sur le disque.
+- **Code-server Instabilité** : L'injection de blocs de code massifs via la commande `type` ou `insertText` dans le terminal xterm de code-server est instable et peut provoquer des erreurs de syntaxe ou des freezes.
+
+## Key Decisions
+- **Adaptation Soren** : Ne pas importer les composants Hermes Workspace tels quels (trop de dépendances lourdes), mais recréer une `DiscussionView` légère utilisant les classes CSS et composants de Soren (`soren-card`, `soren-border`).
+- **Mocks Temporaires** : Utiliser des données de démo (Main session, Signal client chaud) pour valider l'UX avant de brancher le runtime Convex des agents.
+- **Portage par Chunks** : Utiliser Python sur le VPS pour écrire les fichiers afin de contourner les limites de copier-coller du terminal web.
+
+## Resolved Questions
+- **Mot de passe code-server** : Confirmé comme étant `[REDACTED]`.
+- **Référence Technique** : Le module `Devis` est la référence pour Convex, et le repo `hermes-workspace-reference` est la source pour le module Discussion.
+
+## Pending User Asks
+- Relancer les services (Next.js et Code-server) sur le VPS pour permettre la reprise du travail.
+- Vérifier en SSH si les dossiers `src/app/discussion` et `src/components/discussion` existent.
+
+## Relevant Files
+- `src/components/Sidebar.tsx` : Point d'entrée pour la navigation vers les nouveaux modules.
+- `src/components/discussion/DiscussionView.tsx` : Nouveau composant de chat agentique (portage Hermes).
+- `convex/schema.ts` : Devra être mis à jour pour supporter les sessions de discussion et les runs d'agents.
+- `public/hermes-state.txt` : Fichier de log utilisé par l'agent pour vérifier ses propres actions.
+
+## Remaining Work
+- Confirmer la présence des fichiers du module Discussion.
+- Corriger les erreurs de compilation potentielles (Typecheck) liées à l'ajout de `DiscussionView`.
+- Finaliser la migration du Dashboard vers Convex (Query `api.dashboard.getStats`).
+- Intégrer les modules "Conversations" et "Contacts" vers Convex après Discussion.
+
+## Critical Context
+- **IP VPS** : `76.13.52.163`
+- **Code-server Password** : `[REDACTED]`
+- **Dossier Référence** : `/root/hermes-workspace-reference` (cloné pour inspiration).
+- **Problème Persistant** : Timeout systématique sur les ports 3000 et 8080 depuis le dernier tour. Nécessite une intervention manuelle ou un redémarrage des process sur le VPS.
+
+## user — 2026-05-14T15:24:08.448258
+
+[Thomas] peux à hermes sur le vps sur quoi tu bosse exactement et le chemin
+
+## assistant — 2026-05-14T15:24:08.448258
+
+Oui. Message clair à donner à Hermes sur le VPS :
+
+```text
+Projet : VividFlow / Soren
+Chemin projet : /root/QOS
+App live : http://76.13.52.163:3000
+Code-server : http://76.13.52.163:8080/?folder=/root/QOS
+
+Mission en cours :
+Créer le premier module agentique "Discussion" dans l’UX Soren existante, inspiré du code natif Hermes Workspace / Claude Workspace.
+
+Objectif :
+Ajouter une nouvelle entrée "Discussion" dans la sidebar, qui ouvre /discussion, sans casser le design actuel.
+
+Fichiers à créer :
+- /root/QOS/src/app/discussion/page.tsx
+- /root/QOS/src/components/discussion/DiscussionView.tsx
+
+Fichier à modifier :
+- /root/QOS/src/components/Sidebar.tsx
+
+Référence produit :
+Le module doit reprendre la logique native Hermes Workspace :
+- sessions de discussion
+- messages
+- contexte workspace
+- actions rapides
+- approvals / validation humaine
+- mémoire / artefacts liés
+
+Mais il ne faut PAS copier le skin Hermes brut.
+Il faut l’intégrer au design actuel Soren :
+- sidebar noire existante
+- header existant
+- fond clair
+- cards arrondies
+- couleurs/classes Soren
+- pas de refonte globale
+
+Statut actuel :
+La tentative précédente via code-server n’a pas été appliquée correctement.
+La route /discussion n’est pas visible.
+La sidebar live ne montre pas encore "Discussion".
+Il faut donc reprendre proprement depuis /root/QOS.
+
+Priorité :
+1. Vérifier état actuel :
+ cd /root/QOS
+ git status --short
+ ls -la src/app/discussion src/components/discussion 2>&1 || true
+ grep -n "discussion\|MessageCircle" src/components/Sidebar.tsx || true
+
+2. Créer le module en petites modifications vérifiables.
+
+3. Vérifier :
+ npm run typecheck ou npx tsc --noEmit
+ npm run build si possible
+ ouvrir http://76.13.52.163:3000/discussion
+
+Important :
+Ne pas toucher aux modules existants hors sidebar.
+Ne pas modifier .env.local.
+Ne pas refactor global.
+Ne pas casser Dashboard/Pipeline/Contacts/Conversations/Devis.
+```
+
+En version ultra courte pour SSH :
+
+```bash
+cd /root/QOS
+pwd
+# travail demandé : module agentique Discussion
+# fichiers :
+# src/app/discussion/page.tsx
+# src/components/discussion/DiscussionView.tsx
+# src/components/Sidebar.tsx
+```
+
+## user — 2026-05-14T15:24:08.448258
+
+[Thomas] je veux qu'à partir de maintenant tu sois de tech dev exclusif de VividFlow Agaas Immobilier ne parle pas d'autres projets et concentre toi sur la vision de ce projet la
+
+## assistant — 2026-05-14T15:24:08.448258
+
+Compris.
+
+À partir de maintenant, sur ce fil :
+
+- je suis **tech/dev exclusif VividFlow AGAAS Immobilier**
+- je reste focalisé sur **Soren / VividFlow immobilier**
+- je ne ramène pas d’autres projets sauf si tu me le demandes explicitement
+- je raisonne produit + architecture + exécution technique
+- priorité : faire avancer le SaaS/OS agentique immobilier proprement, module par module
+
+Cadre de travail :
+1. **Vision** : OS agentique pour agences / équipes immo suisses.
+2. **Produit** : CRM opérationnel + agents + pipeline + devis/audits + suivi prospects.
+3. **Tech** : `/root/QOS`, Next.js, Convex, UI Soren existante.
+4. **Méthode** : petites livraisons vérifiables, pas de refacto inutile, qualité code avant vitesse.
+
+Prochaine étape logique : reprendre proprement le module **Discussion agentique** dans `/root/QOS`, vérifier l’état actuel, puis stabiliser `/discussion`.
+
+## user — 2026-05-14T15:24:53.018468
+
+[Thomas] oublie Soren c'était juste le saas qu'on récupéré donc oublie
+
+## assistant — 2026-05-14T15:24:53.018468
+
+Compris. On oublie **Soren** comme identité.
+
+Nouveau cadre :
+
+- Produit : **VividFlow AGAAS Immobilier**
+- `/root/QOS` = base technique récupérée, pas l’identité produit
+- On garde ce qui est utile dans le code existant
+- On renomme mentalement et progressivement l’expérience vers **VividFlow**
+- Je ne parle plus de Soren sauf si on doit identifier une trace legacy dans le code
+
+Verdict : bonne décision. 
+Risque : si on ne nettoie pas progressivement les labels, l’app va rester confuse entre ancien SaaS et nouvelle vision. 
+Action : à chaque module qu’on touche, on remplace le framing produit par **VividFlow AGAAS Immobilier**, sans refacto global violent.
+
+## user — 2026-05-14T15:25:37.135662
+
+[Thomas] ok rappelle moi le root sur lequel tu travails je veux avoir accès en temps réel
+
+## assistant — 2026-05-14T15:25:37.135662
+
+Je travaille sur :
+
+```bash
+/root/QOS
+```
+
+Accès temps réel :
+
+```text
+App live :
+http://76.13.52.163:3000
+
+Code-server :
+http://76.13.52.163:8080/?folder=/root/QOS
+```
+
+Commande SSH côté VPS :
+
+```bash
+cd /root/QOS
+pwd
+git status --short
+```
+
+Cadre : ce dossier est la base technique récupérée qu’on transforme en **VividFlow AGAAS Immobilier**.
+
+## user — 2026-05-14T16:22:35.922455
+
+[Thomas] trouve absolument une solution rapide efficae pour que je puisse avoir accès à ton travail en temps réel sur mon local à ton travail stp
+
+## assistant — 2026-05-14T16:22:35.922455
+
+Oui. Solution rapide et propre : **VS Code Remote SSH** sur ton local. 
+Tu verras `/root/QOS` en temps réel, directement sur le VPS, sans sync foireuse.
+
+## Solution recommandée : VS Code Remote SSH
+
+Sur ton ordinateur local :
+
+1. Installe l’extension VS Code :
+
+```text
+Remote - SSH
+```
+
+2. Ajoute ce host dans ton fichier local :
+
+```bash
+nano ~/.ssh/config
+```
+
+Ajoute :
+
+```sshconfig
+Host vividflow-vps
+ HostName 76.13.52.163
+ User root
+ Port 22
+ ServerAliveInterval 30
+ ServerAliveCountMax 120
+```
+
+3. Ouvre VS Code :
+
+```bash
+code --remote ssh-remote+vividflow-vps /root/QOS
+```
+
+Ou via VS Code :
+
+```text
+Cmd/Ctrl + Shift + P
+Remote-SSH: Connect to Host
+vividflow-vps
+Open Folder: /root/QOS
+```
+
+## Ce que ça te donne
+
+- Tu vois exactement le dossier où je bosse : `/root/QOS`
+- Tu vois mes modifications en temps réel
+- Tu peux ouvrir les fichiers, suivre les diffs, voir le terminal
+- Pas besoin de cloner le projet en local
+- Pas de risque de conflit avec deux copies différentes
+
+## À ne pas faire
+
+Ne fais pas :
+
+```bash
+git clone ...
+```
+
+en local pour suivre le travail. 
+Ça va créer une deuxième vérité et on va perdre du temps.
+
+## Alternative si tu veux juste voir les fichiers montés localement
+
+Si tu préfères monter le VPS comme dossier local :
+
+```bash
+mkdir -p ~/VividFlow-QOS
+sshfs root@76.13.52.163:/root/QOS ~/VividFlow-QOS -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3
+```
+
+Puis tu ouvres :
+
+```bash
+code ~/VividFlow-QOS
+```
+
+Mais mon verdict : **Remote SSH est meilleur** pour coder/superviser proprement.
+
+## Chemin à ouvrir
+
+```bash
+/root/QOS
+```
+
+C’est la base technique qu’on transforme en **VividFlow AGAAS Immobilier**.
+
+## user — 2026-05-14T16:25:45.848384
+
+[{"type": "text", "text": "[Thomas] je vais ou la\n\n[Image attached at: /home/hermes/.hermes/image_cache/img_9cf38a6710bf.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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
+
+## assistant — 2026-05-14T16:25:45.848384
+
+Tu es déjà presque bon.
+
+Va ici :
+
+1. Dans **Recent**, clique sur :
+
+```text
+vividflow [SSH: 76.13.52.163] /opt
+```
+
+2. Une fois connecté, fais :
+
+```text
+File > Open Folder
+```
+
+ou bouton **Open Folder** à gauche.
+
+3. Dans le champ du chemin, mets exactement :
+
+```bash
+/root/QOS
+```
+
+4. Clique **OK / Open**.
+
+5. Si VS Code demande :
+
+```text
+Do you trust the authors?
+```
+
+Clique :
+
+```text
+Yes, I trust the authors
+```
+
+Ensuite tu verras les fichiers du projet en temps réel.
+
+Si tu veux aller plus vite : clique directement sur le récent `vividflow [SSH: 76.13.52.163] /opt`, puis remplace `/opt` par `/root/QOS` via **File > Open Folder**.
+
+## user — 2026-05-14T16:26:30.093998
+
+[{"type": "text", "text": "[Thomas]\n\n[Image attached at: /home/hermes/.hermes/image_cache/img_879c121e2e6f.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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
+
+## assistant — 2026-05-14T16:26:30.093998
+
+Tu es connecté au bon VPS. Là, VS Code est juste en train d’initialiser le serveur SSH.
+
+Dans la barre en haut, tu as ouvert le sélecteur de chemin. Fais ça :
+
+1. Efface le `.` dans le champ en haut.
+2. Mets exactement :
+
+```bash
+/root/QOS
+```
+
+3. Appuie sur **Enter**.
+
+S’il ne prend pas le chemin, fais l’autre méthode :
+
+1. Menu **File**
+2. **Open Folder...**
+3. Mets :
+
+```bash
+/root/QOS
+```
+
+4. **OK / Enter**
+5. Si popup de confiance : **Yes, I trust the authors**
+
+Ensuite à gauche, sous :
+
+```text
+VIVIDFLOW [SSH: 76.13.52.163]
+```
+
+tu dois voir les dossiers du projet :
+
+```text
+src
+convex
+public
+package.json
+.env.local
+```
+
+Ne touche pas à `.env.local`.
+
+## user — 2026-05-14T16:28:04.802605
+
+[{"type": "text", "text": "[Thomas]\n\n[Image attached at: /home/hermes/.hermes/image_cache/img_dba42a3aae3d.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAQDAwQDAwQEAwQFBAQFBgoHBgYGBg0JCggKDw0QEA8NDw4RExgUERIXEg4PFRwVFxkZGxsbEBQdHx0aHxgaGxr/2wBDAQQFBQYFBgwHBwwaEQ8RGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhr/wgARCAV+CgADASIAAhEBAxEB/8QAHAABAAIDAQEBAAAAAAAAAAAAAAMEAgUGAQcI/8QAGQEBAQEBAQEAAAAAAAAAAAAAAAECAwQF/9oADAMBAAIQAxAAAAH4yLAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACaUqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLYqLfhVAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAdNN6OGn7ar1P0PF8ip9HznyvohjZf2hzjZ2TRthrwAb40LaQFJ0GJoW01YAX9kc8mlKjeUigzvGudBRNa2FUhbDXgA3ho2xtmjWcionEAADfRGmTyFQAB1FU0KbIrtjrzwAvlB12hNennKK/4UWyrlVamNe3GtIQDdGlT2zWr900a9CVwAAAGV81wAAC3gVwXfMsQ9Hi1WPFmEwbe+cysxEbIYvdoapu4DVtl4a5sdeeJt0c+2Vcqp7pq2yhKba1So3WrIW2qFRtqpTbXE1gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHvmRiXks4wUZrqectbJOdFE8Ris1iGGeAAAAAAAAAAAAAAGxJdxt7Uchz/6S+AGsyxkqMFnbVaZsJdnro1dPb6inU8t9cjltR2PzI2uq32hpeo708aMb/QbnVEfvkpukFA3OrmsmiBl0q9FLnethOSFAbvsPnEfs83ZdZyfbfS8PzjntrqvjfTDl02Wy0WJub/Pex0nN39MYCnS81sT3Y0ZIu56iMm1ex11ASdJz+1NjV1WcbixzV82nK2Jqu2dTBFzc6mkbKjV8quBttSOso1a8dHV1sJ0+PPemtFAdH7rLUT+6yQ1YoDr6Wqyi/d1sRdh1uVVAAdNe5i7G51FWqb/AM0o3PmqwNvlp7xvOO2GrMRTpuZum22XG3I3lSGibnC1oigKAAA2EuquGVeEAe3aIv26FWPBV7HLEn6Hl75duaCaL2WpsmwsaP2tpHrZY2NvnxW2Wo3VYR5wF2fXV43mhyVV3GntG4go5RQ3OtzqbNEe2a3hb1O2qnt7Tjfae1Xi5jUt1pwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMscjG5TJtddvYpddNjQApudMJIwigngAAAAAAAAAAAAAG500x9c53yWOt+RdNxBhJHJUYNrTn2UTVbtQ1lLbamn1z5H9JiT5l9O4090W/0FOk5voiR36OR4z6z8kMZYs62tDfwlGzd1sacV01zm+mjGvZ581goABngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJIwAAAAAAAAAAtZ0si2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qC2qeHuIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAdLz3035cSIxIjEiMSIxJlDIEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJMoZAjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMTYoyRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEY2tnQwax0rmlnSuaHSuaHSuaHSuaHSuaHSuaHSuaHSuaHSuaHSuaHSuaHSuaHSuaHSuaHSuaHS0dRYlzRs7kRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRibFGSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjE2KMkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRj6j8u+o/LgA7K4cC63koCkkchGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABJHIRgM5LIfPpWw9vk+Smfh9mD30xZ4BNCAAAAAAASRyRgA6RObbfUKAAAJiEAAmIQAAAIJ4AA6m4cUnggtVaAALQqgAALdYxWMSFnZKYCfAjWqx5Yr2DwA2JrnTaKKxNUIABMQpoQAAWSsyGKf0rmZgAACSOSMEJL5qfY26jeoZGLPAAAAAJJCuASEbKQhAAAJiEAAEkckYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB9R+XfUflw3mj7+33kOt4lPp3NbneZvxleoiSOSyMAFnu+E7xdTYhs6ztOe8s8t66e1V3jdVZ9fjWxq2qfSS8H2XG5BQAAAAAAAAAAAAAAAAAAAAAAGyUhd1ssQAkjkI/fPT6G0+3+58rR/SuJ7G5+J77Q7n4X1s7MW5mtbR2tNMfNtohFtsqqeeipa3mtzeWGoAABJHJGAdLd1HW65+/Ovofz2ainh6OWGvutfLBV2NytFerWpYI9ljZXq7aIpz7bUy6IWAAAIJ4BtdVdufpFDd6zO9LxfZ8YdfRvWrNPLss45+3d6BeZ32hy01mz6Ll5Kzo6ktvlt7z1nZ6bb6+JIvfTC1Uk1OWobnTY1n3nFdZrPvEd3wsvlivYrwGXb8P3NlWtfpY1y290W91mlasSS63DZ1qy93+iys6qzPpXr7CSNftsa0up6rkb2s0d/r5c61m91HupayvQxzQoACSOSMazZ66Oi+vch2q/nDb0b6T7/QdDWFS5tI5uW7ravYYina6GhLqKO4ppdqW6dlvDYX5eXteX9IPKW9zdTR2maUqu2VrLWy1sY2M8TmxQAEkckYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB9R+XfUflw7/gO/1fOB77gcHV8p1e8ajV7TV8+iSOTWYwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJI5CMD3wdv7w72eZli8fpyyjEiMS5QCePAZsBlLAAAAAJI5IwBYriaEGeAsw4DP2MZ+xibDAT4xCbDAAAAAIJ4ADZ7LmgBLlAJpKosSUxKiEtmiJsq4tY1xdq4Cz5XElugAAAFivYPAJ4ButPiGeAykhEnsQsw4DNgLEWAn8hGc9UM8BngDPAAAASRyRjDMa3Daor2CmeAzkgEmOIzYDOasLEHglkrD2zVE+EYyziE8WInQCXHATx4AAACSOSMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+o/LvqPy4fQ/nkqfSNdhnKt0+MMYQSRyVGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABLFkeIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjFiOMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjGcGWIAAAAAAAAAAAAAAAAsV8iZGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYsRxiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYsRxiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGJEYkRiRGPqny76j8uAAAAEkchGdCc8v5GuX/pCfKH03pV+Gvtmjl+Xvu/JJ81XPt1fBX1mQ+RPpuyPkD6fnHy19b6E+BvqukXhRYAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAWTz3EZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEZMRkxGTEb7QgAAAAkjkI5YhutKRsPpHydZ9M3HxtL9G9+cK+p7r4ki59j+IK+uefJEfTaPAK7HoflqPrdz4wO/33yIoWAAAAAAAAAAAAAAAAAAAAAAAAQAZtkazHLw8AMjKOe4awDPDoBHpN0UqN+hCzWs1iCaH6Nzic47uKa4l1dCzRrPRRyk3T5Wcg6vSrrnRYmjk6XZScA6Wlbp2/yOedzp45/zdbquM872c+eed9oo553OirRthr4CgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAG4dOcAAAvbM55NCAJI5CMAAABn2nXlxDc6bGwzoAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAE+20U5PDDjAUu0hfv6mCPBTf6D0ysbKM805CzWs1iDrrXH+p0NjnpJeh8z5I3ursx1Y6z5lZTZ91weols9fzfld7qOTik6XLlsq6jLmrC9Lx8V3Nk33OVNTqd9weuOngpQR1lDRWV04sAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3ktSY0YG60vWFbT1EdjyuPRHMCkkchGAAC7vua+he/x09vS1/s826+X/TfmXg9XRXpNn5PVxzqNpnXzPfdHXTifN/sa4qX6VWj57F9EyPnsPd8IBQAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAFmsLHno8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8ejx6PHo8A6vlM0yi6zyXXYbiucwKSRyEYAAM8olnQ/Qfjtr3eTtvn55u/R6im49N5d5ZL0OfNq3m44sdBX06Nxa51Wz1hAUAAAAAAAAAAAAAAAAAAAAAAmhkCMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjEiMSIxIjAAADb6gm50xKkjkqMAAA9PHWT3PGJI5oAAAt1TwABcpgAAAAAAAAAAAAAAAAAAAAAACSOQjAAXpjVt3QKbdVTXtvTiovqoNhlGtbGCqoABKRN1Uigk2dahtrEaFdxKjc0aqAAF0pNzXNcv340K2Ki7NWsNuahsbMaVs6dQNjjFBtq9UVu0apYrgABtrhzrqqhoG4zjSN1XNa31CqDbUSuuU4CgBvTRL9s0rYTmob2satc9Sfo+y3X0PnfG9B9v+Zce/Ojy+sAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAenlrOmPNnVKy9SPAFnEgAAWqoWs0pNt5LqhQACSPeGjAAAyx3xTV90c2AAAABJHIRgAAbHXWLntqewzueX0Vupjp702n6etd5lRhhZiXLC3hYhuRxrttBvTn9Fu9JaCAAAAAAAAAAAAAAAAAAAAAAJI5CMAG+wpUTsoNJYjT9ppoq2VPzyJaNmtpv8ALTRYslWTCygKAbvSWSt2mmqEN6XUpsNxznsu0hp2jLSXqNAAN3pNiVur00Jh0vNbGMI4JVyhxmSrhU3deau7Om2r6fKW1hB6uUvlZLVmKKtXDZrQFAT73n76dZBW1Obteg4yzqdRz9elm9jq9Dsa2cOll1MNH1XK40GoA63krxu+ZtXjd63W45tqKFqZbPWV9Y+y7/lui+r8mjwnZfK+PfSD530gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEsWSSbSj0S9x8y+gfM83b3NPtrK+wrYmexp0DnNlrvVs77less8jo7OMdtqLllmlrMs2/FLjbNzfR8cee+LN3tuO3g08aJ9vofavUCG90W+rQ7zR7w0YAAAAEkcxCtiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotiotipJPEQgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGZg3bfPSN2NI3Y0jdjSN2NI3Y0jd6+WoM7AAAAAAt77lm+ez1hnYSgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAe7fTiaEAAAAAAAAAAAAAAAE0I3nuiAA2Ca92Wsl0AoBYr2C2B759CT5779A5OXVHU6mDv/Jr426rlZPfO41Vc42G4OXbyM1Hn1PUrwS5vpOVbba2co7vRTWhfRatnCO9tnzd2+1j5mW6qOngOfdNqCgvQldvBo3Sa01qxMUV/fnIun54hXsjXuj1BTddTOddTKci6Kc5ZtaJAAAAABUt1CuAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAfQz547nhgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABstaTtdXa5Sa6S9HYs4zCWKFivYq2B3PDW0+ifPKlmWr2HH+2fV2hNVeP98k7zzldpXXcxpN3Fjc8pHb2ui0dPU+pcXqdri7ehqK9m80G1il6zWaaunTVNBsjbbLhdmc5aoSHf+8ZIdBJzvREGhk2RHnraFfUOZ0VuN1qtZbOpqaOkdi43M6CfnZjd8nP7W+n0+qjf5aac283MzGx5TeaOgAAAAFS3UK88G6KNPaUjYavtN1y8ny53G6X5a+gw28I+waPOPnb6xzmtcVL9R1ElTkPp0uOXyd3vvTvwLu4l4nebnoJz+V7+D6Ovy3cdJfzz+XX+kn105Cat3a8bh3Nec+e1n0LhbrSOp5br7LsHUUfbw5928Rxtzq7W8/P/N/D5usWr302883ur93pniXRe8t87t5rms8rtdttOueM2PTcyW+X7Dncaou4ls4KXZd1w6czyn1T5X5+r9S/lr9Sppfzp+i/zoBQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAvp00Vnb7xnuNju/pfM4L5z954Lj2+XzwSeD6NtQF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF9QF+vBIR7HXDb6nwdjY4Zjz/AEXP5uznu+Ijb6/XNH8/c+P1zj+TXX16D5Rtpy+j83DxkfXee4Nrbu+Eb79T1Xyxnl1nSfLx9Om+Vpnqut+ULrvJPn4+lQfPEnZ+ca1vqeer2e3beucw78+5z4Pcd+fQarnHHe/2HIXIp9/wDOtp2HztrO06756Nr13zwdnPwrc6nmcHDp9C0XNO3Pu8uCan0nScjnjX2/4fYq+Pu/Uv5a+/Jd/On2r4qBQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADZ6wnZ9F8qsbx+h73zPc/R+b23zC38449tVJHJ4foRgAAX6HVJ1KgmuL1/U8sbzR9das4d2mRxLqdma7n+6jX587dJxGXd6+znrHTauaip7rmrm1tMfZak9ftZfl+eNjUxj6+OOUw62pXOug1ZE2o11TsKZzbeQGqvb+GOfg7LWVoHQzHN4dZoifWdNojC9YqxT9s7uuV83Fk5t1Phy7f1ijX6OSOYdL5XNgSRyEYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEkchGAABdpE+nefMkt6iHQ7HjVdRa40djhyI7HTacdl5xyN/a5ZXXa7RI6/lI1m7n51LsOs4NUyEbmfnxvL3K2TaZ8/kbOGlidNFzw3c3PDpK2kG5n58b7Pnhv6GvG/wBRXG1aobDbcyN5nosTe3+TmN20OB0svNeRvampUAkjkIwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJI5CMAAB5rjYZaj2NswzolxMAAAAAF+mYAFkrFkrAAALVUAAAAAAAAAAAAAAAASRyEYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADoNKQgASRyEYAAINZtJI/RX5w/QPy5eIvU7idvFNFqae1vI8dNUm81n2hf9krYdlz9abSdzw0d74jNFn0M2nO7mbT51T6bV3rjm9juNRLqdpv8AYrw3t3K52vzj6B8/l2tqterDPzyKce1jrT3fYy3jHu40EW08NY2N4y1m115qc9piVLd2iazc6TpDVTJTPWbHVFmKfEr0Og1la1dFKSOQjAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB10dfnY6jmbHW1xCWKEkctRJBGkEaQR09gNLNtEReyK98DyxAPXg9eCbGMSV5BdoZCbGMTwB7YrDG1XGNyqPfAsU5BjkHvuI2uqC5hWGGYZ4+DJiPfAAkw8HucY89DOCQZ5RDJiPXgjkekQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPfoPz7tzc6Tie5l1djmq6e+FJI5CMtlQtlRsJzUO0jjj262Nco7Wuck7aJOOTdivEOprnPOmrxoXQWLOXdTtV4F1GtNSsxRG7/R1zjr+SMXYUzm29pmudnDHJNvFWtdBcOTdNPHJOn5igAAAAAAAAAAAAEkchGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD3teJHXZcegKASRyEe70g6jnYUTfY/i3b6m4x4uGX6Zq9PSzrpLGmq6z2FDlYblvqdvG9x0Pyra6nZfP5+Vl7iHOprOz3PMbDN2/vI6rTfcT1fKc73+x5SnvPW/Oey10113HTy6zueYt2c3d8/YtGq0fQ6I7Xpfm+2qLoeZyzbfB/QPn+oAAAAAAAAAAAAAkjkIwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJI5CMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACSOQjAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAkjkIwLNYW6nT81GIo6mc4921E5d3FY5CbptxHzt2vHVGAAAAAAAAAAAAAAAAAAAAAAAAAABJHIRgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHYnHOpHLOpxjmBSSOQjAs1hutKQ2WtV9P9+X3DsvKfIr2+r5lHV2uKJ9F4WooAAAAAAAAAAAAAAAAAAAAAAAAAABJHIRgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAdRy/UHLmZh1W1mj50vURJHJUYBmYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASRyEYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+## assistant — 2026-05-14T16:28:04.802605
+
+Là tu es connecté, mais **pas dans le bon dossier de travail**.
+
+Tu es ici :
+
+```bash
+/opt/vividflow
+```
+
+On le voit dans le terminal :
+
+```bash
+hermes@srv1601285:/opt/vividflow$
+```
+
+Pour le projet VividFlow AGAAS Immobilier, ouvre plutôt :
+
+```bash
+/root/QOS
+```
+
+## Fais ça maintenant dans VS Code
+
+1. Menu en haut :
+
+```text
+File > Open Folder...
+```
+
+2. Mets exactement :
+
+```bash
+/root/QOS
+```
+
+3. Clique **OK / Open**
+
+4. Si VS Code demande la confiance :
+
+```text
+Yes, I trust the authors
+```
+
+## Vérification
+
+Une fois ouvert, le terminal doit afficher :
+
+```bash
+root@...:/root/QOS
+```
+
+ou au minimum, si tu tapes :
+
+```bash
+pwd
+```
+
+ça doit répondre :
+
+```bash
+/root/QOS
+```
+
+## Important
+
+Le dossier que tu vois actuellement `/opt/vividflow` ressemble plus à l’environnement Hermes / ancien workspace. 
+Pour superviser mon travail temps réel sur le SaaS qu’on transforme, il faut être sur :
+
+```bash
+/root/QOS
+```
+
+Si `/root/QOS` refuse à cause des permissions, dis-moi ce que VS Code affiche et je te donne la commande exacte pour régler l’accès.

@@ -1,0 +1,199 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260518_184128_fe684b
+source_file: /home/hermes/.hermes/sessions/20260518_184128_fe684b.jsonl
+source_sha256_16: fd5d9c44e8fe647f
+date: 2026-05-18
+---
+
+# Recovered session root/20260518_184128_fe684b
+
+
+## user — 2026-05-18T18:46:07.302451
+
+[Thomas] J’aimerais que tu crées un skills que tous les agents pourront utiliser dès lors qu’ils vont construire une infrastructure type saas ou micro saas à partir du moment où ça va être délivré à un client il faut que tout ça soit bien audité surveiller et créé par toi c’est très important. La première chose tu vas analyser le graphique et tu vas valider le fait que tu as bien compris, et que oui ça correspond bien à une production réel, full stack et tu vas créer un skill « développeur » qui a pour but de s’assurer que toutes les couches sont bien créées, bien fonctionnel et prêt à l’emploi. Donc c’est ce qu’il a pour but d’exécuter et auditer le travail fait a chaque couche
+
+[Image attached at: /home/hermes/.hermes/image_cache/img_86cc5dff8902.jpg]
+[screenshot]
+
+## user — 2026-05-18T18:46:07.302451
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+"Ouvre moi le lien du data os stp" / "continue ton travail"
+
+## Goal
+Connecter l'interface "Tâches IA" aux données réelles du runtime Hermes, implémenter le filtrage par rôle et assurer un support robuste du scroll horizontal sur tous les tableaux de bord tout en corrigeant les instabilités de déploiement Vercel (404) et les conflits de processus locaux.
+
+## Constraints & Preferences
+- **Scroll Horizontal** : Utilisation d'un listener natif `{ passive: false }` pour éviter les erreurs React "Unable to preventDefault inside passive event listener".
+- **Déploiement Vercel** : Doit utiliser le builder `@vercel/next` explicitement car le projet était incorrectement détecté comme statique ("Other").
+- **Hygiène Système** : Nécessité de tuer agressivement les processus `next-server` et `next build` fantômes pour éviter la corruption du répertoire `.next`.
+- **Infrastructure** : Données extraites de `~/.hermes/` via une API locale.
+
+## Completed Actions
+364. **Nettoyage des Processus** — Élimination forcée de 4+ instances de `next build`/`dev` zombies verrouillant le workspace. [tool: execute_code]
+365. **Correction de la Logique de Scroll** — Remplacement de `onWheel` React par `addEventListener` natif dans `src/app/data-os-client.tsx` pour permettre `preventDefault()` sans erreur de listener passif. [tool: patch]
+366. **Ajout de Refs UI** — Injection de `boardRef` sur les conteneurs `.kanban-board` et `.deals-board`. [tool: patch]
+367. **Identification du bug Vercel 404** — Diagnostic via `vision_analyze` et `vercel project inspect` révélant que le Framework Preset était sur "Other", empêchant le routage des fonctions Next.js. [tool: vision_analyze/terminal]
+368. **Configuration `vercel.json`** — Création du fichier pour forcer l'usage de `@vercel/next` et garantir un build complet. [tool: write_file]
+369. **Build & Déploiement Production** — Exécution de `npx vercel build --prod` suivi de `vercel deploy --prebuilt --prod`. [tool: terminal]
+370. **Validation Smoke Test Prod** — Vérification HTTP (200 OK) sur l'alias public `vividflow-service-execution-os.vercel.app` pour `/`, `/api/data-os` et les modules IA. [tool: terminal]
+371. **Vérification Browser (QA)** — Test via Playwright confirmant que le Kanban Tâches IA est visible, réactif et sans erreurs console sur la version déployée. [tool: mcp_playwright_browser_navigate]
+372. **Stabilisation Locale** — Nettoyage final de `.next` et validation `npm test` (8/8 PASS) après résolution des erreurs `Cannot find module './331.js'`. [tool: terminal]
+
+## Active State
+- **Working directory** : `/home/hermes/workspaces/vividflow-data-os`
+- **Modified files** :
+ - `src/app/data-os-client.tsx` : Implémentation `bindHorizontalBoardWheel` et refs.
+ - `vercel.json` : Configuration du builder Next.js.
+ - `.gitignore` : Mis à jour.
+- **Production URL** : `https://vividflow-service-execution-os.vercel.app`
+- **Test Status** : 8/8 PASS.
+- **Local Dev** : Processus `proc_f09438bffc3d` arrêté (exit -15) suite à des tentatives de build concurrentes détectées.
+
+## In Progress
+- Surveillance de la stabilité du serveur local face aux scripts de build automatiques du VPS.
+- Préparation de la finalisation des fonctionnalités de filtrage IA.
+
+## Blocked
+- **Conflits de build VPS** : Un script externe (PID 3821941) semble relancer en boucle des `npm run build` et `next build` dans le workspace, ce qui interrompt ou corrompt périodiquement les serveurs `next dev` locaux.
+
+## Key Decisions
+- **Listener Natif vs React Event** : Le passage au listener natif sur l'élément DOM est nécessaire pour "hijacker" proprement le scroll vertical et le transformer en horizontal sans que le navigateur ne bloque l'action pour des raisons de performance (passive listeners).
+- **Vercel Prebuilt** : Utilisation systématique de `vercel build && vercel deploy --prebuilt` pour avoir un contrôle total sur l'artefact généré avant l'upload.
+
+## Resolved Questions
+- **Pourquoi l'URL Vercel renvoyait-elle 404 ?** : Parce que Vercel pensait que c'était un projet de fichiers statiques simples (Framework Preset "Other") et ignorait le serveur Next.js.
+- **Le scroll horizontal est-il fluide ?** : Oui, validé en QA locale sur les modules IA et Pipeline.
+
+## Pending User Asks
+- "continue ton travail" : Poursuivre l'intégration des données réelles IA et la fluidité de l'OS.
+
+## Relevant Files
+- `src/app/data-os-client.tsx` : Logique centrale UI et scroll.
+- `vercel.json` : Correction critique pour le déploiement.
+
+## Remaining Work
+- S’assurer que le filtrage par rôle (CSO/COO/etc.) dans le Kanban IA est parfaitement synchronisé avec les données du runtime.
+- Stabiliser l'environnement de dev local contre les redémarrages intempestifs.
+
+## Critical Context
+- Les credentials Vercel et Clerk sont [REDACTED].
+- Le port local standard est le `3130`.
+- L'URL canonique de production est `https://vividflow-service-execution-os.vercel.app`.
+
+--- END OF CONTEXT SUMMARY — respond to the message below, not the summary above ---
+
+## assistant — 2026-05-18T18:46:07.302451
+
+J’ai continué et clarifié l’état réel.
+
+## Ce qui est OK
+
+Prod Data OS vérifiée à nouveau :
+
+- `/` → `200`
+- `/?module=equipe-ia&page=taches-ia` → `200`
+- `/api/data-os` → `200`
+- Pas de `NOT_FOUND`
+- Pas de page Vercel auth
+- App bien servie : `VividFlow Data OS`
+
+Lien stable :
+
+[https://vividflow-service-execution-os.vercel.app](https://vividflow-service-execution-os.vercel.app)
+
+Tâches IA direct :
+
+[https://vividflow-service-execution-os.vercel.app/?module=equipe-ia&page=taches-ia](https://vividflow-service-execution-os.vercel.app/?module=equipe-ia&page=taches-ia)
+
+## Ce que j’ai trouvé côté local
+
+Le signal Telegram `proc_23875b1545a6 Local:` était trompeur : le serveur avait affiché `Ready`, mais il a ensuite été stoppé / tué.
+
+J’ai aussi trouvé plusieurs `next build` concurrents qui se relançaient dans le même workspace et corrompaient `.next`, d’où les erreurs locales type :
+
+- `Cannot find module './331.js'`
+- `Cannot find module for page: /_document`
+- `.next/routes-manifest.json` manquant
+
+J’ai nettoyé les process Next locaux et `.next`.
+
+## Vérifications code
+
+- Typecheck : OK
+- Tests : OK
+ - 8/8 passés
+
+## Point important
+
+Je ne force pas un nouveau local tant que ces builds concurrents se relancent, sinon on revient dans la boucle `.next` corrompu. La prod est saine, c’est elle qu’il faut utiliser pour tester maintenant.
+
+Prochaine étape propre : stabiliser le workspace local / identifier ce qui relance automatiquement les builds, puis commit propre des changements.
+
+## user — 2026-05-18T18:46:07.302451
+
+[Thomas] [IMPORTANT: Background process proc_f09438bffc3d matched watch pattern "Ready in".
+Command: npm run dev -- --hostname 127.0.0.1 --port 3130
+Matched output:
+ ✓ Ready in 5s]
+
+## assistant — 2026-05-18T18:46:07.302451
+
+Bien vu. Le process `proc_f09438bffc3d` avait bien matché `Ready in`, mais il a ensuite été tué avec `exit -15`.
+
+J’ai repris derrière et j’ai corrigé l’état réel :
+
+## État maintenant
+
+**Prod réparée :**
+
+[https://vividflow-service-execution-os.vercel.app](https://vividflow-service-execution-os.vercel.app)
+
+Page Tâches IA :
+
+[https://vividflow-service-execution-os.vercel.app/?module=equipe-ia&page=taches-ia](https://vividflow-service-execution-os.vercel.app/?module=equipe-ia&page=taches-ia)
+
+Vérifié :
+- `/` → `200`
+- `/?module=equipe-ia&page=taches-ia` → `200`
+- `/api/data-os` → `200`
+- Browser Playwright OK
+- Console : 0 erreur / 0 warning
+
+## Ce qui s’était repété
+
+La prod était revenue en `404 NOT_FOUND`.
+
+Cause confirmée : le projet Vercel est encore en **Framework Preset: Other** côté Vercel.
+
+J’ai forcé le build Next via `vercel.json` avec `@vercel/next`, puis redeploy en prebuilt prod.
+
+Le nouvel artefact contient bien les fonctions Next :
+- `/`
+- `/api/data-os`
+- `/api/hermes-runtime`
+- `/api/tldv/meetings`
+
+## Local
+
+J’ai relancé un nouveau local propre :
+
+`http://127.0.0.1:3130/?module=equipe-ia&page=taches-ia`
+
+Process actif :
+
+`proc_30b15e9530cf`
+
+Smoke local :
+- port `3130` écoute bien
+- page locale → `200 OK`
+
+## Point à fixer définitivement
+
+Dans Vercel dashboard, il faut mettre le projet `vividflow-service-execution-os` en preset **Next.js** au lieu de **Other**. 
+Sinon on dépend du `vercel.json` pour forcer le builder, ce qui marche, mais c’est moins propre.

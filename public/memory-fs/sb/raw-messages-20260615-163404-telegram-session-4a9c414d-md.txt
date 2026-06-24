@@ -1,0 +1,42 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260615_161721_6292b6.jsonl
+captured_at: 2026-06-15T16:34:04.619805
+platform: telegram
+type: conversation_delta
+---
+
+## assistant — 2026-06-15T16:17:32.211485
+
+Je vérifie réellement agent par agent, pas juste la présence des tokens.
+
+## assistant — 2026-06-15T16:17:32.211485
+
+Je vérifie les configs MCP + un test direct `dataos_state` par bot.
+
+## assistant — 2026-06-15T16:17:32.211485
+
+Non, pas encore. Résultat réel : 2 bots OK, 5 KO. Je corrige maintenant l’exposition MCP au lieu de toucher aux tokens.
+
+## assistant — 2026-06-15T16:17:32.211485
+
+Je vérifie le patch avant exécution : il est non sensible, mais je contrôle qu’il ne casse pas le YAML.
+
+## assistant — 2026-06-15T16:17:32.211485
+
+Le patch préparé était trop brutal sur `platform_toolsets`; je le remplace par un patch propre : ajouter Data OS sans écraser le reste.
+
+## assistant — 2026-06-15T16:17:32.211485
+
+Patch appliqué proprement, YAML OK. Je recharge les gateways puis je reteste.
+
+## assistant — 2026-06-15T16:17:32.211485
+
+Gateways rechargées, un seul process par bot. Je lance le test Data OS final.
+
+## assistant — 2026-06-15T16:17:32.211485
+
+Oui, maintenant c’est bon. Test direct Hermes après patch + reload : - Coordinateur : DATAOS_OK - Agent KB : DATAOS_OK - Agent CSM : DATAOS_OK - Agent Operations : DATAOS_OK - Data Analyst : DATAOS_OK - Media Buyer : DATAOS_OK - Agent Debug : DATAOS_OK Cause : les tokens étaient là, mais Data OS n’était pas exposé comme toolset/MCP dans les profils. J’ai ajouté l’exposition `dataos / mcp-dataos`, rechargé les gateways, nettoyé les doublons de process, puis retesté agent par agent.
+
+## assistant — 2026-06-15T16:17:32.211485
+
+Presque tout est bon, mais je ne te vends pas un faux 100%. **Validé OK :** - SOULs agents corrigés - Claude Code utilisable par les bots - Règle Claude Code ajoutée aux 7 profils - Gateways rechargées - 1 seul process actif par bot - Data OS OK pour les 7 bots **Reste à surveiller / retester côté Slack :** - les réponses bot Coordinateur → agents dans Slack étaient encore partiellement instables avant le dernier patch. - humain → agents : globalement OK. Donc : **Data OS oui, bots prêts oui.** Dernier point à valider proprement : un vrai test Slack Coordinateur qui mentionne chaque agent et vérifie la réponse visible.

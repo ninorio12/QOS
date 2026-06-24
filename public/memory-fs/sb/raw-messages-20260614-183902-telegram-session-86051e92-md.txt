@@ -1,0 +1,14 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260614_181658_b47742.jsonl
+captured_at: 2026-06-14T18:39:02.112189
+platform: telegram
+type: conversation_delta
+---
+
+## assistant — 2026-06-14T18:17:11.997604
+
+On ne met **pas d’URL** si on utilise Hermes en **Slack Socket Mode**. Fais plutôt ça : 1. Slack App → **Socket Mode** 2. Active **Enable Socket Mode** 3. Clique **Generate an app-level token** 4. Nom : `agent-debug-socket` 5. Scope : ```text connections:write ``` 6. Clique **Generate** 7. Copie le token qui commence par `xapp-` Ne me l’envoie pas ici. Ensuite dans **Event Subscriptions** : - Active **Enable Events** - Avec Socket Mode activé, Slack ne te demande normalement plus de Request URL. - Ajoute les events Bot : ```text app_mention message.im message.channels ``` Puis dis-moi **“xapp prêt”**.
+
+## assistant — 2026-06-14T18:17:11.997604
+
+Parfait. Maintenant côté serveur, il faut juste que les 3 secrets soient dans l’env du profil qui lance Slack : ```bash SLACK_AGENT_DEBUG_BOT_TOKEN=xoxb-... SLACK_AGENT_DEBUG_APP_TOKEN=xapp-... SLACK_AGENT_DEBUG_SIGNING_SECRET=... ``` Puis redémarre Hermes gateway : ```bash hermes --profile chief_of_staff gateway restart ``` Ensuite test Slack : ```text @Agent Debug test ``` Si ça ne répond pas, envoie-moi juste le symptôme exact : “pas de réponse”, “event failed”, ou capture Slack.

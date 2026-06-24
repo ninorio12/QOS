@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { createPortal } from 'react-dom'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Plus, RefreshCw, X, Trash2, Pencil, Check } from 'lucide-react'
 import {
   DndContext,
@@ -15,7 +16,7 @@ import {
 import { useDraggable } from '@dnd-kit/core'
 import { type Appointment, type EventType, STATUS_META, TYPE_META } from './types'
 import { type GHLCalendar } from '@/lib/ghl'
-import { useQuery } from 'convex/react'
+import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import dynamic from 'next/dynamic'
@@ -137,10 +138,37 @@ function MiniCal({
   )
 }
 
+// ─── Tooltip de note via portail (jamais clippé par overflow / toujours au premier plan) ───
+function HoverNote({ note, className, children }: { note?: string | null; className?: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
+  function show() {
+    if (!note || !ref.current) return
+    const r = ref.current.getBoundingClientRect()
+    setPos({ left: r.left, top: r.top })
+  }
+  return (
+    <div ref={ref} className={className} onMouseEnter={show} onMouseLeave={() => setPos(null)}>
+      {children}
+      {note && pos && typeof document !== 'undefined' && createPortal(
+        <div className="fixed z-[200] w-60 -translate-y-full pointer-events-none"
+          style={{ left: Math.max(8, Math.min(pos.left, window.innerWidth - 248)), top: pos.top - 8, filter: 'drop-shadow(0 10px 24px rgba(0,0,0,0.35))' }}>
+          <div className="relative rounded-xl px-3.5 py-2.5 ring-1 ring-white/10 bg-gradient-to-b from-[#26262B] to-[#171719]">
+            <span className="block text-[8px] font-bold uppercase tracking-[0.12em] text-white/35 mb-1">Note</span>
+            <p className="text-[10.5px] leading-relaxed text-white/90 whitespace-pre-line">{note}</p>
+            <span className="absolute left-5 -bottom-1 w-2.5 h-2.5 rotate-45 rounded-[2px] bg-[#171719] ring-1 ring-white/10" />
+          </div>
+        </div>,
+        document.body,
+      )}
+    </div>
+  )
+}
+
 // ─── Event pill ───────────────────────────────────────────────
 function EventPill({ appt, onClick }: { appt: Appointment; onClick: () => void }) {
   return (
-    <div className="relative group">
+    <HoverNote note={appt.notes} className="relative">
       <button
         onClick={e => { e.stopPropagation(); onClick() }}
         className="w-full text-left rounded-md px-1.5 py-0.5 text-[10px] font-semibold truncate transition-all hover:brightness-95"
@@ -148,17 +176,7 @@ function EventPill({ appt, onClick }: { appt: Appointment; onClick: () => void }
       >
         {fmt(appt.startTime)} {appt.title}
       </button>
-      {appt.notes && (
-        <div
-          className="absolute left-0 bottom-full mb-1.5 z-50 w-52 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"
-          style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.18))' }}
-        >
-          <div className="bg-soren-sidebar text-white text-[10px] leading-relaxed rounded-xl px-3 py-2 whitespace-pre-line">
-            {appt.notes}
-          </div>
-        </div>
-      )}
-    </div>
+    </HoverNote>
   )
 }
 
@@ -271,18 +289,7 @@ function WeekCard({
   const isGoogle = appt.source === 'google'
 
   return (
-    <div className="absolute inset-0 group/card">
-      {/* Tooltip notes — appears above on hover */}
-      {appt.notes && (
-        <div
-          className="absolute left-0 bottom-full mb-1.5 z-50 w-52 pointer-events-none opacity-0 group-hover/card:opacity-100 transition-opacity"
-          style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.18))' }}
-        >
-          <div className="bg-soren-sidebar text-white text-[10px] leading-relaxed rounded-xl px-3 py-2 whitespace-pre-line">
-            {appt.notes}
-          </div>
-        </div>
-      )}
+    <HoverNote note={appt.notes} className="absolute inset-0">
       <div
         className="absolute inset-0 overflow-hidden group"
         style={{
@@ -356,7 +363,7 @@ function WeekCard({
           )}
         </div>
       </div>
-    </div>
+    </HoverNote>
   )
 }
 
@@ -464,14 +471,17 @@ function GhostCard({ appt, cardH }: { appt: Appointment; cardH: number }) {
 }
 
 // ─── Main WeekGrid ────────────────────────────────────────────
+type TeamBusy = { clerkUserId: string; name: string; busy: { start: string; end: string }[] }
+
 function WeekGrid({
-  weekOffset, appointments, onApptClick, onUpdateAppt, onDeleteAppt,
+  weekOffset, appointments, onApptClick, onUpdateAppt, onDeleteAppt, teamBusy = [],
 }: {
   weekOffset:    number
   appointments:  Appointment[]
   onApptClick:   (a: Appointment) => void
   onUpdateAppt:  (id: string, newStart: string, newEnd: string) => void
   onDeleteAppt:  (id: string, source?: 'ghl' | 'google') => void
+  teamBusy?:     TeamBusy[]
 }) {
   const today      = new Date(); today.setHours(0,0,0,0)
   const now        = new Date()
@@ -664,6 +674,35 @@ function WeekGrid({
                       />
                     ))}
 
+                    {/* Dispos équipe — créneaux occupés (sans détails), grisés derrière les events */}
+                    {teamBusy.flatMap(person => person.busy.map((b, bi) => {
+                      const bs = new Date(b.start), be = new Date(b.end)
+                      const dayStart = new Date(day); dayStart.setHours(0, 0, 0, 0)
+                      const dayEnd = new Date(day); dayEnd.setHours(24, 0, 0, 0)
+                      if (be <= dayStart || bs >= dayEnd) return null
+                      const cs = bs < dayStart ? dayStart : bs
+                      const ce = be > dayEnd ? dayEnd : be
+                      const mins = (cs.getHours() - HOUR_START) * 60 + cs.getMinutes()
+                      const dur = Math.round((ce.getTime() - cs.getTime()) / 60000)
+                      if (mins < 0 || mins > (HOUR_END - HOUR_START) * 60) return null
+                      const top = (mins / 60) * HOUR_H
+                      const h = Math.max((dur / 60) * HOUR_H, 9)
+                      return (
+                        <div
+                          key={`busy-${person.clerkUserId}-${bi}`}
+                          className="absolute left-0.5 right-0.5 pointer-events-none rounded-md overflow-hidden"
+                          style={{
+                            top, height: h,
+                            background: 'repeating-linear-gradient(45deg, rgba(120,124,138,0.16), rgba(120,124,138,0.16) 6px, rgba(120,124,138,0.07) 6px, rgba(120,124,138,0.07) 12px)',
+                            border: '1px solid rgba(120,124,138,0.28)',
+                          }}
+                          title={`${person.name} · occupé`}
+                        >
+                          {h > 22 && <span className="block text-[9px] font-medium text-soren-subtle px-1.5 pt-0.5 truncate">Occupé · {person.name.split(' ')[0]}</span>}
+                        </div>
+                      )
+                    }))}
+
                     {/* Event cards */}
                     {(() => {
                       const layout = computeOverlapLayout(dayAppts)
@@ -715,16 +754,18 @@ function toLocalInput(iso: string) {
 }
 
 function DetailCard({
-  appt, onClose, onDelete, onUpdate,
+  appt, onClose, onDelete, onUpdate, onSetType,
 }: {
   appt:     Appointment
   onClose:  () => void
   onDelete: (id: string, source?: 'ghl' | 'google') => void
   onUpdate: (id: string, fields: { title: string; startTime: string; endTime: string; notes: string }, source?: 'ghl' | 'google') => void
+  onSetType: (id: string, type: EventType | null) => void
 }) {
   const status    = STATUS_META[appt.status]
   const isGoogle  = appt.source === 'google'
   const dotColor  = isGoogle ? '#34A853' : '#B899D9'
+  const accent    = appt.color || '#3462EE'
   const [editing, setEditing]   = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [title, setTitle] = useState(appt.title)
@@ -748,20 +789,42 @@ function DetailCard({
   }
 
   return (
-    <div className="bg-soren-card border border-soren-border overflow-hidden flex flex-col max-h-[80vh]" style={{ borderRadius: 12 }}>
-      {/* Header — dark */}
-      <div className="flex items-start justify-between gap-2 px-4 py-3 flex-shrink-0" style={{ background: '#111111' }}>
+    <div className="bg-soren-card border border-soren-border overflow-hidden flex flex-col max-h-[80vh] shadow-xl ring-1 ring-black/5" style={{ borderRadius: 14 }}>
+      {/* Header — dégradé sombre teinté par la couleur de l'event */}
+      <div className="relative flex items-start justify-between gap-2 px-4 py-3.5 flex-shrink-0"
+        style={{ background: `linear-gradient(120deg, color-mix(in srgb, ${accent} 42%, #111111) 0%, #131316 55%, #0E0E10 100%)` }}>
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <span className="w-2 h-2 rounded-full flex-shrink-0 mt-0.5" style={{ background: dotColor }} title={isGoogle ? 'Google Calendar' : 'GHL'} />
+          <span className="w-2 h-2 rounded-full flex-shrink-0 mt-0.5 ring-2 ring-white/15" style={{ background: dotColor }} title={isGoogle ? 'Google Calendar' : 'GHL'} />
           {editing
             ? <input value={title} onChange={e => setTitle(e.target.value)} autoFocus placeholder="Titre" className="flex-1 min-w-0 bg-white/10 text-white text-[13px] font-bold rounded-lg px-2 py-1 outline-none placeholder-white/40" />
             : <p className="text-[13px] font-bold text-white leading-snug truncate">{appt.title}</p>}
         </div>
-        <button onClick={onClose} className="flex-shrink-0 text-white/40 hover:text-white transition-colors mt-0.5"><X size={14} /></button>
+        <button onClick={onClose} className="flex-shrink-0 w-6 h-6 -mr-1 -mt-0.5 rounded-full flex items-center justify-center text-white/45 hover:text-white hover:bg-white/10 transition-colors"><X size={14} /></button>
+        {/* fine barre d'accent en bas du header */}
+        <span className="absolute left-0 right-0 bottom-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${accent}, transparent 85%)` }} />
       </div>
 
       {/* Body — scrollable */}
       <div className="flex-1 overflow-y-auto">
+        {/* Type métier — modifiable en un clic (R1 / R2 / Follow-up / Interne / Client / Autre) */}
+        <div className="px-4 py-3 border-b border-[#F0F0EE]">
+          <p className="text-[10px] text-soren-subtle font-semibold uppercase tracking-wider mb-1.5">Type</p>
+          <div className="flex flex-wrap gap-1.5">
+            {(Object.keys(TYPE_META) as EventType[]).map(k => {
+              const active = appt.type === k
+              const c = TYPE_META[k].color
+              return (
+                <button key={k} onClick={() => onSetType(appt.id, active ? null : k)}
+                  className="px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-colors"
+                  style={active
+                    ? { background: c, borderColor: c, color: '#fff' }
+                    : { background: 'transparent', borderColor: c + '40', color: c }}>
+                  {TYPE_META[k].label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
         {editing ? (
           <div className="flex flex-col gap-3 px-4 py-4">
             <label className="flex flex-col gap-1">
@@ -976,6 +1039,8 @@ export default function CalendarView({
   const { clerkUser } = useCurrentUser()
   const gAcc = useQuery(api.googleAccounts.isConnected, clerkUser ? { clerkUserId: clerkUser.id } : 'skip')
   const myGoogleConnected = gAcc?.connected ?? false
+  // Statut connexion iClosed (badge vert "connecté", comme Google).
+  const iclosedStatus = useQuery(api.closing.iclosedStatus, {}) as { connected: boolean; count: number } | undefined
   const [year,         setYear]         = useState(now.getFullYear())
   const [month,        setMonth]        = useState(now.getMonth())
   const [weekOffset,   setWeekOffset]   = useState(0)
@@ -983,11 +1048,55 @@ export default function CalendarView({
   const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null)
   const [showModal,    setShowModal]    = useState(false)
   const [typeFilter,   setTypeFilter]   = useState<EventType | 'all'>('all')
+  // Deep-link depuis Onboarding « Kickoff » : /calendrier?new=1&contact=<id>&name=<nom> → ouvre la modale RDV préremplie.
+  const searchParams = useSearchParams()
+  const [kickoffContact, setKickoffContact] = useState<{ id: string; name: string } | null>(null)
+  useEffect(() => {
+    if (searchParams?.get('new') === '1') {
+      setKickoffContact({ id: searchParams.get('contact') ?? '', name: searchParams.get('name') ? decodeURIComponent(searchParams.get('name')!) : '' })
+      setShowModal(true)
+      router.replace('/calendrier') // nettoie l'URL pour éviter de rouvrir au refresh
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
+
+  // Overrides de type (R1/R2/…) stockés dans Convex, partagés entre profils — fusionnés
+  // dans les events (les events Google n'ont pas de type natif).
+  const apptTypes   = useQuery(api.calendarTypes.list)
+  const setApptType = useMutation(api.calendarTypes.setType)
+  const typeMap = useMemo<Record<string, EventType>>(() => {
+    const m: Record<string, EventType> = {}
+    for (const o of apptTypes ?? []) m[o.eventId] = o.type as EventType
+    return m
+  }, [apptTypes])
+  const mergedAppointments = useMemo(
+    () => appointments.map(a => {
+      const t = typeMap[a.id]
+      return t ? { ...a, type: t, color: TYPE_META[t].color } : a
+    }),
+    [appointments, typeMap],
+  )
 
   const visibleAppointments = useMemo(
-    () => typeFilter === 'all' ? appointments : appointments.filter(a => a.type === typeFilter),
-    [appointments, typeFilter],
+    () => typeFilter === 'all' ? mergedAppointments : mergedAppointments.filter(a => a.type === typeFilter),
+    [mergedAppointments, typeFilter],
   )
+
+  // Dispos de l'équipe (FreeBusy) — affichées en gris dans la vue semaine, sauf soi-même.
+  const myClerkId = clerkUser?.id ?? null
+  const [teamBusy, setTeamBusy] = useState<TeamBusy[]>([])
+  useEffect(() => {
+    if (view !== 'week') { setTeamBusy([]); return }
+    const wdays = getWeekDays(weekOffset)
+    const from = new Date(wdays[0]); from.setHours(0, 0, 0, 0)
+    const to = new Date(wdays[wdays.length - 1]); to.setHours(24, 0, 0, 0)
+    let cancelled = false
+    fetch(`/api/team-freebusy?from=${from.toISOString()}&to=${to.toISOString()}`)
+      .then(r => r.json())
+      .then((d: { people?: TeamBusy[] }) => { if (!cancelled) setTeamBusy((d.people ?? []).filter(p => p.clerkUserId !== myClerkId)) })
+      .catch(() => { /* silencieux */ })
+    return () => { cancelled = true }
+  }, [view, weekOffset, myClerkId])
 
   // Keep latest onRefresh in a ref so the interval/visibility listeners
   // always call the current SWR mutate without re-subscribing.
@@ -1097,6 +1206,17 @@ export default function CalendarView({
     }
   }
 
+  // ── Type métier de l'event (R1/R2/…) — persisté dans Convex, optimiste en local ──
+  function handleSetType(id: string, type: EventType | null) {
+    setAppointments(prev => prev.map(a => a.id === id
+      ? { ...a, type: type ?? undefined, color: type ? TYPE_META[type].color : a.color }
+      : a))
+    setSelectedAppt(prev => prev && prev.id === id
+      ? { ...prev, type: type ?? undefined, color: type ? TYPE_META[type].color : prev.color }
+      : prev)
+    setApptType({ eventId: id, type })
+  }
+
   // ── Delete appointment ─────────────────────────────────────
   function handleDelete(id: string, source?: 'ghl' | 'google') {
     // Optimistic remove
@@ -1113,7 +1233,7 @@ export default function CalendarView({
   }
 
   return (
-    <div className="flex h-[calc(100dvh-148px)] md:h-[calc(100vh-56px)] overflow-hidden">
+    <div className="flex h-[calc(100dvh-148px)] md:h-[calc(100vh-48px)] overflow-hidden">
 
       {/* ── Main area ── */}
       <div className="flex-1 flex flex-col overflow-hidden p-3 gap-2">
@@ -1166,6 +1286,18 @@ export default function CalendarView({
                 </svg>
                 Connecter Google
               </a>
+            )}
+            {/* iClosed badge — connexion API (vert quand raccroché, comme Google) */}
+            {iclosedStatus?.connected ? (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#10B981]/40 bg-[#10B981]/10 text-[11px] font-semibold text-[#059669] whitespace-nowrap" title={`iClosed connecté · ${iclosedStatus.count} RDV synchronisés`}>
+                <span className="w-2 h-2 rounded-full bg-[#10B981] flex-shrink-0" />
+                iClosed
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-soren-border text-[11px] font-semibold text-soren-subtle whitespace-nowrap" title="iClosed : aucun RDV synchronisé">
+                <span className="w-2 h-2 rounded-full bg-soren-subtle flex-shrink-0" />
+                iClosed
+              </div>
             )}
             {/* Refresh */}
             <button
@@ -1243,6 +1375,7 @@ export default function CalendarView({
             <WeekGrid
               weekOffset={weekOffset}
               appointments={visibleAppointments}
+              teamBusy={teamBusy}
               onApptClick={a => { setSelectedAppt(a); setSelectedDay(null) }}
               onUpdateAppt={handleUpdateAppt}
               onDeleteAppt={handleDelete}
@@ -1270,6 +1403,7 @@ export default function CalendarView({
             onClose={() => setSelectedAppt(null)}
             onDelete={handleDelete}
             onUpdate={handleEditAppt}
+            onSetType={handleSetType}
           />
         )}
 
@@ -1344,11 +1478,14 @@ export default function CalendarView({
       {showModal && (
         <NewAppointmentModal
           calendars={calendars}
-          onClose={() => setShowModal(false)}
+          initialContactId={kickoffContact?.id || undefined}
+          initialContactName={kickoffContact?.name || undefined}
+          onClose={() => { setShowModal(false); setKickoffContact(null) }}
           onCreated={appt => {
             setAppointments(prev => [appt, ...prev])
             setSelectedAppt(appt)
             setShowModal(false)
+            setKickoffContact(null)
           }}
         />
       )}

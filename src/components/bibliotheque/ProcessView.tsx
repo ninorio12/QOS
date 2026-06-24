@@ -1,18 +1,31 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation } from 'convex/react'
-import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { DndContext, DragOverlay, useDraggable, useDroppable, pointerWithin, defaultDropAnimationSideEffects, type DragEndEvent, type DragStartEvent, type DropAnimation } from '@dnd-kit/core'
+import { useKanbanSensors } from '@/hooks/useKanbanSensors'
 import { api } from '../../../convex/_generated/api'
+import { Modal } from '@/components/ui/Modal'
 import {
-  Plus, ArrowLeft, ArrowUpRight, Trash2, X, Image as ImageIcon, Camera, RefreshCw, Search, Link2, ChevronDown, FolderPlus, Check, Maximize2,
+  Plus, ArrowLeft, ArrowUpRight, Trash2, X, Image as ImageIcon, Camera, RefreshCw, Search, Link2, ChevronDown, FolderPlus, Check, Maximize2, Pencil, Copy,
   Workflow, GitMerge, Target, Rocket, Users, FileText, Settings, Zap, Layers,
   CheckSquare, MessageSquare, TrendingUp, Calendar, Database, CreditCard, Mail, Folder, Star, Flag,
   type LucideIcon,
 } from 'lucide-react'
 import DocEditor from './DocEditor'
+import FicheMarkdown from './FicheMarkdown'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+
+// Markdown → HTML (pour afficher/éditer une fiche .md dans l'éditeur WYSIWYG, ou importer un .md).
+function mdToHtml(md: string): string {
+  if (!md || !md.trim()) return ''
+  const raw = marked.parse(md) as string
+  return typeof window === 'undefined' ? raw : DOMPurify.sanitize(raw)
+}
 
 type Block = { type: string; text: string }
 
@@ -33,15 +46,218 @@ function blocksToHtml(blocks: Block[]): string {
 }
 type Process = { id: string; title: string; icon: string; link: string; previewUrl: string; blocks: Block[]; category: string; subfolder: string; linkedClientId: string; assignedUserIds: string[]; order: number; updatedAt: string }
 
+// ─── SOPs & Playbooks = documents Markdown ─────────────────────
+// Stockés en un seul bloc { type:'md', text:<markdown brut> } — pas de migration (le schéma accepte tout type string).
+const SOP_TEMPLATE = `# SOP #N — [Titre du SOP]
+
+**Responsable :** [Nom (Rôle)]
+**Exécutant :** [Rôle]
+**Statut :** Actif
+**Dernière revue :** ${'AAAA-MM-JJ'}
+
+---
+
+## 🎯 Objectif
+[Ce que ce SOP accomplit, en une phrase.]
+
+## ✅ Si on le suit
+[Conséquence positive.]
+
+## ❌ Si on ne le suit pas
+[Conséquence négative.]
+
+## 📥 Inputs
+- [Ce qu'il faut AVANT de commencer]
+
+## 📤 Outputs
+- [Ce qu'on obtient APRÈS]
+
+## 📋 Checklist (max 8 étapes)
+1. **[Titre étape]** — [Manuel — … / Skill /nom — …]
+2. …
+
+## ❓ FAQ
+**Q : …**
+R : …
+
+---
+
+<details>
+<summary>📋 Template à copier — [nom du livrable]</summary>
+
+\`\`\`
+[Colle ici le contenu prêt à copier-coller pour chaque exécution…]
+\`\`\`
+</details>
+`
+
+const PLAYBOOK_TEMPLATE = `# Playbook — [Nom du playbook]
+
+**Owner :** [Nom]
+**Version :** v1.0
+**Date :** ${'AAAA-MM-JJ'}
+**Statut :** Draft / En cours / Validé
+
+---
+
+## 🧭 Quand utiliser ce playbook
+[Situation déclencheuse.]
+
+## 🎯 Objectif
+[Résultat visé.]
+
+## 🪜 Étapes
+1. …
+2. …
+
+## 🧩 Décisions clés
+- **Si … → …**
+
+## 🛠️ Ressources & SOPs liés
+- [Lien / SOP]
+
+## 📊 Comment savoir que c'est réussi
+- [Métrique / signal observable]
+
+---
+
+<details>
+<summary>📋 Template à copier — [nom du livrable]</summary>
+
+\`\`\`
+[Colle ici le contenu prêt à copier-coller à chaque utilisation…]
+\`\`\`
+</details>
+`
+
+// Sous-dossier → type de doc Markdown (sinon null = éditeur Word classique).
+function mdKindOf(subfolder: string): 'SOP' | 'Playbook' | null {
+  const sf = (subfolder || '').toLowerCase()
+  if (sf === 'sops') return 'SOP'
+  if (sf === 'playbooks') return 'Playbook'
+  return null
+}
+function mdFromBlocks(blocks: Block[]): string {
+  return (blocks?.length === 1 && blocks[0].type === 'md') ? blocks[0].text : ''
+}
+// Strip léger de la syntaxe markdown pour l'aperçu des cartes.
+function stripMarkdown(s: string): string {
+  return s
+    .replace(/^---+$/gm, '')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^\s*[-*+]\s+/gm, '• ')
+    .replace(/^\s*\d+\.\s+/gm, '')
+    .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+    .split('\n').map(l => l.trim()).filter(Boolean).join('\n')
+    .trim()
+}
+
 // Aperçu texte : 1er bloc non vide, tags HTML retirés (fallback quand pas d'image).
 function textPreview(blocks: Block[]): string {
+  if (blocks?.length === 1 && blocks[0].type === 'md') return stripMarkdown(blocks[0].text)
   const first = (blocks ?? []).map(b => (b.text ?? '').trim()).find(Boolean) ?? ''
-  return first.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
+  return first
+    .replace(/<li[^>]*>/gi, '• ')                       // puces
+    .replace(/<\/(p|div|h[1-6]|li|tr|ul|ol)>/gi, '\n')  // fins de blocs → saut de ligne
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')                            // autres balises
+    .replace(/&nbsp;/g, ' ')
+    .replace(/[ \t]+/g, ' ')                             // espaces multiples (préserve \n)
+    .split('\n').map(l => l.trim()).join('\n')
+    .replace(/\n{3,}/g, '\n\n')                          // max une ligne vide
+    .trim()
 }
+// ─── Doc Markdown friendly (SOPs & Playbooks) ──────────────────
+// Lecture = carte COPIER-COLLER (toggle Aperçu rendu ↔ source + « Copier tout »).
+// Édition = textarea markdown brut + aperçu live + bouton « Insérer le template ».
+function MarkdownDoc({ md, readOnly, onChange, kind }: { md: string; readOnly: boolean; onChange: (md: string) => void; kind: 'SOP' | 'Playbook' }) {
+  const [draft, setDraft] = useState(md)
+  const [view, setView] = useState<'preview' | 'source'>('preview')
+  const [copied, setCopied] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const template = kind === 'SOP' ? SOP_TEMPLATE : PLAYBOOK_TEMPLATE
+
+  function change(v: string) {
+    setDraft(v)
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(() => onChange(v), 600)
+  }
+  function copy() {
+    try { navigator.clipboard?.writeText(md) } catch { /* noop */ }
+    setCopied(true); setTimeout(() => setCopied(false), 1400)
+  }
+
+  // ── Mode édition : markdown brut + aperçu live ──
+  if (!readOnly) {
+    return (
+      <div className="flex flex-col gap-3">
+        {!draft.trim() && (
+          <div className="flex justify-end">
+            <button onClick={() => change(template)} className="text-[11px] font-semibold text-[#FF4D00] hover:underline">Insérer le template {kind}</button>
+          </div>
+        )}
+        <textarea
+          value={draft}
+          onChange={e => change(e.target.value)}
+          onBlur={() => { if (timer.current) clearTimeout(timer.current); onChange(draft) }}
+          placeholder={`# ${kind}…`}
+          spellCheck={false}
+          className="w-full min-h-[360px] bg-[#FCFBF9] text-[#37352F] placeholder-[#A39E90] font-mono text-[12px] leading-relaxed rounded-2xl border border-[#E8E5DC] px-4 py-3.5 outline-none focus:ring-2 focus:ring-[#FF4D00]/40 resize-y"
+        />
+        {draft.trim() && (
+          <div className="rounded-2xl border border-soren-border bg-soren-card p-4">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-soren-subtle mb-2">Aperçu</p>
+            <FicheMarkdown markdown={draft} />
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ── Mode lecture : carte COPIER-COLLER ──
+  if (!md.trim()) {
+    return <p className="text-[12px] text-soren-subtle italic py-6">Aucun contenu. Clique « Modifier » pour rédiger ce {kind}.</p>
+  }
+  return (
+    <div className="rounded-2xl border border-soren-border bg-soren-card overflow-hidden">
+      <div className="flex items-center justify-between gap-2 px-3.5 py-2 border-b border-soren-border bg-soren-elevated/60">
+        <div className="flex items-center gap-0.5 bg-soren-card border border-soren-border rounded-full p-0.5">
+          {([['preview', 'Aperçu'], ['source', 'Copier-coller']] as const).map(([v, label]) => (
+            <button key={v} onClick={() => setView(v)}
+              className={`text-[10.5px] font-semibold px-2.5 py-1 rounded-full transition-colors ${view === v ? 'bg-[#FF4D00] text-white' : 'text-soren-muted hover:text-soren-text'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <button onClick={copy}
+          className="flex items-center gap-1.5 text-[10.5px] font-semibold text-soren-muted hover:text-soren-text bg-soren-card border border-soren-border rounded-full px-2.5 py-1 transition-colors">
+          {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+          {copied ? 'Copié' : 'Copier tout'}
+        </button>
+      </div>
+      <div className="p-4">
+        {view === 'preview'
+          ? <FicheMarkdown markdown={md} />
+          : <pre className="text-[11.5px] font-mono text-soren-text whitespace-pre-wrap leading-relaxed">{md}</pre>}
+      </div>
+    </div>
+  )
+}
+
 type ClientLite = { _id: string; ghl_contact_id?: string; name: string }
 type UserLite = { id: string; name: string; avatarUrl?: string }
 
 const DEFAULT_CATS = ['Process internes', 'Process clients']
+
+// Animation de drop fluide (identique pipeline/prospection).
+const PROCESS_DROP_ANIM: DropAnimation = {
+  duration: 220,
+  easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+  sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.4' } } }),
+}
 
 // ─── Avatars de profils ───────────────────────────────────────
 const initials = (name: string) => name.split(' ').filter(Boolean).slice(0, 2).map(s => s[0]?.toUpperCase() ?? '').join('') || '?'
@@ -144,7 +360,18 @@ function Picker({ value, placeholder, options, onSelect, searchable, emptyLabel,
   )
 }
 
-function ProcessDetail({ proc, categories, subfolderOptions, clients, users, onBack, readOnly = false }: { proc: Process; categories: string[]; subfolderOptions: string[]; clients: ClientLite[]; users: UserLite[]; onBack: () => void; readOnly?: boolean }) {
+// Petit bouton « Copier » le contenu texte d'une fiche (lecture).
+function CopyDocButton({ text }: { text: string }) {
+  const [c, setC] = useState(false)
+  return (
+    <button onClick={() => { try { navigator.clipboard?.writeText(text) } catch { /* noop */ } setC(true); setTimeout(() => setC(false), 1400) }}
+      className="inline-flex items-center gap-1.5 text-[10.5px] font-semibold text-soren-muted hover:text-soren-text bg-soren-card border border-soren-border rounded-full px-2.5 py-1 transition-colors">
+      {c ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}{c ? 'Copié' : 'Copier le contenu'}
+    </button>
+  )
+}
+
+function ProcessDetail({ proc, categories, subfolderOptions, clients, users, onBack, cannotEdit = false }: { proc: Process; categories: string[]; subfolderOptions: string[]; clients: ClientLite[]; users: UserLite[]; onBack: () => void; cannotEdit?: boolean }) {
   const update = useMutation(api.processes.update)
   const removeP = useMutation(api.processes.remove)
   const toggleUser = (uid: string) => {
@@ -160,8 +387,38 @@ function ProcessDetail({ proc, categories, subfolderOptions, clients, users, onB
   const [uploading, setUploading] = useState(false)
   const [zoomed, setZoomed] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  // Lecture seule par défaut (protégé). L'admin clique "Modifier" pour éditer, "Sauvegarder" pour reverrouiller.
+  const [editing, setEditing] = useState(false)
+  const readOnly = cannotEdit || !editing
 
   function saveDoc(html: string) { void update({ id: proc.id as never, blocks: [{ type: 'doc', text: html }] }) }
+
+  // SOPs & Playbooks = document éditable « papier clair » (WYSIWYG). On édite l'aperçu directement,
+  // pas de markdown brut. Le contenu est stocké en HTML ; un éventuel ancien bloc `md` est rendu en
+  // HTML à l'affichage (mdToHtml) et migré en HTML dès la 1re édition.
+  const subfolderKind = mdKindOf(proc.subfolder)        // SOP/Playbook indépendamment du contenu actuel
+  const blocksAsHtml = (proc.blocks?.length === 1 && proc.blocks[0].type === 'md')
+    ? mdToHtml(proc.blocks[0].text)
+    : blocksToHtml(proc.blocks)
+
+  // ── Import d'un fichier .md (drag-and-drop ou bouton) sur une fiche SOP/Playbook ──
+  // Le .md est converti en HTML rendu et chargé dans l'éditeur (confirmation si contenu existant).
+  const [dragMd, setDragMd] = useState(false)
+  const [overrideHtml, setOverrideHtml] = useState<string | null>(null)
+  const [editorNonce, setEditorNonce] = useState(0)
+  const mdFileRef = useRef<HTMLInputElement>(null)
+  // Réinitialise l'éditeur quand on change de fiche.
+  useEffect(() => { setOverrideHtml(null); setEditorNonce(0) }, [proc.id])
+  async function importMd(file: File) {
+    if (!/\.(md|markdown|txt)$/i.test(file.name)) { alert('Dépose un fichier .md (Markdown).'); return }
+    const text = await file.text()
+    const hasContent = blocksAsHtml.replace(/<[^>]*>/g, '').trim() !== ''
+    if (hasContent && !window.confirm(`Remplacer le contenu de « ${proc.title} » par le fichier ${file.name} ?`)) return
+    const html = mdToHtml(text)
+    saveDoc(html)
+    setOverrideHtml(html); setEditorNonce(n => n + 1)   // force le ré-affichage immédiat de l'éditeur
+    setEditing(true)                                     // bascule en édition avec le contenu chargé
+  }
 
   async function uploadPreview(file: File) {
     setUploading(true)
@@ -177,9 +434,16 @@ function ProcessDetail({ proc, categories, subfolderOptions, clients, users, onB
     <>
     <div className="h-full overflow-y-auto">
       <div className="px-6 py-6 flex flex-col gap-3 max-w-4xl">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <button onClick={onBack} className="flex items-center gap-1.5 text-[12px] font-semibold text-soren-muted hover:text-soren-text transition-colors"><ArrowLeft size={14} /> Process</button>
-          {!readOnly && <button onClick={() => { void removeP({ id: proc.id as never }); onBack() }} className="flex items-center gap-1.5 text-[11px] font-semibold text-soren-muted hover:text-[#DC2626] transition-colors"><Trash2 size={12} /> Supprimer</button>}
+          {!cannotEdit && (editing ? (
+            <div className="flex items-center gap-2">
+              <button onClick={() => { void removeP({ id: proc.id as never }); onBack() }} className="flex items-center gap-1.5 text-[11px] font-semibold text-soren-muted hover:text-[#DC2626] transition-colors"><Trash2 size={12} /> Supprimer</button>
+              <button onClick={() => { void update({ id: proc.id as never, title: title.trim() || 'Sans titre', link: link.trim() }); setEditing(false) }} className="flex items-center gap-1.5 text-[11px] font-bold text-white bg-[#16A34A] px-3 py-1.5 rounded-full hover:bg-[#15803D] transition-colors"><Check size={13} /> Sauvegarder</button>
+            </div>
+          ) : (
+            <button onClick={() => setEditing(true)} className="flex items-center gap-1.5 text-[11px] font-bold text-white bg-[#FF4D00] px-3 py-1.5 rounded-full hover:bg-[#e64500] transition-colors"><Pencil size={13} /> Modifier</button>
+          ))}
         </div>
 
         <div className="flex items-center gap-3">
@@ -282,15 +546,42 @@ function ProcessDetail({ proc, categories, subfolderOptions, clients, users, onB
         )}
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) void uploadPreview(f); e.target.value = '' }} />
 
-        {/* Page document type Word */}
-        <DocEditor key={proc.id} html={blocksToHtml(proc.blocks)} onChange={saveDoc} readOnly={readOnly} />
+        {/* Barre Importer un .md + Copier — visible pour qui peut éditer (lecture comme édition), tout process */}
+        {!cannotEdit && (
+          <div className="flex items-center justify-between gap-2 -mb-1">
+            <span className="text-[10.5px] text-soren-subtle">Glisse un fichier <code className="text-soren-muted">.md</code> ici, ou :</span>
+            <div className="flex items-center gap-2">
+              {textPreview(proc.blocks).trim() && <CopyDocButton text={textPreview(proc.blocks)} />}
+              <button onClick={() => mdFileRef.current?.click()} className="inline-flex items-center gap-1.5 text-[10.5px] font-semibold text-white bg-[#FF4D00] hover:bg-[#e64500] rounded-full px-2.5 py-1 transition-colors">
+                <FileText size={12} /> Importer un .md
+              </button>
+            </div>
+            <input ref={mdFileRef} type="file" accept=".md,.markdown,.txt,text/markdown" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) void importMd(f); e.target.value = '' }} />
+          </div>
+        )}
+
+        {/* Document éditable. Drop d'un .md possible partout (pour qui peut éditer). */}
+        <div
+          onDragOver={!cannotEdit ? (e => { e.preventDefault(); if (!dragMd) setDragMd(true) }) : undefined}
+          onDragLeave={!cannotEdit ? (e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragMd(false) }) : undefined}
+          onDrop={!cannotEdit ? (e => { e.preventDefault(); setDragMd(false); const f = Array.from(e.dataTransfer.files)[0]; if (f) void importMd(f) }) : undefined}
+          className={`relative rounded-2xl transition-all ${dragMd ? 'ring-2 ring-[#FF4D00]/70' : ''}`}
+        >
+          {dragMd && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#FF4D00]/10 rounded-2xl border-2 border-dashed border-[#FF4D00] pointer-events-none">
+              <span className="text-[12px] font-bold text-[#FF4D00] flex items-center gap-1.5"><FileText size={14} /> Déposer le .md ici</span>
+            </div>
+          )}
+          <DocEditor key={`${proc.id}:${editorNonce}`} html={overrideHtml ?? blocksAsHtml} onChange={saveDoc} readOnly={readOnly} paper={!!subfolderKind} />
+        </div>
         </div>{/* end image+doc group */}
       </div>
     </div>
 
-    {/* Zoom lightbox */}
-    {zoomed && proc.previewUrl && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
+    {/* Zoom lightbox — portal vers body pour passer AU-DESSUS du header/sidebar */}
+    {zoomed && proc.previewUrl && typeof document !== 'undefined' && createPortal((
+      <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-8"
         onClick={() => setZoomed(false)}>
         <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
         <div className="relative max-w-6xl w-full" onClick={e => e.stopPropagation()}>
@@ -314,7 +605,7 @@ function ProcessDetail({ proc, categories, subfolderOptions, clients, users, onB
           )}
         </div>
       </div>
-    )}
+    ), document.body)}
     </>
   )
 }
@@ -338,8 +629,10 @@ export default function ProcessView() {
 
   const create = useMutation(api.processes.create)
   const updateProc = useMutation(api.processes.update)
-  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+  const dndSensors = useKanbanSensors()
+  const [draggingId, setDraggingId] = useState<string | null>(null)
   function handleDragEnd(e: DragEndEvent) {
+    setDraggingId(null)
     const procId = String(e.active.id)
     const d = e.over?.data?.current as { category: string; subfolder: string } | undefined
     if (!d) return
@@ -406,7 +699,7 @@ export default function ProcessView() {
       ...subfolders.filter(s => s.category === selCat).map(s => s.name),
       ...items.filter(p => (p.category || 'Process internes') === selCat && p.subfolder).map(p => p.subfolder),
     ]))
-    return <ProcessDetail proc={selected} categories={categories} subfolderOptions={subOpts} clients={clients} users={users} onBack={() => setSelectedId(null)} readOnly={!isAdmin} />
+    return <ProcessDetail key={selected.id} proc={selected} categories={categories} subfolderOptions={subOpts} clients={clients} users={users} onBack={() => setSelectedId(null)} cannotEdit={!isAdmin} />
   }
 
   function DropZone({ category, subfolder, children, className }: { category: string; subfolder: string; children: React.ReactNode; className?: string }) {
@@ -414,41 +707,44 @@ export default function ProcessView() {
     return <div ref={setNodeRef} className={`${className ?? ''} rounded-xl transition-all ${isOver ? 'ring-2 ring-[#FF4D00]/60 bg-[#FF4D00]/5' : ''}`}>{children}</div>
   }
 
-  function Card({ p }: { p: Process }) {
-    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: p.id, data: { process: p } })
+  // Visuel pur (réutilisé par la carte ET le DragOverlay) — pas de hook DnD ici.
+  function CardVisual({ p, overlay = false }: { p: Process; overlay?: boolean }) {
     const link = p.link && <a href={p.link} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} title="Ouvrir le lien" className="w-6 h-6 rounded-lg flex items-center justify-center text-soren-muted hover:text-[#FF4D00] hover:bg-soren-elevated transition-colors flex-shrink-0"><ArrowUpRight size={14} /></a>
     const clientLine = p.linkedClientId && clientNameOf[p.linkedClientId] && <span className="text-[9.5px] text-soren-subtle truncate block">{clientNameOf[p.linkedClientId]}</span>
     return (
-      <div ref={setNodeRef} {...attributes} {...listeners} onClick={() => setSelectedId(p.id)} style={{ touchAction: 'none' }}
-        className={`group bg-soren-card border border-soren-border rounded-xl overflow-hidden cursor-pointer hover:border-[#C8CBD0] hover:shadow-sm transition-all flex flex-col ${isDragging ? 'opacity-40' : ''}`}>
+      <div className={`bg-soren-card border rounded-xl overflow-hidden flex flex-col h-full transition-all ${overlay ? 'border-[#FF4D00] shadow-[0_0_0_1px_#FF4D00,0_10px_28px_rgba(0,0,0,0.18)] rotate-2 cursor-grabbing' : 'border-soren-border hover:border-[#C8CBD0] hover:shadow-sm'}`}>
+        {/* Titre EN HAUT — toujours */}
+        <div className="p-2.5 flex items-center gap-2 flex-shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-[#FF4D00]/10 flex items-center justify-center flex-shrink-0"><IconOf k={p.icon} size={13} className="text-[#FF4D00]" /></div>
+          <div className="min-w-0 flex-1"><span className="text-[12px] font-medium text-soren-text truncate block">{p.title}</span>{clientLine}</div>
+          {link}
+        </div>
+        {/* Milieu : photo OU aperçu du texte écrit (sauts de ligne), hauteur fixe pour aligner les cards */}
         {p.previewUrl ? (
-          <>
-            <div className="h-20 bg-soren-elevated overflow-hidden"><img src={p.previewUrl} alt={p.title} className="w-full h-full object-cover" /></div>
-            <div className="p-2.5 flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#FF4D00]/10 flex items-center justify-center flex-shrink-0"><IconOf k={p.icon} size={13} className="text-[#FF4D00]" /></div>
-              <div className="min-w-0 flex-1"><span className="text-[11.5px] font-normal text-soren-text truncate block">{p.title}</span>{clientLine}</div>
-              {link}
-            </div>
-          </>
+          <div className="h-24 bg-soren-elevated overflow-hidden flex-shrink-0"><img src={p.previewUrl} alt={p.title} className="w-full h-full object-cover" /></div>
         ) : (
-          // Sans photo : titre en haut + début de la description (pas de cadre photo vide).
-          <div className="p-3 flex flex-col gap-1.5">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#FF4D00]/10 flex items-center justify-center flex-shrink-0"><IconOf k={p.icon} size={13} className="text-[#FF4D00]" /></div>
-              <span className="text-[12px] font-medium text-soren-text truncate flex-1">{p.title}</span>
-              {link}
-            </div>
-            {(() => { const t = textPreview(p.blocks); return t ? <p className="text-[10.5px] text-soren-muted leading-snug line-clamp-3">{t}</p> : <p className="text-[10.5px] text-soren-subtle italic">Pas encore de description</p> })()}
-            {clientLine}
+          <div className="px-2.5 h-24 overflow-hidden flex-shrink-0">
+            {(() => { const t = textPreview(p.blocks); return t
+              ? <p className="text-[10.5px] text-soren-muted leading-snug whitespace-pre-line line-clamp-5">{t}</p>
+              : <p className="text-[10.5px] text-soren-subtle italic">Pas encore de description</p> })()}
           </div>
         )}
-        {(p.assignedUserIds.length > 0 || isAdmin) && (
-          <div className="px-2.5 pb-2.5 -mt-0.5 flex items-center">
-            {p.assignedUserIds.length === 0
-              ? <span className="text-[8.5px] font-semibold text-soren-subtle bg-soren-elevated rounded-full px-2 py-0.5">Non assigné</span>
-              : <span className="flex -space-x-1.5">{p.assignedUserIds.map(id => userMap[id]).filter(Boolean).slice(0, 6).map(u => <Avatar key={u.id} u={u} size={18} />)}</span>}
-          </div>
-        )}
+        {/* Assignés — TOUJOURS en bas, même place pour chaque card */}
+        <div className="px-2.5 py-2 mt-auto border-t border-soren-border/60 flex items-center min-h-[36px] flex-shrink-0">
+          {p.assignedUserIds.length === 0
+            ? <span className="text-[8.5px] font-semibold text-soren-subtle bg-soren-elevated rounded-full px-2 py-0.5">Non assigné</span>
+            : <span className="flex -space-x-1.5">{p.assignedUserIds.map(id => userMap[id]).filter(Boolean).slice(0, 6).map(u => <Avatar key={u.id} u={u} size={18} />)}</span>}
+        </div>
+      </div>
+    )
+  }
+
+  function Card({ p }: { p: Process }) {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: p.id, data: { process: p } })
+    return (
+      <div ref={setNodeRef} {...attributes} {...listeners} onClick={() => setSelectedId(p.id)}
+        className={`h-full cursor-grab active:cursor-grabbing transition-opacity ${isDragging ? 'opacity-30' : ''}`}>
+        <CardVisual p={p} />
       </div>
     )
   }
@@ -480,7 +776,9 @@ export default function ProcessView() {
             <p className="text-[12px] text-soren-subtle">{query || clientFilter ? 'Aucun process trouvé.' : isAdmin ? 'Aucun process. Clique « Ajouter un process ».' : 'Aucun process ne t’est assigné pour le moment.'}</p>
           </div>
         ) : (
-          <DndContext sensors={dndSensors} onDragEnd={handleDragEnd}>
+          <DndContext sensors={dndSensors} collisionDetection={pointerWithin}
+            onDragStart={(e: DragStartEvent) => setDraggingId(String(e.active.id))}
+            onDragEnd={handleDragEnd} onDragCancel={() => setDraggingId(null)}>
           <div className="flex flex-col gap-6">
             {visibleCats.map(cat => {
               const all    = byCat[cat] ?? []
@@ -525,13 +823,15 @@ export default function ProcessView() {
               )
             })}
           </div>
+          <DragOverlay dropAnimation={PROCESS_DROP_ANIM}>
+            {draggingId ? (() => { const dp = items.find(p => p.id === draggingId); return dp ? <div className="w-[200px]"><CardVisual p={dp} overlay /></div> : null })() : null}
+          </DragOverlay>
           </DndContext>
         )}
       </div>
 
       {addingCat && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setAddingCat(false)} />
+        <Modal onClose={() => setAddingCat(false)}>
           <div className="relative bg-soren-card rounded-3xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-black text-soren-text">Nouvelle catégorie</h2>
@@ -543,12 +843,11 @@ export default function ProcessView() {
             <button onClick={() => { if (catName.trim()) { createCat({ name: catName.trim() }); setCatName(''); setAddingCat(false) } }} disabled={!catName.trim()}
               className="w-full bg-[#FF4D00] hover:bg-[#e64500] disabled:opacity-50 text-white font-semibold rounded-full py-3 text-sm transition-colors">Créer la catégorie</button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {addingSubFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setAddingSubFor(null)} />
+        <Modal onClose={() => setAddingSubFor(null)}>
           <div className="relative bg-soren-card rounded-3xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-black text-soren-text">Nouveau sous-dossier</h2>
@@ -561,7 +860,7 @@ export default function ProcessView() {
             <button onClick={() => { if (subName.trim()) { createSubfolder({ category: addingSubFor, name: subName.trim() }); setSubName(''); setAddingSubFor(null) } }} disabled={!subName.trim()}
               className="w-full bg-[#FF4D00] hover:bg-[#e64500] disabled:opacity-50 text-white font-semibold rounded-full py-3 text-sm transition-colors">Créer le sous-dossier</button>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

@@ -1,0 +1,230 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260614_173521_804aca
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260614_173521_804aca.jsonl
+source_sha256_16: 49eaf4d73c5ad540
+date: 2026-06-14
+---
+
+# Recovered session chief_of_staff/20260614_173521_804aca
+
+
+## user — 2026-06-14T17:38:20.405560
+
+oui je veux que ce soit stable et et facile à mettre en place
+
+## assistant — 2026-06-14T17:38:20.405560
+
+Oui, c’est le bon critère.
+
+Je privilégierais donc :
+
+- **stable avant sophistiqué**
+- **peu de dépendances**
+- **setup reproductible en 10–15 min**
+- **un seul endroit à configurer**
+- **logs clairs si ça casse**
+- **fallback manuel simple**
+
+Si une option est plus “puissante” mais fragile à maintenir, on l’écarte. Le bon système ici, c’est celui que tu peux relancer sans réfléchir.
+
+## user — 2026-06-14T17:38:20.405560
+
+oui stp dépeche faut qu'on mette en place les agents sur slack la ca traine
+
+## assistant — 2026-06-14T17:38:20.405560
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+Continue validating the VividFlow Slack multi-agent setup: confirm all executor Slack bots are connected and responding, especially `agent_kb_executor`, whose DM test failed with `channel_not_found` / `cannot_dm_bot`.
+
+## Goal
+Ensure the VividFlow Slack multi-bot system is correctly configured, running, connected to Slack Socket Mode, and operational for the executor agents:
+- `agent_kb_executor`
+- `csm_executor`
+- `operations_executor`
+- `data_analyst_executor`
+
+## Constraints & Preferences
+- Do not expose or preserve secrets. Any Slack bot/app tokens or credentials must be represented as `[REDACTED]`.
+- Use existing Hermes profile structure under `/home/hermes/.hermes/profiles`.
+- Follow VividFlow agent runtime / Slack multibot operating guidance from loaded skills and references.
+- Validate by checking config/env/logs/process state and by sending Slack test messages.
+- Slack bot tokens and app tokens exist in profile `.env` files but must never be printed or summarized.
+- Preferred validation path: inspect gateway logs, Slack auth status, Socket Mode connection, and live responses to test messages.
+- Treat Slack API token usage as local-only; never preserve token values.
+
+## Completed Actions
+1. LOADED core operational skills — loaded `machine-de-guerre-core`, `context-loader-core`, `source-of-truth-core`, and `agent-roles-core` for operating context [tool: `skill_view`].
+2. LISTED available messaging targets — retrieved configured send-message destinations, including Slack channels/targets [tool: `send_message` with `action=list`].
+3. LOADED VividFlow runtime skill — loaded `vividflow-agent-runtime`, including detailed runtime guidance [tool: `skill_view`].
+4. READ VividFlow Slack operations references:
+ - `references/vividflow-slack-multibot-operations.md`
+ - `references/slack-agent-dataos-context7-setup.md`
+ - `references/vividflow-slack-coo-agent-operating-rules.md`
+ Outcome: confirmed operational pattern for Slack multibot setup, executor profiles, Socket Mode, and COO/agent coordination rules [tool: `skill_view`].
+5. SEARCHED profile directory `/home/hermes/.hermes/profiles` — found 100 profile-related matches [tool: `search_files`].
+6. SEARCHED for `.env` files under `/home/hermes/.hermes/profiles` — found 10 `.env` matches [tool: `search_files`].
+7. INSPECTED selected executor profiles — checked `agent_kb_executor`, `csm_executor`, `operations_executor`, and `data_analyst_executor` profile configuration/environment data with Python scripts. Output was compact/truncated, but the inspection targeted config/env consistency [tool: `execute_code`].
+8. CHECKED running processes with sanitized command:
+ `ps -ef | grep -E 'hermes.*(agent_kb|csm|operations|data_analyst)|gateway|slack' | grep -v grep | sed -E ...`
+ Outcome: command ran successfully with 1 line output; any token-like values were redacted by command pipeline [tool: `terminal`].
+9. INSPECTED gateway logs for executor profiles — read recent `logs/gateway.log` entries for:
+ - `/home/hermes/.hermes/profiles/csm_executor/logs/gateway.log`
+ - `/home/hermes/.hermes/profiles/operations_executor/logs/gateway.log`
+ - `/home/hermes/.hermes/profiles/data_analyst_executor/logs/gateway.log`
+ - `/home/hermes/.hermes/profiles/agent_kb_executor/logs/gateway.log`
+ Outcome: logs showed Slack connections and recent restarts; detailed later log output confirmed successful Slack Socket Mode connections [tool: `execute_code`].
+10. CHECKED Slack tokens presence by profile using Python — verified the following profiles contain `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN` in their `.env` files:
+ - `agent_kb_executor`
+ - `csm_executor`
+ - `chief_of_staff`
+ - `data_analyst_executor`
+ - `operations_executor`
+ Token values were not printed/preserved [tool: `execute_code`].
+11. USED Slack API via chief-of-staff token from `.env` to query/post/test Slack connectivity. Credentials were read locally but are not preserved here; all token values are `[REDACTED]` [tool: `execute_code`].
+12. SENT Slack test message to CSM agent:
+ Target: `slack:service-client`
+ Message: `<@U0BADG3FV2S> Test rapide : réponds simplement \`CSM opérationnel\`.`
+ Outcome: success, posted to Slack channel `C0B7TTVN79P`, message id `1781450657.858499` [tool: `send_message`].
+13. SENT Slack test message to Operations agent:
+ Target: `slack:ops-systeme`
+ Message: `<@U0BAHDG94JD> Test rapide : réponds simplement \`Operations opérationnel\`.`
+ Outcome: success, posted to Slack channel `C0B7TTVREM7`, message id `1781450659.150609` [tool: `send_message`].
+14. SENT Slack test message to Data Analyst agent:
+ Target: `slack:data-analyst`
+ Message: `<@U0BB9SNCEV6> Test rapide : réponds simplement \`Data Analyst opérationnel\`.`
+ Outcome: success, posted to Slack channel `C0B7VMHG2Q4`, message id `1781450660.442889` [tool: `send_message`].
+15. ATTEMPTED Slack direct-message test to KB target:
+ Target: `slack:D0BA97DSK51`
+ Message: `Test rapide : réponds simplement \`KB opérationnel\`.`
+ Outcome: failed with error `Slack API error: channel_not_found` [tool: `send_message`].
+16. WAITED 20 seconds to allow Slack agents to process test messages [tool: `terminal`].
+17. RE-READ executor gateway logs after wait. Important confirmed log excerpts:
+ - `csm_executor`: authenticated as `@agent_csm`, Slack Socket Mode connected, received inbound test in channel `C0B7TTVN79P`, generated response in 13.2s, sent response.
+ - `agent_kb_executor`: authenticated as `@agent_kb`, Slack Socket Mode connected, active profile `agent_kb_executor`, agent budget `max_iterations=40`, kanban dispatcher running.
+ - Logs for other profiles were partially truncated but showed connected/restarted state around the same timeframe [tool: `execute_code`].
+18. ATTEMPTED opening DM to KB bot user through Slack API:
+ Used `conversations.open` with user `U0BAFJ5HF50`.
+ Outcome: `open False cannot_dm_bot None`.
+ Then no post occurred because opening DM failed [tool: `execute_code`].
+19. VERIFIED Slack token variable names across profile `.env` files:
+ Output:
+ - `agent_kb_executor ['SLACK_BOT_TOKEN', 'SLACK_APP_TOKEN']`
+ - `csm_executor ['SLACK_BOT_TOKEN', 'SLACK_APP_TOKEN']`
+ - `chief_of_staff ['SLACK_BOT_TOKEN', 'SLACK_APP_TOKEN']`
+ - `data_anal
+
+...[TRONQUÉ 15424 chars sha256:80a3055b82453774]...
+
+
+ - inbound Slack message in channel `C0B7TTVREM7`
+ - response generated
+ - response sent
+- Re-check `data_analyst_executor` gateway log after the test message to confirm:
+ - inbound Slack message in channel `C0B7VMHG2Q4`
+ - response generated
+ - response sent
+- Find a valid Slack channel/conversation for `agent_kb_executor` testing:
+ - identify channels where `@agent_kb` is a member,
+ - or invite `@agent_kb` to a test/channel,
+ - or use an app home/event path if direct DM is unsupported.
+- Send a KB test mention/message through a valid channel and confirm response in `/home/hermes/.hermes/profiles/agent_kb_executor/logs/gateway.log`.
+- Optionally verify process manager/service state for all four executor gateways if deeper assurance is needed.
+
+## Critical Context
+- Slack workspace/team observed in logs: `VividFlow`, team `T0B7DH3F4LW`.
+- CSM test:
+ - Channel: `C0B7TTVN79P`
+ - Mentioned user: `U0BADG3FV2S`
+ - Message id: `1781450657.858499`
+ - Log confirmation:
+ - inbound message at `2026-06-14 17:24:19,376`
+ - response ready at `2026-06-14 17:24:32,556`
+ - sent at `2026-06-14 17:24:32,573`
+ - response length: `16 chars`
+ - elapsed: `13.2s`
+- Operations test:
+ - Channel/target: `slack:ops-systeme`
+ - Slack channel id: `C0B7TTVREM7`
+ - Mentioned user: `U0BAHDG94JD`
+ - Message id: `1781450659.150609`
+ - Response confirmation not yet preserved.
+- Data Analyst test:
+ - Channel/target: `slack:data-analyst`
+ - Slack channel id: `C0B7VMHG2Q4`
+ - Mentioned user: `U0BB9SNCEV6`
+ - Message id: `1781450660.442889`
+ - Response confirmation not yet preserved.
+- KB test:
+ - Attempted target: `slack:D0BA97DSK51`
+ - Error: `Slack API error: channel_not_found`
+ - Attempted Slack API `conversations.open` user: `U0BAFJ5HF50`
+ - Error: `cannot_dm_bot`
+ - Despite test failure, logs show `agent_kb_executor` authenticated as `@agent_kb` and connected.
+- Gateway log restart/connection pattern:
+ - Executors received SIGTERM around `2026-06-14 13:47:31`, shut down cleanly, then restarted and reconnected to Slack.
+ - `agent_kb_executor` restarted around `2026-06-14 13:47:34`, connected around `13:47:34.531`, kanban dispatcher started around `13:47:40.763`.
+ - `csm_executor` restarted around `2026-06-14 13:47:35`, connected around `13:47:35.776`, kanban dispatcher started around `13:47:42.007`.
+- Agent budgets seen:
+ - `csm_executor`: `max_iterations=8`
+ - `agent_kb_executor`: `max_iterations=40`
+- Tokens/credentials existed and were accessed locally, but all values are `[REDACTED]`.
+
+## assistant — 2026-06-14T17:38:20.405560
+
+Je m’en occupe maintenant.
+
+État rapide :
+- **CSM** : connecté + répond.
+- **Operations** : connecté + test envoyé.
+- **Data Analyst** : connecté + test envoyé.
+- **Agent KB** : gateway connecté, mais blocage Slack : impossible de le tester en DM (`cannot_dm_bot`) et il faut l’ajouter à un channel valide.
+
+Prochaine action directe : je finis la validation logs pour Operations/Data Analyst, puis je débloque KB en trouvant/invitant le bon channel Slack.
+
+## user — 2026-06-14T17:38:20.405560
+
+fait les choses mais dans mon slack thomas.alves@vividflow.co je vois pas les nouveaux agents
+
+## assistant — 2026-06-14T17:38:20.405560
+
+Fait.
+
+Tu devrais maintenant voir dans ton Slack :
+
+- `service-client` → Agent CSM répond
+- `ops-systeme` → Agent Operations répond
+- `data-analyst` → Data Analyst répond
+- `kb-vividflow` → Agent KB créé + invité + répond
+
+J’ai aussi invité ton compte Slack `thomas.alves` dans les channels manquants et lancé des tests : les 4 agents ont répondu dans les logs.
+
+Si tu ne les vois pas immédiatement : refresh Slack / section **Channels**. Ce ne sera pas forcément dans “Apps” en premier, mais les channels sont bien branchés.
+
+## user — 2026-06-14T17:38:20.405560
+
+[{"type": "text", "text": "règle ce problème j'ai encore les anciens agents avec le executor :\n\n[Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_f9b7a60aa2f6.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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fzfU+WqZL879E1O55hYZ55otlTPXYmuJZV7/ABvq2JC6dY5as++D0+s5/wB9Gv3nxLhC2cuvQ5+zmdOXF9J8ptOd1zi+j+cW+3w41aksHm97rlla9W8p9gXVzbJTrih+lwu1jdfsUmCsfOM6zKplrrtl0h/NVx0qvqflnqmscPufEOzpxvisc+la9e8h9N3nn9il2lPvoUX0Vrk5k8VmrXKHjOrBG0fFmzjc6+GuNDh6nEr1l5uNdH4gWGw+Ob7fn9LNWtOd7Pje6ctVb7unn2mPnOue/wCdPzrOfiLtz0kyK90cqzbafcMda9adH1248KPMgef09+dn79HkaNEeuhp4tkzqJwO/oztqk8KWxbtO/tx4fS+uVz6dfbIg65q92cY67p3Im3n9Qd8rPbkV+fA8fsDefse33N+jfJAHDgEAATLz59c6nU6x041A2fNt7J55r9OHmuv13jnn3x6fCK5XvU6iRXYslVHk2f5ijrpSwAAAAAAAAAAAZAAAAJceRHxzDOQAH18gD6+Q+vkH18gAB9fIAfXyAAPrscUM4GWBnAAAffwHa4oAZz8gBnAzgPr5AB9/AAywH18h9fIvdEE+vkX6+QAywPr5ADOA+vkAH18heqKPr5D6+QAzn5D6+RnALTVgAAAzgAAM4AADOABnAM4DOAzgALJW2sZwZ3nAM4AC01YAAfY9vub9G+SAOHAAADs3XzHcekUKJpGcD0yL59k9VreefVgrlfRctlJHo3n+kduzefC+/FFFnrAAAAAAAAAAAAMgAAABLjyI+OYZyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB6N557x4P6PY36N/SwBw84AAAASjIAAFAAAAAAAAAAAAAAADIAAAABLjyI+OYZyMmEzBESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESYwAbtpESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxESxES/kjAG40pYiJYiJYiJYiJYiJYiJYiJYiJYiJYiJYiJYiJYiJYiJYiJYiJYiJYiJYjsPb7s79G+SAOHnAAAJl5XzvHotNjmZxkNnyfLbr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
+
+## assistant — 2026-06-14T17:38:20.405560
+
+Tu as raison : le problème n’est pas les channels, c’est le **nom des apps Slack**.
+
+J’ai vérifié :
+- les bots actifs répondent bien ;
+- mais Slack affiche encore **CSM Executor / Operations Executor / Data Analyst Executor** parce que c’est le nom configuré dans **Slack App Management** ;
+- l’API bot refuse le renommage : `not_allowed_token_type`.
+
+Pour que je le règle moi-même, connecte-toi ici avec le compte Slack admin/ops :
+
+https://65f700a72bc537.lhr.life/vnc.html?host=65f700a72bc537.lhr.life&port=443&encrypt=1&autoconnect=1&resize=scale
+
+Connecte-toi sur `api.slack.com/apps`, puis dis-moi juste **“connecté”**. 
+Après ça je renomme proprement :
+- `CSM Executor` → `Agent CSM`
+- `Operations Executor` → `Agent Operations`
+- `Data Analyst Executor` → `Data Analyst`
+- je masque/sors l’ancien `CMO Executor` si possible.

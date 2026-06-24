@@ -14,7 +14,7 @@ export default function CalendrierError({
   }, [error])
 
   return (
-    <div className="flex flex-col items-center justify-center h-[calc(100vh-56px)] gap-4">
+    <div className="flex flex-col items-center justify-center h-[calc(100vh-48px)] gap-4">
       <p className="text-sm font-semibold text-[#EF4444]">Erreur : {error.message}</p>
       <button
         onClick={reset}

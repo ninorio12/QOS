@@ -239,6 +239,18 @@ Pour chaque étape, demander quel(s) SOP(s) s'y applique(nt). Mettre à jour `so
 
 ## Créer un SOP
 
+### VividFlow/Data OS — SOP + fiches R&R agents
+
+Quand Jonathan demande de “créer la fiche pour chacun”, “respecter les SOPs du Data OS à la lettre” ou de cadrer une première tâche multi-agents, ne te limite pas à un résumé conversationnel :
+
+1. Crée la SOP centrale au format Data OS structuré : Purpose, Inputs, Outputs, Checklist, FAQ, responsable, exécutants, statuts.
+2. Crée une fiche R&R par agent impliqué : objectif court, responsabilité centrale, actions autorisées, interdictions, sources, handoff et critères de réussite.
+3. Respecte la séparation des rôles : l’agent qui collecte ne valide pas, l’agent qui importe n’envoie pas, l’agent qui envoie ne crée pas le template stratégique.
+4. Si l’API/MCP Data OS refuse l’écriture faute de token, ne prétends pas avoir poussé dans Data OS. Écris une version locale dans le workspace Data OS (`docs/sops/`, `docs/agents/`) puis signale clairement le blocage token et l’action restante.
+5. Une fois le token/API disponible, pousse la SOP dans le module Process/SOP avec les champs structurés, pas en collant un long markdown dans `content`.
+
+Référence détaillée : voir `references/vividflow-outbound-first-task-sop-fiches.md`.
+
 ### RÈGLE CRITIQUE — Pas d'usine à gaz
 
 **Ne créer des SOP QUE pour les actions vitales**, pas pour chaque étape. Un SOP c'est utile quand :
@@ -344,6 +356,18 @@ Tout SOP doit être revu par son responsable tous les 90 jours. Si un SOP a plus
 - Badge "À reviewer" apparaît automatiquement dans le Data OS
 - L'exécutant doit demander au responsable de confirmer ou mettre à jour
 
+### Post-update governance — propager le changement aux agents
+
+**Ne jamais considérer une mise à jour de SOP comme terminée tant que les agents ne l'ont pas reçue.** Un SOP à jour dans Data OS que les agents suivent encore dans l'ancienne version crée du désordre et des erreurs.
+
+Après chaque mise à jour significative d'un SOP dans Data OS :
+
+1. **Identifier le périmètre touché** — Quelles colonnes/champs ont changé ? Quels agents sont concernés ? Quel canal Slack ?
+2. **Communiquer dans le fil Slack du canal agent** — Une phrase de changement, l'impact concret par agent, et la référence au SOP mis à jour. Mentionner les agents avec `<@U...>` si une action leur est demandée.
+3. **Mettre à jour le message de lancement quotidien** — Le prochain message de lancement (ou le prochain ordre dans le fil actif) doit refléter la nouvelle logique.
+4. **Vérifier l'alignement Sheet → SOP** — Les colonnes du Sheet doivent correspondre EXACTEMENT aux colonnes décrites dans le SOP.
+5. **Vérification différée (J+1)** — Au prochain cycle, vérifier que les agents appliquent la nouvelle logique. Si un agent utilise encore l'ancienne colonne, le reprendre dans le fil.
+
 ---
 
 ## Endpoints de référence (API Hermes)
@@ -383,6 +407,16 @@ Spec complète : `GET /api/agent/openapi.json` (v1.4.0+).
 4. **HITL obligatoire** : montre ce que tu vas créer, demande validation avant `POST`/`PUT`
 5. **Après création** : donne l'URL directe dans le Data OS pour que l'utilisateur vérifie visuellement
 6. **Multi-maps vs décisions** : toujours suggérer **un diamond de décision** avant de proposer une 2e map
+
+### ⚠️ Règle critique — Éditer du contenu EXISTANT vs créer du neuf
+
+Quand l'utilisateur demande une modification sur un process/SOP qui EXISTE DÉJÀ dans le Data OS :
+
+- **Ne remplace JAMAIS tout le contenu (`blocks[0].text`) d'un processus existant.** L'utilisateur a son propre style, format et police — écraser le bloc entier détruit son travail.
+- **Fais une modification chirurgicale** : change UNE phrase ou UN statut, pas le document entier.
+- **Si tu dois modifier le texte du bloc HTML, vérifie d'abord quelle est la version actuelle** (via `GET` ou `mcp_data_os_processes_list`) et modifie seulement la ligne cible.
+- **Quand le doute plane** : demande avant d'écrire. "Je change juste le owner de l'étape 4 de CSM/Operations vers CSM, ok ?"
+- **Ne confonds pas "éditer un process qui tourne" avec "créer un SOP vierge"**. Un process que l'utilisateur a lui-même rempli dans l'éditeur Data OS a sa mise en page et son style — c'est son contenu, pas un template à remplacer.
 
 ## Exemple de déclenchement
 

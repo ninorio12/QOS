@@ -10,6 +10,12 @@ type ImportRow = {
   email:       string
   phone:       string
   companyName: string
+  metier?:     string
+  niche?:      string
+  source?:     string
+  statut?:     string
+  country?:    string
+  canton?:     string
 }
 
 function convex() {
@@ -45,17 +51,28 @@ export async function POST(req: NextRequest) {
   const results = await Promise.all(rows.map(async (r, i) => {
     try {
       // 1. Créer le contact dans Convex (source unique de vérité).
+      //    On normalise statut/source/canton issus du CSV ; valeurs hors liste → ignorées.
+      const clean = (s?: string) => { const v = (s ?? '').trim(); return v || undefined }
+      const statutRaw = clean(r.statut)?.toLowerCase()
+      const statut = statutRaw && ['lead', 'client', 'perdu'].includes(statutRaw) ? statutRaw : undefined
+      const sourceRaw = clean(r.source)?.toLowerCase()
+      const source = sourceRaw && ['inbound', 'outbound', 'recommandation'].includes(sourceRaw) ? sourceRaw : 'import'
       const contactId = await c.mutation(api.crm_contacts.create, {
         firstName:   r.firstName   || '',
         lastName:    r.lastName    || undefined,
         email:       r.email       || undefined,
         phone:       r.phone       || undefined,
         companyName: r.companyName || undefined,
-        source:      'import',
+        metier:      clean(r.metier),
+        niche:       clean(r.niche),
+        country:     clean(r.country),
+        canton:      clean(r.canton)?.toUpperCase(),
+        statut,
+        source,
       })
 
-      // 2. Créer un lead dans le pipeline si demandé.
-      if (pipelineId && firstStageId) {
+      // 2. Créer un lead dans le pipeline si demandé (sauf si la fiche est déjà client/perdu).
+      if (pipelineId && firstStageId && (!statut || statut === 'lead')) {
         const name = [r.firstName, r.lastName].filter(Boolean).join(' ') || r.email || 'Contact importé'
         await c.mutation(api.crm_leads.create, {
           contactId,

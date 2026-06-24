@@ -1,0 +1,18 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260614_045209_f5e5b8.jsonl
+captured_at: 2026-06-14T05:25:10.545266
+platform: telegram
+type: conversation_delta
+---
+
+## assistant — 2026-06-14T04:54:26.643670
+
+`feat/dark-mode`, c’est le nom de la branche Git actuellement active dans le repo canonique Brvndlab. En simple : - `feat/...` = branche de fonctionnalité - `dark-mode` = probablement une branche créée pour développer le mode sombre - donc `feat/dark-mode` = “branche feature mode sombre” Le point important : si cette branche contient bien le dark mode validé, elle est probablement la bonne lignée récente. Mais si la prod est censée partir d’une autre branche (`main`, `prod`, `hermes/audit-nonbloquant`, etc.), déployer depuis `feat/dark-mode` peut envoyer en prod des changements non prévus. Donc avant tout `vercel --prod`, il faut vérifier : - quelle branche alimente la prod aujourd’hui - si `feat/dark-mode` contient bien les derniers changements attendus - si elle est alignée avec Vercel / GitHub Mon intuition : c’est sûrement la branche active de ton travail récent, mais je ne la traiterais pas comme prod sans vérification.
+
+## user — 2026-06-14T04:55:56.260790
+
+supprime la je la vois trop souvent et je veux pas de dark mode pour linstant
+
+## assistant — 2026-06-14T04:55:56.260790
+
+C’est fait côté local. Résultat : - Branche active maintenant : `main` - Branche locale supprimée : `feat/dark-mode` - Repo propre : aucun fichier modifié en cours - Backup conservé avant suppression : - stash : `stash@{0}: backup before deleting feat/dark-mode 20260614-045522` - donc rien n’est perdu si on doit récupérer un diff. Blocage restant : - La branche distante `origin/feat/dark-mode` existe encore. - Impossible de la supprimer depuis le Mac parce que GitHub auth est cassée : - `gh` installé - compte `jonathanzekhe` - token invalide - Git HTTPS demande un username et échoue Donc concrètement : - Tu ne verras plus `feat/dark-mode` en branche locale. - Mais elle peut encore apparaître comme branche distante tant que GitHub n’est pas ré-authentifié. À faire pour finir à 100 % : ```bash gh auth login -h github.com ``` Puis je pourrai supprimer `origin/feat/dark-mode` proprement.

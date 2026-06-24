@@ -19,6 +19,7 @@ const SHELL_PREFIXES = [
   '/onboarding', '/integrations', '/equipe', '/budget',
   '/parametres', '/contacts', '/knowledge', '/pipeline', '/calendrier',
   '/taches', '/paiement', '/performance', '/bibliotheque',
+  '/closing', '/media-buyer', '/cockpit',
 ]
 
 export default function ShellGate({ children }: { children: React.ReactNode }) {

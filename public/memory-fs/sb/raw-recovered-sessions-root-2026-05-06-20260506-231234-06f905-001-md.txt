@@ -1,0 +1,543 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260506_231234_06f905
+source_file: /home/hermes/.hermes/sessions/20260506_231234_06f905.jsonl
+source_sha256_16: 8f11312fe56031e2
+date: 2026-05-06
+---
+
+# Recovered session root/20260506_231234_06f905
+
+
+## user — 2026-05-06T23:12:43.457317
+
+[The user sent a text document: 'brvndlab-sauvegarde-topics _1_.md'. Its content has been included below. The file is also saved at: /Users/businessmanagement/.hermes/cache/documents/doc_8135d92f54e1_brvndlab-sauvegarde-topics (1).md]
+
+[Jonathan] [Content of brvndlab-sauvegarde-topics _1_.md]:
+# Sauvegarde Brvndlab - contexte des topics
+
+Date : 2026-05-06
+Objet : sauvegarde simple du contexte pour repartir proprement dans les prochains topics Telegram.
+
+## 1. Décision modèle et méthode de travail
+
+- Jonathan a fait la mise à jour et veut maintenant travailler sur **Codex avec GPT-5.5**.
+- On ne doit plus utiliser GLM pour le développement Brvndlab.
+- Hermes reste le cockpit / orchestrateur Telegram.
+- Pour le code, l'objectif est de passer par Codex / environnement dev connecté, pas par bricolage local.
+
+## 2. Ce qu'on a clarifié sur Brvndlab
+
+Brvndlab est le SaaS prioritaire de Jonathan.
+
+Stack cible :
+
+- Frontend : Next.js
+- Backend / database : Convex
+- Auth : Clerk
+- Paiement : Stripe, avec Whop prévu / présent dans la logique business
+- Déploiement : Vercel
+- Domaine production : `app.brvndlab.com`
+- Repo GitHub : `https://github.com/jonathanzekhe/brvndlab.git`
+
+Règle importante côté backend :
+
+- Ne jamais passer `clerkUserId` depuis le client vers Convex.
+- L'identité utilisateur doit être récupérée côté backend via l'auth, idéalement avec Clerk / `ctx.auth.getUserIdentity()` selon la stack finale.
+
+## 3. Organisation des topics / sous-agents Brvndlab
+
+Jonathan veut des topics Telegram séparés pour parler directement aux responsables.
+
+Le cockpit / COO reste l'assistant principal. Le COO n'est pas un topic séparé obligatoire.
+
+Structure validée côté Brvndlab :
+
+### CSM / Customer Success + Growth
+
+Responsabilités :
+
+- Onboarding clients
+- Satisfaction client
+- Support utilisateur
+- Analyse feedbacks
+- Détection churn
+- Améliorations produit basées sur les retours clients
+- Stratégie issue de la mémoire client / mémoire dorée
+
+### Content & Visual Marketing
+
+Responsabilités :
+
+- Stratégie contenu
+- Scripts YouTube
+- Idées de vidéos
+- Calendrier éditorial
+- Thumbnails
+- Ads / créas publicitaires
+- Landing pages côté communication
+- Lead magnets
+- Cohérence visuelle old money / Brvndlab
+
+### Market Intelligence
+
+Responsabilités :
+
+- Veille concurrents
+- Tendances SaaS personal branding
+- Marché FR et EN
+- Positionnement
+- Opportunités marché
+- Analyse d'acteurs similaires
+
+### Revenue Growth
+
+Responsabilités :
+
+- MRR
+- Churn
+- LTV
+- Pricing
+- Funnel
+- Conversion
+- Stripe / Whop
+- Opportunités croissance
+
+### Tech Excellence
+
+Responsabilités :
+
+- Développement front-end
+- Développement back-end
+- Bugs
+- UX/UI produit
+- Performance
+- Infrastructure
+- Déploiements Vercel
+- Convex / Clerk / Stripe côté technique
+
+## 4. Ce qui a été fait côté agents / cronjobs
+
+Des jobs ont été créés précédemment pour simuler les sous-agents avec heartbeat.
+
+Sous-agents créés / prévus :
+
+- CSM Brvndlab
+- Content Engine Brvndlab
+- Market Intelligence Brvndlab
+- Revenue Ops Brvndlab
+- Tech & Product Brvndlab
+- COO Dashboard Brvndlab
+
+Heartbeat demandé par Jonathan :
+
+- Préférence finale : toutes les 2 minutes
+- Possibilité future : 1 minute si la consommation de tokens reste acceptable
+
+Point important :
+
+- Les anciens jobs étaient configurés avec `glm-4.5-flash` via provider `zai`.
+- Comme Jonathan a basculé vers Codex GPT-5.5, il faudra revoir ces jobs pour éviter GLM si on les conserve.
+
+## 5. Groupe Telegram Brvndlab
+
+Groupe identifié :
+
+- Nom : Brvndlab
+- Chat ID observé : `-1003616611166`
+
+Jonathan veut des topics Telegram dans ce groupe pour les sous-agents.
+
+Attention : une tentative précédente a probablement envoyé un message dans le groupe, mais la vraie création technique des topics n'a pas été vérifiée de manière fiable.
+
+## 6. Accès aux stacks
+
+Jonathan a demandé comment donner les accès pour que l'assistant puisse travailler sur l'ensemble du business, surtout modifier le code front-end et back-end.
+
+Ordre prévu :
+
+1. Vercel
+2. Convex
+3. Clerk
+
+Clarification sécurité :
+
+- Accès par email collaborateur : plus simple pour dashboards et permissions complètes.
+- Accès par API keys : plus contrôlé, meilleur pour sécurité, suffisant pour beaucoup d'actions dev.
+- Pour modifier le code, le plus important reste l'accès GitHub / Codex, puis les tokens nécessaires à Vercel, Convex, Clerk.
+
+À retenir :
+
+- Jonathan préfère une approche sécurisée.
+- Il ne connaît pas l'email système Hermes et n'est pas à l'aise de donner un accès complet aveugle.
+- Les API keys / tokens à permissions limitées sont probablement l'approche à privilégier.
+
+## 7. Vercel observé dans les sessions précédentes
+
+Vercel CLI détecté :
+
+- Version : `50.41.0`
+- Scope valide observé : `jonathanzekhe-4288s-projects`
+
+Projets observés :
+
+- `brvndlab-app`
+- `brvndlab-mockups`
+
+Déploiement production observé pour Brvndlab :
+
+- URL de preview / déploiement : `https://brvndlab-nplrai7vh-jonathanzekhe-4288s-projects.vercel.app`
+- Statut observé : Ready
+- Environnement : Production
+
+Autre projet observé :
+
+- `brvndlab-mockups`
+- Exemple URL : `https://brvndlab-mockups-n2ro1k96b-jonathanzekhe-4288s-projects.vercel.app`
+
+Points à corriger / vérifier :
+
+- Le codebase local n'était pas correctement lié à Vercel.
+- Certaines commandes Vercel logs ont échoué à cause d'options incompatibles.
+- Il faudra relier proprement le projet ou travailler directement via GitHub + Vercel.
+
+## 8. Convex observé dans les sessions précédentes
+
+Convex CLI :
+
+- Version observée : `1.34.1`
+
+URL Convex observée :
+
+- `https://majestic-chameleon-876.eu-west-1.convex.cloud`
+
+Problème observé :
+
+- La variable `CONVEX_DEPLOYMENT` semblait contenir un format invalide avec un suffixe de type token après `|`.
+- Erreur Convex : `InvalidDeploymentName: Instance name must be no longer than 64 characters`
+
+Conclusion :
+
+- Le backend production n'a pas forcément été prouvé cassé.
+- Ce qui est sûr : la config locale Convex était incohérente pour le CLI.
+
+À faire :
+
+- Vérifier les variables d'environnement Convex dans Vercel.
+- Vérifier le dashboard Convex.
+- Nettoyer la config locale / Codex si nécessaire.
+
+## 9. Clerk observé / point de contradiction
+
+Stack cible annoncée : Clerk.
+
+Mais inspection précédente du repo local :
+
+- `package.json` ne montrait pas clairement `@clerk/nextjs` comme dépendance directe.
+- Le code semblait utiliser `@convex-dev/auth` et `useConvexAuth`.
+- La production exposait pourtant des éléments Clerk dans le HTML :
+ - domaine Clerk : `clerk.brvndlab.com`
+ - sign in : `/sign-in`
+ - fallback : `/dashboard`
+
+Conclusion :
+
+- Il y a probablement une divergence entre la stack cible, la prod et le repo local inspecté.
+- À vérifier proprement avec Codex sur le repo actuel.
+
+## 10. Repo local / problème précédent
+
+Une tentative locale a été faite sur `/Users/businessmanagement/brvndlab`.
+
+Ce qui s'est passé :
+
+- Le repo existait déjà, donc le clone GitHub a échoué car le dossier n'était pas vide.
+- Les dépendances étaient installées.
+- `npm run 
+
+...[TRONQUÉ 15809 chars sha256:c598b43adf8a8ec8]...
+
+er une branche, livrer une preview Vercel, puis faire valider avant merge.
+
+Sous-agents / topics Brvndlab :
+
+1. CSM / Customer Success + Growth
+2. Content & Visual Marketing
+3. Market Intelligence
+4. Revenue Growth
+5. Tech Excellence
+
+Règles de communication :
+
+- Toujours en français de France.
+- Tutoyer Jonathan.
+- Répondre court, direct, actionnable.
+- Utiliser `on` / `nous`, pas une posture solo.
+- Ne pas parler anglais.
+- Ne pas utiliser de mots vides.
+- Ne pas faire de suppositions temporelles.
+- Distinguer faits vérifiés, hypothèses et prochaines actions.
+
+Règles produit / tech :
+
+- Brand OS est la source de vérité centrale.
+- Boucle de valeur : Brand OS → Contenu → Smart Links → Leads → Mémoire dorée.
+- Règle auth importante : ne jamais passer `clerkUserId` en argument client vers Convex.
+- Vérifier la divergence actuelle possible entre Clerk et Convex Auth.
+- Vérifier la config Convex, Vercel, Clerk et ESLint avant gros développement.
+
+Priorités produit :
+
+- Publication native YouTube / Instagram / TikTok.
+- Intégrations Calendly, Whop, Systeme.io.
+- Analytics.
+- Smart Links.
+- Leads.
+- Mémoire dorée.
+- Messaging.
+- Calendrier avancé.
+- Radar IA.
+
+## 19. Résumé ultra-court pour nouveau topic
+
+Contexte à coller si besoin :
+
+Brvndlab est le SaaS prioritaire de Jonathan Zekhe, stack cible Next.js + Convex + Clerk + Stripe + Vercel, repo `https://github.com/jonathanzekhe/brvndlab.git`, prod `app.brvndlab.com`. Jonathan veut travailler avec Codex GPT-5.5, plus GLM, en mode GitHub + Vercel preview, pas local. Les sous-agents/topics Brvndlab sont : CSM, Content & Visual Marketing, Market Intelligence, Revenue Growth, Tech Excellence. Priorités produit : publication native YouTube/Instagram/TikTok, intégrations Calendly/Whop/Systeme.io, Analytics, Smart Links, Leads, Mémoire dorée. Points à vérifier : divergence Clerk vs Convex Auth, config Convex locale invalide, ESLint cassé, vraie création des topics Telegram.
+
+
+Tu es le développeur full stack de Brvndlab. Tu travailles sur la stack de Claude Code et tu utilises tous les outils disponibles aujourd'hui pour pouvoir développer la solution de Brvndlab en fonction des éléments qui vont être fournis 
+
+https://github.com/jonathanzekhe/brvndlab.git. Voici le repo GitHub. Connecte-toi dessus et envoie-moi le lien de prévisualisation du coup de la plateforme et on va commencer à développer un peu tout ça. On va reprendre de là où on s'est arrêté.
+
+
+Prenons aussi en considération tout ce qu'il y a dans ce topique
+
+## assistant — 2026-05-06T23:12:43.457317
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: "OK, commençons alors. Dis-moi comment on va faire ça étape par étape. Let's go."
+
+## Goal
+Jonathan veut donner à l’agent un accès durable et sécurisé à l’écosystème Brvndlab pour que l’agent puisse travailler de façon autonome : modifier le code, créer des branches/PR, déployer des previews, vérifier Vercel, gérer le backend Convex, puis plus tard intervenir sur Clerk/auth et autres intégrations si nécessaire.
+
+## Constraints & Preferences
+- Jonathan veut des explications simples, directes, sans trop de blabla.
+- Il préfère un plan étape par étape, avec “quoi faire” et “pourquoi”.
+- Ne jamais demander ni afficher de secrets dans le chat/Telegram.
+- Les tokens doivent être ajoutés localement dans le fichier secret Hermes, pas dans le repo ni dans les messages.
+- Privilégier des tokens limités par service/projet/repo :
+ - GitHub limité au repo `jonathanzekhe/brvndlab`
+ - Vercel limité au projet `brvndlab-app` si possible
+ - Convex limité au projet Brvndlab
+- Ordre recommandé des accès :
+ 1. GitHub
+ 2. Vercel
+ 3. Convex
+ 4. Clerk plus tard seulement si chantier auth
+- Le ton doit rester opérationnel, court, clair.
+
+## Completed Actions
+1. CHARGÉ skill `github-repo-management` — compétence consultée pour gestion repo GitHub [tool: skill_view]
+2. CHARGÉ skill `nextjs-development-setup` — compétence consultée pour setup Next.js [tool: skill_view]
+3. CHARGÉ skill `business/Brvndlab COO Orchestration` — compétence consultée pour contexte orchestration Brvndlab [tool: skill_view]
+4. CRÉÉ todo initial — plan en 5 tâches : vérifier accès, cloner/mettre à jour repo, installer/test/build, récupérer preview Vercel, renvoyer état [tool: todo]
+5. VÉRIFIÉ environnement local — commande lancée pour vérifier `git`, `gh`, `node`, `npm`, `npx`, `vercel`, `claude`; sortie terminal tronquée mais exit 0 [tool: terminal]
+6. RECHERCHÉ dossiers `brvndlab*` dans `/Users/businessmanagement` — 50 résultats trouvés [tool: search_files]
+7. CLONÉ/MIS À JOUR repo dans `/Users/businessmanagement/dev/brvndlab-claude` — repo Brvndlab présent et à jour sur `main`/`origin/main` [tool: terminal]
+8. MARQUÉ tâches 1 et 2 comme terminées — accès/env de base vérifiés, repo cloné/à jour [tool: todo]
+9. LU `/Users/businessmanagement/dev/brvndlab-claude/CLAUDE.md` — fichier projet lu, 6 893 caractères [tool: read_file]
+10. INSPECTÉ package files/scripts — premières commandes Python/terminal pour trouver `package.json`, sortie tronquée/une tentative exit 1 puis reprise exit 0 [tool: terminal]
+11. INSTALLÉ dépendances dans `/Users/businessmanagement/dev/brvndlab-claude/brvndlab-app` — `npm ci` terminé avec succès, exit 0 [tool: terminal]
+12. LISTÉ projets Vercel — commande `vercel projects ls` exécutée, sortie filtrée pour masquer tokens/ids [tool: terminal]
+13. LIÉ projet Vercel — `vercel link --yes --project brvndlab-app` exécuté avec succès dans `brvndlab-app`; puis `vercel env pull .env.local --environment=preview` exécuté, sortie filtrée [tool: terminal]
+14. LANCÉ `npm run build` — échec initial, exit 1, sortie tronquée à 1 ligne [tool: terminal]
+15. LANCÉ `npm run lint` — échec avec 402 problèmes : 146 erreurs, 256 warnings; erreurs surtout `@typescript-eslint/no-explicit-any`, warnings unused vars / eslint-disable [tool: terminal]
+16. LANCÉ `npm test` — Vitest OK : 3 fichiers passés, 36 tests passés, durée 8.83s [tool: terminal]
+17. RECHERCHÉ usages Convex/env — recherche `ConvexHttpClient|ConvexReactClient|NEXT_PUBLIC_CONVEX|CONVEX_URL|deployment address` dans `brvndlab-app`; 244 occurrences, résultats tronqués [tool: search_files]
+18. LISTÉ clés env locales sans valeurs — `.env.local` ne contenait que variables Vercel/Turbo/NX, pas `NEXT_PUBLIC_CONVEX_URL`; `vercel env ls preview` indiquait aucune variable preview [tool: terminal]
+19. LISTÉ variables Vercel par environnement — production contient des variables chiffrées; development et preview n’ont aucune variable. Noms sensibles partiellement masqués dans sortie; aucun secret conservé [tool: terminal]
+20. PULL env production Vercel — `vercel pull --yes --environment=production` a créé `.vercel/.env.production.local`; build lancé ensuite mais a échoué car env production non chargées dans le shell [tool: terminal]
+21. CONSTATÉ erreur build sans env chargées — `Error: Client created with undefined deployment address. If you used an environment variable, check that it's set.` pendant collecte page data pour `/api/auth/stripe/callback` et `/api/auth/calendly/callback` [tool: terminal]
+22. LISTÉ noms de variables dans `.vercel/.env.production.local` et `.env.local` — production locale contient notamment `NEXT_PUBLIC_CONVEX_URL`, `CLERK_SECRET_KEY`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `ANTHROPIC_API_KEY`, `APIFY_API_TOKEN`, clés OAuth/webhooks Stripe/Whop/Calendly, etc.; valeurs non affichées [tool: terminal]
+23. BUILD avec env production chargées — `set -a; . .vercel/.env.production.local; npm run build` terminé avec succès. Next.js 16.2.2/Turbopack, 116 pages générées, routes listées [tool: terminal]
+24. INSPECTÉ production Vercel — `vercel inspect https://app.brvndlab.com` : projet `brvndlab-app`, target `production`, status `Ready`, créé Wed May 06 2026 15:59 CEST, alias `https://app.brvndlab.com` et `https://brvndlab-app.vercel.app` [tool: terminal]
+25. SMOKE TEST production — `https://app.brvndlab.com` retourne 200, `/sign-in` retourne 200, `/dashboard` redirige vers `/sign-in?redirect_url=...`, content-type HTML [tool: terminal]
+26. TESTÉ commande incorrecte Vercel — `vercel deployments brvndlab-app --limit 5` a échoué : `"deployments" is not a valid target directory or subcommand. Did you mean "deploy"?` [tool: terminal]
+27. LISTÉ déploiements Vercel — `vercel ls brvndlab-app` : nombreux déploiements production Ready, URLs masquées par filtre; next page disponible avec `--next 1777985407270` [tool: terminal]
+28. INSPECTÉ URL non masquée via awk — `vercel inspect https://app.brvndlab.com` a révélé URL de déploiement `https://brvndlab-3joo4fgnj-jonathanzekhe-4288s-projects.vercel.app`; id de déploiement affiché dans sortie mais ne pas le considérer secret critique [tool: terminal]
+29. TESTÉ accès direct URL Vercel — requête Python sur URL `.vercel.app` a reçu HTTP 401 Unauthorized; domaine `.app` a déclenché warning de sécurité outil et a été approuvé par utilisateur [tool: terminal]
+30. TESTÉ Claude Code avec `ANTHROPIC_API_KEY` local — échec : sortie
+
+...[TRONQUÉ 18590 chars sha256:4a9f49b179999e20]...
+
+r token Vercel
+ - ajouter `VERCEL_TOKEN=[REDACTED]` dans `/Users/businessmanagement/.hermes/.env`
+ - vérifier accès projet `brvndlab-app`
+- Guider Jonathan pour Convex deploy key :
+ - créer deploy key/token CLI projet Brvndlab
+ - ajouter `CONVEX_DEPLOY_KEY=[REDACTED]` dans `/Users/businessmanagement/.hermes/.env`
+ - vérifier accès Convex sans afficher secrets
+- Redémarrer Hermes/gateway si nécessaire pour charger env.
+- Ensuite créer une branche de test et une preview Vercel fiable.
+- Configurer env preview/development Vercel pour éviter build cassé en preview.
+- Plus tard seulement : accès Clerk si chantier auth.
+
+## Critical Context
+- Production vérifiée : `https://app.brvndlab.com`
+- URL Vercel du déploiement inspecté : `https://brvndlab-3joo4fgnj-jonathanzekhe-4288s-projects.vercel.app`
+- Repo GitHub : `jonathanzekhe/brvndlab`
+- Dossier repo local : `/Users/businessmanagement/dev/brvndlab-claude`
+- Dossier app : `/Users/businessmanagement/dev/brvndlab-claude/brvndlab-app`
+- Projet Vercel : `brvndlab-app`
+- Fichier env Hermes : `/Users/businessmanagement/.hermes/.env`
+- Commande pour obtenir chemin env Hermes :
+ - `hermes config env-path`
+ - résultat : `/Users/businessmanagement/.hermes/.env`
+- Commande build qui marche :
+ ```bash
+ cd /Users/businessmanagement/dev/brvndlab-claude/brvndlab-app
+ set -a
+ . .vercel/.env.production.local
+ set +a
+ npm run build
+ ```
+- Erreur build sans env :
+ ```text
+ Error: Client created with undefined deployment address. If you used an environment variable, check that it's set.
+ Error: Failed to collect page data for /api/auth/stripe/callback
+ ```
+- Tests OK :
+ ```text
+ Test Files 3 passed (3)
+ Tests 36 passed (36)
+ Duration 8.83s
+ ```
+- Lint KO :
+ ```text
+ ✖ 402 problems (146 errors, 256 warnings)
+ 2 errors and 7 warnings potentially fixable with the `--fix` option.
+ ```
+- Claude Code :
+ - Avec `ANTHROPIC_API_KEY` local : échoue (`Invalid API key · Fix external API key`)
+ - Avec `unset ANTHROPIC_API_KEY` : fonctionne via OAuth Claude Max
+- Stack confirmée :
+ - Next.js 16.2.2
+ - React 19.2.4
+ - Convex
+ - Clerk
+ - Vercel
+ - Tailwind CSS 4
+ - Vitest
+- Structure importante :
+ ```text
+ brvndlab-app/
+ ├── src/app
+ ├── src/app/api
+ ├── src/components
+ ├── src/hooks
+ ├── src/lib
+ ├── convex
+ ├── convex-pending
+ ├── _legacy
+ ├── tests/integrations
+ ├── design-system.md
+ └── ROADMAP.md
+ ```
+- Aucun secret/API key/token ne doit être inclus dans les prochaines réponses ou commandes affichées. Remplacer par `[REDACTED]` si nécessaire.
+
+## user — 2026-05-06T23:12:43.457317
+
+[{"type": "text", "text": "[Jonathan] Qu'est-ce qui se passe?"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wgARCAKrBQADASIAAhEBAxEB/8QAGwABAAIDAQEAAAAAAAAAAAAAAAEEAgMFBgf/xAAZAQEBAQEBAQAAAAAAAAAAAAAAAQIDBAX/2gAMAwEAAhADEAAAAeBhxtR3nBHecEd5wR3nBHecEd5wR3nBHeUs4tKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotVufqoAAAAAAbjStiotip1qg6bmDpuYOm5g6bmVjuOCO5hxh3NvntpqAdKkagGy8c0A9Iebej84O1xe1Lz9fYqmvOn1sbqvQDz70FQ5T0PMii6244bvVa5bo5nLdbSc9fyOc6WBQdTWc9dzjnuirnLe6Ocu5FB08K561ujnuhtrlOppKLoWDjumOYt7Y565Yrlujkcxf1S1QAAAAAAAAAAAAAAAAAAAAAAANmvolLX06iVy6tOO7xk38a9Os8vLHpbzu5fQ6R5mY2GtngHpeweCXKZe6ONA22qtbO+w6F7WOC6lo4Ls4HJdaDlOrJydfe4pwML1EZY9c5AAN2kAG7SAHX5Au0gdzh3pcejijndSWd9fl4DKxVFrVqG/HUNuuBOGQjHMWawbtEhq2idWwZasxp3wISMMw0Z7AmA1bRtqbhhsgVepVGvdiNe2BGiwKa4imuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCncK6HK2inv2i1ybkFbXY42sujzms9jDlBngMsQdnjCYDs6+f1Dn77yW2qLOnHNHTz5I68ckdHLmDpUdVM0VQXaQAGw1rOs1EkAAAAAAAAAAAAAAAM8AAAAbjS6FExAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA7PG6h6DjdDlHJsV9xp6/IvRvxazPp8O1XUpYVy3a4Ng6W7l4HSnk3TOuqlUHcrwl1dDl5Wdupz8y7a41gsa6+BRmB6vma6vL0WrfIsdfP1K2iTp8fOmaOnzLx73zHW4Btz4V46ermZlvhXKYvUbOd7sNes9Xy9FTWOtt4287WrmwUOrxbh0dlHUXLXEsl3gXoKQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALquSwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriw6O9fOCw3YmtsyNID3Hpz5A974IAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGw1tg1tg1tg1tg1tg1tg1tg1tg1tg1tg1tg1tmRpZya2wa2/A1tkmokhlka2wa2wa23WQ3Ymtsk1J2GpsGtt1kNsGtsk1J2mlsGtt1kOl7fPX5vH07x0vCG+PoLNazL5YWbL1G6Zc+/QMe9wfTHY8h7X5+e15ff455IAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADPDMw6POvmNLp8w6VZdK2HRwKe3VsNW3TcOdtWyrNzMo7McStrs1gBs17BE7zt8yxhXLwzwjZG7Sa9mvYNezWXNWzUad2m2VM8Myb1G+Z8vq8sTEnQygcrPDMm/Q6hHI7/AADOYku53oPP5Z4H0zJp4e69jVux8r07tPo8PoLNazL5YWbsMBnlqDLEe58TgPqny/WAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzWM2AzYDNgM2A2TqGbAZsBmwGbAZsBmwGeekZsBmwG7DAZ5agmBllrGbAZsBswgbccBnOsTs1DNgNmEDbjgM51idukZsBt1wOp9T+MTNfb/mPn8QLn0FmtZl8y9vPfz+He4Hh3uJPDPck8M9zNeFe6HhXux4R7seEe8Hg3vB4N70eCe9HgnvZPAvfDwL3w8C9+PAPf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
+
+## assistant — 2026-05-06T23:12:43.457317
+
+Tu es sur une URL GitHub qui n’existe plus ou qui n’est pas accessible depuis ton compte. Rien de grave.
+
+Fais plutôt comme ça :
+
+## Chemin correct GitHub
+
+1. Va ici :
+https://github.com/settings/tokens?type=beta
+
+2. Clique **Generate new token**
+
+3. Choisis **Fine-grained token**
+
+4. Mets :
+- Nom : `Hermes Brvndlab`
+- Expiration : 90 jours ou 1 an
+- Repository access : **Only select repositories**
+- Repository : `brvndlab`
+
+5. Permissions :
+- **Contents** : Read and write
+- **Pull requests** : Read and write
+- **Actions** : Read-only
+- **Metadata** : Read-only
+
+6. Clique **Generate token**
+
+## Si tu as encore 404
+
+Passe par le menu :
+
+1. Clique ta photo de profil GitHub en haut à droite
+2. **Settings**
+3. En bas à gauche : **Developer settings**
+4. **Personal access tokens**
+5. **Fine-grained tokens**
+6. **Generate new token**
+
+C’est juste le lien direct qui t’a envoyé sur une page cassée.
+
+## user — 2026-05-06T23:12:43.457317
+
+[{"type": "text", "text": "[Jonathan] Qu'est-ce qui se passe?"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wgARCAKrBQADASIAAhEBAxEB/8QAGwABAAIDAQEAAAAAAAAAAAAAAAEEAgMFBgf/xAAZAQEBAQEBAQAAAAAAAAAAAAAAAQIDBAX/2gAMAwEAAhADEAAAAeBhxtR3nBHecEd5wR3nBHecEd5wR3nBHeUs4tKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotKotVufqoAAAAAAbjStiotip1qg6bmDpuYOm5g6bmVjuOCO5hxh3NvntpqAdKkagGy8c0A9Iebej84O1xe1Lz9fYqmvOn1sbqvQDz70FQ5T0PMii6244bvVa5bo5nLdbSc9fyOc6WBQdTWc9dzjnuirnLe6Ocu5FB08K561ujnuhtrlOppKLoWDjumOYt7Y565Yrlujkcxf1S1QAAAAAAAAAAAAAAAAAAAAAAANmvolLX06iVy6tOO7xk38a9Os8vLHpbzu5fQ6R5mY2GtngHpeweCXKZe6ONA22qtbO+w6F7WOC6lo4Ls4HJdaDlOrJydfe4pwML1EZY9c5AAN2kAG7SAHX5Au0gdzh3pcejijndSWd9fl4DKxVFrVqG/HUNuuBOGQjHMWawbtEhq2idWwZasxp3wISMMw0Z7AmA1bRtqbhhsgVepVGvdiNe2BGiwKa4imuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCmuCncK6HK2inv2i1ybkFbXY42sujzms9jDlBngMsQdnjCYDs6+f1Dn77yW2qLOnHNHTz5I68ckdHLmDpUdVM0VQXaQAGw1rOs1EkAAAAAAAAAAAAAAAM8AAAAbjS6FExAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA7PG6h6DjdDlHJsV9xp6/IvRvxazPp8O1XUpYVy3a4Ng6W7l4HSnk3TOuqlUHcrwl1dDl5Wdupz8y7a41gsa6+BRmB6vma6vL0WrfIsdfP1K2iTp8fOmaOnzLx73zHW4Btz4V46ermZlvhXKYvUbOd7sNes9Xy9FTWOtt4287WrmwUOrxbh0dlHUXLXEsl3gXoKQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALquSwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriwriw6O9fOCw3YmtsyNID3Hpz5A974IAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGw1tg1tg1tg1tg1tg1tg1tg1tg1tg1tg1tg1tmRpZya2wa2/A1tkmokhlka2wa2wa23WQ3Ymtsk1J2GpsGtt1kNsGtsk1J2mlsGtt1kOl7fPX5vH07x0vCG+PoLNazL5YWbL1G6Zc+/QMe9wfTHY8h7X5+e15ff455IAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADPDMw6POvmNLp8w6VZdK2HRwKe3VsNW3TcOdtWyrNzMo7McStrs1gBs17BE7zt8yxhXLwzwjZG7Sa9mvYNezWXNWzUad2m2VM8Myb1G+Z8vq8sTEnQygcrPDMm/Q6hHI7/AADOYku53oPP5Z4H0zJp4e69jVux8r07tPo8PoLNazL5YWbsMBnlqDLEe58TgPqny/WAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzWM2AzYDNgM2A2TqGbAZsBmwGbAZsBmwGeekZsBmwG7DAZ5agmBllrGbAZsBswgbccBnOsTs1DNgNmEDbjgM51idukZsBt1wOp9T+MTNfb/mPn8QLn0FmtZl8y9vPfz+He4Hh3uJPDPck8M9zNeFe6HhXux4R7seEe8Hg3vB4N70eCe9HgnvZPAvfDwL3w8C9+PAPf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
+
+## assistant — 2026-05-06T23:12:43.457317
+
+GitHub te met une **404** parce que l’URL directe est mauvaise ou pas autorisée sur ton compte.
+
+Tu es allé sur :
+
+`github.com/settings/personal-access-tokens/fine-grained`
+
+Essaie plutôt ce lien :
+
+https://github.com/settings/tokens?type=beta
+
+Si ça ne marche pas, passe par le chemin manuel :
+
+1. Clique sur ton avatar GitHub en haut à droite
+2. **Settings**
+3. Tout en bas à gauche : **Developer settings**
+4. **Personal access tokens**
+5. **Fine-grained tokens**
+6. **Generate new token**
+
+Ensuite tu configures :
+
+- **Token name** : `Hermes Brvndlab`
+- **Repository access** : `Only select repositories`
+- Repo : `jonathanzekhe/brvndlab`
+- **Contents** : Read and write
+- **Pull requests** : Read and write
+- **Actions** : Read-only
+- **Metadata** : Read-only
+
+Important : ne colle pas le token ici. Une fois généré, ajoute-le dans :
+
+`/Users/businessmanagement/.hermes/.env`
+
+Sous cette forme :
+
+```env
+GITHUB_TOKEN=ton_token_github
+```
+
+Puis tu me dis juste : **GitHub OK**.

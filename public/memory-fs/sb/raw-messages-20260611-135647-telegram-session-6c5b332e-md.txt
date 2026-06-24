@@ -1,0 +1,18 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260611_134215_8e7165.jsonl
+captured_at: 2026-06-11T13:56:47.017245
+platform: telegram
+type: conversation_delta
+---
+
+## assistant — 2026-06-11T13:42:52.589561
+
+Je suis d’accord avec les retours. Ils confirment exactement la bonne lecture : **OpenWA / Baileys / Waha / Evolution API = très utiles pour POC, mais pas une fondation client long terme.** Ce que je retiens : - Le risque de ban est réel, même avec simulation humaine. - Le fait que le client écrive en premier réduit le risque, mais ne l’annule pas. - OpenWA est pratique, mais fragile : session, QR, WhatsApp Web, changements Meta. - Baileys est plus propre techniquement, mais reste non officiel. - Pour des clients VividFlow, promettre ça comme infrastructure stable serait risqué. - La sécurité serveur/webhooks est un vrai sujet : IP filtering, rate limit, reverse proxy, auth, logs, firewall. Donc ma position nette : **Baileys oui pour tester vite et apprendre. Cloud API oui pour vendre sérieusement. OpenWA non pour le long terme.** Pour VividFlow, je ferais ça : 1. **Baileys sandbox** - tester expérience agent ; - mesurer qualité/réactivité ; - valider UX WhatsApp ; - zéro promesse client. 2. **Cloud API production** - offres clients ; - numéro propre ; - consentement ; - templates ; - conformité ; - meilleure stabilité. 3. **Sécurité obligatoire** - webhook signé ; - rate limit ; - firewall/ipset ou équivalent ; - logs ; - kill-switch ; - opt-out ; - pas d’outbound sauvage. Le commentaire le plus juste est celui-là : **“POC ou transition avant API Business pour prod.”** Donc oui, ton intuition est bonne : testons Baileys, mais si on construit une vraie solution client, la cible doit être officielle.
+
+## user — 2026-06-11T13:42:52.589561
+
+regarde ce que dit la docu hermes : https://hermes-agent.nousresearch.com/docs/user-guide/messaging/whatsapp
+
+## assistant — 2026-06-11T13:42:52.589561
+
+Oui, la doc confirme un truc important : **Hermes a déjà un bridge WhatsApp Baileys intégré**. Donc notre spike custom était utile pour comprendre/tester, mais la voie propre maintenant c’est : - utiliser `hermes whatsapp` pour pairer le numéro ; - configurer `WHATSAPP_ENABLED=true` ; - mettre `WHATSAPP_MODE=bot` ; - autoriser les numéros via `WHATSAPP_ALLOWED_USERS=...` ou `*` ; - lancer via `hermes gateway`. Point clé aussi : si aucun `WHATSAPP_ALLOWED_USERS` n’est défini, **Hermes bloque les messages entrants par sécurité**. Ça peut expliquer pourquoi “il répond pas”. Je viens de vérifier : la commande existe bien sur le VPS : `hermes whatsapp` Donc oui : **on devrait basculer du spike Baileys maison vers le WhatsApp natif Hermes**. C’est plus maintenable, plus aligné avec les updates Hermes, et ça garde la session dans : `~/.hermes/platforms/whatsapp/session` Prochaine action logique : je configure le profil VividFlow avec le WhatsApp natif, puis on repaire proprement le numéro dédié.

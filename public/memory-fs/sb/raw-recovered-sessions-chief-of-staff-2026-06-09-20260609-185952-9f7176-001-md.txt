@@ -1,0 +1,537 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260609_185952_9f7176
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260609_185952_9f7176.jsonl
+source_sha256_16: 2dbebc326605d243
+date: 2026-06-09
+---
+
+# Recovered session chief_of_staff/20260609_185952_9f7176
+
+
+## user — 2026-06-09T19:00:00.924462
+
+Tout votre business, piloté depuis un seul espace. change cette phrase par rapport à notre DA
+
+## user — 2026-06-09T19:00:00.924462
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: “trouve une solution tout seul stp”
+
+## Goal
+Mettre en place, diagnostiquer et maintenir à jour l’environnement agent Hermes/VividFlow, avec priorité actuelle :
+- finaliser une identité email VividFlow propre ;
+- utiliser **Équipe VividFlow** comme expéditeur/signature ;
+- intégrer une signature HTML avec le vrai logo VividFlow ;
+- trouver une solution autonome pour que la photo/avatar d’envoi email affiche le logo VividFlow ;
+- éviter tout affichage client de `Hermes VividFlow`.
+
+## Constraints & Preferences
+- Répondre en français.
+- Style attendu : direct, concret, sans blabla inutile.
+- L’utilisateur veut comprendre vite : cause → conséquence → correctif.
+- Ne jamais conserver de secrets, tokens, clés API, mots de passe ou credentials. Remplacer par `[REDACTED]`.
+- Adresses personnelles, compte mail agent, login/adresse et mots de passe doivent rester `[REDACTED]`.
+- Pour Gmail/Google Workspace : ne pas contourner l’auth Google ; utiliser mot de passe d’application ou OAuth.
+- Problème récurrent Hermes/Codex : surcharge de contexte, trop de pages/logs/HTML/mémoires envoyés au modèle.
+- DA VividFlow : formulations calmes, concrètes, orientées produit, éviter le dashboard business générique.
+- Règle email VividFlow actuelle :
+ - premier email d’un fil : `Bonjour [prénom],`, saut de ligne, `J’espère que tu vas bien.`, puis `Je te contacte pour…` ;
+ - réponse dans un fil : ne pas remettre `Bonjour`, sauf si réponse le lendemain ;
+ - le soir : utiliser `Bonsoir` ;
+ - expéditeur/signature : **Équipe VividFlow** ;
+ - photo de profil mail : vrai logo VividFlow ;
+ - ne jamais utiliser `Hermes VividFlow`.
+- L’utilisateur a finalement annulé la contrainte “nom réel de celui qui écrit” : **Équipe VividFlow va très bien**.
+
+## Completed Actions
+1. ANALYSÉ erreur Codex — dépassement contexte `gpt-5.5`, limite `128k`, entrée `~288k`, compression `252k/128k`, message `Your input exceeds the context window` [tool: vision_analyze]
+2. EXPLIQUÉ cause blocage Hermes — audit trop large avec pages/logs/HTML/knowledge ; recommandé page par page, `/new`, `/clear`, compaction avant modèle [tool: chat]
+3. CHARGÉ skills Hermes/email/Google/WhatsApp — `hermes-agent`, `himalaya`, `google-workspace`, `wasender-api`, `vividflow-context-loader` consultés [tool: skill_view]
+4. TESTÉ DNS mail VividFlow — MX Google Workspace/Gmail confirmés : `aspmx.l.google.com` + `alt1/alt2/alt3/alt4.aspmx.l.google.com` [tool: terminal]
+5. TESTÉ connectivité Gmail — `imap.gmail.com:993` et `smtp.gmail.com:587` OK [tool: terminal]
+6. TESTÉ login IMAP/SMTP avec mot de passe classique — refus Google, app password requis ; script temporaire supprimé [tool: write_file/terminal]
+7. TESTÉ app password Google — résultat `IMAP OK` et `SMTP OK`; script supprimé [tool: write_file/terminal]
+8. INSTALLÉ/CONFIGURÉ Himalaya local — binaire sous `$HOME/.local/bin`, compte `vividflow`, secret local chmod `600`, lecture mail OK [tool: terminal/write_file]
+9. AJOUTÉ mémoire agent — boîte mail agent VividFlow configurée via Himalaya account `vividflow`, IMAP/SMTP Google Workspace, ne jamais afficher secret [tool: memory]
+10. TENTÉ stockage supermemory `vividflow_ops` — échec `402`, crédits épuisés / `Text tokens limit reached` [tool: supermemory_store]
+11. TESTÉ Gmail API OAuth — `google_api.py gmail search ... --max 3`, exit `0`; Gmail API authentifiée, scopes Drive/Docs readonly manquants non critiques [tool: terminal]
+12. ENVOYÉ mail au boss VividFlow — `himalaya template send --account vividflow`, sortie `Message successfully sent!`; fichier supprimé [tool: write_file/terminal]
+13. CRÉÉ note Second Brain — `/home/hermes/vividflow-second-brain/wiki/processes/email-vividflow-rules.md`, règles email VividFlow, boîte agent `[REDACTED]`, sécurité app password [tool: write_file]
+14. VÉRIFIÉ GBrain — recherche `/home/hermes/gbrain` sur règles email : `0 matches`; règle pas encore présente dans GBrain [tool: search_files]
+15. AUDITÉ Hermes VPS — CLI `v0.13.0`, profil `chief_of_staff`, modèle `openai-codex/gpt-5.5`, contexte `128k`, gateways actifs [tool: terminal]
+16. AUDITÉ repo Hermes — `/home/hermes/.hermes/hermes-agent` signalé `2974 commits behind` [tool: terminal]
+17. AUDITÉ nouveautés Hermes — repéré `hermes chat`, `hermes -z`, `hermes chat --tui`, `hermes logs`, `dashboard`, `fallback`, `lsp`, `hooks`, `checkpoints`, `acp` [tool: terminal]
+18. MIS À JOUR mémoire Hermes VPS — état compact 2026-06-09 : CLI `v0.13.0`, provider `openai-codex/gpt-5.5`, contexte `128k`, gateways actifs [tool: memory]
+19. PATCHÉ règle Second Brain après rejet `Hermes VividFlow` — remplacé par règles interdisant `Hermes VividFlow`, signature/expéditeur alors orientés `Équipe/L’équipe VividFlow` [tool: patch]
+20. ENVOYÉ mail test changements — sujet `Mise à jour règles email VividFlow`, expéditeur visible `Équipe VividFlow`, sortie `Message successfully sent!`; fichier supprimé [tool: write_file/terminal]
+21. CORRIGÉ ensuite règle selon “celui qui écrit le mail” — mémoire + Second Brain temporairement mis à jour : expéditeur visible = nom réel, signature `L’équipe VividFlow` [tool: memory/patch]
+22. APPLIQUÉ dernière correction utilisateur “oublie équipe Vividflow ca ira très bien” — mémoire remplacée : signature et expéditeur visible = `Équipe VividFlow` accepté, interdiction `Hermes VividFlow` [tool: memory]
+23. LU note règles email — `/home/hermes/vividflow-second-brain/wiki/processes/email-vividflow-rules.md`, contenu env. `1,588 chars` [tool: read_file]
+24. PATCHÉ note Second Brain — section “Signature et expéditeur visible” remplacée : utiliser `Équipe VividFlow`; `Équipe VividFlow` accepté pour expéditeur et/ou signature ; `Hermes VividFlow` interdit [tool: patch]
+25. CONFIRMÉ à l’utilisateur — règle actuelle : `Équipe VividFlow` OK pour expéditeur/signature, `Hermes VividFlow` interdit, abandon contrainte “nom de la personne qui écrit” [tool: chat]
+26. CHARGÉ skill `vividflow-figma-asset-extraction` — consulté pour trouver/extraire un vrai asset logo VividFlow [tool: skill_view]
+27. RECHERCHÉ logos VividFlow locaux — `search_files "*vividflow*logo*"` dans `/home/hermes`, 4 matches trouvés [tool: search_files]
+28. RECHERCHÉ SVG locaux — `search_files "*.svg"` dans 
+
+...[TRONQUÉ 22161 chars sha256:c09b7b7c48f4374e]...
+
+low_brain_curator.sh` ;
+ - exclure cache/logs/dumps HTML ;
+ - chunker et tronquer sous seuil token.
+
+## Critical Context
+- Credentials :
+ - adresse/login mail agent : `[REDACTED]`
+ - mot de passe classique : `[REDACTED]`
+ - mot de passe d’application Google : `[REDACTED]`
+ - adresses personnelles/destinataires : `[REDACTED]`
+ - token OAuth Google : `[REDACTED]`
+- DNS mail : domaine routé Google Workspace/Gmail via `aspmx.l.google.com` + `alt1/alt2/alt3/alt4.aspmx.l.google.com`.
+- Réseau Gmail OK :
+ - `imap.gmail.com:993`
+ - `smtp.gmail.com:587`
+- Mail actuel :
+ - IMAP OK ;
+ - SMTP OK ;
+ - Himalaya account `vividflow` ;
+ - display-name corrigé en `Équipe VividFlow` ;
+ - secret local permissions serrées ;
+ - mails réels déjà envoyés avec sortie `Message successfully sent!`.
+- Règle email VividFlow actuelle :
+ - nouveau fil : `Bonjour [prénom],`
+ - ligne vide ;
+ - `J’espère que tu vas bien.`
+ - `Je te contacte pour…`
+ - expéditeur/signature : `Équipe VividFlow`
+ - réponse fil : pas de `Bonjour` sauf lendemain
+ - soir : `Bonsoir`
+ - photo de profil : vrai logo VividFlow
+ - jamais : `Hermes VividFlow`
+- Signature HTML créée avec le vrai logo VividFlow local, mais pas encore poussée dans Gmail du compte agent.
+- Photo profil Gmail :
+ - pas modifiable via SMTP ;
+ - pas équivalente à une signature HTML ;
+ - nécessite compte Google correct, Admin Directory API, interface Workspace/Gmail, ou solution domaine BIMI.
+- OAuth Google :
+ - Gmail API authentifiée, mais token actuel détecté comme compte non-agent ; ne pas l’utiliser pour modifier une boîte personnelle.
+- Hermes VPS état :
+ - CLI `v0.13.0`
+ - profil `chief_of_staff`
+ - provider principal `openai-codex`
+ - modèle `gpt-5.5`
+ - context_length `128k`
+ - gateways systemd actifs : `chief_of_staff`, `cmo_executor`, `csm_executor`, `operations_executor`, `rd_executor`
+ - Slack + Telegram actifs
+ - repo local `/home/hermes/.hermes/hermes-agent` signalé `2974 commits behind`
+- Erreur centrale Hermes/Codex :
+ - `Your input exceeds the context window of this model. Please adjust your input and try again.`
+ - limite `128K tokens`, contextes observés `~288K`, `252K/128K`, `1,050,000 → 128,000`, `~312,329`, `271K/128K`.
+- Interprétation critique : `stepping down` et `compressing (1/3)` ne suffisent pas si la matière source reste trop grosse ; problème probable dans collecte trop large de `vividflow_brain_curator.sh`, pas dans le `.timer`.
+
+--- END OF CONTEXT SUMMARY — respond to the message below, not the summary above ---
+
+## assistant — 2026-06-09T19:00:00.924462
+
+Je vois un vrai problème : le domaine n’a pas encore DMARC/BIMI visibles. Sans ça, Gmail n’affichera pas proprement le logo de marque côté destinataires. Je regarde si on a un accès DNS automatisable.
+
+## assistant — 2026-06-09T19:00:00.924462
+
+Pas d’accès DNS trouvé sur la machine. Je prépare quand même le kit complet : signature + logo + fichiers/records DNS BIMI/SPF/DMARC à poser. Ensuite il restera uniquement à coller 2–3 DNS chez le registrar.
+
+## assistant — 2026-06-09T19:00:00.924462
+
+Je vais générer un kit propre avec :
+- signature HTML finale,
+- logo PNG/JPG pour Gmail,
+- tentative SVG BIMI depuis l’asset vectoriel existant,
+- records DNS à poser.
+
+## assistant — 2026-06-09T19:00:00.924462
+
+J’ai pris la meilleure solution autonome possible.
+
+Ce que j’ai fait :
+
+- Signature HTML VividFlow créée avec le vrai logo.
+- Kit complet créé ici : 
+`/home/hermes/outputs/vividflow-email-branding-kit`
+
+Dedans :
+- `signature-vividflow.html`
+- `signature-vividflow-snippet.html`
+- `vividflow-logo-gmail-profile.jpg`
+- `vividflow-bimi-candidate.svg`
+- `dns-records-to-add.md`
+- `google-profile-logo.md`
+
+J’ai aussi corrigé l’expéditeur local :
+- `Équipe VividFlow`
+- plus jamais `Hermes | VividFlow`
+
+Blocage réel : je ne peux pas changer la photo de profil Gmail avec SMTP/app password. Google ne l’autorise pas. Il faut soit :
+1. accès navigateur/admin Google Workspace pour `hey@vividflow.co`, 
+2. soit Admin Directory API avec droits admin, 
+3. soit solution domaine : **BIMI** pour afficher le logo dans les inbox compatibles.
+
+J’ai préparé la solution BIMI dans `dns-records-to-add.md`. 
+Il faudra poser les DNS SPF/DMARC/BIMI côté domaine, puis héberger le SVG sur :
+
+`https://vividflow.co/.well-known/bimi/vividflow.svg`
+
+Donc la solution propre est prête. Il manque seulement l’accès DNS/Admin Google pour l’appliquer jusqu’au bout.
+
+## user — 2026-06-09T19:00:00.924462
+
+ok oublie pas aussi tu as un drive il faut qu'on se le partage comme ca tu pourras y glisser tes fichiers dedans
+
+## assistant — 2026-06-09T19:00:00.924462
+
+Je l’inscris dans le Second Brain local, vu que la mémoire courte et Supermemory sont pleins.
+
+## assistant — 2026-06-09T19:00:00.924462
+
+Oui, bonne idée.
+
+Je l’ai noté dans le Second Brain ici : 
+`/home/hermes/vividflow-second-brain/wiki/processes/drive-partage-agent-vividflow.md`
+
+À faire côté pratique :
+1. Créer un dossier Drive partagé type **VividFlow — Agent Files**.
+2. Le partager avec le compte Google utilisé par Hermes.
+3. Me donner accès écriture.
+4. Ensuite je déposerai les signatures, PDF, HTML, kits, exports directement dedans.
+
+Note : ma mémoire courte est pleine, et Supermemory est bloqué par limite de crédit, donc je l’ai mis dans le Second Brain local pour ne pas le perdre.
+
+## user — 2026-06-09T19:00:00.924462
+
+tu es pas obligé de me dire a chaque fois que tu notes dans ta second brain je te fais confiance
+
+## assistant — 2026-06-09T19:00:00.924462
+
+Bien vu. Je ferai ça silencieusement maintenant.
+
+Je te dirai seulement quand :
+- ça bloque,
+- il faut une action de ta part,
+- ou le résultat est prêt.
+
+## user — 2026-06-09T19:00:00.924462
+
+ok je t'ai donné accès au drive partagé
+
+## assistant — 2026-06-09T19:00:00.924462
+
+Je vérifie l’accès Drive et je localise le dossier partagé.
+
+## assistant — 2026-06-09T19:00:00.924462
+
+L’accès Google est bien authentifié, mais Drive API est désactivée côté projet OAuth. Je cherche quand même si l’invitation Drive est arrivée par mail.
+
+## assistant — 2026-06-09T19:00:00.924462
+
+Je tente une recherche plus large dans Gmail.
+
+## assistant — 2026-06-09T19:00:00.924462
+
+Ok. J’ai vérifié.
+
+Blocage actuel : le Drive est partagé, mais l’API Drive du projet Google Hermes est désactivée. Donc je ne peux pas encore voir ni uploader dans le dossier.
+
+À activer ici : 
+https://console.developers.google.com/apis/api/drive.googleapis.com/overview?project=498701455586
+
+Après activation, j’attends 1–2 minutes et je reteste. 
+Si ça bloque encore, il faudra probablement refaire l’OAuth avec scope Drive écriture.
+
+## user — 2026-06-09T19:00:00.924462
+
+hey@vividflow.co is requesting the role roles/resourcemanager.projectMover on the resource 498701455586.
+
+Requestor’s message:
+"I'm an agent and I want to use Drive"
+
+Click the following link to investigate and remediate this request for hey@vividflow.co:
+
+console.cloud.google.com/iam-admin/troubleshooter/summary;permissions=resourcemanager.projects.get;token=AbColwbwH5gJw0YGpppTP3MdCDJXG8JPKBWLBm_D9t6wOObjW1B2KDxo4zlonnL7QXuwuC32Ib4a_vf2IT91RrgIddb1xep0K1I8S6gUYAJfL-By5OQ5-YPpDVFwbM_wbCbgd6JHW59U2KEaNwpZPK6nfeWzsjZlIUnPfPp9?utm_campaign=role_request&utm_source=cloud_console
+
+## assistant — 2026-06-09T19:00:00.924462
+
+Ne valide pas ça.
+
+`roles/resourcemanager.projectMover` = droit pour **déplacer le projet Google Cloud**. 
+Ça n’a rien à voir avec Drive. Trop risqué et inutile.
+
+Ce qu’il faut faire à la place :
+
+1. Va sur : 
+https://console.developers.google.com/apis/api/drive.googleapis.com/overview?project=498701455586
+
+2. Clique **Enable / Activer** pour Google Drive API.
+
+3. Ne donne pas de rôle IAM spécial à `hey@vividflow.co`.
+
+Ensuite je reteste l’accès Drive. Si l’API est active mais que l’écriture bloque, on fera un OAuth propre avec scope Drive, pas un rôle “project mover”.
+
+## user — 2026-06-09T19:02:28.443976
+
+[{"type": "text", "text": "je vais ou après\n\n[Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_9f022cd6406c.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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
+
+## assistant — 2026-06-09T19:02:28.443976
+
+Tu es au mauvais endroit : ne clique pas **Request access** ici.
+
+Fais plutôt :
+
+1. En haut à gauche, clique **Select a project**
+2. Sélectionne le projet `498701455586` / projet Hermes s’il apparaît
+3. Dans le menu gauche, clique **Library**
+4. Dans la recherche, tape : `Google Drive API`
+5. Ouvre **Google Drive API**
+6. Clique **Enable**
+
+Si tu ne vois pas le projet dans “Select a project”, c’est que ton compte n’a pas les droits projet. Dans ce cas, il faut soit :
+- te connecter avec le compte qui a créé le projet OAuth,
+- soit m’envoyer le lien exact de la page Drive API, pas le troubleshooter IAM.
+
+## user — 2026-06-09T19:05:24.228680
+
+je suis sur ton compte la
+
+## assistant — 2026-06-09T19:05:24.228680
+
+Je vérifie l’ID exact du projet OAuth, pour éviter que tu sois sur le mauvais projet.
+
+## assistant — 2026-06-09T19:05:24.228680
+
+Ok, donc tu es connecté avec `hey@vividflow.co`, mais ce compte n’a probablement **pas les droits sur le projet Google Cloud OAuth**.
+
+Le `498701455586` que je t’ai donné n’est pas forcément un “projet visible” : c’est le numéro dans le client OAuth. Donc si Google te propose “Request access”, c’est normal.
+
+Ne demande pas le rôle `projectMover`.
+
+Ce qu’il faut faire maintenant :
+
+1. En haut à gauche, clique le sélecteur de projet.
+2. Cherche un projet lié à Hermes / VividFlow / OAuth.
+3. Si aucun projet n’apparaît : ce compte `hey@vividflow.co` n’est pas propriétaire du projet.
+4. Connecte-toi avec le compte Google qui avait créé le client OAuth Hermes.
+5. Puis active **Google Drive API** dans ce projet.
+
+Le droit minimum utile, si tu dois accorder un accès à `hey@vividflow.co`, c’est plutôt :
+- **Viewer** pour voir le projet,
+- ou **Editor** temporairement si tu veux activer l’API depuis ce compte.
+
+Mais pas `Project Mover`.
+
+## user — 2026-06-09T19:08:20.494309
+
+[{"type": "text", "text": "je devrais créer un projet ici depuis mon compte thomas.alves@vividflow.co\n\n[Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_f26ae6b51a91.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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
+
+## assistant — 2026-06-09T19:08:20.494309
+
+Oui. Crée un nouveau projet depuis `thomas.alves@vividflow.co`.
+
+Nom simple :
+**VividFlow Hermes Workspace**
+
+Ensuite fais dans cet ordre :
+
+1. Clique **Create project**
+2. Nom : `VividFlow Hermes Workspace`
+3. Create
+4. Une fois créé, va dans **Library**
+5. Active :
+ - **Google Drive API**
+ - **Gmail API**
+ - **Google Calendar API** si on veut agenda plus tard
+6. Va dans **OAuth consent screen**
+7. Type : **Internal** si disponible, sinon **External**
+8. Crée un OAuth Client :
+ - Application type : **Desktop app**
+ - Nom : `Hermes Agent`
+9. Télécharge le JSON client secret.
+
+Après, envoie-moi juste le fichier JSON ou son chemin sur le VPS. 
+Je reconnecterai Hermes proprement avec Drive.
+
+## user — 2026-06-09T19:15:14.564469
+
+quand je clique sur download json ca telecharge pas
+
+## assistant — 2026-06-09T19:15:14.564469
+
+C’est souvent le navigateur qui bloque le téléchargement.
+
+Fais comme ça :
+
+1. Dans la ligne du client OAuth, clique sur l’icône crayon / edit.
+2. Copie :
+ - **Client ID**
+ - **Client secret**
+3. Envoie-les-moi ici si tu veux, mais **supprime-les après** / considère-les comme sensibles.
+
+Mieux : si tu peux, fais plutôt :
+- clique les **3 points** à droite du client OAuth,
+- cherche **Download OAuth client** ou **Télécharger le JSON**,
+- essaye avec Chrome sans bloqueur / popup autorisée.
+
+Si le bouton ne fait rien :
+- désactive AdBlock,
+- autorise les popups/téléchargements pour `console.cloud.google.com`,
+- ou change de navigateur.
+
+Option rapide : copie juste le **Client ID** et le **Client secret**, je reconstruirai le JSON proprement côté serveur.
+
+## user — 2026-06-09T19:17:02.795266
+
+842888292822-dgkn7i9tqbfsaegj92qroq3hq233lmsf.apps.googleusercontent.com
+
+## assistant — 2026-06-09T19:17:02.795266
+
+Il manque le **Client secret**.
+
+Tu m’as envoyé le **Client ID** :
+`842888292822-...apps.googleusercontent.com`
+
+Maintenant va dans le même écran OAuth et copie :
+- **Client secret**
+
+Dès que je l’ai, je reconstruis le fichier JSON et je lance l’auth Drive proprement.
+
+## user — 2026-06-09T19:17:21.566757
+
+842888292822-dgkn7i9tqbfsaegj92qroq3hq233lmsf.apps.googleusercontent.com
+
+## assistant — 2026-06-09T19:17:21.566757
+
+Ça c’est encore le **Client ID**, pas le secret.
+
+Sur l’écran du client OAuth, tu dois avoir deux champs :
+
+- **Client ID** → commence par `842888292822-...apps.googleusercontent.com`
+- **Client secret** → ressemble à une chaîne plus courte, souvent commence par `GOCSPX-...`
+
+Copie le champ **Client secret**. 
+Sans lui je ne peux pas générer le JSON OAuth.
+
+## user — 2026-06-09T19:17:53.939123
+
+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
+
+## assistant — 2026-06-09T19:17:53.939123
+
+Je l’installe côté serveur et je lance l’auth propre Drive/Gmail. Je ne réaffiche pas le secret.
+
+## assistant — 2026-06-09T19:17:53.939123
+
+Je configure maintenant le client OAuth et je récupère le lien d’autorisation.
+
+## assistant — 2026-06-09T19:17:53.939123
+
+Ouvre ce lien avec le compte `thomas.alves@vividflow.co` ou le compte qui a accès au Drive :
+
+https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=842888292822-dgkn7i9tqbfsaegj92qroq3hq233lmsf.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A1&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.send+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.modify+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcalendar+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcontacts.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fspreadsheets+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdocuments.readonly&state=qNA2cO6xR5IytJ7bTuskWRotlfh27i&code_challenge=7_kupeXirRUrnCLIPqBx2vn_ja-CPdAvVUP0SpvfSRM&code_challenge_method=S256&access_type=offline&prompt=consent
+
+Après validation, la page va probablement afficher une erreur `localhost`. C’est normal.
+
+Copie-colle ici **l’URL complète** de la barre d’adresse après redirection.
+
+## user — 2026-06-09T19:20:35.643766
+
+Ce site est inaccessible
+Il se peut que la page Web à l'adresse http://localhost:1/?state=qNA2cO6xR5IytJ7bTuskWRotlfh27i&iss=https://accounts.google.com&code=4/0AdkVLPzbhljXf4uppMi5tM2kAMD8RJCbTa93cCZqilIKbaDq6mi0QftMCavYtLPD6PwDFw&scope=https://www.googleapis.com/auth/gmail.readonly%20https://www.googleapis.com/auth/gmail.send%20https://www.googleapis.com/auth/gmail.modify%20https://www.googleapis.com/auth/calendar%20https://www.googleapis.com/auth/drive.readonly%20https://www.googleapis.com/auth/contacts.readonly%20https://www.googleapis.com/auth/spreadsheets%20https://www.googleapis.com/auth/documents.readonly soit temporairement inaccessible ou qu'elle ait été déplacée de façon permanente à une autre adresse Web.
+ERR_UNSAFE_PORT
+
+## assistant — 2026-06-09T19:20:35.643766
+
+Parfait, c’est exactement l’URL qu’il fallait. Je finalise l’échange OAuth maintenant.
+
+## assistant — 2026-06-09T19:20:35.643766
+
+OAuth est bon. Je teste Drive et cherche le dossier partagé.
+
+## assistant — 2026-06-09T19:20:35.643766
+
+Je vérifie si l’API permet l’écriture, car le scope actuel affiché est lecture Drive seulement.
+
+## assistant — 2026-06-09T19:20:35.643766
+
+Je crée un petit test Drive via API directe pour confirmer l’écriture.
+
+## assistant — 2026-06-09T19:20:35.643766
+
+Je dois élargir le scope Drive en écriture. Je patch le script OAuth pour remplacer `drive.readonly` par `drive.file`, puis je te redonne un lien.
+
+## assistant — 2026-06-09T19:20:35.643766
+
+Je relance l’URL OAuth avec le scope écriture.
+
+## assistant — 2026-06-09T19:20:35.643766
+
+Accès Drive lecture OK : je vois le dossier partagé **Vividflow**.
+
+Mais pour déposer des fichiers, le token actuel a seulement `drive.readonly`. J’ai corrigé le scope en `drive.file`.
+
+Ouvre ce nouveau lien, valide, puis renvoie-moi encore l’URL complète `localhost` :
+
+https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=842888292822-dgkn7i9tqbfsaegj92qroq3hq233lmsf.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A1&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.send+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.modify+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcalendar+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.file+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcontacts.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fspreadsheets+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdocuments.readonly&state=uxXQ2r4FY0z3TiQW9OJSe981FYHBId&code_challenge=iwyCnavo_Hxir1WDsete5jEsN7eeKHF3OIdUtdjFFhA&code_challenge_method=S256&access_type=offline&prompt=consent
+
+Après ça, je teste l’upload directement dans le Drive partagé.
+
+## user — 2026-06-09T19:21:34.098635
+
+Ce site est inaccessible
+Il se peut que la page Web à l'adresse http://localhost:1/?state=uxXQ2r4FY0z3TiQW9OJSe981FYHBId&iss=https://accounts.google.com&code=4/0AdkVLPyUBQKmnVO3e5bak4_FcjvjURlTowjjximQulBsHQBdMR3agigK_sb9InyuKU317A&scope=https://www.googleapis.com/auth/gmail.readonly%20https://www.googleapis.com/auth/gmail.send%20https://www.googleapis.com/auth/gmail.modify%20https://www.googleapis.com/auth/calendar%20https://www.googleapis.com/auth/drive.file%20https://www.googleapis.com/auth/contacts.readonly%20https://www.googleapis.com/auth/spreadsheets%20https://www.googleapis.com/auth/documents.readonly soit temporairement inaccessible ou qu'elle ait été déplacée de façon permanente à une autre adresse Web.
+ERR_UNSAFE_PORT
+
+## assistant — 2026-06-09T19:21:34.098635
+
+Parfait. Je finalise et je teste l’upload dans le Drive partagé.
+
+## assistant — 2026-06-09T19:21:34.098635
+
+Je tente l’upload d’un fichier de test.
+
+## assistant — 2026-06-09T19:21:34.098635
+
+Upload OK. Je dépose maintenant le kit signature/branding dans le Drive partagé.
+
+## assistant — 2026-06-09T19:21:34.098635
+
+C’est bon.
+
+Drive connecté + upload validé.
+
+Dossier créé :
+https://drive.google.com/drive/folders/1RSOfO5zvgzI7-T3_JXNYPUDqgAYev17v
+
+J’y ai déposé :
+- signature HTML VividFlow
+- snippet signature
+- logo Gmail
+- SVG candidat BIMI
+- DNS à ajouter
+- note profil Google
+
+Il y a aussi un fichier test `hermes-drive-write-test.txt` à la racine du dossier Vividflow — tu peux le supprimer, il servait juste à valider l’écriture.
+
+## user — 2026-06-09T19:22:25.116987
+
+change en Content Agent
+
+## assistant — 2026-06-09T19:22:25.116987
+
+Je renomme le dossier Drive maintenant.
+
+## assistant — 2026-06-09T19:22:25.116987
+
+Fait.
+
+Le dossier s’appelle maintenant **Content Agent** : 
+https://drive.google.com/drive/folders/1RSOfO5zvgzI7-T3_JXNYPUDqgAYev17v

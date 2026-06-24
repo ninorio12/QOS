@@ -40,6 +40,9 @@ export default function RollingNumber({ value, className, duration = 900 }: Prop
 
   useEffect(() => {
     if (target === null) { setDisplay(value); return }
+    // Constante non-nullable : le narrowing du `return` ci-dessus ne se propage pas
+    // dans la closure `step` appelée par requestAnimationFrame (TS18047/TS2322).
+    const t: number = target
 
     const from = fromRef.current
     startRef.current = null
@@ -51,12 +54,12 @@ export default function RollingNumber({ value, className, duration = 900 }: Prop
       const elapsed = ts - startRef.current
       const progress = Math.min(elapsed / duration, 1)
       const eased = easeOutExpo(progress)
-      const current = from + (target - from) * eased
+      const current = from + (t - from) * eased
       setDisplay(formatLike(value, current))
       if (progress < 1) {
         rafRef.current = requestAnimationFrame(step)
       } else {
-        fromRef.current = target
+        fromRef.current = t
         setDisplay(value)
       }
     }

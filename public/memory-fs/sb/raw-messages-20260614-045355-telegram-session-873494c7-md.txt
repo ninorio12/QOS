@@ -1,0 +1,38 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260614_042547_610958.jsonl
+captured_at: 2026-06-14T04:53:55.495182
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-06-14T04:25:56.074072
+
+Corrigé — et voilà la vraie raison, plus nette que ce que je t'ai dit. Pourquoi c'était lent (vraie cause) J'ai travaillé dans le mauvais repo. J'ai édité ~/Documents/Claude AI/Brvndlab — la copie iCloud, dépréciée, où git gèle (objets rapatriés du cloud, status/checkout qui pendent). Le repo canonique est ~/dev/brvndlab-claude/brvndlab-app, justement migré là pour éviter ce freeze. Pire : une mémoire le disait déjà (« Plus jamais ~/Documents, repo clair = ~/dev/brvndlab-claude »). Je ne l'ai pas lue avant de plonger dans le code. C'est l'erreur de fond — pas le git, pas l'infra : j'ai attaqué sans vérifier le bon point de départ. Ce que je ne reproduirai plus Vérifier le repo canonique AVANT de toucher au code (~/dev/brvndlab-claude, jamais ~/Documents). Pas de diagnostic git pas-à-pas. Dès que je vois un repo dans ~/Documents, je change de copie au lieu de me battre contre des git status à 20s. Exécuter d'un trait comme tu l'attends — pas 4 allers-retours sur une modif de 2 lignes. Pour Hermes — l'essentiel La modif (faite) : dans brvndlab-app/src/app/(app)/angles/[id]/page.tsx, retirer des imports Mail + MessageCircle, et du tableau TRANSFORM_BUTTONS les entrées Email et Question audience ; garder Script / Story / Carousel / Post / Lead magnet (tous « Bientôt »). À refaire dans le bon repo ~/dev/brvndlab-claude/brvndlab-app (pas la copie iCloud que j'ai éditée). ⚠️ Point à trancher avant deploy : ce repo canonique est en clair uniquement, branche hermes/audit-nonbloquant ; la copie iCloud était sur feat/dark-mode. Il faut confirmer quelle lignée alimente la prod avant de vercel --prod — sinon risque de perdre le dark mode en prod. C'est exactement le genre d'arbitrage de divergence que Hermes gère. Mon edit dans la copie iCloud reste dispo comme référence du diff exact, mais c'est ~/dev/brvndlab-claude qui doit recevoir le changement et partir en live.
+
+## assistant — 2026-06-14T04:25:56.074072
+
+C’est réglé côté garde-fous. Ce que j’ai fait : - J’ai appliqué la modif dans le **bon repo canonique** : `~/dev/brvndlab-claude/brvndlab-app` - Branche confirmée : `feat/dark-mode` - J’ai retiré : - bouton `Email` - bouton `Question audience` - imports `Mail` et `MessageCircle` - J’ai ajouté une règle globale Claude : si Claude travaille dans `~/Documents/Claude AI/Brvndlab`, il est bloqué avec un message clair. - J’ai ajouté une règle projet dans `CLAUDE.md` : Claude doit vérifier `pwd`, utiliser le repo canonique, et ne plus diagnostiquer git dans iCloud/Documents. - J’ai aussi mis à jour la mémoire/skill Hermes pour ne plus refaire cette erreur. Vérification : - Le fichier ciblé ne contient plus les boutons/imports interdits. - Le lint global échoue encore, mais sur des erreurs existantes du repo / `.vercel/output` / autres composants, pas sur cette modif. - Le lint ciblé du fichier remonte une erreur préexistante `react/no-unescaped-entities` ligne 168, non liée au diff. Donc le vrai problème est corrigé : Claude ne devrait plus partir dans la copie iCloud lente et se bloquer sur des `git status` inutiles.
+
+## user — 2026-06-14T04:25:56.074072
+
+tu peux mexpliquer en simple quel etait le problème et les conséquence de ce problème stp ?
+
+## assistant — 2026-06-14T04:25:56.074072
+
+Oui. Le problème simple : Claude travaillait parfois dans **la mauvaise copie du projet**. Il y avait deux repos Brvndlab : - **Mauvais repo** : `~/Documents/Claude AI/Brvndlab` - dans iCloud - ancien / déprécié - lent - git peut bloquer parce que les fichiers sont synchronisés/rapatriés par iCloud - **Bon repo** : `~/dev/brvndlab-claude/brvndlab-app` - repo canonique - local - rapide - c’est celui qu’il faut utiliser Conséquences du problème : 1. **Claude devenait lent** Il lançait des commandes comme `git status` dans un dossier iCloud, et ça pouvait geler ou prendre longtemps. 2. **Claude corrigeait au mauvais endroit** Il pouvait modifier l’ancienne copie, donc le vrai projet ne changeait pas. 3. **Risque de déployer une mauvaise version** Si on déploie depuis la mauvaise lignée, on peut envoyer en prod une version incomplète ou perdre des changements comme le dark mode. 4. **Perte de temps inutile** Au lieu de faire une petite modif en 2 minutes, Claude partait dans un faux diagnostic git/fichiers pendant 20 minutes. Ce que j’ai corrigé : maintenant Claude/Hermes a une règle claire : **si le chemin contient `Documents/Claude AI/Brvndlab`, il ne travaille pas là-dedans. Il bascule vers `~/dev/brvndlab-claude/brvndlab-app`.**
+
+## user — 2026-06-14T04:26:41.619297
+
+qu'a tu fais en simple pour éviter cela ?
+
+## assistant — 2026-06-14T04:26:41.619297
+
+J’ai mis 3 protections simples : 1. **Mémoire durable** J’ai enregistré que le bon repo est : `~/dev/brvndlab-claude/brvndlab-app` et que `~/Documents/Claude AI/Brvndlab` est interdit/déprécié. 2. **Règle dans le skill Brvndlab** Quand je travaille sur Brvndlab, je dois d’abord vérifier le chemin. Si je vois `Documents/Claude AI`, je ne fais pas de diagnostic : je change directement de repo. 3. **Garde-fou côté Claude** J’ai ajouté une règle/protection pour que Claude soit averti/bloqué s’il essaie de travailler dans la copie iCloud. En clair : avant, Claude pouvait se tromper de maison. Maintenant, il a l’adresse correcte enregistrée + un panneau “interdit” sur l’ancienne maison.
+
+## user — 2026-06-14T04:27:50.206241
+
+est ce quil y a dautre chose quon peut faire pour quil soit : • plus performant • plus rapide • plus efficace • plus sharp
+
+## assistant — 2026-06-14T04:27:50.206241
+
+Oui. On peut faire mieux, en 5 leviers. 1. **Toujours démarrer Claude depuis le bon dossier** Pas depuis un vieux terminal ouvert ailleurs. Pour Brvndlab : `cd ~/dev/brvndlab-claude/brvndlab-app && claude` 2. **Découper les missions** Mauvais prompt : “corrige tout le SaaS”. Bon prompt : “modifie uniquement ce fichier, fais ce changement, puis vérifie avec telle commande”. 3. **Limiter ses outils** Quand la tâche est simple, Claude ne doit pas avoir tout le pouvoir. Exemple : lecture + édition seulement, pas de gros diagnostic shell. 4. **Mettre des garde-fous de temps** Si une commande bloque plus de 30–60 secondes sans raison, Claude doit stopper, résumer, changer d’approche. Pas attendre dans le vide. 5. **Nettoyer le contexte** Quand une session Claude devient longue, elle devient moins sharp. Il faut faire `/compact` ou redémarrer une session fraîche avec un brief clair. Le plus important : **Claude est meilleur quand on le traite comme un exécutant senior avec un périmètre précis, pas comme quelqu’un à qui on jette tout le projet.** Je te propose qu’on mette en place un “mode Claude sharp” standard pour toi : un prompt de départ + règles Claude + commandes rapides pour Brvndlab.

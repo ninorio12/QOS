@@ -1,5 +1,6 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
+import { requireAdmin } from "./osLib"
 
 const blockValidator = v.array(v.object({ type: v.string(), text: v.string() }))
 
@@ -49,6 +50,7 @@ export const list = query({
 export const create = mutation({
   args: { title: v.string(), icon: v.optional(v.string()), category: v.optional(v.string()), subfolder: v.optional(v.string()), linkedClientId: v.optional(v.string()), assignedUserIds: v.optional(v.array(v.string())) },
   handler: async (ctx, { title, icon, category, subfolder, linkedClientId, assignedUserIds }) => {
+    await requireAdmin(ctx)
     const count = (await ctx.db.query("processes").collect()).length
     return await ctx.db.insert("processes", {
       title: title || 'Nouveau process', icon: icon ?? 'workflow', blocks: [],
@@ -73,6 +75,7 @@ export const update = mutation({
     assignedUserIds:  v.optional(v.array(v.string())),
   },
   handler: async (ctx, { id, ...rest }) => {
+    await requireAdmin(ctx)
     const patch: Record<string, unknown> = { updatedAt: new Date().toISOString() }
     for (const [k, val] of Object.entries(rest)) if (val !== undefined) patch[k] = val
     await ctx.db.patch(id, patch)
@@ -82,6 +85,7 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("processes") },
   handler: async (ctx, { id }) => {
+    await requireAdmin(ctx)
     const item = await ctx.db.get(id)
     if (item?.previewStorageId) { try { await ctx.storage.delete(item.previewStorageId as never) } catch { /* ignore */ } }
     await ctx.db.delete(id)

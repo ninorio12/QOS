@@ -25,7 +25,10 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const body = await req.json()
-    await convex().mutation(api.crm_contacts.update, { id: params.id as Id<'crm_contacts'>, ...body })
+    // Les champs optionnels Convex sont string|undefined, pas nullable : on retire les null
+    // (un champ vide = omis, pas null) pour éviter ArgumentValidationError (ex: phone: null).
+    const clean = Object.fromEntries(Object.entries(body).filter(([, v]) => v !== null))
+    await convex().mutation(api.crm_contacts.update, { id: params.id as Id<'crm_contacts'>, ...clean })
     return NextResponse.json({ ok: true })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })

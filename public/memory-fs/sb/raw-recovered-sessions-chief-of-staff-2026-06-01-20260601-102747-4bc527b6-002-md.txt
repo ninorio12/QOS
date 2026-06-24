@@ -1,0 +1,524 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260601_102747_4bc527b6
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260601_102747_4bc527b6.jsonl
+source_sha256_16: 0ce2bed4e4b5fe5a
+date: 2026-06-01
+---
+
+# Recovered session chief_of_staff/20260601_102747_4bc527b6
+
+
+## assistant — 2026-06-01T15:24:10.500289
+
+Oui. Je prends ça comme **mission d’architecture + mise en place**, pas juste brainstorming.
+
+## Ce que j’ai vérifié
+
+### Slack
+Slack est déjà prévu dans la config Hermes, mais pas encore structuré :
+
+```yaml
+slack:
+ require_mention: true
+ free_response_channels: ''
+ allowed_channels: ''
+ channel_prompts: {}
+```
+
+Donc :
+- Slack existe côté config
+- mais aucun canal autorisé n’est encore défini
+- aucun prompt par canal
+- pas encore de routing propre
+- pas encore de bot Slack opérationnel confirmé
+
+### GBrain
+GBrain est présent dans la config principale, mais désactivé :
+
+```yaml
+gbrain:
+ command: gbrain
+ args:
+ - serve
+ enabled: false
+```
+
+Et il ne tourne pas encore car `bun` manque sur le serveur.
+
+### Profil actuel
+Le profil `chief_of_staff` a Slack prévu aussi, mais sans règles :
+
+```yaml
+slack:
+ require_mention: true
+ free_response_channels: ''
+ allowed_channels: ''
+ channel_prompts: {}
+```
+
+Donc aujourd’hui : **on n’a pas encore l’infrastructure anti-chaos.**
+
+## Ce qu’il faut construire
+
+Tu veux des agents qui fonctionnent comme une vraie équipe humaine :
+
+- pensée libre
+- accès à l’info limité
+- rôles clairs
+- pas de fourre-tout
+- pas de contexte mélangé
+- pas d’usine à gaz
+- pas de tâches ajoutées inutilement
+
+C’est la bonne vision.
+
+## Architecture que je recommande
+
+### 1. Slack = espace équipe
+C’est là que les humains travaillent avec les agents.
+
+Mais chaque agent ne doit répondre que :
+- dans ses canaux
+- sur mention
+- avec son rôle
+- avec son scope mémoire
+
+### 2. Telegram = bras droit privé
+Toi avec moi. Jonathan avec son bras droit.
+
+Je dois pouvoir lire l’état réel de Slack/Data OS si tu me demandes, mais je ne dois pas mélanger privé et agence.
+
+### 3. Data OS = vérité visible
+Le Data OS reste le cockpit :
+- clients
+- projets
+- tâches
+- décisions
+- agents
+- audit
+- finance
+- process
+
+### 4. GBrain = mémoire profonde filtrée
+GBrain ne doit pas être visible par les humains au début.
+
+Il sert aux agents, avec accès limité.
+
+## Règle fondamentale
+
+**GBrain centralisé, mais accès filtré.**
+
+Un agent ne reçoit jamais “toute la mémoire”.
+
+Il reçoit uniquement :
+
+```text
+workspace = VividFlow
+scope = tech / sales / ops / private / client_x
+source = Slack / Telegram / Data OS
+permission = read / write / propose
+```
+
+## Agents MVP
+
+Je ne mettrais pas 12 agents.
+
+Je mettrais 4 rôles maximum :
+
+### 1. Coordinatrice / Ops Router
+- lit les canaux transversaux
+- transforme les signaux en actions
+- évite les doublons
+- pousse vers Data OS
+
+### 2. Tech / Data OS
+- build, bugs, intégrations, Slack, GBrain, Data OS
+- accès technique uniquement
+
+### 3. Sales / Client Ops
+- leads, relances, prospects, clients
+- accès sales + clients, pas privé
+
+### 4. Knowledge / RMS
+- capture, structure, mémoire, décisions, docs
+- accès large mais restitution filtrée
+
+## Canaux Slack MVP
+
+Pas plus au départ :
+
+- `#ops`
+- `#tech-data-os`
+- `#sales`
+- `#delivery`
+- `#decisions`
+- `#alerts`
+
+C’est suffisant.
+
+## Matrice anti-chaos
+
+### Info personnelle
+- naissance : Telegram
+- stockage : mémoire privée uniquement
+- Slack : jamais sauf validation explicite
+
+### Info agence
+- naissance : Slack
+- stockage : Data OS + GBrain
+- visibilité : équipe concernée
+
+### Décision officielle
+- naissance : Slack ou Telegram validé
+- stockage : Data OS décisions + GBrain
+- audit : obligatoire
+
+### Tâche
+- naissance : Slack / agent / Data OS
+- stockage : Data OS tâches
+- GBrain : contexte seulement
+
+### Connaissance durable
+- naissance : Slack, meeting, doc, Telegram validé
+- stockage : GBrain
+- restitution : via Data OS ou agent autorisé
+
+## La règle qui évite le chaos
+
+Chaque agent doit avoir une fiche :
+
+```text
+Nom:
+Mission:
+Canaux Slack autorisés:
+Scopes GBrain autorisés:
+Modules Data OS autorisés:
+Peut écrire:
+Peut seulement proposer:
+Interdits:
+Quand demander validation:
+Format de réponse:
+```
+
+Sans ça, ils vont mélanger les contextes.
+
+## Ce qu’on peut faire aujourd’hui
+
+Ordre réel :
+
+1. **Installer/activer Slack dans Hermes**
+2. **Créer la structure Slack minimale**
+3. **Brancher un seul bot Coordinatrice d’abord**
+4. **Tester routing Slack → Data OS**
+5. **Réparer/activer GBrain ensuite**
+6. **Ajouter les autres agents un par un**
+
+Pas l’inverse.
+
+Si on active tous les agents avant les règles, on recrée le chaos Telegram.
+
+## Ce dont j’ai besoin maintenant
+
+Une seule info bloquante :
+
+**Le workspace Slack VividFlow existe déjà, oui ou non ?**
+
+## user — 2026-06-01T15:27:12.251311
+
+[The user sent a voice message~ Here's what they said: "On n'a pas oublié pas à regarder, tu comprends qu'il faut qu'on a des bottes, c'est qu'ils reflètent le métier et tu te permettent des bottes juste pour aller à la gentille de ta voiture."]
+
+## assistant — 2026-06-01T15:27:12.251311
+
+Oui, je comprends.
+
+Tu ne veux pas des bots “par outil” ou “par canal”. 
+Tu veux des bots qui reflètent **les vrais métiers de l’agence**.
+
+C’est la bonne approche.
+
+## Mauvais modèle
+
+- Bot Slack
+- Bot GBrain
+- Bot Data OS
+- Bot Tâches
+- Bot Calendrier
+
+Ça, c’est absurde. 
+Ce sont des fonctions/outils, pas des métiers.
+
+## Bon modèle
+
+Des agents comme une vraie équipe :
+
+### 1. Bras droit / Coordinatrice
+Rôle : orchestration, priorités, routing, synthèse.
+
+### 2. CTO / Tech Ops
+Rôle : Data OS, intégrations, bugs, architecture, déploiement.
+
+### 3. Sales / Growth
+Rôle : leads, relances, prospection, pipeline, offres.
+
+### 4. Client Success / Delivery
+Rôle : clients actifs, suivi, satisfaction, livrables, risques.
+
+### 5. Finance / Admin
+Rôle : factures, paiements, budget, cash, contrats.
+
+### 6. Knowledge / RMS
+Rôle : mémoire, décisions, process, documentation, qualité de l’information.
+
+## Règle clé
+
+**Un agent = un métier + une responsabilité.** 
+Pas un outil.
+
+Les outils derrière peuvent être :
+- Slack
+- Data OS
+- GBrain
+- Google Calendar
+- Gmail
+- Vercel
+- GitHub
+
+Mais l’agent ne doit pas être défini par l’outil.
+
+## Exemple
+
+On ne dit pas :
+> Bot GBrain
+
+On dit :
+> Knowledge Manager 
+Il utilise GBrain en arrière-plan.
+
+On ne dit pas :
+> Bot Slack
+
+On dit :
+> Coordinatrice Ops 
+Elle travaille sur Slack.
+
+On ne dit pas :
+> Bot Data OS
+
+On dit :
+> COO / Ops Agent 
+Il met à jour le Data OS.
+
+## Mon avis
+
+Pour VividFlow, les premiers agents doivent être :
+
+1. **Coordinatrice Ops**
+2. **Tech/Data OS**
+3. **Sales/Growth**
+4. **Delivery/Client Success**
+5. **Knowledge/RMS**
+
+Pas plus au départ.
+
+C’est assez pour ressembler à une vraie agence, sans usine à gaz.
+
+## user — 2026-06-01T15:28:41.156819
+
+[The user sent a voice message~ Here's what they said: "En gros, concrètement, aujourd'hui, on marche. Si tu veux, je n'attend à y créer énormément de contenus visuels. Il a besoin d'un cinéma, visuenaire, etc. On peut parler de visuels, y créer des visuels. Avec ça. Il a son bras droit sur Telegram. Donc, comme toi, tu as leement. Les opérations, ils vont pouvoir avoir accès à l'heure, Hermès, depuis Slack. Donc, voilà, il faut aussi, tu vois, c'est sausant."]
+
+## assistant — 2026-06-01T15:28:41.156819
+
+Oui. Là le modèle métier devient clair.
+
+Aujourd’hui, il faut refléter **comment VividFlow travaille vraiment**.
+
+## Agents métiers nécessaires
+
+### 1. Bras droit privé
+**Surface : Telegram**
+- toi ↔ ton bras droit
+- Jonathan ↔ son bras droit
+- décisions perso / stratégiques
+- arbitrage
+- priorités
+- rien de privé ne part automatiquement dans Slack
+
+### 2. Vision / Direction créative
+**Surface : Slack**
+Pour Jonathan surtout.
+
+Rôle :
+- direction artistique
+- idées visuelles
+- concepts
+- contenu visuel
+- cohérence de marque
+- production créative
+- feedback sur visuels
+
+Ce n’est pas “un bot image”. 
+C’est un **directeur créatif agentique**.
+
+### 3. Tech / Data OS
+**Surface : Slack**
+Pour toi / CTO.
+
+Rôle :
+- Data OS
+- intégrations
+- Slack/Hermes
+- GBrain
+- bugs
+- architecture
+- déploiement
+- automatisations
+
+### 4. Ops / Coordinatrice
+**Surface : Slack**
+Pour l’équipe.
+
+Rôle :
+- transformer les discussions en suivi clair
+- détecter tâches / décisions / blocages
+- router vers les bons agents
+- maintenir Data OS propre
+- résumer sans bruit
+
+### 5. Sales / Client Ops
+**Surface : Slack**
+Pour commercial externe + équipe.
+
+Rôle :
+- leads
+- relances
+- pipeline
+- devis
+- clients
+- prochaines actions commerciales
+
+## Ce qui est important
+
+Les agents doivent être **des rôles métiers**, pas des outils.
+
+Donc :
+- Vision utilise image/DA/contenu
+- Tech utilise GitHub/Vercel/Data OS
+- Ops utilise Data OS/Slack
+- Sales utilise CRM/devis/pipeline
+- Knowledge utilise GBrain derrière
+
+Mais l’équipe parle à des **métiers**, pas à des APIs.
+
+## Stack de communication
+
+```text
+Telegram
+= bras droits privés
+
+Slack
+= équipe + agents métiers
+
+Data OS
+= vérité visible
+
+GBrain/RMS
+= mémoire profonde invisible
+```
+
+## Première version suffisante
+
+Je mettrais 5 agents :
+
+1. **Bras droit Thomas** — Telegram
+2. **Bras droit Jonathan** — Telegram
+3. **Vision / Créatif** — Slack
+4. **Tech / Data OS** — Slack
+5. **Ops / Coordinatrice** — Slack
+
+Puis ensuite seulement :
+6. **Sales / Client Ops**
+
+## Point clé
+
+Si Jonathan produit beaucoup de contenu visuel, il lui faut un agent Slack dédié **Vision / Créatif**, avec mémoire de marque et accès aux assets.
+
+Pas juste un agent généraliste.
+
+## user — 2026-06-01T15:32:31.803229
+
+[The user sent a voice message~ Here's what they said: "Slaque est un moyen de communication des agents, mais rien ne descendant. Slaque, techniquement, c'est des agents qui arrivent, c'est un messe, tout et toi."]
+
+## assistant — 2026-06-01T15:32:31.803229
+
+Oui, exactement.
+
+**Slack n’est pas le système. Slack est juste l’interface de conversation.**
+
+Comme Telegram.
+
+La vraie architecture :
+
+```text
+Humains
+ ↔ Slack / Telegram
+ ↔ Agents Hermes
+ ↔ Data OS
+ ↔ GBrain/RMS
+ ↔ Outils métier
+```
+
+## Donc
+
+On ne construit pas “des agents Slack”.
+
+On construit des **agents Hermes** qui peuvent parler sur Slack.
+
+Slack = canal. 
+Agent = métier. 
+Data OS = vérité. 
+GBrain = mémoire. 
+Outils = exécution.
+
+## Règle importante
+
+Un même agent peut exister sur plusieurs surfaces :
+
+Exemple :
+
+**Vision / Créatif**
+- discute sur Slack avec Jonathan
+- lit la mémoire marque dans GBrain
+- pousse décisions dans Data OS
+- utilise outils visuels si besoin
+
+Mais ce n’est pas “un bot Slack”.
+
+C’est un agent métier avec une bouche Slack.
+
+## Même logique pour moi
+
+Moi, bras droit Telegram :
+- je suis un agent Hermes
+- je parle via Telegram
+- je peux lire Data OS
+- je peux interroger l’état des agents
+- je peux envoyer vers Slack si autorisé
+
+Telegram n’est pas moi. 
+Slack n’est pas les agents.
+
+Ce sont juste les portes d’entrée.
+
+## Formule propre
+
+**Agents Hermes = cerveaux métiers** 
+**Slack/Telegram = interfaces de discussion** 
+**Data OS = cockpit/source de vérité** 
+**GBrain = mémoire profonde** 
+**Tools = mains opérationnelles**
+
+C’est cette séparation qui va éviter l’usine à gaz.

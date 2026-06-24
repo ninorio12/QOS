@@ -1,5 +1,6 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
+import { reconcileMoney } from "./moneyReconciliation"
 
 // —— Reprise du formulaire public (par jeton secret) ——
 
@@ -58,54 +59,40 @@ export const list = query({
   handler: async (ctx) => ctx.db.query("onboarding").collect(),
 })
 
-// Payment control tower — aggregate every client's installments & refunds
-export const paymentsOverview = query({
-  handler: async (ctx) => {
-    const obs      = await ctx.db.query("onboarding").collect()
-    const clients  = await ctx.db.query("pipeline_clients").collect()
+// Kickoffs réservés (onboarding.kickoffAt) → events pour le module Calendrier (comme les R1/R2 iClosed).
+export const kickoffCalendarEvents = query({
+  args: { from: v.string(), to: v.string() },
+  handler: async (ctx, { from, to }) => {
+    const obs = await ctx.db.query("onboarding").collect()
     const contacts = await ctx.db.query("crm_contacts").collect()
-    const clientByContact = new Map(clients.map(c => [c.ghl_contact_id ?? '', c]))
-    const contactById = new Map(contacts.map(c => [c._id.toString(), c]))
-
-    type Txn = { contactId: string; client: string; company: string; label: string; amount: number; date: string; type: 'payment' | 'refund'; status: 'encaissé' | 'attente' }
-    const transactions: Txn[] = []
-    let encaisse = 0, attente = 0, rembourse = 0
-
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const nameById = new Map(contacts.map((c: any) => [c._id.toString(), `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || 'Client']))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const out: any[] = []
     for (const ob of obs) {
-      const client = clientByContact.get(ob.contactId)
-      const contact = contactById.get(ob.contactId)
-      const name = client?.name || (contact ? `${contact.firstName} ${contact.lastName ?? ''}`.trim() : '—')
-      const company = client?.company || contact?.companyName || ''
-      const amounts = ob.payment?.amounts ?? (client ? [client.value] : [])
-      const paid = ob.paidStatus ?? []
-      const dates = ob.paidDates ?? []
-
-      amounts.forEach((amt, i) => {
-        const isPaid = paid[i] === true
-        if (isPaid) encaisse += amt; else attente += amt
-        transactions.push({
-          contactId: ob.contactId, client: name, company,
-          label: amounts.length > 1 ? `Échéance ${i + 1}/${amounts.length}` : 'Paiement',
-          amount: amt, date: dates[i] || '', type: 'payment',
-          status: isPaid ? 'encaissé' : 'attente',
-        })
-      })
-      for (const r of ob.refunds ?? []) {
-        rembourse += r.amount
-        transactions.push({ contactId: ob.contactId, client: name, company, label: r.note || 'Remboursement', amount: -r.amount, date: r.date, type: 'refund', status: 'encaissé' })
-      }
+      const k = (ob as { kickoffAt?: string }).kickoffAt
+      if (!k || k < from || k > to) continue
+      out.push({ id: ob._id.toString(), contactName: nameById.get(ob.contactId) ?? 'Client', startTime: k })
     }
+    return out
+  },
+})
 
-    // Clients without onboarding doc yet → all their value is "en attente"
-    for (const cl of clients) {
-      if (!obs.find(o => o.contactId === (cl.ghl_contact_id ?? ''))) {
-        attente += cl.value
-        transactions.push({ contactId: cl.ghl_contact_id ?? '', client: cl.name, company: cl.company ?? '', label: 'Paiement', amount: cl.value, date: '', type: 'payment', status: 'attente' })
-      }
-    }
-
-    transactions.sort((a, b) => (b.date || '').localeCompare(a.date || ''))
-    return { encaisse, attente, rembourse, net: encaisse - rembourse, transactions }
+// Payment control tower — aggregate every client's installments & refunds
+// Agrégat argent multi-client. Délègue à reconcileMoney (source UNIQUE, Stripe-aware) pour
+// rester IDENTIQUE à Paiement et Dashboard. Sans from/to → tout l'historique.
+export const paymentsOverview = query({
+  args: { from: v.optional(v.string()), to: v.optional(v.string()), tzOffset: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const from = args.from ?? "2000-01-01"
+    const to   = args.to ?? new Date().toISOString().slice(0, 10)
+    const obs            = await ctx.db.query("onboarding").collect()
+    const clients        = await ctx.db.query("pipeline_clients").collect()
+    const contacts       = await ctx.db.query("crm_contacts").collect()
+    const stripePayments = await ctx.db.query("stripe_payments").withIndex("by_created").collect()
+    const externalPayments = await ctx.db.query("external_payments").collect()
+    const money = reconcileMoney({ obs, clients, contacts, stripePayments, externalPayments, from, to, tzOffset: args.tzOffset })
+    return { encaisse: money.encaisse, attente: money.attente, rembourse: money.rembourse, net: money.encaisse - money.rembourse, transactions: money.transactions }
   },
 })
 
@@ -114,6 +101,30 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 // Public form intake — called by the standalone onboarding form (cross-origin via /api/onboarding/intake).
 // Matches the contact by email; creates one if unknown; ensures it appears in the onboarding module;
 // merges the submission into onboarding.form.
+// ── Sync carte client (pipeline Clients) ⇄ avancement onboarding. Avance UNIQUEMENT (jamais de régression). ──
+//   formSent → « Onboarding envoyé »  ·  formReceivedAt → « Onboarding complété »  ·  kickoff (planifié/réservé) → « Kickoff booké »
+const CLIENT_STAGE_ORDER = ['nouveau-client', 'onboarding-envoye', 'onboarding-complet', 'kickoff-booke', 'setup-cree', 'consulting']
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function syncClientStage(ctx: any, contactId: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ob = await ctx.db.query("onboarding").withIndex("by_contact", (q: any) => q.eq("contactId", contactId)).first()
+  if (!ob) return
+  const tasks = ob.tasks ?? {}
+  let target: string | null = null
+  if (tasks.kickoffPlanned || ob.kickoffEventId) target = 'kickoff-booke'
+  else if (ob.formReceivedAt) target = 'onboarding-complet'
+  else if (tasks.formSent) target = 'onboarding-envoye'
+  if (!target) return
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const client = (await ctx.db.query("pipeline_clients").withIndex("by_contact", (q: any) => q.eq("contactId", contactId)).first())
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ?? (await ctx.db.query("pipeline_clients").withIndex("by_ghl_contact", (q: any) => q.eq("ghl_contact_id", contactId)).first())
+  if (!client) return
+  if (CLIENT_STAGE_ORDER.indexOf(target) > CLIENT_STAGE_ORDER.indexOf(client.stageId)) {
+    await ctx.db.patch(client._id, { stageId: target })
+  }
+}
+
 export const intakeSubmit = mutation({
   args: {
     email:      v.string(),
@@ -161,11 +172,13 @@ export const intakeSubmit = mutation({
       .query("pipeline_clients")
       .withIndex("by_ghl_contact", q => q.eq("ghl_contact_id", contactId))
       .first()
+    // Le client a SOUMIS le formulaire → colonne "Onboarding complété" du board Clients.
+    // (On ne fait pas reculer un client déjà plus avancé : kickoff, setup, consulting…)
+    const COMPLETE_ID = 'onboarding-complet'
+    const PRE_COMPLETE = new Set(['nouveau-client', 'onboarding-envoye'])
     if (!existingClient) {
       const name = `${contact!.firstName ?? ''} ${contact!.lastName ?? ''}`.trim() || normEmail
       const initials = name.split(/\s+/).map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?'
-      const cfg = await ctx.db.query("pipeline_config").withIndex("by_type", q => q.eq("type", "clients")).first()
-      const stageId = cfg?.stages?.[0]?.id ?? 'onboarding'
       await ctx.db.insert("pipeline_clients", {
         ghl_contact_id: contactId,
         name,
@@ -173,10 +186,12 @@ export const intakeSubmit = mutation({
         email:   normEmail,
         phone:   contact!.phone,
         value:   0,
-        stageId,
+        stageId: COMPLETE_ID,
         initials,
         createdAt: now,
       })
+    } else if (PRE_COMPLETE.has(existingClient.stageId)) {
+      await ctx.db.patch(existingClient._id, { stageId: COMPLETE_ID })
     }
 
     // 3. Upsert the onboarding doc — merge the submission into form, stamp reception.
@@ -191,7 +206,31 @@ export const intakeSubmit = mutation({
       await ctx.db.insert("onboarding", { contactId, form: mergedForm, formReceivedAt: now, updatedAt: now } as never)
     }
 
+    // Sync la carte client sur l'avancement (gère aussi les clients liés par contactId typé, pas seulement ghl_contact_id).
+    await syncClientStage(ctx, contactId)
     return { ok: true, contactId, created }
+  },
+})
+
+// Réconciliation : tout client dont le formulaire onboarding est REÇU (formReceivedAt) mais resté
+// en "Nouveau client" / "Onboarding envoyé" → on le passe en "Onboarding complété". Idempotent.
+export const reconcileOnboardingStages = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const PRE = new Set(['nouveau-client', 'onboarding-envoye'])
+    const obs = await ctx.db.query("onboarding").collect()
+    let moved = 0
+    const movedNames: string[] = []
+    for (const ob of obs) {
+      if (!ob.formReceivedAt) continue
+      const client = await ctx.db.query("pipeline_clients")
+        .withIndex("by_ghl_contact", q => q.eq("ghl_contact_id", ob.contactId)).first()
+      if (client && PRE.has(client.stageId)) {
+        await ctx.db.patch(client._id, { stageId: 'onboarding-complet' })
+        moved++; movedNames.push(client.name)
+      }
+    }
+    return { moved, movedNames }
   },
 })
 
@@ -217,10 +256,45 @@ export const patch = mutation({
       .first()
     const patch: Record<string, unknown> = { updatedAt: new Date().toISOString() }
     for (const [k, val] of Object.entries(rest)) if (val !== undefined) patch[k] = val
-    if (existing) {
-      await ctx.db.patch(existing._id, patch)
-      return existing._id
+    let obId
+    if (existing) { await ctx.db.patch(existing._id, patch); obId = existing._id }
+    else { obId = await ctx.db.insert("onboarding", { contactId, ...patch } as never) }
+
+    // Sync la carte client (pipeline Clients) sur l'avancement onboarding (jamais de régression).
+    await syncClientStage(ctx, contactId)
+    return obId
+  },
+})
+
+// Webhook iClosed (via n8n / outil MCP) : le client a RÉSERVÉ son kickoff lui-même sur iClosed.
+// → renseigne la date/heure, coche kickoffPlanned, et avance la carte client en « Kickoff booké ».
+export const scheduleKickoff = mutation({
+  args: {
+    email:      v.optional(v.string()),
+    contactId:  v.optional(v.string()),
+    startTime:  v.string(),             // date/heure ISO du kickoff
+    externalId: v.optional(v.string()), // id iClosed (dédup)
+  },
+  handler: async (ctx, a) => {
+    let cid = a.contactId
+    if (!cid && a.email) {
+      const e = a.email.trim()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const c = (await ctx.db.query("crm_contacts").withIndex("by_email", (q: any) => q.eq("email", e)).first())
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ?? (await ctx.db.query("crm_contacts").withIndex("by_email", (q: any) => q.eq("email", e.toLowerCase())).first())
+      cid = c?._id.toString()
     }
-    return await ctx.db.insert("onboarding", { contactId, ...patch } as never)
+    if (!cid) return { ok: false, reason: "contact introuvable" }
+    const now = new Date().toISOString()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ob = await ctx.db.query("onboarding").withIndex("by_contact", (q: any) => q.eq("contactId", cid)).first()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tasks = { ...((ob?.tasks as any) ?? {}), kickoffPlanned: true }
+    const patch = { tasks, kickoffAt: a.startTime, kickoffEventId: a.externalId ?? `iclosed-kickoff-${cid}`, updatedAt: now }
+    if (ob) await ctx.db.patch(ob._id, patch)
+    else await ctx.db.insert("onboarding", { contactId: cid, ...patch } as never)
+    await syncClientStage(ctx, cid)   // → « Kickoff booké »
+    return { ok: true, contactId: cid }
   },
 })

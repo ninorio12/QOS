@@ -1,0 +1,522 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260615_102256_903459
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260615_102256_903459.jsonl
+source_sha256_16: 057acb3c05a07cb2
+date: 2026-06-15
+---
+
+# Recovered session chief_of_staff/20260615_102256_903459
+
+
+## user — 2026-06-15T10:23:13.209866
+
+ko comment il a fait ?
+
+## user — 2026-06-15T10:23:13.209866
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: "je crois que c'est parcequ'il prend pas l'AOth codex"
+
+## Goal
+Créer et connecter plusieurs bots Slack VividFlow à l’infrastructure Hermes/VPS, en reproduisant la démarche qui avait déjà fonctionné :
+- cloner le profil Hermes existant `vividflow-slack-extension` en profils dédiés par bot ;
+- configurer chaque profil avec ses tokens Slack côté VPS uniquement ;
+- neutraliser/éviter Telegram/WhatsApp si nécessaire ;
+- vérifier/corriger le provider/model, notamment l’auth OpenAI Codex si un bot ne répond pas ;
+- lancer chaque bot en manuel pour test Slack ;
+- installer chaque bot en service systemd user 24/24 ;
+- vérifier que tous les bots Slack répondent correctement ;
+- corriger ensuite les personnalités/rôles dans `SOUL.md`.
+
+## Constraints & Preferences
+- Répondre en français, de manière directe, opérationnelle, étape par étape.
+- L’utilisateur veut “faire la même chose” que la procédure précédente qui avait marché.
+- Ne jamais exposer de tokens Slack/API/Telegram/WhatsApp en clair.
+- Tout token `xoxb-...`, `xapp-...`, clé API, mot de passe, IP, clé SSH, chaîne de connexion ou secret doit être remplacé par `[REDACTED]`.
+- Si des tokens sont nécessaires, demander à l’utilisateur de les mettre directement sur le VPS, jamais dans le chat.
+- Accès VPS connu mais masqué : `root@[REDACTED]`.
+- Accès SSH direct assistant actuellement impossible.
+- Répertoire de travail côté utilisateur : `/home/hermes/.hermes/hermes-agent`.
+- Commande gateway : `/home/hermes/.local/bin/hermes --profile <profile> gateway run`.
+- Profils dédiés prévus : `agent-kb-slack`, `agent-csm-slack`, `agent-operations-slack`, `data-analyst-slack`, `agent-debug-slack`, `media-buyer-slack`.
+- Services systemd user : `hermes-gateway-<profile>.service`.
+- Linger systemd activé pour survivre à la déconnexion SSH.
+- Règle Claude Code/Hermes : si Jonathan demande de déléguer/envoyer à Claude Code, Hermes doit copier-coller le message exact de Jonathan sans reformuler, sauf demande explicite de créer/cadrer un prompt.
+- Priorité actuelle décidée : mettre tous les bots en ligne d’abord, puis corriger leurs personnalités/rôles dans `SOUL.md`.
+
+## Completed Actions
+1. EXPLIQUÉ provenance de l’info VPS — indiqué que l’accès SSH avait été mémorisé comme non secret communiqué par Thomas/Jonathan, sans récupérer de token ni secret ; valeur exacte masquée `root@[REDACTED]` [tool: conversation]
+2. CHARGÉ contexte agents/mémoire — consultation des skills `machine-de-guerre-core`, `context-loader-core`, `source-of-truth-core`, `agent-roles-core` pour reprendre la création des bots Slack VividFlow [tool: skill_view]
+3. PROPOSÉ ordre recommandé des bots Slack — Coordinateur, Agent KB, Agent CSM, Agent Operations, Data Analyst, Agent Debug, avec rôles associés [tool: conversation]
+4. CHARGÉ documentation Slack VividFlow — consultation de `vividflow-slack-extension-gateway` [tool: skill_view]
+5. CHARGÉ runbook rebuild bots Slack — consultation de `vividflow-slack-extension-gateway`, fichier `references/vividflow-slack-executor-bots-rebuild.md` [tool: skill_view]
+6. DONNÉ étapes Slack pour créer Agent KB — création app Slack “Agent KB”, activation Socket Mode, App-Level Token avec `connections:write`, scopes OAuth bot, installation workspace, récupération token bot, Event Subscriptions `app_mention` et `message.im`, App Home, Display Information [tool: conversation]
+7. FOURNI description Agent KB — short : “Maintenance Data OS, Second Brain et GBrain.” ; long : organisation interne, maintenance Data OS, diagnostic scoring Second Brain/GBrain, règlement intérieur Control Room, tri fichiers raw/documents/conversations, classement dossiers mémoire par agent [tool: conversation]
+8. FOURNI description Agent Operations — short : “Opérations, synthèses, fichiers, événements et mails.” ; long : synthèses Data OS, organisation/déplacement fichiers, gestion événements, préparation/envoi mails, tâches courantes, coordination administrative [tool: conversation]
+9. FOURNI description Agent CSM — short : “Gestion des flux prospects et clients via Clara.” ; long : communication email/WhatsApp de Clara, contrôle flux entrants/sortants prospects/clients, suivi échanges, qualification demandes, préparation réponses, continuité interne [tool: conversation]
+10. FOURNI description Data Analyst — short : “Veille IA et monitoring concurrentiel.” ; long : veille IA, tendances marché, monitoring concurrence réseaux sociaux, signaux faibles, synthèses exploitables [tool: conversation]
+11. FOURNI description Agent Debug Engineer — short : “Diagnostic bugs, logs et incidents techniques.” ; long : analyse bugs/logs/erreurs agents/incidents intégrations/problèmes Slack/Telegram/WhatsApp/workflows cassés/comportements inattendus, corrections et vérification [tool: conversation]
+12. ENREGISTRÉ règle Claude Code/Hermes — Hermes doit relayer exactement les messages de Jonathan vers Claude Code sans reformuler, sauf demande explicite de création/cadrage de prompt [tool: conversation]
+13. FOURNI description Media Buyer — short : “Meta Ads, KPI paid et performance acquisition.” ; long : suivi Meta Ads, KPI paid CPA/CPL/ROAS/CTR/CPM/CPC/taux conversion, fatigue créative/audience, optimisations budget/créa/ciblage, décisions acquisition [tool: conversation]
+14. CHARGÉ skill Hermes Agent — consultation `hermes-agent` pour préparer la suite côté VPS/Hermes après création des bots Slack [tool: skill_view]
+15. TENTÉ audit SSH VPS — commande exécutée : `ssh -o BatchMode=yes -o ConnectTimeout=8 root@[REDACTED] 'hostname; whoami; /home/hermes/.local/bin/hermes profile list 2>/dev/null || hermes profile list 2>/dev/null || true; test -f /home/hermes/.hermes/secrets/vividflow_slack_new_agents.env && echo SECRET_BUNDLE_EXISTS || echo NO_SECRET_BUNDLE'` ; résultat : échec SSH `Permission denied (publickey,password)`, exit code `255` [tool: terminal]
+16. INFORMÉ utilisateur du blocage SSH — indiqué que l’accès `root@[REDACTED]` refuse la clé et que je ne peux pas intervenir directement sans accès SSH valide [tool: conversation]
+17. DONNÉ commande de vérification du fichier secrets — demandé à l’utilisateur d’exécuter sur le VPS : `test -f /home/hermes/.hermes/secrets/vividflow_slack_new_agent
+
+...[TRONQUÉ 27129 chars sha256:edc29450617c6c0c]...
+
+tration, routage, synthèse ; compte/mail mentionné précédemment : `hey@vividflow.co`.
+ 2. Agent KB — maintenance Data OS, Second Brain, GBrain, règlement intérieur Control Room, tri raw/documents/conversations, classement mémoire.
+ 3. Agent CSM — contrôle flux prospects/clients via email Clara et WhatsApp Clara.
+ 4. Agent Operations — synthèses Data OS, organisation fichiers, déplacement événements, mails, tâches courantes.
+ 5. Data Analyst — veille évolution IA, monitoring concurrence réseaux sociaux.
+ 6. Agent Debug Engineer — bugs, logs, incidents techniques, intégrations, workflows cassés.
+ 7. Media Buyer — Meta Ads, KPI paid, CPA/CPL/ROAS/CTR/CPM/CPC/taux conversion, optimisation acquisition.
+- Scopes Slack utilisés pour Agent KB et probablement à reproduire :
+ - `chat:write`;
+ - `app_mentions:read`;
+ - `im:history`;
+ - `im:read`;
+ - `im:write`;
+ - `channels:history`;
+ - `channels:read`.
+- Events Slack utilisés :
+ - `app_mention`;
+ - `message.im`.
+- Socket Mode requis :
+ - App-Level Token avec scope `connections:write`.
+- App Home :
+ - Messages Tab activé ;
+ - “Allow users to send Slash commands and messages from the messages tab” activé.
+- Slack allowed users utilisés dans `.env` :
+ - `U0BA8LKAH5H,U0BALTG244U`.
+- Ancien modèle/provider suggéré dans la procédure :
+ ```yaml
+ model:
+ provider: openai-codex
+ default: gpt-5.5
+ max_tokens: 4096
+ ```
+- Erreurs exactes importantes :
+ - `Permission denied (publickey,password)` lors de l’essai SSH assistant ;
+ - `telegram.error.InvalidToken: Unauthorized`;
+ - `telegram.error.InvalidToken: The token [REDACTED] was rejected by the server.`;
+ - `[Whatsapp] Bridge found but not connected (status: disconnected), restarting`;
+ - `[Whatsapp] Bridge HTTP ready, waiting for WhatsApp connection...`;
+ - `WARNING gateway.run: Reconnect whatsapp error: whatsapp connect timed out after 30s, next retry in 240s`.
+- Services systemd user critiques :
+ - original : `hermes-gateway-vividflow-slack-extension.service`, ancien statut actif ;
+ - Agent KB : `hermes-gateway-agent-kb-slack.service`, actif ;
+ - Agent CSM : pas encore installé/démarré comme service, seulement test manuel tenté.
+- Commandes Hermes critiques :
+ - `/home/hermes/.local/bin/hermes --profile vividflow-slack-extension gateway run`;
+ - `/home/hermes/.local/bin/hermes --profile agent-kb-slack gateway run`;
+ - `/home/hermes/.local/bin/hermes --profile agent-csm-slack gateway run`.
+
+--- END OF CONTEXT SUMMARY — respond to the message below, not the summary above ---
+
+## assistant — 2026-06-15T10:23:13.209866
+
+Oui, probable. Corrige directement la config du profil CSM.
+
+Fais :
+
+```bash
+nano /root/.hermes/profiles/agent-csm-slack/config.yaml
+```
+
+Cherche `model:` et mets exactement :
+
+```yaml
+model:
+ provider: openai-codex
+ default: gpt-5.5
+ max_tokens: 4096
+```
+
+S’il y a une ligne comme :
+
+```yaml
+base_url: https://openrouter.ai/api/v1
+```
+
+supprime-la ou commente-la :
+
+```yaml
+# base_url: https://openrouter.ai/api/v1
+```
+
+Puis vérifie Codex sur ce profil :
+
+```bash
+/home/hermes/.local/bin/hermes --profile agent-csm-slack --provider openai-codex -m gpt-5.5 chat -q "Réponds exactement: OK_CODEX"
+```
+
+Si ça répond `OK_CODEX`, relance :
+
+```bash
+/home/hermes/.local/bin/hermes --profile agent-csm-slack gateway run
+```
+
+Si Slack répond après ça, tu l’installes en 24/24.
+
+## user — 2026-06-15T10:23:13.209866
+
+fait le toi stp
+
+## assistant — 2026-06-15T10:23:13.209866
+
+Je ne peux pas le faire depuis ici : l’accès SSH refuse toujours ma clé.
+
+Erreur exacte :
+```bash
+Permission denied (publickey,password)
+```
+
+Donc fais juste ce bloc sur le VPS, il corrige automatiquement le profil CSM :
+
+```bash
+PROFILE=agent-csm-slack
+CFG=/root/.hermes/profiles/$PROFILE/config.yaml
+
+cp "$CFG" "$CFG.bak.$(date +%Y%m%d-%H%M%S)"
+
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("/root/.hermes/profiles/agent-csm-slack/config.yaml")
+s = p.read_text()
+lines = s.splitlines()
+out = []
+i = 0
+replaced = False
+
+while i < len(lines):
+ line = lines[i]
+ if line.strip() == "model:" and (len(line) - len(line.lstrip()) == 0):
+ out.append("model:")
+ out.append(" provider: openai-codex")
+ out.append(" default: gpt-5.5")
+ out.append(" max_tokens: 4096")
+ i += 1
+ while i < len(lines):
+ l = lines[i]
+ if l and not l.startswith(" ") and not l.startswith("\t"):
+ break
+ i += 1
+ replaced = True
+ continue
+ out.append(line)
+ i += 1
+
+if not replaced:
+ if out and out[-1].strip():
+ out.append("")
+ out += [
+ "model:",
+ " provider: openai-codex",
+ " default: gpt-5.5",
+ " max_tokens: 4096",
+ ]
+
+p.write_text("\n".join(out) + "\n")
+PY
+
+/home/hermes/.local/bin/hermes --profile $PROFILE --provider openai-codex -m gpt-5.5 chat -Q -q "Réponds exactement: OK_CODEX"
+```
+
+Si ça répond `OK_CODEX`, lance :
+
+```bash
+/home/hermes/.local/bin/hermes --profile agent-csm-slack gateway run
+```
+
+Et si Slack répond, on l’installe en service 24/24.
+
+## user — 2026-06-15T10:23:13.209866
+
+ca me répond : session_id: 20260615_101439_8679d6
+
+## assistant — 2026-06-15T10:23:13.209866
+
+Ok, ça veut dire que la commande s’est lancée, mais elle n’a pas imprimé la réponse finale à l’écran — probablement mode silencieux/format session.
+
+Teste sans `-Q` :
+
+```bash
+/home/hermes/.local/bin/hermes --profile agent-csm-slack --provider openai-codex -m gpt-5.5 chat -q "Réponds exactement: OK_CODEX"
+```
+
+Si tu vois `OK_CODEX`, c’est bon.
+
+Ensuite lance le CSM :
+
+```bash
+/home/hermes/.local/bin/hermes --profile agent-csm-slack gateway run
+```
+
+Puis envoie un DM Slack à Agent CSM.
+
+## user — 2026-06-15T10:23:13.209866
+
+elle répond pas mais j'ai bien eu OK_CODEX
+
+## assistant — 2026-06-15T10:23:13.209866
+
+Parfait : Codex n’est pas le problème. Le modèle marche.
+
+Là c’est Slack/gateway. Fais ce diagnostic :
+
+```bash
+/home/hermes/.local/bin/hermes --profile agent-csm-slack gateway run 2>&1 | tee /tmp/agent-csm-slack.log
+```
+
+Attends 15 secondes, puis envoie un DM à Agent CSM dans Slack.
+
+Ensuite `Ctrl+C`, puis colle-moi uniquement le résultat de :
+
+```bash
+grep -Ei "slack|socket|unauthorized|error|warning|event|message|token" /tmp/agent-csm-slack.log | tail -80 | sed -E 's/(xoxb-|xapp-)[A-Za-z0-9-]+/[REDACTED]/g'
+```
+
+Hypothèses les plus probables maintenant :
+- mauvais `SLACK_APP_TOKEN` ou `SLACK_BOT_TOKEN` dans `.env` CSM ;
+- app Slack pas réinstallée après scopes/events ;
+- App Home Messages non activé ;
+- `SLACK_ALLOWED_USERS` ne contient pas ton user Slack ;
+- le gateway n’écoute pas le bon profil/app.
+
+## user — 2026-06-15T10:23:13.209866
+
+^CWARNING gateway.run: Shutdown context: signal=SIGINT under_systemd=no parent_pid=48588 parent_name=bash loadavg_1m=0.16 parent_cmdline='-bash'
+root@srv1601285:/home/hermes/.hermes/hermes-agent# /home/hermes/.local/bin/hermes --profile agent-csm-slack gateway run 2>&1 | tee /tmp/agent-csm-slack.log
+^C
+root@srv1601285:/home/hermes/.hermes/hermes-agent# grep -Ei "slack|socket|unauthorized|error|warning|event|message|token" /tmp/agent-csm-slack.log | tail -80 | sed -E 's/(xoxb-|xapp-)[A-Za-z0-9-]+/[REDACTED]/g'
+root@srv1601285:/home/hermes/.hermes/hermes-agent# ^C
+root@srv1601285:/home/hermes/.hermes/hermes-agent# grep -Ei "slack|socket|unauthorized|error|warning|event|message|token" /tmp/agent-csm-slack.log | tail -80 | sed -E 's/(xoxb-|xapp-)[A-Za-z0-9-]+/[REDACTED]/g'
+root@srv1601285:/home/hermes/.hermes/hermes-agent#
+
+## assistant — 2026-06-15T10:23:13.209866
+
+Le log est vide : le gateway ne démarre même pas assez loin, ou il n’a aucune plateforme Slack chargée pour ce profil.
+
+On vérifie les 2 fichiers clés du CSM, sans afficher les tokens :
+
+```bash
+echo "=== ENV CSM ==="
+grep -E '^(SLACK_BOT_TOKEN|SLACK_APP_TOKEN|SLACK_ALLOWED_USERS|TELEGRAM_BOT_TOKEN|WHATSAPP_ENABLED)=' /root/.hermes/profiles/agent-csm-slack/.env \
+| sed -E 's/(xoxb-|xapp-)[A-Za-z0-9-]+/[REDACTED]/g'
+
+echo "=== CONFIG CSM SLACK/GATEWAY ==="
+grep -nEi 'slack|gateway|platform|enabled|model|provider|default|openai' /root/.hermes/profiles/agent-csm-slack/config.yaml
+```
+
+Si `SLACK_BOT_TOKEN` / `SLACK_APP_TOKEN` n’apparaissent pas, c’est ça.
+
+Et compare avec KB qui marche :
+
+```bash
+echo "=== ENV KB ==="
+grep -E '^(SLACK_BOT_TOKEN|SLACK_APP_TOKEN|SLACK_ALLOWED_USERS|TELEGRAM_BOT_TOKEN|WHATSAPP_ENABLED)=' /root/.hermes/profiles/agent-kb-slack/.env \
+| sed -E 's/(xoxb-|xapp-)[A-Za-z0-9-]+/[REDACTED]/g'
+
+echo "=== CONFIG KB SLACK/GATEWAY ==="
+grep -nEi 'slack|gateway|platform|enabled|model|provider|default|openai' /root/.hermes/profiles/agent-kb-slack/config.yaml
+```
+
+Colle-moi la sortie, tokens masqués comme ça.
+
+## user — 2026-06-15T10:23:13.209866
+
+6:# Model Configuration
+8:model:
+9: provider: openai-codex
+10: default: gpt-5.5
+13:# OpenRouter Provider Routing (only applies when using OpenRouter)
+15:# Control how requests are routed across providers on OpenRouter.
+16:# See: https://openrouter.ai/docs/guides/routing/provider-selection
+18:# provider_routing:
+19:# # Sort strategy: "price" (default), "throughput", or "latency"
+20:# # Append :nitro to model name for a shortcut to throughput sorting.
+23:# # Only allow these providers (provider slugs from OpenRouter)
+26:# # Skip these providers entirely
+29:# # Try providers in this order (overrides default load balancing)
+32:# # Require providers to support all parameters in your request
+35:# # Data policy: "allow" (default) or "deny" to exclude providers that may store data
+39:# Smart Model Routing (optional)
+41:# Use a cheaper model for short/simple turns while keeping your main model for
+42:# more complex requests. Disabled by default.
+44:# smart_model_routing:
+45:# enabled: true
+48:# cheap_model:
+49:# provider: openrouter
+50:# model: google/gemini-2.5-flash
+55:# When enabled, each CLI session creates an isolated git worktree so multiple
+60:# worktree: false # Default — only create when -w flag is passed
+69:# OPTION 1: Local execution (default)
+74:# - Messaging (Telegram/Discord): Uses MESSAGING_CWD from .env (default: home)
+79: docker_mount_cwd_to_workspace: false # SECURITY: off by default. Opt in to mount the launch cwd into Docker /workspace.
+106:# cwd: "/workspace" # Path INSIDE the container (default: /)
+125:# cwd: "/workspace" # Path INSIDE the container (default: /root)
+137:# cwd: "/workspace" # Path INSIDE the sandbox (default: /root)
+202:# tirith_enabled: true # Enable/disable tirith scanning
+212: # after this period of no activity between agent loops (default: 120 = 2 minutes)
+218:# When conversation approaches model's context limit, middle turns are
+223:# 2. When prompt_tokens >= threshold% of model's context_length, triggers compression
+225:# 4. Protects last N turns (default 20 messages = ~10 full turns of recent context)
+226:# 5. Summarizes middle turns using a fast/cheap model
+234: # Enable automatic context compression (default: true)
+236: enabled: true
+238: # Trigger compression at this % of model's context limit (default: 0.50 = 50%)
+242: # Fraction of the threshold to preserve as recent tail (default: 0.20 = 20%)
+248: # Number of most-recent messages to always preserve (default: 20 ≈ 10 full turns)
+253: # To pin a specific model/provider for compression summaries, use the
+254: # auxiliary section below (auxiliary.compression.provider / model).
+257:# Auxiliary Models (Advanced — Experimental)
+259:# Hermes uses lightweight "auxiliary" models for side tasks: image analysis,
+262:# By default these use Gemini Flash via OpenRouter or Nous Portal and are
+266:# WARNING: Overriding these with providers other than OpenRouter or Nous Portal
+267:# is EXPERIMENTAL and may not work. Not all models/providers support vision,
+271:# Each task has its own provider + model pair so you can mix providers.
+275:# Provider options:
+276:# "auto" - Best available: OpenRouter → Nous Portal → main endpoint (default)
+281:# "codex" - Force Codex OAuth (requires: hermes model → Codex).
+283:# "main" - Use your custom endpoint (OPENAI_BASE_URL + OPENAI_API_KEY).
+284:# Works with OpenAI API, local models, or any OpenAI-compatible
+285:# endpoint. Also falls back to Codex OAuth and API-key providers.
+287:# Model: leave empty to use the provider's default. When empty, OpenRouter
+289:# Other providers pick a sensible default automatically.
+294:# provider: "auto"
+295:# model: "" # e.g. "google/gemini-2.5-flash", "openai/gpt-4o"
+302:# provider: "auto"
+303:# model: ""
+312:# Disabled by default in batch_runner and RL environments.
+316: memory_enabled: true
+319: user_profile_enabled: true
+321: # Character limits (~2.75 chars per token, model-independent)
+326: # every N user turns. Set to 0
+to disable. Only active when memory is enabled.
+335:# Session Reset Policy (Messaging Platforms)
+337:# Controls when messaging sessions (Telegram, Discord, WhatsApp, Slack) are
+358: idle_minutes: 1440 # Inactivity timeout in minutes (default: 1440 = 24 hours)
+359: at_hour: 4 # Daily reset hour, 0-23 local time (default: 4 AM)
+361:# When true, group/channel chats use one session per participant when the platform
+362:# provides a user ID. This is the secure default and prevents users in the same
+368:# Gateway Streaming
+370:# Stream tokens to messaging platforms in real-time. The bot sends a message
+372:# Disabled by default — enable to try the streaming UX on Telegram/Discord/Slack.
+374: enabled: false
+388: # Every N tool-calling iterations, remind the model to consider saving a skill.
+410: # Inactivity timeout for gateway agent runs (seconds, 0 = unlimited).
+413: # gateway_timeout: 1800
+418: # gateway_timeout_warning: 900
+420: # Graceful drain timeout for gateway stop/restart (seconds).
+421: # The gateway stops accepting new work, waits for in-flight agents to
+430: # Controls how much "thinking" the model does before responding.
+455:# Use hermes tools to interactively enable/disable tools per platform.
+458:# Platform Toolsets (per-platform tool configuration)
+460:# Override which toolsets are available on each platform.
+461:# If a platform isn't listed here, its built-in default is used.
+467:# Supported platform keys: cli, telegram, discord, whatsapp, slack, qqbot
+471:# # Use presets (same as defaults):
+472:# platform_toolsets:
+477:# platform_toolsets:
+481:# platform_toolsets:
+485:# platform_toolsets:
+488:# If not set, defaults are:
+493:# slack: hermes-slack (same as telegram)
+498:platform_toolsets:
+503: slack: [hermes-slack]
+509:# Gateway Platform Settings
+511:# Optional per-platform messaging settings.
+512:# Platform-specific knobs live under extra.
+514:# platforms:
+521:# Available toolsets (use these names in platform_toolsets or the toolsets list)
+541:# tts - text_to_speech (Edge TTS free, or ELEVENLABS/OPENAI/MINIMAX/MISTRAL key)
+551:# hermes-slack - Same as hermes-telegram
+570:# tts - Text-to-speech (Edge TTS free, ElevenLabs, OpenAI, MiniMax, Mistral)
+579:# Tool configuration is managed per-platform via platform_toolsets above.
+580:# Use hermes tools to configure interactively, or edit platform_toolsets directly.
+585:# MCP (Model Context Protocol) Servers
+594:# env: environment variables (only these + safe defaults passed to subprocess)
+601:# timeout: tool call timeout in seconds (default: 120)
+602:# connect_timeout: initial connection timeout (default: 60)
+610:# args: ["-y", "@modelcontextprotocol/server-filesystem", "/home/user"]
+615:# args: ["-y", "@modelcontextprotocol/server-github"]
+619:# Sampling (server-initiated LLM requests) — enabled by default.
+625:# enabled: true # default: true
+626:# model: "gemini-3-flash" # override model (optional)
+630:# allowed_models: [] # model whitelist (empty = all)
+637:# Automatically transcribe voice messages on messaging platforms.
+638:# Providers: local (free, faster-whisper) | groq (free tier) | openai (Whisper API) | mistral (Voxtral Transcribe)
+639:# Set the corresponding API key in .env: GROQ_API_KEY, OPENAI_API_KEY, or MISTRAL_API_KEY.
+642: provider: "elevenlabs"
+645: model: "eleven_multilingual_v2"
+648: enabled: true
+649: # provider: "local" # auto-detected if omitted
+651: model: "base" # tiny | base | small | medium | large-v3 | turbo
+653: openai:
+654: model: "whisper-1" # whisper-1 | gpt-4o-mini-transcribe | gpt-4o-transcribe
+656: # model: "voxtral-mini-latest" # voxtral-mini-latest | voxtral-mini-2602
+659:# Response Pacing (Messaging Platforms)
+679:# No configuration needed - logging is always enabled.
+688: timeout: 300 # Max seconds per script before kill (default: 300 = 5 min)
+689: max_tool_calls: 50 # Max RPC tool calls per execution (default: 50)
+697: max_iterations:
+50 # Max tool-calling turns per child (default: 50)
+698: default_toolsets: ["terminal", "file", "web"] # Default toolsets for subagents
+699: # model: "google/gemini-3-flash-preview" # Override model for subagents (empty = inherit parent)
+700: # provider: "openrouter" # Override provider for subagents (empty = inherit parent)
+705:# Honcho Integration (Cross-Session User Modeling)
+725: # Tool progress display level (CLI and gateway)
+728: # all: Show every tool call with a short preview (default)
+733: # Gateway-only natural mid-turn assistant updates.
+735: # messages. This is independent of tool_progress and gateway streaming.
+739: # interrupt: Interrupt the current run and redirect Hermes (default)
+744: # Background process notifications (gateway/messaging only).
+750: # all: Running output updates + final message (default)
+759: # Show model reasoning/thinking before each response.
+760: # When enabled, a dim box shows the model's thought process above the response.
+777: # default — Classic Hermes gold/kawaii
+783: # Schema (all fields optional, missing values inherit from default):
+807: # tool_prefix: "╎" # Tool output line prefix (default: ┊)
+809: skin: default
+812:# Model Aliases — short names for /model command
+814:# Map short aliases to exact (model, provider, base_url) tuples.
+815:# Used by /model tab completion and resolve_alias().
+816:# Aliases are checked BEFORE the models.dev catalog, so they can route
+819:# model_aliases:
+821:# model: claude-opus-4-6
+822:# provider: anthropic
+824:# model: "qwen3.5:397b"
+825:# provider: custom
+828:# model: glm-4.7
+829:# provider: custom
+838:# # with deterministic hashes before being sent to the model.
+
+## assistant — 2026-06-15T10:23:13.209866
+
+Config modèle OK. Donc ce n’est pas Codex.
+
+Là il manque la sortie `ENV CSM`. Fais cette commande précise :
+
+```bash
+echo "=== ENV CSM ==="
+grep -E '^(SLACK_BOT_TOKEN|SLACK_APP_TOKEN|SLACK_ALLOWED_USERS|TELEGRAM_BOT_TOKEN|WHATSAPP_ENABLED)=' /root/.hermes/profiles/agent-csm-slack/.env \
+| sed -E 's/(xoxb-|xapp-)[A-Za-z0-9-]+/[REDACTED]/g'
+```
+
+Tu dois voir au minimum :
+
+```bash
+SLACK_BOT_TOKEN=[REDACTED]
+SLACK_APP_TOKEN=[REDACTED]
+SLACK_ALLOWED_USERS=U0BA8LKAH5H,U0BALTG244U
+```
+
+Si ça n’apparaît pas, le CSM n’a juste pas ses tokens Slack dans son `.env`.

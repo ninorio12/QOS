@@ -21,6 +21,16 @@ Himalaya is a CLI email client that lets you manage emails from the terminal usi
 
 - `references/configuration.md` (config file setup + IMAP/SMTP authentication)
 - `references/message-composition.md` (MML syntax for composing emails)
+- `references/google-workspace-agent-mailbox.md` (Google Workspace app password setup, Himalaya v1.2 account syntax, verification flow)
+- `references/vividflow-email-conventions.md` (VividFlow-specific sender/signature conventions, agent mailbox routing, and Gmail API/OAuth sender pitfalls)
+
+## Templates
+
+- `templates/agent-mailbox-ready.eml` — ready-to-adapt status email announcing an agent mailbox is operational.
+
+## Scripts
+
+- `scripts/gmail_imap_smtp_probe.py` — interactive Gmail/Google Workspace IMAP+SMTP auth probe using `getpass`; no credential appears in shell history or argv.
 
 ## Prerequisites
 
@@ -248,11 +258,14 @@ List accounts:
 himalaya account list
 ```
 
-Use a specific account:
+Use a specific account. In Himalaya v1.2, `--account` is a subcommand option, not a global option:
 
 ```bash
-himalaya --account work envelope list
+himalaya envelope list --account work
+himalaya template send --account work < message.eml
 ```
+
+Do **not** use `himalaya --account work ...`; v1.2 rejects it with `unexpected argument '--account' found`.
 
 ## Attachments
 
@@ -277,6 +290,35 @@ himalaya envelope list --output json
 himalaya envelope list --output plain
 ```
 
+## Gmail / Google Workspace agent mailbox testing
+
+When Jonathan provides a Google Workspace mailbox for agent use, do not assume the normal account password will work for IMAP/SMTP. Google commonly rejects script/CLI login with errors like `Application-specific password required` or SMTP `534 5.7.9 InvalidSecondFactor`.
+
+Recommended sequence:
+
+1. Identify provider from MX records, e.g. `dig +short MX vividflow.co` → Google MX = use `imap.gmail.com:993` and `smtp.gmail.com:587`.
+2. Test connectivity first, without exposing credentials in command history:
+   ```bash
+   python3 - <<'PY'
+   import socket
+   for host, port in [('imap.gmail.com', 993), ('smtp.gmail.com', 587)]:
+       s = socket.create_connection((host, port), timeout=10)
+       print(f'OK {host}:{port}')
+       s.close()
+   PY
+   ```
+3. Test auth via the bundled interactive probe, not by putting the password on the command line:
+   ```bash
+   python ~/.hermes/profiles/chief_of_staff/skills/email/himalaya/scripts/gmail_imap_smtp_probe.py
+   ```
+   If the skill lives outside that profile, find the script with:
+   ```bash
+   find ~/.hermes -path '*/skills/email/himalaya/scripts/gmail_imap_smtp_probe.py' -print -quit
+   ```
+   The probe removes spaces from Google app passwords and reports `IMAP OK` / `SMTP OK`.
+4. If Google returns `Application-specific password required`, ask for a Google app password or OAuth consent. Do not search for a GitHub workaround or imply that the normal password should be enough: bypassing Google’s 2FA/app-password requirement is not a clean path.
+5. Once app password/OAuth works, configure Himalaya using secure password retrieval (`pass`, keyring, or env file with tight permissions), then send/receive a test email.
+
 ## Debugging
 
 Enable debug logging:
@@ -297,3 +339,4 @@ RUST_LOG=trace RUST_BACKTRACE=1 himalaya envelope list
 - Message IDs are relative to the current folder; re-list after folder changes.
 - For composing rich emails with attachments, use MML syntax (see `references/message-composition.md`).
 - Store passwords securely using `pass`, system keyring, or a command that outputs the password.
+- For branded mailboxes, distinguish three layers: `display-name` in Himalaya controls the visible sender name; the body/signature controls the email footer; the Gmail/Google Workspace profile photo is account-level and cannot be changed via SMTP/Himalaya headers.

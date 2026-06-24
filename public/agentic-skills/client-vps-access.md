@@ -428,7 +428,7 @@ On Hostinger-style Hermes containers, the container can be up with only ttyd run
 
 - `~/.ssh/config`: SSH alias and key path.
 - `~/.hermes/access/<client>-vps.md`: non-secret operational metadata.
-- Long-term memory: only a tiny pointer such as "client VPS access is configured locally via alias X" if memory capacity/security allows.
+- Long-term memory: only a tiny pointer such as "client VPS access is configured locally via alias X" if memory capacity/security allows. If memory rejects SSH/access patterns, do not fight it; the local access note plus SSH alias is the durable source of truth.
 - Wiki/Second Brain: only business-facing infrastructure facts if useful; never secrets/private keys.
 
 ## Pitfalls

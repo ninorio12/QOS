@@ -1,0 +1,82 @@
+# Règles email VividFlow
+
+## Statut
+Validé par Thomas — 2026-06-09
+
+## Boîte agent
+La boîte mail agent VividFlow est `hey@vividflow.co`.
+Elle est utilisée pour les agents VividFlow, codes, invitations, comptes outils, notifications et échanges techniques.
+
+## Nouveau fil email
+Pour le premier email d’une discussion :
+
+```text
+Bonjour [prénom],
+
+J’espère que tu vas bien.
+
+Je te contacte pour...
+```
+
+La suite doit rester claire, humaine et professionnelle.
+
+## Signature et expéditeur visible
+Utiliser :
+
+```text
+Équipe VividFlow
+```
+
+“Équipe VividFlow” est accepté pour le nom visible d’expéditeur et/ou la signature.
+
+La photo de profil du compte mail doit être le vrai logo VividFlow.
+
+Ne pas utiliser “Hermes VividFlow” : ça sonne trop outil interne.
+
+## Réponse dans un fil existant
+Ne pas remettre “Bonjour” dans une réponse immédiate d’un fil déjà ouvert.
+
+Exceptions :
+- si la réponse est envoyée le lendemain ou plus tard, remettre une salutation ;
+- si la réponse est envoyée le soir, utiliser “Bonsoir”.
+
+## Ton
+Ton attendu : humain, simple, professionnel, pas sec, pas robotique.
+
+
+## Clara — compte expéditeur externe — 2026-06-13
+Sources : `raw/messages/20260613-161251_telegram-session_efd9a580.md`, `raw/messages/20260613-164256_telegram-session_5489a82f.md`, `raw/messages/20260613-164256_telegram-session_6e24ce3a.md`.
+
+Règle mise à jour : `clara.bernasconi@vividflow.co` est le compte email externe opérationnel de Clara pour envoyer et recevoir des mails VividFlow quand Clara est l'identité assumée. `hey@vividflow.co` reste une boîte agent/réception/technique.
+
+Avant tout envoi via Gmail API Clara :
+- inclure la signature Gmail Clara récupérée du profil `sendAs` ;
+- envoyer en HTML si la signature doit apparaître ;
+- commencer un nouveau fil avec “J’espère que tu vas bien,” quand Jonathan le demande ou quand la règle email du contexte le requiert ;
+- ne jamais envoyer sans signature sauf demande explicite.
+
+
+## Accès Gmail sous-agents — 2026-06-15
+Sources : `raw/messages/20260615-193711_telegram-session_2e1bae8e.md`, `raw/messages/20260615-193711_telegram-session_4c203a3f.md`.
+
+Règle validée : ne jamais dupliquer/copier des tokens OAuth Gmail bruts dans les profils agents. Les accès doivent passer par wrapper/credentials centralisés et permissions par rôle.
+
+État déclaré : Gmail Clara `clara.bernasconi@vividflow.co` est utilisable par les sous-agents via accès centralisé ; le compte principal actuellement connecté côté VPS est `thomas.alves@vividflow.co`. `hey@vividflow.co` reste bloqué tant qu’une session OAuth dédiée n’est pas connectée. Ne pas inventer cet accès ni exposer de lien/code OAuth dans le wiki.
+
+
+## Clara outbound — garde-fous CSM — 2026-06-16
+Sources : `raw/messages/20260616-143810_telegram-session_56ebe612.md`, `raw/messages/20260616-143810_telegram-session_8c53a32f.md`, `raw/messages/20260616-143810_telegram-session_2eaebc64.md`.
+
+Règle validée : l’Agent CSM ne doit pas envoyer via Clara sans preview/validation quand la demande vient de Thomas/Jonathan, sauf instruction explicite d’envoi direct.
+
+Pour tout email Clara outbound :
+- suivre le SOP CSM/outbound à la lettre ;
+- ne pas ajouter de canal, lien Drive ou alternative non demandée ;
+- préparer objet, corps exact et pièce jointe prévue avant envoi ;
+- utiliser un corps HTML si la signature doit apparaître ;
+- injecter la signature officielle Clara ;
+- vérifier le profil/avatar Clara séparément si Gmail affiche un avatar générique ;
+- stopper les envois prospects tant que le test interne Clara n’est pas propre.
+
+Clara côté CSM = identité email officielle `clara.bernasconi@vividflow.co`. Le CSM ne doit pas chercher de WhatsApp personnel Clara dans Data OS; WhatsApp VividFlow reste un canal agent séparé.
+

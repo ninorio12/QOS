@@ -1,0 +1,168 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260616_134404_1b227e
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260616_134404_1b227e.jsonl
+source_sha256_16: ff532cc885002991
+date: 2026-06-16
+---
+
+# Recovered session chief_of_staff/20260616_134404_1b227e
+
+
+## user — 2026-06-16T13:44:12.029559
+
+le scrapping est de très mauvaise qualité, tu sais pourquoi ?
+
+## user — 2026-06-16T13:44:12.029559
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+
+--- END OF CONTEXT SUMMARY — respond to the message below, not the summary above ---
+
+## assistant — 2026-06-16T13:44:12.029559
+
+Oui. Pour cette chaîne, il faut **séparer les rôles**, sinon ça produit du mauvais scraping et des imports sales.
+
+Le workflow propre :
+
+1. **Data Analyst**
+ - Mission : trouver les leads.
+ - Sources : local.ch, Google Maps, sites officiels, annuaires métiers.
+ - Interdit : importer directement dans Data OS.
+ - Accès outils :
+ - Browser Use Cloud / Playwright
+ - web search
+ - Google Sheets en écriture
+ - éventuellement Apollo en enrichissement, pas source principale
+
+2. **Coordinateur**
+ - Mission : contrôler la qualité avant import.
+ - Il vérifie :
+ - entreprise réelle
+ - décideur nominatif
+ - rôle cohérent
+ - email professionnel vérifiable
+ - source URL présente
+ - pas de doublon
+ - niche correcte
+ - Il marque :
+ - Qualité A : importable
+ - Qualité B : importable si contact assez fiable
+ - Qualité C : rejeté
+ - Accès outils :
+ - Google Sheets
+ - Data OS lecture
+ - web search / Browser Use si vérification nécessaire
+
+3. **Agent Operations**
+ - Mission : exécuter après validation.
+ - Actions :
+ - importer les leads A/B dans Data OS
+ - créer les cartes prospection
+ - préparer ou envoyer les emails selon validation
+ - mettre à jour le statut dans le Sheet
+ - Accès outils :
+ - Google Sheets écriture
+ - Data OS écriture
+ - Gmail Clara / Workspace
+ - Drive templates
+
+4. **Agent KB**
+ - Mission : documenter et stabiliser le process.
+ - Actions :
+ - maintenir la SOP scraping
+ - garder les critères qualité
+ - enregistrer les erreurs récurrentes
+ - améliorer la fiche R&R des agents
+ - Accès outils :
+ - Second Brain / GBrain
+ - Data OS Process/SOP
+ - Google Drive docs si besoin
+
+5. **Agent Debug**
+ - Mission : intervenir si le scraping, l’import, Gmail ou Data OS casse.
+ - Accès outils :
+ - logs
+ - terminal
+ - repo/scripts
+ - Browser Use / Playwright si bug scraping
+
+Règle importante : **l’email ne doit pas partir automatiquement dès scraping**.
+
+La bonne séquence est :
+
+Scrape → Sheet → QA Coordinateur → Import Data OS → Email préparé → validation ou règle d’envoi claire → envoi → statut mis à jour.
+
+Colonnes Sheet minimales :
+
+- société
+- site web
+- niche
+- ville / canton
+- décisionnaire
+- rôle
+- email
+- téléphone pro
+- source société
+- source décisionnaire
+- source email
+- score qualité
+- décision QA
+- statut Data OS
+- statut email
+- notes
+
+Et la règle dure : **pas de décideur nominatif + source fiable = pas d’import**.
+
+Pour moi, la répartition idéale est donc :
+
+- Data Analyst = trouve
+- Coordinateur = juge
+- Operations = importe et envoie
+- KB = fixe le process
+- Debug = répare la machine
+
+C’est ça qui évite que “remplir un Sheet” devienne du bruit commercial inutilisable.
+
+## user — 2026-06-16T13:44:12.029559
+
+ok au final l'agent CSM c'est lui qui va envoyer les mails avec l'adresse mail de Clara
+
+## assistant — 2026-06-16T13:44:12.029559
+
+Oui, logique.
+
+Donc :
+
+- **Data Analyst** : trouve les leads.
+- **Coordinateur** : contrôle la qualité.
+- **Agent Operations** : importe / prépare / met à jour Data OS.
+- **Agent CSM** : envoie les mails avec `clara.bernasconi@vividflow.co`.
+- **Agent KB** : documente le process.
+- **Agent Debug** : répare si ça bloque.
+
+Point de vigilance : **CSM ne doit envoyer que sur leads validés A/B**, jamais directement depuis un scraping brut.
+
+## user — 2026-06-16T13:45:19.778976
+
+et qui doit faire les tempaltes de présentation outbound ?
+
+## assistant — 2026-06-16T13:45:19.778976
+
+Les **templates de présentation outbound** doivent être faits par le **Coordinateur**, avec appui si besoin :
+
+- **Coordinateur** : owner du template, structure, wording, qualité narrative, cohérence VividFlow.
+- **Agent Operations** : décline le template pour une entreprise précise une fois le modèle validé.
+- **Data Analyst** : fournit les infos prospect fiables pour remplir les champs.
+- **Agent KB** : documente le template et les règles de remplissage.
+- **Agent Debug / Dev** : intervient seulement si le générateur, le site ou le déploiement casse.
+
+Donc règle simple :
+
+**Template maître = Coordinateur.** 
+**Personnalisation batch = Operations après données Data Analyst + QA Coordinateur.**
+
+Et surtout : CSM envoie les mails, mais **ne crée pas les decks**.

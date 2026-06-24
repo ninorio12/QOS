@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, Phone, Mail, Tag, ExternalLink, Loader2, Building2, Euro, Calendar, MapPin, Globe } from 'lucide-react'
+import { X, Phone, Mail, Tag, ExternalLink, Loader2, Building2, Compass, Calendar, MapPin, Globe } from 'lucide-react'
 import { getAvatarColor } from '@/components/contacts/types'
 import Link from 'next/link'
 import { type Opportunity } from './types'
+import { Portal } from '@/components/ui/Portal'
 
 type GHLContact = {
   id:            string
@@ -57,6 +58,13 @@ export default function ContactModal({ opp, stage, onClose }: Props) {
       .finally(() => setLoading(false))
   }, [opp?.contactId])
 
+  // Fermeture au clavier (Échap), comme les autres modales.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   const visible = !!opp
 
   const name     = contact
@@ -69,7 +77,7 @@ export default function ContactModal({ opp, stage, onClose }: Props) {
     .filter(Boolean).join(', ') || null
 
   return (
-    <>
+    <Portal>
       {/* Backdrop */}
       <div
         onClick={onClose}
@@ -80,7 +88,7 @@ export default function ContactModal({ opp, stage, onClose }: Props) {
 
       {/* Modal centré */}
       <div className={`
-        fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none
+        fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none
       `}>
         <div className={`
           w-full max-w-[560px] max-h-[85vh] bg-soren-card rounded-2xl shadow-2xl
@@ -134,7 +142,9 @@ export default function ContactModal({ opp, stage, onClose }: Props) {
                   <div className="flex-1 text-center px-2">
                     <p className="text-[10px] text-soren-subtle font-medium uppercase tracking-wide mb-0.5">{item.label}</p>
                     <p className={`font-bold text-soren-text truncate ${item.large ? 'text-[18px]' : 'text-[12px]'}`}>
-                      {item.value}
+                      {item.large && item.value.endsWith(' CHF')
+                        ? <>{item.value.slice(0, -4)}<span className="text-[11px] font-semibold text-soren-muted ml-1">CHF</span></>
+                        : item.value}
                     </p>
                   </div>
                   {i < 3 && <div className="w-px h-8 bg-[#E5E7EB] flex-shrink-0" />}
@@ -158,7 +168,7 @@ export default function ContactModal({ opp, stage, onClose }: Props) {
                 <DataRow icon={<Building2 size={14} />} label="Société"    value={contact.companyName} />
                 <DataRow icon={<MapPin size={14} />}    label="Adresse"    value={address} />
                 <DataRow icon={<Globe size={14} />}     label="Site web"   value={contact.website} />
-                <DataRow icon={<Euro size={14} />}      label="Source"     value={contact.source} />
+                <DataRow icon={<Compass size={14} />}   label="Source"     value={contact.source} />
                 <DataRow icon={<Calendar size={14} />}  label="Ajouté le"  value={new Date(contact.dateAdded).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} />
 
                 {/* Champs custom */}
@@ -188,19 +198,21 @@ export default function ContactModal({ opp, stage, onClose }: Props) {
             )}
           </div>
 
-          {/* ── Footer ── */}
-          <div className="flex-shrink-0 px-6 py-4 border-t border-[#F0F0EE] flex gap-2">
-            <Link
-              href={`/contacts/${opp?.contactId}`}
-              className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl bg-black text-white text-[12px] font-semibold hover:bg-[#111] transition-colors"
-            >
-              <ExternalLink size={13} />
-              Fiche complète
-            </Link>
-          </div>
+          {/* ── Footer ── (lien fiche seulement si un contact est lié) */}
+          {opp?.contactId && (
+            <div className="flex-shrink-0 px-6 py-4 border-t border-[#F0F0EE] flex gap-2">
+              <Link
+                href={`/contacts/${opp.contactId}`}
+                className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl bg-black text-white text-[12px] font-semibold hover:bg-[#111] transition-colors"
+              >
+                <ExternalLink size={13} />
+                Fiche complète
+              </Link>
+            </div>
+          )}
 
         </div>
       </div>
-    </>
+    </Portal>
   )
 }

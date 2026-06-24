@@ -121,7 +121,56 @@ Escalation ladder:
 - `references/headless-desktop-devtools.md` — original Linux headless GUI/Electron install and verification notes, including Google Antigravity source-discovery details.
 - `references/openhuman-appimage-vps.md` — OpenHuman AppImage install/test sequence and interpretation for headless Ubuntu VPS.
 - `references/macos-browser-crash-troubleshooting.md` — original macOS Chrome crash, Google Meet, WhatsApp/open-link, TCC, GPU, and extension isolation notes.
+- `references/slack-admin-ui-remote-handoff.md` — Slack App Management handoff notes: local login boundary, remote noVNC/CDP sequence, Cloudflare/noVNC failure fallback, and token safety.
 - `scripts/macos_chrome_crash_fix.sh` — preserved helper script from the macOS Chrome case, if present.
+
+## Human-in-the-loop browser login on headless VPS
+
+Use this when a web admin UI requires a real authenticated browser session (Slack App Management, OAuth, 2FA, magic links) and the user’s local browser login does not transfer to the VPS. If the user says “you do it” or pushes back on click-by-click local instructions, switch immediately to a remote-browser handoff: the user’s only job is authenticating inside the VPS browser, then the agent resumes via CDP/browser-harness.
+
+Pattern:
+1. Start a dedicated display + browser profile on the VPS, with CDP bound to localhost only:
+   ```bash
+   BASE="$HOME/.hermes/profiles/<profile>/remote-browser"
+   mkdir -p "$BASE/logs" "$BASE/chrome-profile"
+   Xvfb :99 -screen 0 1440x950x24 -ac +extension GLX +render -noreset > "$BASE/logs/xvfb.log" 2>&1 &
+   DISPLAY=:99 google-chrome \
+     --no-sandbox --disable-dev-shm-usage --window-size=1440,950 \
+     --user-data-dir="$BASE/chrome-profile" \
+     --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 \
+     'https://api.slack.com/apps' > "$BASE/logs/chrome.log" 2>&1 &
+   ```
+2. Expose the display temporarily with VNC/noVNC over a tunnel:
+   ```bash
+   x11vnc -display :99 -rfbport 5901 -forever -shared -localhost -noxdamage > "$BASE/logs/x11vnc.log" 2>&1 &
+   websockify --web=/usr/share/novnc/ 127.0.0.1:6080 127.0.0.1:5901 > "$BASE/logs/websockify.log" 2>&1 &
+   cloudflared tunnel --url http://127.0.0.1:6080 --no-autoupdate > "$BASE/logs/cloudflared.log" 2>&1 &
+   ```
+   Prefer short-lived tunnels. Verify the exact `vnc.html?...` URL with `curl -I` before handing it off, and require an actual `HTTP 200` for `/vnc.html` (not just a generated trycloudflare URL; `530`/`retry-after` means the tunnel is not ready). Tell the user not to type only the bare domain. If Cloudflare/noVNC fails for the user or from the VPS (`ERR_SSL_PROTOCOL_ERROR`, blank page, `curl` HTTP `000`, proxy/VPN interference), do not keep regenerating endlessly: fall back to SSH local port-forwarding/VNC, Tailscale Serve/Funnel, localhost.run, or localtunnel. A practical fallback that worked for noVNC is:
+   ```bash
+   ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R 80:127.0.0.1:6080 nokey@localhost.run
+   # Use the emitted https://<id>.lhr.life/vnc.html?host=<id>.lhr.life&port=443&encrypt=1&autoconnect=1&resize=scale
+   curl -k -L -s -o /dev/null -w '%{http_code}\n' https://<id>.lhr.life/vnc.html
+   ```
+   Require `HTTP 200` before handing the URL to the user. If Windows SSH forwarding returns repeated `Permission denied`, stop that route immediately and choose another access route rather than making the user retry credentials. If using a VNC password, store it server-side only; avoid pasting secrets, OTPs, magic links, or cookies into chat. For localtunnel, distinguish its “Tunnel Password” (public IP of tunnel origin) from the VNC password; never reprint VNC secrets just because the user asks “what password?”.
+3. Ask the user to log in inside the noVNC browser only. After login, continue via CDP/browser-harness:
+   ```bash
+   curl -s http://127.0.0.1:9222/json/version
+   BU_CDP_WS='ws://127.0.0.1:9222/devtools/browser/<id>' browser-harness <<'PY'
+   ensure_real_tab()
+   new_tab('https://api.slack.com/apps')
+   wait_for_load()
+   print(page_info())
+   print(capture_screenshot())
+   PY
+   ```
+4. When finished, kill the tunnel/noVNC processes and keep only the browser profile if future authenticated work is needed.
+
+Security guardrails:
+- CDP must stay on `127.0.0.1`; never expose port 9222 publicly.
+- noVNC/Cloudflare URL is a temporary human handoff channel, not a durable admin surface.
+- Do not request or display credentials, Slack tokens, magic links, OTPs, or browser cookies in conversation.
+- Local user browser authentication does not authenticate the VPS browser; login must happen in the remote profile.
 
 ## Common Pitfalls
 

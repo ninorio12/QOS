@@ -8,6 +8,13 @@ export const list = query({
   },
 })
 
+// Fiche client (montant du deal) — récupère la ligne client liée à un contact.
+export const getByContact = query({
+  args: { contactId: v.id("crm_contacts") },
+  handler: async (ctx, { contactId }) =>
+    await ctx.db.query("pipeline_clients").withIndex("by_contact", q => q.eq("contactId", contactId)).first(),
+})
+
 // Backfill one-shot (Vague 2, Phase 2.0) : remplit contactId à partir de ghl_contact_id
 // lorsqu'il correspond à un crm_contacts existant. Idempotent (ignore les rows déjà migrées).
 export const backfillContactId = mutation({
@@ -55,6 +62,24 @@ export const updateValue = mutation({
   args: { id: v.id("pipeline_clients"), value: v.number() },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.id, { value: args.value })
+  },
+})
+
+// One-shot : normalise les id de colonne legacy vers les colonnes réelles du board Clients.
+// "onboarding" (ancien fallback) → "onboarding-envoye" (sinon la card n'apparaît dans aucune colonne).
+export const normalizeLegacyStages = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("pipeline_clients").collect()
+    const VALID = ["nouveau-client", "onboarding-envoye", "onboarding-complet", "kickoff-booke", "setup-cree", "consulting"]
+    let fixed = 0
+    for (const r of rows) {
+      if (VALID.includes(r.stageId)) continue
+      const next = r.stageId === "onboarding" ? "onboarding-envoye" : "nouveau-client"
+      await ctx.db.patch(r._id, { stageId: next })
+      fixed++
+    }
+    return { scanned: rows.length, fixed }
   },
 })
 

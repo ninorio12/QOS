@@ -1,0 +1,766 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260528_220818_46adc6
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260528_220818_46adc6.jsonl
+source_sha256_16: aaa8722087e19ed9
+date: 2026-05-28
+---
+
+# Recovered session chief_of_staff/20260528_220818_46adc6
+
+
+## assistant — 2026-05-29T00:36:31.449978
+
+Envoie à Claude :
+
+```text
+Correction de direction produit.
+
+Ne fais PAS Angle → Questions audience maintenant.
+
+On garde ça pour plus tard.
+
+Le vrai prochain chantier est :
+
+Contents → Questions/réponses spontanées
+
+Contexte :
+Brvndlab a maintenant :
+- Brainstorming Sonnet fonctionnel ;
+- Brainstorm → Angle fonctionnel ;
+- Angles fonctionnels ;
+- Coûts IA fonctionnel ;
+- routes lourdes toujours 501.
+
+Nouvelle direction :
+Questions/réponses spontanées est un flow indépendant du brainstorming.
+
+Ce n’est pas un dérivé d’Angle.
+
+Usage cible :
+L’utilisateur veut créer une vidéo face caméra spontanée.
+Il ne veut pas brainstormer longtemps.
+Il veut recevoir une bonne question, l’accepter, puis filmer.
+
+Flow cible mobile :
+1. Aller dans Contents.
+2. Cliquer “Questions/réponses spontanées”.
+3. Lya propose une question audience.
+4. L’utilisateur peut :
+ - Accepter
+ - Passer
+ - Générer une autre question
+5. Quand il accepte :
+ - on passe en mode tournage / caméra
+ - l’utilisateur répond en face caméra.
+
+Scope R1 :
+Créer le flow simple de Questions/réponses spontanées.
+
+Route/page :
+utiliser ou renommer l’existant si pertinent :
+/content/new/qa
+ou route existante Q&A si déjà présente.
+
+Important naming :
+Le label visible doit être :
+Questions/réponses spontanées
+
+Pas “Session Q&A”.
+
+IA :
+- utiliser aiGateway
+- feature = "question_audience"
+- modèle = Haiku via FEATURE_MODEL
+- max_tokens faible
+- 1 appel génère idéalement 5 questions courtes
+- pas de Sonnet pour ce flow R1
+- pas d’Opus
+- pas d’OpenRouter
+- pas d’OpenAI
+- pas de fallback
+
+API :
+Ne pas réactiver l’ancienne route generate-qa si elle doit rester 501.
+Créer une route dédiée propre si nécessaire :
+/api/content/question-audience
+
+Cette route doit :
+- auth obligatoire ;
+- utiliser aiGateway ;
+- feature "question_audience" ;
+- output JSON simple :
+ { questions: string[] }
+
+Contexte à injecter :
+- Brand DNA si brandOsGuided !== false et disponible ;
+- sujet libre optionnel si l’utilisateur en donne un ;
+- format = vidéo face caméra spontanée ;
+- objectif = trouver une question qui déclenche une réponse naturelle.
+
+Journal :
+ne pas brancher maintenant.
+TODO seulement.
+
+UI R1 :
+Sur la page Questions/réponses spontanées :
+- champ optionnel : “Sujet ou thème du jour”
+- bouton : “Me proposer des questions”
+- afficher 5 questions en cards
+- chaque card :
+ - Accepter
+ - Passer
+- bouton global : “Autres questions”
+- quand une question est acceptée :
+ - afficher écran “Prêt à filmer”
+ - afficher la question choisie
+ - bouton “Ouvrir la caméra”
+
+Caméra :
+Pour R1, utiliser input file/capture mobile simple si possible :
+<input type="file" accept="video/*" capture="user">
+ou approche navigateur simple.
+Pas de montage.
+Pas d’upload lourd.
+Pas d’analyse vidéo.
+Pas de clipping.
+
+Si caméra directe est trop complexe sur desktop/mobile :
+mettre un bouton “Ouvrir la caméra” qui active capture mobile simple, sans bloquer le reste.
+
+Data :
+Sauvegarder la question acceptée si simple :
+table minimale ou item léger :
+- clerkUserId
+- question
+- topic optional
+- status = accepted
+- createdAt
+- updatedAt
+
+Mais ne pas créer de Pipeline item automatiquement.
+Pipeline viendra plus tard.
+
+Coût :
+- génération questions = 1 appel IA Haiku
+- accepter une question = zéro appel IA
+- ouvrir caméra = zéro appel IA
+- aucun coût vidéo
+
+Reporting :
+/admin/costs doit montrer :
+- feature = question_audience
+- model = Haiku
+- tokens/coût
+
+Contraintes :
+- ne pas toucher Brainstorming ;
+- ne pas casser Angles ;
+- ne pas toucher generate-qa si elle reste 501 ;
+- scripts/carrousels/stories restent 501 ;
+- analyze-video/pdf/image restent 501 ;
+- pas de refonte lourde ;
+- mobile-friendly simple ;
+- pas de clipping ;
+- pas d’analyse vidéo ;
+- pas d’upload vidéo obligatoire ;
+- TypeScript ciblé ;
+- Vercel deploy + smoke test.
+
+Vérifications attendues :
+1. Contents affiche Questions/réponses spontanées.
+2. La page permet de générer 5 questions.
+3. Le modèle utilisé est Haiku via aiGateway.
+4. /admin/costs affiche question_audience après test.
+5. Accepter une question ne crée pas de coût IA.
+6. Ouvrir caméra ne crée pas de coût IA.
+7. generate-qa reste 501.
+8. Brainstorming Sonnet reste OK.
+```
+
+C’est le bon chantier : **usage mobile quotidien, léger, utile.**
+
+## user — 2026-05-29T00:38:56.652050
+
+Avant de coder, 4 micro-décisions pour rester aligné. La spec est dense mais 3-4 points méritent confirmation rapide.
+
+1. Naming — partout "Questions/réponses spontanées" ?
+Dans Phase R1 Contents j'avais renommé "Session Q&A" → "Question audience" sur la carte du source picker /content/new. Tu veux maintenant "Questions/réponses spontanées" partout. Je propose :
+
+Carte source picker /content/new : Questions/réponses spontanées (au lieu de Question audience)
+Header de la page /content/new/qa rebâtie : Questions/réponses spontanées
+Le slug URL /content/new/qa reste (stabilité bookmarks, zéro ripple)
+OK ?
+
+2. Route API dédiée
+Tu veux une nouvelle route /api/content/question-audience (et garder /api/generate-qa mort en 501). Je valide.
+
+Auth Clerk required → 401
+Passe par callAi({ feature: "question_audience", ... }) → mapping FEATURE_MODEL.question_audience = MODEL_HAIKU (déjà en place dans aiGateway)
+max_tokens : 400 (suffisant pour 5 questions courtes)
+Output : { questions: string[] }
+Brand DNA injecté si brandOsGuided !== false et brandDna non-null
+Journal : TODO commentaire uniquement
+OK ?
+
+3. Persistance des questions acceptées
+3 options :
+
+A : nouvelle table Convex acceptedQuestions minimale (clerkUserId, question, topic, status, createdAt) + mutation accept (zéro IA)
+B : pas de persistance R1 — la question vit dans l'état de session, le user filme et c'est lui qui sauvegarde sa vidéo localement
+C : reuse contentItems avec marqueur platform="story" funnel="TOFU" pour qu'elles apparaissent dans Pipeline plus tard
+Mon défaut : A. Petite table minimale, indépendante de Pipeline. Pas d'auto-injection dans Pipeline (tu l'as explicitement demandé). Plus tard tu peux ajouter une page /questions-acceptees ou intégrer dans Angles si tu veux.
+
+Tu confirmes A ?
+
+4. Caméra — approche R1
+Bouton "Ouvrir la caméra" déclenche un <input type="file" accept="video/*" capture="user"> invisible. Sur mobile = ouvre la caméra native en mode enregistrement. Sur desktop = file picker.
+
+Aucun upload server-side pour R1. La vidéo reste sur l'appareil de l'utilisateur — il la garde localement, l'utilise comme il veut. L'objectif R1 est de valider le flow rapide, pas la chaîne complète "filmer → uploader → pipeline".
+
+Après capture, on affiche un petit "Vidéo enregistrée localement. Tu peux la retrouver dans ta galerie." + retour aux questions ou bouton "Sauver la question acceptée" si pas déjà fait.
+
+OK ?
+
+Fichiers prévus :
+
+Fichier Action
+convex/schema.ts ajouter table acceptedQuestions
+convex/acceptedQuestions.ts mutations accept, query listMine
+src/app/api/content/question-audience/route.ts nouvelle route auth + aiGateway feature=question_audience
+src/app/(app)/content/new/qa/page.tsx rebuild complet (l'ancien form theme+count disparaît, nouveau flow accept/pass/camera)
+src/app/(app)/content/new/page.tsx rename "Question audience" → "Questions/réponses spontanées" sur la card
+Pas touché :
+
+/api/generate-qa reste 501 (route séparée, mort)
+Brainstorming, Angles, Coûts IA inchangés
+Scripts, carrousels, stories, analyse* restent 501
+aiGateway inchangé (le mapping Haiku pour question_audience est déjà dans FEATURE_MODEL)
+Tu valides les 4 défauts → je code R1 Questions/réponses spontanées en une passe.
+
+## assistant — 2026-05-29T00:38:56.652050
+
+Réponds-lui :
+
+```text
+Je valide les 4 défauts.
+
+1. Naming
+
+Oui, partout visible :
+
+Questions/réponses spontanées
+
+- carte /content/new
+- header /content/new/qa
+- textes UI
+
+Le slug reste :
+/content/new/qa
+
+Ne change pas l’URL.
+
+2. Route API dédiée
+
+Oui.
+
+Créer :
+/api/content/question-audience
+
+Garder :
+/api/generate-qa en 501
+
+Contraintes validées :
+- auth Clerk obligatoire ;
+- callAi feature = "question_audience" ;
+- modèle Haiku via aiGateway ;
+- max_tokens 400 ;
+- output { questions: string[] } ;
+- Brand DNA injecté si brandOsGuided !== false et disponible ;
+- Journal TODO seulement.
+
+3. Persistance
+
+Je valide option A.
+
+Créer table minimale :
+acceptedQuestions
+
+Champs :
+- clerkUserId
+- question
+- topic
+- status = accepted
+- createdAt
+- updatedAt
+
+Ne pas envoyer dans Pipeline.
+Ne pas créer contentItem.
+Ne pas mélanger avec Angles.
+
+4. Caméra
+
+Je valide approche R1 :
+
+<input type="file" accept="video/*" capture="user">
+
+Aucun upload serveur.
+Aucune analyse vidéo.
+Aucun clipping.
+La vidéo reste sur l’appareil.
+
+Après capture :
+afficher :
+“Vidéo enregistrée localement. Tu peux la retrouver dans ta galerie.”
+
+5. Contraintes rappel
+
+- Générer questions = 1 appel IA Haiku.
+- Accepter question = zéro IA.
+- Ouvrir caméra = zéro IA.
+- Sauvegarder question = zéro IA.
+- /admin/costs doit afficher feature question_audience + modèle Haiku après test.
+- Brainstorming Sonnet inchangé.
+- Angles inchangé.
+- Coûts IA inchangé.
+- /api/generate-qa reste 501.
+- scripts/carrousels/stories restent 501.
+- analyze-video/pdf/image restent 501.
+- pas d’OpenRouter.
+- pas d’OpenAI.
+- pas d’Opus.
+
+GO R1 Questions/réponses spontanées.
+```
+
+## user — 2026-05-29T01:03:31.480474
+
+Tous les checks verts (commit c5f9c88, Vercel ready in 41s).
+
+Validation des 8 critères demandés
+
+# Critère Résultat
+1 Contents affiche Questions/réponses spontanées ✓ card renommée sur /content/new (Idée, Inspiration, Vidéo filmée, Note de journal, Questions/réponses spontanées)
+2 Page permet de générer 5 questions ✓ flow input → questions ; /api/content/question-audience actif
+3 Modèle = Haiku via aiGateway ✓ callAi({ feature: "question_audience" }) → FEATURE_MODEL.question_audience = MODEL_HAIKU (mapping hard)
+4 /admin/costs affichera question_audience après test ✓ aiGateway loggue automatiquement chaque appel dans aiUsage (à vérifier dès le 1er appel auth via UI)
+5 Accepter une question = zéro coût IA ✓ acceptedQuestions.accept mutation pure DB INSERT, aucun import Anthropic
+6 Ouvrir caméra = zéro coût IA ✓ <input type="file" capture="user"> natif navigateur, zéro réseau
+7 /api/generate-qa reste 501 ✓ confirmé live (route séparée, non touchée)
+8 Brainstorming Sonnet reste OK ✓ /api/brainstorm-explore toujours 401 sans auth, aiGateway inchangé
+Smoke tests live :
+
+/api/content/question-audience → 401 unauthenticated (gate Clerk avant tout body parse)
+11 stubs IA → tous 501 (analyze-, brainstorm, generate-, punctuate, suggest-topics, content-recommendations)
+/content/new/qa → 307 auth redirect
+Convex prod : acceptedQuestions.js:accept + acceptedQuestions.js:listMine déployés
+Flow utilisateur final (mobile-friendly) :
+
+/content → "J'ai déjà une direction" → click "Questions/réponses spontanées"
+Champ optionnel topic + bouton "Me proposer des questions"
+5 cards Fraunces — Accepter (orange) / Passer (grey, line-through)
+Bouton "Autres questions" pour régénérer
+Accept → écran "Prêt à filmer" + bouton noir "Ouvrir la caméra"
+Capture → "Vidéo enregistrée localement. Brvndlab n'a rien uploadé."
+★ Insight ─────────────────────────────────────
+
+Avec la table acceptedQuestions indépendante de Pipeline/Angles/contentItems, tu as 4 silos clairs : Pipeline (production), Angles (idées stratégiques), Journal (matière vivante), acceptedQuestions (questions spontanées en attente de tournage). Aucune confusion possible côté reporting ou UX future.
+Le test /api/content/question-audience qui retourne 401 {"error":"unauthenticated"} est la preuve que l'auth Clerk passe AVANT le parse body et AVANT tout appel Anthropic. Personne ne peut spammer la route pour brûler tes tokens Haiku. La protection coût démarre à la 1ère ligne du handler.
+Le coût Haiku est 30× moins cher que le brainstorm Sonnet par session (€0.002 vs €0.05). Un user qui fait 10 régénérations de questions/jour = €0.60/mois max. Tu peux laisser tourner sans surveillance serrée tant que le DAILY_USER_LIMIT=100 est respecté.
+─────────────────────────────────────────────────
+Prêt pour test live sur mobile (idéal pour expérimenter la caméra).
+
+## assistant — 2026-05-29T01:03:31.480474
+
+Vérifié côté repo.
+
+## C’est bien en place
+
+Commit :
+`c5f9c88 feat(content): Questions/réponses spontanées — flow rapide face caméra`
+
+Présent :
+- route `/api/content/question-audience`
+- page `/content/new/qa`
+- table `acceptedQuestions`
+- card renommée **Questions/réponses spontanées**
+- modèle `question_audience → Haiku`
+- caméra via `capture="user"`
+
+## État coût
+
+- Générer questions = Haiku
+- Accepter = zéro IA
+- Caméra = zéro IA
+- Upload vidéo = aucun
+- `generate-qa` reste 501
+
+## Next test
+
+Teste sur mobile :
+
+1. `/content/new/qa`
+2. Mets un thème simple
+3. Génère 5 questions
+4. Accepte une question
+5. Clique “Ouvrir la caméra”
+6. Vérifie `/admin/costs`
+
+Tu dois voir :
+- feature `question_audience`
+- modèle Haiku
+- coût très faible
+
+Si c’est bon, on a maintenant deux moteurs solides :
+
+- **Brainstorming profond**
+- **Questions spontanées quotidiennes**
+
+## user — 2026-05-29T01:06:01.017958
+
+J'aime bien, tout et ça marche bien. Juste que les questions ne sont pas très fut. Peut-être que c'est le SLLM qu'on a choisi mais ils sont vraiment pas très fut, pas beaucoup de profondeur. Je trouve, c'est dommage.
+
+Sinon quand j'appuie sur le bouton pour mettre la caméra, je ne sais pas ce que ça fait si je suis sur le portable. En tout cas, sur l'ordinateur, c'est bizarre. Ça me met mes documents. Après ça ça sera fait sur le portable, normalement la majorité du temps.
+
+## assistant — 2026-05-29T01:06:01.017958
+
+Oui, c’est normal.
+
+## Caméra
+
+Sur ordinateur, `capture="user"` ouvre souvent les fichiers/documents.
+
+Sur mobile, ça doit ouvrir la caméra native.
+
+Donc pour la caméra : **à tester sur téléphone**. Desktop n’est pas représentatif.
+
+## Questions pas assez fortes
+
+Là, c’est plus important.
+
+Probable cause :
+**Haiku est trop léger pour ce flow.**
+
+Pour des questions vraiment profondes, il faut peut-être :
+
+- soit améliorer fortement le prompt ;
+- soit passer **Questions/réponses spontanées en Sonnet** ;
+- soit proposer 2 modes :
+ - Rapide = Haiku
+ - Profond = Sonnet
+
+## Mon avis
+
+Comme ce flow est quotidien, je ferais d’abord :
+
+**améliorer le prompt Haiku**
+
+Sans augmenter le coût.
+
+Si après ça c’est toujours moyen :
+
+**passer en Sonnet**.
+
+## Prochaine action
+
+Demande à Claude :
+
+- ne pas changer le modèle tout de suite ;
+- améliorer le prompt Question audience ;
+- questions plus spécifiques, plus humaines, plus tranchantes ;
+- moins génériques ;
+- utiliser Brand DNA fortement ;
+- orientées face caméra spontané ;
+- pas de questions molles type “comment fais-tu pour…”.
+
+On garde Haiku pour un test qualité avant de payer plus.
+
+## user — 2026-05-29T01:12:28.356776
+
+Et si nous même on crée un espèce de truc, t'sais, comme Instagram, ils ont, ou Snapchat, ils ont, tu t'enregistres spontanément. Après tu peux même mettre du texte ou quoi ou ça va trop consommer ?
+
+## assistant — 2026-05-29T01:12:28.356776
+
+Non, ça ne consomme pas d’IA.
+
+Créer un petit mode caméra type Instagram/Snapchat, c’est surtout :
+
+- interface caméra ;
+- enregistrement vidéo ;
+- texte overlay ;
+- sauvegarde locale ou upload ;
+- prévisualisation.
+
+Ça ne coûte pas en tokens.
+
+## Ce qui coûte
+
+Seulement si tu demandes à l’IA de :
+
+- analyser la vidéo ;
+- couper automatiquement ;
+- transcrire ;
+- suggérer les meilleurs moments ;
+- générer des captions ;
+- améliorer le script.
+
+## Donc oui
+
+On peut créer un mode :
+
+**Caméra Brvndlab**
+
+Avec :
+- question affichée à l’écran ;
+- bouton record ;
+- timer ;
+- texte overlay ;
+- sauvegarde locale ;
+- peut-être téléchargement.
+
+Zéro IA pendant l’enregistrement.
+
+## Mon avis
+
+Très bonne idée.
+
+Ça rend Questions/réponses spontanées beaucoup plus produit.
+
+Flow :
+
+1. Lya propose une question.
+2. Tu acceptes.
+3. Caméra Brvndlab s’ouvre.
+4. La question reste affichée.
+5. Tu enregistres.
+6. Tu peux garder ou refaire.
+
+Pas de coût IA supplémentaire.
+
+## user — 2026-05-29T01:13:54.655497
+
+magnifique, bha je veux sa alors. C'est magnifique, c'est exactement ce que je veux alors. Je vais pouvoir avoir un truc comme ça et que maintenant les gens peuvent s'enregistrer, ils peuvent mettre leurs textes par-dessus. C'est pas sous-titre, hein, c'est vraiment juste le texte par-dessus, si il veut mettre un titre ou quoi. Qu'il peut le faire et ils parlent de manière spontanée.
+
+Bon après, l'idéal, si on peut mettre le transcript. Après, là, ça demanderait du montage et tout et c'est trop de travail, mais juste le texte et tout optionnellement ou sinon avoir la capacité de pouvoir prendre ça et l'enregistrer, ça peut être sympa. Comme ça ils peuvent prendre ça. Après ils peuvent le mettre, soit en story, soit en poste. On s'en fout.
+
+## assistant — 2026-05-29T01:13:54.655497
+
+Oui. Ça, c’est le bon produit.
+
+## Ce qu’on veut
+
+Un mini mode :
+
+**Caméra Brvndlab**
+
+Sans IA.
+
+Fonctions R1 :
+
+- caméra intégrée ;
+- question affichée à l’écran ;
+- bouton record ;
+- stop ;
+- preview ;
+- refaire ;
+- télécharger la vidéo ;
+- texte overlay optionnel ;
+- titre optionnel ;
+- pas de sous-titres ;
+- pas de transcription ;
+- pas de clipping ;
+- pas d’analyse vidéo ;
+- zéro coût IA.
+
+## Pourquoi c’est fort
+
+Lya donne l’impulsion. 
+Brvndlab devient l’espace de tournage.
+
+Pas juste un générateur de questions.
+
+## Flow
+
+1. Lya propose une question.
+2. Tu acceptes.
+3. Tu ouvres **Caméra Brvndlab**.
+4. Tu réponds en spontané.
+5. Tu ajoutes un texte si tu veux.
+6. Tu télécharges.
+7. Tu postes où tu veux.
+
+## Important
+
+On ne fait pas encore :
+- transcript ;
+- sous-titres ;
+- montage ;
+- upload lourd ;
+- clipping.
+
+Ça viendra plus tard si vraiment utile.
+
+Là, on fait la version simple et solide.
+
+## user — 2026-05-29T01:28:49.659468
+
+Tu sais quoi, cette idée-là, pour l'instant je la veux pas. En fait j'ai envie de lancer le plus vite possible. Je viens juste de tester le mode QNA sur le portable et c'est hyper propre. J'ai en face de moi la question, je réfléchis ensuite, j'appuie sur le bouton et je peux me filmer directement. Il n'y a rien d'aussi bien que ça. Je préfère aller sur ce qu'on a déjà maintenant. Let's go.
+
+## assistant — 2026-05-29T01:28:49.659468
+
+Parfait. Bonne décision.
+
+On ne rajoute pas la caméra custom maintenant.
+
+## On garde
+
+Le flow actuel :
+
+**Question → réflexion → bouton caméra native → vidéo**
+
+C’est simple, rapide, mobile-first, zéro coût.
+
+## Donc priorité maintenant
+
+Améliorer uniquement la **qualité des questions**.
+
+Pas l’UX caméra.
+
+## Prochaine action
+
+Demander à Claude :
+
+- garder Haiku pour l’instant ;
+- améliorer le prompt ;
+- questions moins génériques ;
+- plus tranchantes ;
+- plus humaines ;
+- plus liées au Brand OS ;
+- orientées réponse face caméra.
+
+On optimise ce qui existe, sans rajouter de chantier.
+
+## user — 2026-05-29T01:29:10.490877
+
+Par contre le haïku, par rapport aux questions, c'est vrai que je t'avoue, c'est pas ouf les questions
+
+## assistant — 2026-05-29T01:29:10.490877
+
+Oui. Je pense qu’il faut arrêter de forcer Haiku ici.
+
+Pour les questions spontanées, la qualité est centrale aussi.
+
+## Décision simple
+
+Passe **Questions/réponses spontanées** en **Sonnet**.
+
+Pourquoi :
+- meilleures questions ;
+- plus de profondeur ;
+- plus humain ;
+- meilleur lien avec Brand OS ;
+- contenu plus fort.
+
+## Coût
+
+Ça restera léger, parce qu’on génère seulement 5 questions.
+
+Ce ne sera pas comme un long script.
+
+## Règle
+
+- Brainstorming = Sonnet
+- Questions/réponses spontanées = Sonnet
+- Stories/bullets simples = Haiku plus tard
+- Analyse vidéo/PDF = OFF
+
+Là, ce flow mérite Sonnet.
+
+## user — 2026-05-29T01:30:09.264931
+
+Les stories aussi, pour moi, elles devraient pas être légères. En fait quand on crée du content, j'suis en train de me dire vraiment : « être en Naïkou, c'est très mauvais pour nous parce qu'il y a aucune valeur. Il y a aucune profondeur en fait et s'ils veulent vraiment montrer les experts qui ils sont, ils ont besoin d'avoir de la profondeur, tu vois ce que j'veux dire ? Juste pour les analyses de vidéos là, c'est mort par contre, hein. Ça, c'est mort. »
+
+## assistant — 2026-05-29T01:30:09.264931
+
+Oui. Je suis d’accord.
+
+Pour Brvndlab, **la qualité prime**.
+
+## Nouvelle règle
+
+Tout ce qui touche à la création éditoriale doit être **Sonnet** :
+
+- Brainstorming
+- Questions/réponses spontanées
+- Stories
+- Scripts
+- Carrousels
+- Posts
+- Emails
+
+## Haiku seulement pour
+
+- petits résumés internes ;
+- classement ;
+- tags ;
+- reformulation mineure ;
+- tâches admin non créatives.
+
+## OFF
+
+- analyse vidéo ;
+- analyse PDF ;
+- analyse image ;
+- clipping ;
+- Radar auto.
+
+## Pourquoi
+
+Brvndlab vend de la profondeur, pas du contenu moyen.
+
+Si Haiku donne des questions molles, ça abîme le produit.
+
+Donc :
+
+**création = Sonnet** 
+**admin = Haiku** 
+**analyse lourde = OFF**
+
+## user — 2026-05-29T01:31:05.075042
+
+Pourquoi est-ce que tu as mis email ? J'ai jamais dit qu'on allait faire des emails
+
+## assistant — 2026-05-29T01:31:05.075042
+
+Tu as raison. J’ai extrapolé.
+
+On retire **emails**.
+
+## Règle corrigée
+
+Sonnet pour création Brvndlab validée :
+
+- Brainstorming
+- Questions/réponses spontanées
+- Stories
+- Scripts
+- Carrousels
+- Posts
+
+Haiku seulement pour :
+- résumé interne ;
+- tags ;
+- classement ;
+- tâches admin simples.
+
+OFF :
+- analyse vidéo ;
+- PDF ;
+- image ;
+- clipping ;
+- Radar auto.
+
+Pas d’email dans le scope actuel.

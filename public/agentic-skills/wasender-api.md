@@ -12,6 +12,40 @@ tags: [whatsapp, wasender, api, webhook, iclosed]
 ## Overview
 Python integration for Wasender WhatsApp API (`wasenderapi.com`). Covers auth, group creation, messaging, and gotchas discovered through trial and error.
 
+## VividFlow WhatsApp bot option triage
+
+When Jonathan asks about a “bot WhatsApp”, separate the use case before recommending a stack:
+
+- **Fast MVP: Wasender** — QR/session-based, quickest for 1:1 messages, groups, notifications, webhooks, and proving an agent workflow.
+- **Open-source self-hosted: OpenWA / whatsapp-web.js** — useful for WhatsApp Web-style automation with multi-session, API, webhooks, groups, dashboard/bulk messaging. Treat as a technical base to test QR login → inbound webhook → auto-reply. It is not a guaranteed solution for WhatsApp Channels publishing.
+- **Production/client-safe: WhatsApp Business Cloud API** — official Meta route, stable and compliant, but heavier setup: Business Manager, dedicated number, app, webhook, templates, approvals.
+- **WhatsApp Channels/newsletter** — keep publication manual at first unless the chosen library explicitly proves admin publish support. OpenWA/whatsapp-web.js can expose channel read/list/join-like capabilities, but channel publishing is not reliably confirmed.
+
+Default VividFlow recommendation: prove the flow with Wasender or OpenWA first; migrate to Cloud API when reliability/compliance matters.
+
+### OpenWA self-hosted client pilot pattern
+
+When Jonathan says the goal is to reuse WhatsApp for clients, bias toward **OpenWA self-hosted** over Wasender for the pilot infrastructure, because VividFlow controls the VPS, sessions, API, webhook bridge, and client isolation.
+
+Target flow:
+```text
+WhatsApp Business client
+→ OpenWA self-hosted on VPS
+→ webhook/API bridge
+→ Hermes profile, e.g. whatsapp_demo
+→ OpenWA send API
+→ WhatsApp reply
+```
+
+Execution rules:
+- Keep Jonathan/client non-technical: they only scan the QR from WhatsApp Business → Appareils connectés.
+- Start API/backend first; do not let dashboard issues block the WhatsApp backend.
+- If Docker `--profile full` fails on dashboard npm peer deps (`vite` / `@vitejs/plugin-react`), launch API-only and fix dashboard separately.
+- Before multi-client use: isolate one session/volume per client, protect endpoints, add webhook secrets, and map client slug → OpenWA session → Hermes profile.
+- Keep the caveat explicit: OpenWA is WhatsApp Web automation, not official Meta Cloud API. It is suitable for demos/client pilots; Meta Cloud API remains the official production path.
+
+See `references/openwa-self-hosted-vividflow.md` for the condensed implementation notes: API-only startup, runtime API key location, QR regeneration, Hermes bridge endpoints, webhook payload shape, and known build pitfall.
+
 ## Auth
 - **Header**: `Authorization: Bearer <token>`
 - **NOT** `Token <token>` (that returns 401)

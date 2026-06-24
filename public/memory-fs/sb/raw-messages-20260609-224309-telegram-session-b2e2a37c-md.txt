@@ -1,0 +1,18 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260609_200425_14b0a3.jsonl
+captured_at: 2026-06-09T22:43:09.277989
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-06-09T22:21:39.430617
+
+tout le fluw telegram doit etre dans le raw de la second brain et organiser dans la bibilothèque c'est déjà mis en place pourquoi ca marche pas
+
+## assistant — 2026-06-09T22:21:39.430617
+
+Je vais vérifier les 4 points qui peuvent casser : capture Telegram, ingest wiki, crons, et routage scripts.
+
+## assistant — 2026-06-09T22:21:39.430617
+
+Tu as raison sur l’intention. Et j’ai trouvé pourquoi ça ne donnait pas le résultat attendu. Ce n’était pas “cassé”, c’était **trop conservateur** : - Le flux Telegram est bien capturé en `raw/messages`. - Mais l’ingest était réglé en mode **quarantine_only**. - Donc il mettait les messages dans une inbox de candidats, sans vraiment les organiser dans la bibliothèque. - En clair : **ça stockait, mais ça ne consolidait pas assez.** J’ai corrigé le job d’ingest : maintenant il doit faire la vraie étape de curation : - lire les nouveaux raw Telegram ; - promouvoir les vrais signaux vers `wiki/processes`, `wiki/decisions`, `wiki/concepts`, etc. ; - mettre à jour `index.md` et `log.md` ; - ignorer le bruit. État actuel : - Capture raw : OK. - Second Brain wiki : présent. - Ingest automatique : corrigé. - Régression agents : encore fragile, mais pas bloquante pour la capture. Donc la bonne lecture : **le système existait, mais il s’arrêtait à l’étagère “à trier”. Je viens de remettre le tri automatique.**

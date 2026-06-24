@@ -1,14 +1,16 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { createPortal } from 'react-dom'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import PipelineMobileTabs from '@/components/pipeline/PipelineMobileTabs'
+import { Modal } from '@/components/ui/Modal'
+import { IClosedBookingModal, ICLOSED_R1_BOOKING_URL, ICLOSED_R2_BOOKING_URL } from '@/components/shared/IClosedBookingModal'
 import {
   DndContext,
   DragOverlay,
+  MeasuringStrategy,
   closestCenter,
   pointerWithin,
   defaultDropAnimationSideEffects,
@@ -26,7 +28,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, X, ArrowLeft } from 'lucide-react'
+import { Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, X, ArrowLeft, Search } from 'lucide-react'
 import { type GHLPipelineData, type GHLStage, type Opportunity, type Lead } from './types'
 import { NONVENTE_REASONS, NONVENTE_OBJECTIONS } from '@/lib/lostReasons'
 import { getAvatarColor } from '@/components/contacts/types'
@@ -60,7 +62,7 @@ function Avatar({ initials }: { initials: string }) {
   )
 }
 
-// Chips de source — reflètent fidèlement contact.source (inbound/outbound/recommandation/…).
+// Chips de source :reflètent fidèlement contact.source (inbound/outbound/recommandation/…).
 const SOURCE_META: Record<string, { label: string; bg: string; color: string }> = {
   inbound:        { label: 'inbound',  bg: '#DCFCE7', color: '#16A34A' },
   outbound:       { label: 'outbound', bg: '#FCE7F3', color: '#EC4899' },
@@ -245,7 +247,7 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
         )}
 
         {!showLost && !isLastStage && !isFirstStage && <LostZone stageId={stage.id} isOver={isLostOver} />}
-        {/* 1ʳᵉ étape (Nouveau lead) et dernière étape : pas de zone perdu — un nouveau lead ne peut pas être perdu.
+        {/* 1ʳᵉ étape (Nouveau lead) et dernière étape : pas de zone perdu :un nouveau lead ne peut pas être perdu.
             On réserve la même hauteur pour garder les colonnes alignées. */}
         {!showLost && (isLastStage || isFirstStage) && (
           <div aria-hidden className="mt-1.5 flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-transparent py-1.5 pointer-events-none select-none">
@@ -260,25 +262,25 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
 // ─── Trash Zone ──────────────────────────────────────────────
 const TRASH_ID = '__trash__'
 
-// Zone de suppression inline (dans le header, à gauche de « Voir perdus ») — visible pendant un drag.
+// Zone de suppression inline (dans le header, à gauche de « Voir perdus ») :visible pendant un drag.
 function TrashZone({ isOver }: { isOver: boolean }) {
   const { setNodeRef } = useDroppable({ id: TRASH_ID })
   return (
     <div
       ref={setNodeRef}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 border-dashed text-[11px] font-semibold whitespace-nowrap transition-all cursor-default select-none
+      className={`flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed text-[10.5px] font-semibold whitespace-nowrap transition-all cursor-default select-none
         ${isOver
           ? 'bg-red-500 border-red-400 text-white scale-105 shadow-[0_0_0_3px_rgba(239,68,68,0.2)]'
           : 'bg-soren-card border-red-300 text-red-400'
         }`}
     >
-      <Trash2 size={13} className={isOver ? 'text-white' : 'text-red-400'} />
-      {isOver ? 'Relâcher pour supprimer' : 'Glisser ici pour supprimer'}
+      <Trash2 size={12} className={isOver ? 'text-white' : 'text-red-400'} />
+      Supprimer
     </div>
   )
 }
 
-// ─── Modale Non-vente (perte en R1/R2) — étape raison → étape objection ───
+// ─── Modale Non-vente (perte en R1/R2) :étape raison → étape objection ───
 function NonVenteModal({
   contactName, step, onPickReason, onPickObjection, onBack, onCancel,
 }: {
@@ -289,11 +291,9 @@ function NonVenteModal({
   onBack: () => void
   onCancel: () => void
 }) {
-  if (typeof document === 'undefined') return null
   const isReason = step === 'reason'
-  return createPortal((
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
+  return (
+    <Modal onClose={onCancel}>
       <div className="relative w-full max-w-md bg-soren-card rounded-2xl shadow-2xl p-6 flex flex-col gap-4">
         <div className="flex items-start gap-3">
           {!isReason && (
@@ -324,8 +324,8 @@ function NonVenteModal({
           })}
         </div>
       </div>
-    </div>
-  ), document.body)
+    </Modal>
+  )
 }
 
 // ─── Main Board ───────────────────────────────────────────────
@@ -344,15 +344,17 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   const [lostFlow,       setLostFlow]       = useState<{ opp: Opportunity; stageId: string; step: 'reason' | 'objection'; reason?: string } | null>(null)
   const draggingRef = useRef(false)
 
-  // Reactive live leads + contacts — la card DÉRIVE de la fiche contact (source unique).
+  // Reactive live leads + contacts :la card DÉRIVE de la fiche contact (source unique).
   const liveLeads = useQuery(api.crm_leads.list)
   const liveContacts = useQuery(api.crm_contacts.list)
   useEffect(() => {
     if (!liveLeads || draggingRef.current) return
     // source de vérité = la fiche contact ; la chip inbound/outbound en dérive.
     const sourceByContact = new Map<string, string>()
-    for (const c of (liveContacts ?? []) as { _id: string; source?: string }[]) {
+    const statutByContact = new Map<string, string>()
+    for (const c of (liveContacts ?? []) as { _id: string; source?: string; statut?: string }[]) {
       if (c.source) sourceByContact.set(c._id, c.source)
+      if (c.statut) statutByContact.set(c._id, c.statut)
     }
     const mapped: Opportunity[] = (liveLeads as {
       _id: string; name: string; email?: string; phone?: string; company?: string;
@@ -365,19 +367,32 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
       stageId: l.stageId, pipelineId: l.pipelineId, email: l.email ?? '', phone: l.phone ?? '',
       contactId: l.contactId ?? '', tags: [], status: l.status as Opportunity['status'],
     }))
-    setOpps(mapped.filter(o => o.status !== 'lost'))
-    setLostOpps(mapped.filter(o => o.status === 'lost'))
+    // Source de vérité = statut de la fiche : un lead dont le contact est devenu CLIENT
+    // ne reste pas dans le board Leads (sinon carte fantôme en double avec le board Clients),
+    // même pendant la fraction de seconde où enforce n'a pas encore supprimé le crm_lead.
+    const visible = mapped.filter(o => !(o.contactId && statutByContact.get(o.contactId) === 'client'))
+    setOpps(visible.filter(o => o.status !== 'lost'))
+    setLostOpps(visible.filter(o => o.status === 'lost'))
   }, [liveLeads, liveContacts])
 
-  function reopenLead(opp: Opportunity) {
-    const firstStageId = stages[0]?.id ?? 'nouveau-lead'
-    const reopened = { ...opp, status: 'open' as const, stageId: firstStageId }
+  async function reopenLead(opp: Opportunity) {
+    // Restaure l'étape où le lead avait été perdu (source de vérité = contact.lostStage), sinon 1ʳᵉ colonne.
+    let reopenStageId = stages.some(s => s.id === opp.stageId) ? opp.stageId : (stages[0]?.id ?? 'nouveau-lead')
+    if (opp.contactId) {
+      try {
+        const r = await fetch(`/api/contact/${opp.contactId}`)
+        const d = await r.json() as { contact?: { lostStage?: string } }
+        const ls = d.contact?.lostStage
+        if (ls && stages.some(s => s.id === ls)) reopenStageId = ls
+      } catch { /* fallback sur reopenStageId courant */ }
+    }
+    const reopened = { ...opp, status: 'open' as const, stageId: reopenStageId }
     setLostOpps(prev => prev.filter(o => o.id !== opp.id))
     setOpps(prev => [reopened, ...prev])
     fetch(`/api/crm/leads/${opp.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'open', stageId: firstStageId, stageName: stages[0]?.name ?? 'Nouveau lead' }),
+      body: JSON.stringify({ status: 'open', stageId: reopenStageId, stageName: stages.find(s => s.id === reopenStageId)?.name ?? 'Nouveau lead' }),
     }).catch(() => {})
     // Reset contact statut back to lead
     if (opp.contactId) {
@@ -412,7 +427,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
       if (!res.ok) throw new Error('Erreur serveur')
     } catch {
       setOpps(prev => prev.map(o => o.id === oppId ? { ...o, stageId: prevStageId } : o))
-      toast('Erreur — déplacement annulé', 'error')
+      toast('Erreur : déplacement annulé', 'error')
     }
   }, [toast])
 
@@ -422,25 +437,26 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     setOpps(prev => prev.filter(o => o.id !== opp.id))
     setLostOpps(prev => [...prev.filter(o => o.id !== opp.id), lostOpp])
     toast('Lead marqué comme perdu', 'success')
+    // 1 SEUL appel atomique : updateStatus→markLost écrit statut + étape/raison/objection RÉELLES.
+    // (Avant : PATCH puis PUT séparé → le record restait figé "autre". Corrigé.)
     fetch(`/api/crm/leads/${opp.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'lost' }),
-    }).then(() => {
-      // Contact = source de vérité : statut + COLONNE EXACTE au moment de la perte + raison/objection.
-      const lostStage = stageId
-      if (opp.contactId) return fetch(`/api/contact/${opp.contactId}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ statut: 'perdu', lostStage, lostReason: lostReason ?? '', lostObjection: lostObjection ?? '' }),
-      })
-    }).catch(() => {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'lost', reason: lostReason ?? 'autre', lostStage: stageId, objection: lostObjection ?? '' }),
+    }).then(res => { if (!res.ok) throw new Error() }).catch(() => {
       setLostOpps(prev => prev.filter(o => o.id !== opp.id))
       setOpps(prev => [opp, ...prev])
-      toast('Erreur — statut non sauvegardé', 'error')
+      toast('Erreur : statut non sauvegardé', 'error')
     })
   }, [toast])
 
   const [activeId,          setActiveId]          = useState<string | null>(null)
   const [overId,            setOverId]            = useState<string | null>(null)
+  const [pendingDelete,     setPendingDelete]     = useState<Opportunity | null>(null)
   const [pendingConversion, setPendingConversion] = useState<Opportunity | null>(null)
+  // Passage en R1/R2 : booking iClosed obligatoire (la carte ne bouge qu'après « Ouvrir iClosed »).
+  const [pendingBooking,    setPendingBooking]    = useState<{ opp: Opportunity; stageId: string } | null>(null)
+  // Retour en arrière d'une carte : autorisé mais demande confirmation (la régression reste délibérée → funnel juste).
+  const [pendingBackMove,   setPendingBackMove]   = useState<{ opp: Opportunity; toStageId: string } | null>(null)
   const [dealValue,         setDealValue]         = useState('')
   // Conversion en client (2 étapes) : objection surmontée (vert) → montant + date.
   const [convStep,          setConvStep]          = useState<'objection' | 'deal'>('objection')
@@ -522,14 +538,35 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
 
   const pipeline     = initialPipelines[pipelineIdx] ?? initialPipelines[0]
   const stages       = pipeline?.stages ?? []
-  // Étape affichée sur mobile (sélecteur d'étapes — une colonne à la fois)
+  const [searchQuery, setSearchQuery] = useState('')
+  // Étape affichée sur mobile (sélecteur d'étapes :une colonne à la fois)
   const [mobileStageId, setMobileStageId] = useState<string | null>(null)
   const activeMobileStage = mobileStageId && stages.some(s => s.id === mobileStageId) ? mobileStageId : stages[0]?.id
-  // Déplacer une carte d'une étape (sans drag) — mobile
+  // Garde de transition : on peut avancer (même sauter en avant), jamais régresser (décision Thomas).
+  // La correction d'une erreur se fait via la fiche du lead, pas par un glissement.
+  const isMoveAllowed = useCallback((fromStageId: string, toStageId: string) => {
+    const from = stages.findIndex(s => s.id === fromStageId)
+    const to   = stages.findIndex(s => s.id === toStageId)
+    if (from === -1 || to === -1) return true
+    return to >= from
+  }, [stages])
+  // Focus ciblé depuis le dashboard (cartes « En R1 / En R2 » → /pipeline?col=r1) :
+  // scroll vers la colonne (desktop) + sélection de l'étape (mobile).
+  useEffect(() => {
+    const col = searchParams?.get('col')
+    if (!col || !stages.length || !stages.some(s => s.id === col)) return
+    setMobileStageId(col)
+    const idx = stages.findIndex(s => s.id === col)
+    const el = boardRef.current?.children[idx] as HTMLElement | undefined
+    el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stages.length, searchParams])
+  // Déplacer une carte d'une étape (sans drag) :mobile
   const moveOppStage = (opp: Opportunity, dir: number) => {
     const idx = stages.findIndex(s => s.id === opp.stageId)
     const target = stages[idx + dir]
     if (!target) return
+    if (!isMoveAllowed(opp.stageId, target.id)) { setPendingBackMove({ opp, toStageId: target.id }); return }
     setOpps(prev => prev.map(o => o.id === opp.id ? { ...o, stageId: target.id } : o))
     void persistStageMove(opp.id, target.id, opp.stageId)
     setMobileStageId(target.id)
@@ -537,11 +574,13 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   const activeOpp    = opps.find(o => o.id === activeId) ?? null
   const pipelineOpps = opps.filter(o => o.pipelineId === pipeline?.id)
   const getColOpps = useCallback((stageId: string) => {
-    if (showLost) {
-      return lostOpps.filter(o => o.stageId === stageId && o.pipelineId === pipeline?.id)
-    }
-    return pipelineOpps.filter(o => o.stageId === stageId)
-  }, [showLost, lostOpps, pipelineOpps, pipeline?.id])
+    const q = searchQuery.trim().toLowerCase()
+    const match = (o: Opportunity) => !q || [o.name, o.company, o.email, o.phone].some(f => f?.toLowerCase().includes(q))
+    const base = showLost
+      ? lostOpps.filter(o => o.stageId === stageId && o.pipelineId === pipeline?.id)
+      : pipelineOpps.filter(o => o.stageId === stageId)
+    return base.filter(match)
+  }, [showLost, lostOpps, pipelineOpps, pipeline?.id, searchQuery])
 
   function handleDragStart({ active }: DragStartEvent) {
     setActiveId(active.id as string)
@@ -557,16 +596,19 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     const snapshot = opps.find(o => o.id === oppId)
     setOpps(prev => prev.filter(o => o.id !== oppId))
     try {
-      const res = await fetch(`/api/crm/leads/${oppId}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error()
-      // Clear the contact's statut so syncAll won't recreate the lead
       if (snapshot?.contactId) {
-        await fetch(`/api/contact/${snapshot.contactId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statut: '' }) }).catch(() => {})
+        // Supprime le CONTACT → cascade Convex : lead + historique + prospection + client.
+        const res = await fetch(`/api/contact/${snapshot.contactId}`, { method: 'DELETE' })
+        if (!res.ok) throw new Error()
+      } else {
+        // Lead sans contact lié → supprime juste le lead.
+        const res = await fetch(`/api/crm/leads/${oppId}`, { method: 'DELETE' })
+        if (!res.ok) throw new Error()
       }
-      toast('Lead supprimé', 'success')
+      toast('Lead supprimé (retiré aussi des Contacts)', 'success')
     } catch {
       if (snapshot) setOpps(prev => [snapshot, ...prev.filter(o => o.id !== oppId)])
-      toast('Erreur — suppression échouée', 'error')
+      toast('Erreur : suppression échouée', 'error')
     }
   }
 
@@ -582,9 +624,9 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     const activeOpp = opps.find(o => o.id === activeId)
     if (!activeOpp) return
 
-    // Dropped on trash
+    // Dropped on trash → confirmation requise (la suppression retire aussi le contact)
     if (overId === TRASH_ID) {
-      void deleteOpp(activeId)
+      setPendingDelete(activeOpp)
       return
     }
 
@@ -613,6 +655,9 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
         return
       }
       if (activeOpp.stageId !== targetStage.id) {
+        if (!isMoveAllowed(activeOpp.stageId, targetStage.id)) { setPendingBackMove({ opp: activeOpp, toStageId: targetStage.id }); return }
+        // R1/R2 → booking iClosed obligatoire : la carte ne passe en R1/R2 qu'après « Ouvrir iClosed ».
+        if (targetStage.id === 'r1' || targetStage.id === 'r2') { setPendingBooking({ opp: activeOpp, stageId: targetStage.id }); return }
         const prevStageId = activeOpp.stageId
         setOpps(prev => prev.map(o => o.id === activeId ? { ...o, stageId: targetStage.id } : o))
         persistStageMove(activeId, targetStage.id, prevStageId)
@@ -642,6 +687,9 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
         return [...rest, ...arrayMove(col, from, to)]
       })
     } else {
+      if (!isMoveAllowed(activeOpp.stageId, overOpp.stageId)) { setPendingBackMove({ opp: activeOpp, toStageId: overOpp.stageId }); return }
+      // R1/R2 → booking iClosed obligatoire (même règle que le drop sur colonne).
+      if (overOpp.stageId === 'r1' || overOpp.stageId === 'r2') { setPendingBooking({ opp: activeOpp, stageId: overOpp.stageId }); return }
       const prevStageId = activeOpp.stageId
       setOpps(prev => {
         const without = prev.filter(o => o.id !== activeId)
@@ -662,15 +710,22 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     const contactId = pendingConversion.contactId
     const date = dealDate || new Date().toISOString().slice(0, 10)
     const objection = wonObjection
+    const snapshot = pendingConversion
     setPendingConversion(null)
     setDealValue(''); setWonObjection(''); setConvStep('objection')
-    toast('Deal clôturé — bienvenue au client !', 'success')
-    if (!contactId) return
+    if (!contactId) { toast('Deal clôturé : bienvenue au client !', 'success'); return }
     // Source of truth = contact statut. Set to client (+ date/objection), then sync (crée la fiche client, valeur).
+    // Toast de succès SEULEMENT après confirmation serveur ; rollback de la carte si échec.
     try {
-      await fetch(`/api/contact/${contactId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statut: 'client', dealDate: date, wonObjection: objection || '' }) })
-      await fetch('/api/crm/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contactId, dealValue: value }) })
-    } catch {}
+      const r1 = await fetch(`/api/contact/${contactId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statut: 'client', dealDate: date, wonObjection: objection || '' }) })
+      if (!r1.ok) throw new Error('contact')
+      const r2 = await fetch('/api/crm/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contactId, dealValue: value }) })
+      if (!r2.ok) throw new Error('sync')
+      toast('Deal clôturé : bienvenue au client !', 'success')
+    } catch {
+      setOpps(prev => [snapshot, ...prev.filter(o => o.id !== snapshot.id)])
+      toast('Erreur : conversion non enregistrée', 'error')
+    }
   }
 
   function cancelConversion() {
@@ -678,6 +733,27 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     setOpps(prev => [pendingConversion, ...prev])
     setPendingConversion(null)
     setDealValue(''); setWonObjection(''); setConvStep('objection')
+  }
+
+  // Booking iClosed (R1/R2) : la carte passe en R1/R2 uniquement quand on clique « Ouvrir iClosed ».
+  function commitBooking() {
+    if (!pendingBooking) return
+    const { opp, stageId } = pendingBooking
+    setPendingBooking(null)
+    setOpps(prev => prev.map(o => o.id === opp.id ? { ...o, stageId } : o))
+    void persistStageMove(opp.id, stageId, opp.stageId)
+  }
+  function cancelBooking() { setPendingBooking(null) }
+
+  // Confirme un retour en arrière (régression d'étape) → applique le déplacement.
+  function confirmBackMove() {
+    if (!pendingBackMove) return
+    const { opp, toStageId } = pendingBackMove
+    const prevStageId = opp.stageId
+    setOpps(prev => prev.map(o => o.id === opp.id ? { ...o, stageId: toStageId } : o))
+    void persistStageMove(opp.id, toStageId, prevStageId)
+    setMobileStageId(toStageId)
+    setPendingBackMove(null)
   }
 
   function handleAddOpp(lead: Opportunity | Lead) {
@@ -694,12 +770,22 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   }
 
   const collisionDetection: CollisionDetection = useCallback((args) => {
-    const overTrash = pointerWithin(args).find(c => c.id === TRASH_ID)
+    const within = pointerWithin(args)
+    // Trash / Lost : UNIQUEMENT si le pointeur est franchement dessus (jamais en repli).
+    const overTrash = within.find(c => c.id === TRASH_ID)
     if (overTrash) return [overTrash]
-    const overLost = pointerWithin(args).find(c => String(c.id).startsWith(LOST_PREFIX))
+    const overLost = within.find(c => String(c.id).startsWith(LOST_PREFIX))
     if (overLost) return [overLost]
-    return closestCenter(args)
-  }, [])
+    // Précision : on suit le POINTEUR (colonne/carte réellement sous le curseur), pas le
+    // centre de la carte. On préfère une carte (insertion exacte) à la colonne si les deux sont dessous.
+    const precise = within.filter(c => c.id !== TRASH_ID && !String(c.id).startsWith(LOST_PREFIX))
+    if (precise.length) {
+      const cards = precise.filter(c => !stages.some(s => s.id === c.id))
+      return cards.length ? cards : precise
+    }
+    // Repli (pointeur dans un vide entre colonnes) : colonne la plus proche, hors trash & lost.
+    return closestCenter(args).filter(c => c.id !== TRASH_ID && !String(c.id).startsWith(LOST_PREFIX))
+  }, [stages])
 
   const totalCount = showLost
     ? lostOpps.filter(o => o.pipelineId === pipeline?.id).length
@@ -722,9 +808,44 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
         />
       )}
 
+      {pendingDelete && (
+        <Modal onClose={() => setPendingDelete(null)}>
+          <div className="relative bg-soren-card rounded-2xl shadow-2xl w-full max-w-[400px] p-6">
+            <div className="flex items-center gap-2.5 mb-2">
+              <span className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0"><Trash2 size={17} className="text-red-500" /></span>
+              <p className="text-[15px] font-bold text-soren-text">Supprimer ce lead ?</p>
+            </div>
+            <p className="text-[12.5px] text-soren-muted leading-relaxed mb-5">
+              <span className="font-semibold text-soren-text">{pendingDelete.name}</span> sera <span className="font-semibold text-red-600">définitivement supprimé</span> de la pipeline <span className="font-semibold text-red-600">et du module Contacts</span>. Cette action est irréversible.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setPendingDelete(null)} className="text-[13px] font-semibold text-soren-muted border border-soren-border rounded-xl px-4 py-2 hover:bg-soren-elevated">Annuler</button>
+              <button onClick={() => { void deleteOpp(pendingDelete.id); setPendingDelete(null) }} className="text-[13px] font-semibold text-white bg-red-500 rounded-xl px-4 py-2 shadow-sm hover:bg-red-600">Supprimer</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {pendingBackMove && (
+        <Modal onClose={() => setPendingBackMove(null)}>
+          <div className="relative bg-soren-card rounded-2xl shadow-2xl w-full max-w-[400px] p-6">
+            <p className="text-[15px] font-bold text-soren-text mb-2">Revenir en arrière ?</p>
+            <p className="text-[12.5px] text-soren-muted leading-relaxed mb-5">
+              Tu déplaces <span className="font-semibold text-soren-text">{pendingBackMove.opp.name}</span> de
+              {' '}« {stages.find(s => s.id === pendingBackMove.opp.stageId)?.name ?? '—'} » vers
+              {' '}« {stages.find(s => s.id === pendingBackMove.toStageId)?.name ?? '—'} » :c&apos;est un retour <span className="font-semibold">en arrière</span> dans le funnel. Confirmer ?
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setPendingBackMove(null)} className="text-[13px] font-semibold text-soren-muted border border-soren-border rounded-xl px-4 py-2 hover:bg-soren-elevated">Annuler</button>
+              <button onClick={confirmBackMove} className="text-[13px] font-semibold text-white bg-[#FF4D00] rounded-xl px-4 py-2 shadow-sm hover:bg-[#e84400]">Confirmer le retour</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       <PipelineMobileTabs />
 
-      <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={collisionDetection} measuring={{ droppable: { strategy: MeasuringStrategy.Always } }} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0">
           <div className="flex items-center gap-5">
@@ -760,6 +881,16 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
               {showLost ? <Eye size={12} /> : <EyeOff size={12} />}
               {showLost ? 'Voir actifs' : 'Voir perdus'}
             </button>
+            {/* Recherche soft, à gauche de « Nouveau lead » */}
+            <div className="relative">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-soren-subtle pointer-events-none" />
+              <input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Rechercher…"
+                className="w-36 focus:w-52 bg-soren-card border border-soren-border rounded-full pl-8 pr-3 py-1.5 text-[11px] text-soren-text placeholder-soren-subtle outline-none focus:ring-2 focus:ring-[#FF4D00]/20 focus:border-[#FF4D00]/40 transition-all duration-300"
+              />
+            </div>
             {!showLost && (
               <NewLeadWidget
                 compact
@@ -769,25 +900,6 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
             )}
           </div>
         </div>
-
-        {/* Board mobile dézoomé : colonnes étroites scrollables (comme Prospection) → sélecteur de pastilles masqué */}
-        {false && stages.length > 0 && (
-          <div className="hidden">
-            {stages.map((stage) => {
-              const on = stage.id === activeMobileStage
-              return (
-                <button
-                  key={stage.id}
-                  onClick={() => setMobileStageId(stage.id)}
-                  className={`flex-none flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border transition-colors ${on ? 'bg-[#FF4D00] border-[#FF4D00]' : 'bg-soren-card border-soren-border'}`}
-                >
-                  <span className={`text-[11px] font-semibold whitespace-nowrap ${on ? 'text-white' : 'text-soren-muted'}`}>{stage.name}</span>
-                  <span className={`text-[10px] font-bold leading-none px-1.5 py-0.5 rounded-full ${on ? 'bg-white/25 text-white' : 'bg-soren-elevated text-soren-subtle'}`}>{getColOpps(stage.id).length}</span>
-                </button>
-              )
-            })}
-          </div>
-        )}
 
         {/* Board */}
         <div className="relative flex-1 min-h-0">
@@ -842,9 +954,19 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
         </DragOverlay>
       </DndContext>
 
-      {pendingConversion && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={cancelConversion} />
+      {pendingBooking && (
+        <IClosedBookingModal
+          fullName={pendingBooking.opp.name}
+          email={pendingBooking.opp.email}
+          label={pendingBooking.stageId === 'r2' ? 'R2' : 'R1'}
+          bookingUrl={pendingBooking.stageId === 'r2' ? ICLOSED_R2_BOOKING_URL : ICLOSED_R1_BOOKING_URL}
+          onConfirm={commitBooking}
+          onCancel={cancelBooking}
+        />
+      )}
+
+      {pendingConversion && (
+        <Modal onClose={cancelConversion}>
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-7 flex flex-col items-center gap-4 text-center">
             <div className="text-4xl">🎉</div>
             <div>
@@ -916,8 +1038,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
               </>
             )}
           </div>
-        </div>,
-        document.body
+        </Modal>
       )}
     </div>
   )

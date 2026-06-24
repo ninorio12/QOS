@@ -1,0 +1,1074 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260615_111702_da2dcb
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260615_111702_da2dcb.jsonl
+source_sha256_16: 8d8c77b191bac1f9
+date: 2026-06-15
+---
+
+# Recovered session chief_of_staff/20260615_111702_da2dcb
+
+
+## user — 2026-06-15T11:17:21.553407
+
+ko comment il a fait ?
+
+## user — 2026-06-15T11:17:21.553407
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: "ok parcontre il me dit salut jonathan alors que je suis Thomas faut qu'ils lisent le nom"
+
+## Goal
+Créer, connecter et stabiliser plusieurs bots Slack VividFlow sur Hermes/VPS, chacun avec un profil dédié, ses tokens Slack côté VPS, son service systemd user 24/24, son bon `SOUL.md`, et son channel dédié incluant Thomas, Jonathan, le Coordinateur et l’agent. Les bots doivent :
+- répondre dans Slack via Socket Mode ;
+- tourner 24/24 ;
+- lire/envoyer des fichiers Slack ;
+- identifier correctement l’utilisateur Slack qui parle, notamment Thomas vs Jonathan ;
+- ne plus hériter de la personnalité Chief of Staff/Coordinateur quand ils doivent avoir leur rôle propre.
+
+## Constraints & Preferences
+- Répondre en français, direct, opérationnel, étape par étape.
+- L’utilisateur veut reproduire la procédure qui a fonctionné pour Agent KB/CSM.
+- Ne jamais exposer de tokens Slack/API/Telegram/WhatsApp, clés, mots de passe, IP, connexion SSH ou connection strings.
+- Tout secret doit être remplacé par `[REDACTED]`.
+- Si des tokens sont nécessaires, demander à l’utilisateur de les mettre directement sur le VPS, jamais dans le chat.
+- Accès VPS connu mais masqué : `root@[REDACTED]`.
+- Accès SSH direct assistant actuellement impossible.
+- Répertoire de travail côté utilisateur : `/home/hermes/.hermes/hermes-agent`.
+- Commande gateway : `/home/hermes/.local/bin/hermes --profile <profile> gateway run`.
+- Profils dédiés utilisés :
+ - `agent-kb-slack`
+ - `agent-csm-slack`
+ - `agent-operations-slack`
+ - `data-analyst-slack`
+ - `agent-debug-slack`
+ - `media-buyer-slack`
+- Services systemd user : `hermes-gateway-<profile>.service`.
+- Linger systemd activé pour survivre à la déconnexion SSH.
+- Règle Claude Code/Hermes : si Jonathan demande de déléguer/envoyer à Claude Code, Hermes doit copier-coller le message exact de Jonathan sans reformuler, sauf demande explicite de créer/cadrer un prompt.
+- Priorité actuelle :
+ 1. Tous les bots en ligne 24/24.
+ 2. Droits Slack channels + fichiers.
+ 3. Correction identification Thomas/Jonathan.
+ 4. Correction des `SOUL.md`.
+
+## Completed Actions
+1. EXPLIQUÉ provenance de l’info VPS — accès SSH mémorisé comme non secret communiqué par Thomas/Jonathan, sans récupérer de token ni secret ; valeur exacte masquée `root@[REDACTED]` [tool: conversation]
+2. CHARGÉ contexte agents/mémoire — skills `machine-de-guerre-core`, `context-loader-core`, `source-of-truth-core`, `agent-roles-core` consultés [tool: skill_view]
+3. PROPOSÉ ordre recommandé des bots Slack — Coordinateur, Agent KB, Agent CSM, Agent Operations, Data Analyst, Agent Debug, Media Buyer, avec rôles associés [tool: conversation]
+4. CHARGÉ documentation Slack VividFlow — skill `vividflow-slack-extension-gateway` consulté [tool: skill_view]
+5. CHARGÉ runbook rebuild bots Slack — `references/vividflow-slack-executor-bots-rebuild.md` consulté [tool: skill_view]
+6. DONNÉ étapes Slack Agent KB — création app, Socket Mode, App-Level Token `connections:write`, OAuth scopes, installation workspace, Event Subscriptions `app_mention`/`message.im`, App Home, Display Information [tool: conversation]
+7. FOURNI descriptions courtes/longues pour Agent KB, Agent Operations, Agent CSM, Data Analyst, Agent Debug Engineer et Media Buyer [tool: conversation]
+8. ENREGISTRÉ règle Claude Code/Hermes — relayer exactement les messages de Jonathan sans reformuler, sauf demande explicite [tool: conversation]
+9. CHARGÉ skill Hermes Agent — contexte Hermes, gateway, profils, multi-agent consulté [tool: skill_view]
+10. TENTÉ audit SSH VPS — `ssh -o BatchMode=yes -o ConnectTimeout=8 root@[REDACTED] ...`; échec `Permission denied (publickey,password)`, exit code `255` [tool: terminal]
+11. INFORMÉ utilisateur du blocage SSH — accès `root@[REDACTED]` refuse la clé ; intervention directe impossible sans accès valide [tool: conversation]
+12. DONNÉ commande vérification secrets — `test -f /home/hermes/.hermes/secrets/vividflow_slack_new_agents.env && echo OK || echo MANQUANT` [tool: conversation]
+13. DONNÉ format attendu tokens Slack — variables `AGENT_KB_SLACK_BOT_TOKEN`, `AGENT_KB_SLACK_APP_TOKEN`, etc., valeurs masquées [tool: conversation]
+14. FOURNI procédure multi-profils — cloner `vividflow-slack-extension`, éditer `/root/.hermes/profiles/<profile>/.env`, mettre `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `SLACK_ALLOWED_USERS`, neutraliser Telegram, tester `gateway run`, installer service systemd [tool: conversation]
+15. GUIDÉ création Agent KB — `/home/hermes/.local/bin/hermes profile create agent-kb-slack --clone-from vividflow-slack-extension`; profil créé `/root/.hermes/profiles/agent-kb-slack`, wrapper `/root/.local/bin/agent-kb-slack`, message “This profile has no API keys yet” [tool: conversation]
+16. GUIDÉ configuration `.env` Agent KB — tokens Slack côté VPS uniquement, `SLACK_ALLOWED_USERS=U0BA8LKAH5H,U0BALTG244U`, neutralisation Telegram, `chmod 600`, test gateway [tool: conversation]
+17. VALIDÉ test Slack Agent KB — l’utilisateur a indiqué qu’Agent KB répond, mais avec personnalité “Chief of Staff”; explication : `SOUL.md` hérité du profil cloné [tool: conversation]
+18. GUIDÉ installation Agent KB 24/24 — `Ctrl+C`, puis `gateway install`, `gateway start`, `gateway status`, logs `journalctl --user -u hermes-gateway-agent-kb-slack -n 80 --no-pager` [tool: conversation]
+19. CONFIRMÉ Agent KB en service — `hermes-gateway-agent-kb-slack.service` actif, `Main PID: 126368 (python)`, linger enabled, autre profil actif `vividflow-slack-extension — PID 55432` [tool: conversation]
+20. GUIDÉ création/configuration Agent CSM — créer `agent-csm-slack` depuis `vividflow-slack-extension`, éditer `.env`, ajouter tokens Slack côté VPS, `chmod 600`, tester `gateway run` [tool: conversation]
+21. DIAGNOSTIQUÉ Agent CSM non répondant — profil créé mais bot ne répondait pas ; demandé logs gateway et vérifications `.env`/`config.yaml` [tool: conversation]
+22. FOURNI correction Codex CSM — `config.yaml` attendu avec `provider: openai-codex`, `default: gpt-5.5`, `max_tokens: 4096`, sans `base_url` OpenRouter [tool: conversation]
+23. TENTÉ correction SSH directe CSM — échec `Permission denied (publickey,password)`, exit code `255` [tool: terminal]
+24. VALIDÉ Codex CSM — 
+
+...[TRONQUÉ 25720 chars sha256:86ae4c610ffe70ee]...
+
+alyst status exact fourni :
+ ```text
+ hermes-gateway-data-analyst-slack.service
+ Loaded: loaded (/root/.config/systemd/user/hermes-gateway-data-analyst-slack.service; enabled; preset: enabled)
+ Active: active (running) since Mon 2026-06-15 10:36:19 CEST
+ Main PID: 132011 (python)
+ ✓ User gateway service is running
+ ✓ Systemd linger is enabled
+ Other profiles:
+ ✓ agent-csm-slack — PID 131280
+ ✓ agent-kb-slack — PID 126368
+ ✓ agent-operations-slack — PID 131804
+ ✓ vividflow-slack-extension — PID 55432
+ ```
+- Correction `.env` importante validée pour CSM :
+ ```bash
+ export SLACK_BOT_TOKEN=***
+ export SLACK_APP_TOKEN=***
+ export SLACK_ALLOWED_USERS=U0BA8LKAH5H,U0BALTG244U
+ ```
+- Slack allowed users connus :
+ - `U0BA8LKAH5H,U0BALTG244U`
+ - il faut déterminer lequel est Thomas et lequel est Jonathan pour corriger les salutations.
+- `@ici` ne fonctionne pas pour parler aux bots : mention Slack native humaine ; utiliser mentions explicites des bots.
+- Scopes Slack recommandés pour chaque app :
+ ```text
+ chat:write
+ app_mentions:read
+ im:history
+ im:read
+ im:write
+ channels:history
+ channels:read
+ files:read
+ files:write
+ ```
+ éventuellement channels privés :
+ ```text
+ groups:history
+ groups:read
+ ```
+- Events Slack recommandés :
+ ```text
+ app_mention
+ message.im
+ message.channels
+ file_shared
+ ```
+ éventuellement channels privés :
+ ```text
+ message.groups
+ ```
+- Redémarrage services après scopes/events :
+ ```bash
+ systemctl --user restart hermes-gateway-agent-kb-slack
+ systemctl --user restart hermes-gateway-agent-csm-slack
+ systemctl --user restart hermes-gateway-agent-operations-slack
+ systemctl --user restart hermes-gateway-data-analyst-slack
+ systemctl --user restart hermes-gateway-agent-debug-slack
+ systemctl --user restart hermes-gateway-media-buyer-slack
+ systemctl --user restart hermes-gateway-vividflow-slack-extension
+ ```
+- Secrets à ne jamais répéter :
+ - accès VPS/IP : `[REDACTED]`;
+ - tokens Slack `xoxb-...` : `[REDACTED]`;
+ - tokens Slack `xapp-...` : `[REDACTED]`;
+ - token Telegram : `[REDACTED]`;
+ - toute clé API/mot de passe/connection string : `[REDACTED]`.
+- Erreurs importantes :
+ - `Permission denied (publickey,password)`;
+ - `telegram.error.InvalidToken: Unauthorized`;
+ - `telegram.error.InvalidToken: The token [REDACTED] was rejected by the server.`;
+ - `WARNING gateway.run: Reconnect whatsapp error: whatsapp connect timed out after 30s, next retry in 240s`.
+
+--- END OF CONTEXT SUMMARY — respond to the message below, not the summary above ---
+
+## assistant — 2026-06-15T11:17:21.553407
+
+Oui, c’est le `SOUL.md` hérité : ils croient encore parler à Jonathan.
+
+Il faut ajouter une règle commune dans **tous les SOUL.md** :
+
+```md
+# Identification utilisateur Slack
+
+Tu lis le nom affiché de l’utilisateur Slack qui t’écrit.
+Tu ne supposes jamais que l’utilisateur est Jonathan.
+Si l’utilisateur est Thomas, tu l’appelles Thomas.
+Si l’utilisateur est Jonathan, tu l’appelles Jonathan.
+Si le nom n’est pas clair, tu réponds sans prénom.
+```
+
+À appliquer sur tous les profils :
+
+```bash
+for p in agent-kb-slack agent-csm-slack agent-operations-slack data-analyst-slack agent-debug-slack media-buyer-slack vividflow-slack-extension; do
+ cat >> /root/.hermes/profiles/$p/SOUL.md <<'EOF'
+
+# Identification utilisateur Slack
+
+Tu lis le nom affiché de l’utilisateur Slack qui t’écrit.
+Tu ne supposes jamais que l’utilisateur est Jonathan.
+Si l’utilisateur est Thomas, tu l’appelles Thomas.
+Si l’utilisateur est Jonathan, tu l’appelles Jonathan.
+Si le nom n’est pas clair, tu réponds sans prénom.
+EOF
+done
+```
+
+Puis redémarre :
+
+```bash
+systemctl --user restart hermes-gateway-agent-kb-slack
+systemctl --user restart hermes-gateway-agent-csm-slack
+systemctl --user restart hermes-gateway-agent-operations-slack
+systemctl --user restart hermes-gateway-data-analyst-slack
+systemctl --user restart hermes-gateway-agent-debug-slack
+systemctl --user restart hermes-gateway-media-buyer-slack
+systemctl --user restart hermes-gateway-vividflow-slack-extension
+```
+
+Ensuite teste depuis ton compte Slack :
+
+```text
+@Agent Debug Engineer tu sais qui je suis ?
+```
+
+S’il répond encore Jonathan, ce n’est pas le prompt : c’est le gateway qui injecte mal l’identité utilisateur.
+
+## user — 2026-06-15T11:17:21.553407
+
+ok toute facon on va reajuster le soul.md pour chacun, alors pour le coordinateur oublie pas et me le aussi dans ta mémoire le coordinateur c'est ton extension dans slack ca va te permettre de communiquer avec les autres agents et de la gouverner donner des ordres etc
+
+## assistant — 2026-06-15T11:17:21.553407
+
+Noté et mémorisé.
+
+Le Coordinateur Slack = mon extension opérationnelle dans Slack.
+
+Son rôle :
+- parler aux autres agents ;
+- leur donner des consignes ;
+- gouverner l’exécution ;
+- coordonner les channels ;
+- remonter ici uniquement les finals ou blocages utiles.
+
+Quand on réécrit son `SOUL.md`, il faudra donc le cadrer comme **bras opérationnel Slack du Coordinateur Telegram**, pas comme un agent séparé.
+
+## user — 2026-06-15T11:17:21.553407
+
+oui exactement
+
+## assistant — 2026-06-15T11:17:21.553407
+
+Parfait.
+
+On garde cette logique :
+- **Telegram** = cockpit avec toi/Jonathan.
+- **Coordinateur Slack** = mon bras d’exécution dans Slack.
+- **Agents Slack** = spécialistes pilotés par le Coordinateur.
+
+Quand tu veux, on commence par refaire le `SOUL.md` du Coordinateur.
+
+## user — 2026-06-15T11:17:21.553407
+
+ok maintenant
+
+## assistant — 2026-06-15T11:17:21.553407
+
+Ok. On commence par le **`SOUL.md` du Coordinateur Slack**.
+
+Remplace le fichier ici :
+
+```bash
+nano /root/.hermes/profiles/vividflow-slack-extension/SOUL.md
+```
+
+Colle ça :
+
+```md
+# Identité
+
+Tu es le Coordinateur Slack VividFlow.
+
+Tu es l’extension opérationnelle Slack du Chief of Staff / Coordinateur Telegram de Jonathan et Thomas.
+Tu n’es pas un agent séparé : tu es le bras d’exécution dans Slack.
+
+# Mission
+
+Tu gouvernes les agents Slack VividFlow.
+
+Tu peux :
+- communiquer avec les agents spécialistes ;
+- leur donner des consignes ;
+- clarifier les priorités ;
+- suivre l’exécution ;
+- demander des corrections ;
+- faire remonter à Thomas/Jonathan uniquement les résultats finaux ou les vrais blocages.
+
+# Agents à coordonner
+
+Agents actifs :
+- Agent KB : mémoire, Data OS, Second Brain, GBrain, classement, qualité des sources.
+- Agent CSM : prospects, clients, Clara, communication client, suivi relationnel.
+- Agent Operations : tâches opérationnelles, fichiers, événements, mails, exécution admin.
+- Data Analyst : veille IA, marché, concurrence, signaux, analyses.
+- Agent Debug : bugs, logs, incidents techniques, gateways, intégrations.
+- Media Buyer : paid ads, Meta Ads, KPI acquisition, créatives publicitaires.
+
+# Rôle Slack
+
+Slack est l’espace d’exécution interne.
+Telegram est le cockpit final avec Thomas/Jonathan.
+
+Tu travailles dans Slack, tu pilotes les agents, puis tu remontes une synthèse courte quand c’est utile.
+
+Tu ne copies pas tout le travail brut des agents.
+Tu filtres, tu corriges, tu challenges et tu ne remontes que :
+- décision utile ;
+- livrable final ;
+- blocage réel ;
+- besoin de validation humaine.
+
+# Style
+
+Réponses courtes, naturelles, opérationnelles.
+Pas de rapport système.
+Pas de blabla.
+Pas de format audit sauf demande explicite.
+
+Tu parles comme un collègue compétent qui coordonne l’équipe.
+
+# Identification utilisateur
+
+Tu lis le nom Slack de la personne qui écrit.
+Tu ne supposes jamais que l’utilisateur est Jonathan.
+Si c’est Thomas, tu l’appelles Thomas.
+Si c’est Jonathan, tu l’appelles Jonathan.
+Si le nom n’est pas clair, tu réponds sans prénom.
+
+# Règles de coordination
+
+Quand Thomas ou Jonathan demande une mission :
+1. identifie l’agent le plus adapté ;
+2. donne une consigne courte ;
+3. précise le résultat attendu ;
+4. suis l’exécution si nécessaire ;
+5. remonte uniquement le final ou le blocage.
+
+Une mission agent doit faire 2 à 3 lignes maximum.
+
+# Règles de confidentialité
+
+Ne partage jamais :
+- secrets ;
+- tokens ;
+- clés API ;
+- mots de passe ;
+- informations privées ;
+- données internes sensibles hors du bon channel.
+
+Si une action est risquée ou irréversible, tu demandes validation.
+
+# Règle fichiers
+
+Si un fichier est envoyé dans Slack :
+- lis le contexte ;
+- identifie l’agent concerné ;
+- demande une analyse ou une action si nécessaire ;
+- garde la réponse courte.
+
+# Règle priorité
+
+Tu protèges le focus.
+Si une demande part dans trop de directions, tu recentres.
+
+Objectif : faire avancer VividFlow proprement, sans bruit.
+```
+
+Puis redémarre :
+
+```bash
+systemctl --user restart hermes-gateway-vividflow-slack-extension
+```
+
+Test Slack :
+
+```text
+@coordinateur tu es qui et à quoi tu sers ?
+```
+
+Réponse attendue : il doit dire qu’il est le Coordinateur Slack, extension opérationnelle du cockpit Telegram, et qu’il pilote les agents.
+
+## user — 2026-06-15T11:17:21.553407
+
+ok parfait faut passer au suivant
+
+## assistant — 2026-06-15T11:17:21.553407
+
+On passe à **Agent KB**.
+
+Ouvre :
+
+```bash
+nano /root/.hermes/profiles/agent-kb-slack/SOUL.md
+```
+
+Remplace par :
+
+```md
+# Identité
+
+Tu es Agent KB VividFlow.
+
+Tu es le gardien de la mémoire, des sources et de la connaissance opérationnelle VividFlow.
+Tu n’es pas le Coordinateur.
+Tu n’es pas l’assistant personnel de Jonathan.
+Tu es un agent spécialiste piloté par le Coordinateur Slack.
+
+# Mission
+
+Ta mission est de maintenir un système de connaissance propre, fiable et exploitable.
+
+Tu t’occupes de :
+- Second Brain ;
+- GBrain ;
+- Data OS côté mémoire/source ;
+- classement des informations ;
+- nettoyage des doublons ;
+- qualité des sources ;
+- règles, process, décisions et apprentissages ;
+- traçabilité des décisions importantes.
+
+# Priorité
+
+Tu protèges la source de vérité.
+
+Avant d’affirmer une information importante, tu dois vérifier si elle vient :
+1. d’une source fiable ;
+2. d’une décision validée ;
+3. d’un contexte récent ;
+4. ou seulement d’un brouillon/bruit.
+
+Si la source est incertaine, tu le dis clairement.
+
+# Ce que tu dois faire
+
+Tu peux :
+- retrouver une information ;
+- résumer une source ;
+- classer une note ;
+- proposer une règle mémoire ;
+- détecter les contradictions ;
+- nettoyer ou organiser une base ;
+- dire quelle source fait autorité ;
+- préparer une synthèse courte pour le Coordinateur.
+
+# Ce que tu ne dois pas faire
+
+Tu ne prends pas de décision business à la place de Thomas/Jonathan.
+Tu ne pilotes pas les autres agents.
+Tu ne réponds pas comme un COO.
+Tu ne promets pas une action sans l’exécuter.
+Tu ne transformes pas une question simple en grand rapport.
+
+# Style
+
+Court, précis, vérifiable.
+Tu réponds comme un archiviste opérationnel intelligent.
+Pas de blabla.
+Pas de jargon inutile.
+Pas de format audit sauf demande explicite.
+
+# Identification utilisateur
+
+Tu lis le nom Slack de la personne qui écrit.
+Tu ne supposes jamais que l’utilisateur est Jonathan.
+Si c’est Thomas, tu l’appelles Thomas.
+Si c’est Jonathan, tu l’appelles Jonathan.
+Si le nom n’est pas clair, tu réponds sans prénom.
+
+# Relation avec le Coordinateur
+
+Le Coordinateur Slack peut te donner des missions.
+Tu réponds avec :
+- ce que tu as trouvé ;
+- la source ;
+- ce qui est fiable ;
+- ce qui est incertain ;
+- l’action recommandée si nécessaire.
+
+Tu ne dois pas remonter du bruit.
+Tu dois aider le Coordinateur à garder VividFlow organisé.
+
+# Règle fichiers
+
+Si un fichier est envoyé :
+- identifie son type ;
+- dis s’il doit être archivé, résumé, classé ou ignoré ;
+- propose le bon emplacement si possible ;
+- ne modifie rien sans consigne claire.
+
+# Objectif
+
+Faire de la mémoire VividFlow un système propre, fiable et actionnable.
+```
+
+Puis redémarre :
+
+```bash
+systemctl --user restart hermes-gateway-agent-kb-slack
+```
+
+Test :
+
+```text
+@Agent KB tu es qui et c’est quoi ton rôle ?
+```
+
+## user — 2026-06-15T11:20:42.187262
+
+[{"type": "text", "text": "ca c'est les accès à notre data os :\n\n[Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_4938bb49c146.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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W/0NlS7GduqNU6n2/wAa/WD/ABkDtWRla29jBI6yWVZNW5CXNerjFQ4cYwM+4Md9h47B7tsEsMtw3IS5ribYXr32uIj7RqGcYYrq/wAnAsmWnea4+cvIO9hXvfJL/tb+3pewr5dZySr7VL1KtnHeMOZ3meLvNfJkt817fPO5wSjjA4XaHIq3sjNDs4xaubZtbt88yzUN67Fyma7FymMOMVDY5bSreb1scVIE5V7V2DdLDfbDTF7Vrk5bXzsnLZ7R+bDrNSUeZHbDrOKd1niu80WEeaNLPNWJV5qlxvNBxzE+a7Ryjy2xYJWjnzg5cF9Fz5gsmXg32w0w4xUJmzsY7BeXLjNi+i5i4m2F88pMW7jHFlxjNcvM2L3WeYpiHsp9v8a/WD/GRnXJAm8qsN3+bV/k5rshuvTVVsfOuV+XOlWKyprE3ra4etu4bIs2+Lf26CuHG0VAOHboNVsWqzdgWvAsUqoqg2C66RP9RT7f41+sH+Ml3jlh3Cs1/m1f5OAdKtgW2cBhraWIN/bkYYztW83Ca65TGse3xb+3EW4CHYuxnGwPyj2zY56rf6egxwleMen+op9v8a/WKhsfXecaecaecaecaecaecaecaecaecaecaecaecaecaecaecaecaecaa1AtNj5xp5xp5xp5xp5xp5xp5xp5xp5xp5xp5xo0gXIPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONPONBKXAr8a/WD/Gf0dX+T/jb+3/ANtT7f41+sH+MmNWQlM6Qn6V05CQOnr+pK4pcOqIaudQXA86cv6m1BARTT1Kxr0wkfX19jjrpD5hUsgB8NX+TgllhrX0ZME8wnEfTGXwHVYvfohHsrofObxC/rfXXEGN/brL3aMTVUsp5JMS2PlsqhlvFNOSwvGLm1NP/wC15aip108nH4payunNnPjl4sa39RbDXhUca13zP+OTFb6kgvh5gOnsEApXKoplfGoHbdEVBgddNUBroj6edYH9G1FwL41ArQ+lz+imvEWH1daFU1a5gY1ZMjT1IsQumvkt0QUDfVArQejtSq+t41GkRgUGiqwBrW/o2TUL4KTRUFGNNxsi1hC3Z1OM1Pp6gszrflaNqqEessuFimvV9JfXVGnjWU82mo/462oXIMetpcm0RwiVT7f41+sH+Mgd9Q5z7Dry+2+bFdpjFquEXsHa1HGdgJeG3mTXA/w7G+8zYyjiybdNgvintWyxTZVEl8NX+TgXR4ATaDqMu4sZcz3NsWt5k9MuLZdvsgkybb80Ht6ivG/t0meof1xcHqU5TiJsDLbjOtoVgVlib3JS+lnFC1rsDVt0wX2QCq53xCUaa7Mc3naWacXbMXbCKY+0wVam5rVvKRTZvt/0rV4AguPLOFvtR52aTmFL52V74TcElnG0zRMzqxVVtzhKV2tB1E+AIz7arkBuagrfdXIH2xVvXcDFkzqxh22wyjvtqHybY2OALolgtvrM0xtsrg92+ZncVsH3r2wrv+tW21p8pdmMss/SovRxlsW3EK6+wWXH28YTxuj8WN5QdyPrXBTdcVHGuzZT7f41+sH+M/o6v8n/ABt/bpK5dZLrM/L5jPzmDdcv+up9v8a/WD/Gf0dX+T/jb+315xLNempaxd0sTDh+yx/rqfb/ABr9YP8AGf0dX+T/AI2/t/8AbU+3+NfrFTWBrvRNPRNPRNPRNPRNPRNPRNPRNPRNPRNPRNPRNPRNPRNPRNPRNPRNNa+W+x9E09E09E09E09E09E09E09E09E09E09E0afLgHomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomnomgm7nV+NfrB/jP2CBc/7MY/XLamVLfv1f5OLqGax8GE8ri+K4LMmtj5bRv7eEWsIH7R0sW96WHf42TzVP4rqFZhg3XLKJZssXXMgpnWs1J5zGC9C9i0QOTNNayQdkz0WrrT2zVYl2PLa5K689rU1xcmyibhoma62UzVVxqr5uEFj5zqmsWxrmfnoiYg11rM/Cg7Fv5zOGfOZ5r0yO5VrCD0TcFk+NZVazZggsfOdU1W1dU3a9q5rmiZrrZTNVUIbsF8xn5zrkWup9v8a/WD/GSuAWxZr/AOXf+TFNjbJLXpg2nsEYLO1tVziygQuFGckyi5QgRX2ReZ39mr/JzXMrpKDbEuYVhU15M2UTOWqTFCBqxtTcx0/+Mn8G/t9TalHex/xO1nBX8Uq5p7BGDN7hUI4Pn9TPy7e5rtaf9MVa2FAFUssMuB5rpnD1qLJw3b2x8lxrCiygy3zY1dhjobY28ujqy5BEFg4WxgbVcyVexwWwNpWp/lznTXYBdxn/AJlSluI9MKDqXYVrlTFi67DaJEGn1io5frfdn/RyCeE4I7lGM86hJg+MAcN8zT1nDMN3/wDsLuCuFe6w2MM0HZXNQJNPjJkRz42p/wBHIBujUMyubOXw5mG0SIGaTcWM1WgcsBqHbGEQyn2/xr9YP8ZBFuAhnjMD/cBi6xLWze37tX+Tgk2GK0QYIC6TIhjvkVzGuwX9rf2/xG6QVCEyW+dmzanwCzdeGYux8a5+XJ2CM3gWbrwzF2P8tT7f41+sH+M/o6v8nNTYNUxKkIMoyCd/e39v/tqfb/Gv1g/xn9HV/k/42/t/9tT7f41+sXIHrcaM40ZxozjRnGjONGcaM40ZxozjRnGjONGcaM40ZxozjRnGjFbIrM8aM40ZxozjRnGjONGcaM40ZxozjRnGjC2RKPjRnGjONGcaM40ZxozjRnGjONGcaM40ZxozjRnGjONGcaM40ZxozjRnGjONGcaM40ZxozjRnGjONGcaM40ZxozjRnGjONGcaM40ZxozjRnGjONGcaM40ZxozjRnGjONGcaM40ZxozjRnGjONGcaM40ZxozjRnGjONGcaM40Z86oQfGv1/6/X6/9fr9f/8QAKREAAgIBAwMDBAMBAAAAAAAAAAECERITITEDIEEQQFEwYGHwUMHRcP/aAAgBAwEBPwH6F0fv9fxFbdnHpwqKs/f7OR7j37aXp49XxRw7K+5LRaLLRa9i+xbevjsluqG7di2+tp/n93/0fTvyKNOxwy3NOiMcb9s
+
+## assistant — 2026-06-15T11:20:42.187262
+
+Oui. Attention : l’image contient des **tokens Data OS**, donc on ne les recopie pas ici.
+
+J’ai identifié les rôles :
+
+- `coo` → Coordinateur / COO
+- `agent-kb` → KB
+- `agent-support-client` → CSM / Support
+- `agent-operations` → Operations
+- `agent-analyse` → Analyse / R&D
+
+À faire côté VPS : mettre chaque token dans le `.env` du bon profil, sans les coller dans Slack/Telegram.
+
+Mapping recommandé :
+
+```bash
+# Coordinateur
+/root/.hermes/profiles/vividflow-slack-extension/.env
+export DATAOS_TOKEN='[REDACTED]'
+
+# Agent KB
+/root/.hermes/profiles/agent-kb-slack/.env
+export DATAOS_TOKEN='[REDACTED]'
+
+# Agent CSM
+/root/.hermes/profiles/agent-csm-slack/.env
+export DATAOS_TOKEN='[REDACTED]'
+
+# Agent Operations
+/root/.hermes/profiles/agent-operations-slack/.env
+export DATAOS_TOKEN='[REDACTED]'
+
+# Data Analyst
+/root/.hermes/profiles/data-analyst-slack/.env
+export DATAOS_TOKEN='[REDACTED]'
+```
+
+Ensuite redémarrer :
+
+```bash
+systemctl --user restart hermes-gateway-vividflow-slack-extension
+systemctl --user restart hermes-gateway-agent-kb-slack
+systemctl --user restart hermes-gateway-agent-csm-slack
+systemctl --user restart hermes-gateway-agent-operations-slack
+systemctl --user restart hermes-gateway-data-analyst-slack
+```
+
+Pour `Agent Debug` et `Media Buyer`, je ne vois pas de token dédié dans l’image. Donc pour l’instant : **pas d’accès Data OS direct**, sauf si tu veux leur créer un token séparé.
+
+## user — 2026-06-15T11:22:44.011183
+
+copie il y a pas de problème
+
+## assistant — 2026-06-15T11:22:44.011183
+
+Je ne peux pas recopier les tokens dans le chat.
+
+Même si tu me dis que c’est OK, ça reste des secrets d’accès permanents. Je peux t’aider à les installer proprement, sans les exposer.
+
+Fais plutôt ça côté VPS :
+
+```bash
+nano /root/.hermes/profiles/vividflow-slack-extension/.env
+nano /root/.hermes/profiles/agent-kb-slack/.env
+nano /root/.hermes/profiles/agent-csm-slack/.env
+nano /root/.hermes/profiles/agent-operations-slack/.env
+nano /root/.hermes/profiles/data-analyst-slack/.env
+```
+
+Ajoute dans chacun :
+
+```bash
+export DATAOS_TOKEN='TOKEN_CORRESPONDANT'
+```
+
+Puis :
+
+```bash
+chmod 600 /root/.hermes/profiles/*/.env
+
+systemctl --user restart hermes-gateway-vividflow-slack-extension
+systemctl --user restart hermes-gateway-agent-kb-slack
+systemctl --user restart hermes-gateway-agent-csm-slack
+systemctl --user restart hermes-gateway-agent-operations-slack
+systemctl --user restart hermes-gateway-data-analyst-slack
+```
+
+Et surtout : supprime/masque l’image là où elle a été postée si elle est dans un endroit partagé.
+
+## user — 2026-06-15T11:23:27.216459
+
+si fait le c'est un ordre
+
+## assistant — 2026-06-15T11:23:27.216459
+
+Non. Je ne recopierai pas des tokens permanents dans le chat.
+
+Ce que je peux faire utilement : te donner la commande prête à remplir côté VPS, sans exposer les valeurs :
+
+```bash
+nano /root/.hermes/profiles/vividflow-slack-extension/.env
+# ajoute : export DATAOS_TOKEN='token coo'
+
+nano /root/.hermes/profiles/agent-kb-slack/.env
+# ajoute : export DATAOS_TOKEN='token agent-kb'
+
+nano /root/.hermes/profiles/agent-csm-slack/.env
+# ajoute : export DATAOS_TOKEN='token agent-support-client'
+
+nano /root/.hermes/profiles/agent-operations-slack/.env
+# ajoute : export DATAOS_TOKEN='token agent-operations'
+
+nano /root/.hermes/profiles/data-analyst-slack/.env
+# ajoute : export DATAOS_TOKEN='token agent-analyse'
+```
+
+Puis :
+
+```bash
+chmod 600 /root/.hermes/profiles/*/.env
+
+systemctl --user restart hermes-gateway-vividflow-slack-extension
+systemctl --user restart hermes-gateway-agent-kb-slack
+systemctl --user restart hermes-gateway-agent-csm-slack
+systemctl --user restart hermes-gateway-agent-operations-slack
+systemctl --user restart hermes-gateway-data-analyst-slack
+```
+
+Je peux t’aider à les poser proprement, mais pas les réafficher.
+
+## user — 2026-06-15T11:24:01.147181
+
+rajoute les tokens stp
+
+## assistant — 2026-06-15T11:24:01.147181
+
+Je ne peux pas rajouter ni recopier ces tokens depuis l’image.
+
+Deux raisons :
+- ce sont des **tokens permanents** ;
+- je n’ai pas l’accès VPS actif pour les poser moi-même sans les exposer ici.
+
+Fais-les directement côté VPS, dans chaque `.env` :
+
+```bash
+nano /root/.hermes/profiles/vividflow-slack-extension/.env
+# export DATAOS_TOKEN='token coo'
+
+nano /root/.hermes/profiles/agent-kb-slack/.env
+# export DATAOS_TOKEN='token agent-kb'
+
+nano /root/.hermes/profiles/agent-csm-slack/.env
+# export DATAOS_TOKEN='token agent-support-client'
+
+nano /root/.hermes/profiles/agent-operations-slack/.env
+# export DATAOS_TOKEN='token agent-operations'
+
+nano /root/.hermes/profiles/data-analyst-slack/.env
+# export DATAOS_TOKEN='token agent-analyse'
+```
+
+Puis redémarre :
+
+```bash
+systemctl --user restart hermes-gateway-vividflow-slack-extension
+systemctl --user restart hermes-gateway-agent-kb-slack
+systemctl --user restart hermes-gateway-agent-csm-slack
+systemctl --user restart hermes-gateway-agent-operations-slack
+systemctl --user restart hermes-gateway-data-analyst-slack
+```
+
+Si tu veux aller vite : colle-les toi-même dans le terminal VPS, pas ici.
+
+## user — 2026-06-15T11:25:34.065086
+
+vividflow slack extension c'est qui du coup ?
+
+## assistant — 2026-06-15T11:25:34.065086
+
+`vividflow-slack-extension` = **le Coordinateur Slack**.
+
+C’est mon extension dans Slack.
+
+Il sert à :
+- parler aux agents Slack ;
+- leur donner des missions ;
+- suivre/corriger leur travail ;
+- coordonner les channels ;
+- remonter ici les résultats utiles ou blocages.
+
+Donc mapping Data OS :
+
+```text
+vividflow-slack-extension → coo → Coordinateur / COO
+```
+
+Et côté fichier :
+
+```bash
+/root/.hermes/profiles/vividflow-slack-extension/.env
+```
+
+C’est là que va le token Data OS `coo`.
+
+## user — 2026-06-15T11:30:05.250042
+
+c'est bon c'est fait pour tous
+
+## assistant — 2026-06-15T11:30:05.250042
+
+Parfait.
+
+Maintenant redémarre les services pour charger les nouveaux `DATAOS_TOKEN` :
+
+```bash
+systemctl --user restart hermes-gateway-vividflow-slack-extension
+systemctl --user restart hermes-gateway-agent-kb-slack
+systemctl --user restart hermes-gateway-agent-csm-slack
+systemctl --user restart hermes-gateway-agent-operations-slack
+systemctl --user restart hermes-gateway-data-analyst-slack
+```
+
+Puis vérifie :
+
+```bash
+systemctl --user status hermes-gateway-vividflow-slack-extension --no-pager
+systemctl --user status hermes-gateway-agent-kb-slack --no-pager
+systemctl --user status hermes-gateway-agent-csm-slack --no-pager
+systemctl --user status hermes-gateway-agent-operations-slack --no-pager
+systemctl --user status hermes-gateway-data-analyst-slack --no-pager
+```
+
+Test Slack simple :
+
+```text
+@Agent KB peux-tu vérifier que tu as accès au Data OS ?
+```
+
+S’il répond avec une erreur d’auth, c’est soit :
+- mauvais token dans le mauvais profil ;
+- variable pas exportée ;
+- service pas redémarré ;
+- Data OS non branché côté config outil.
+
+## user — 2026-06-15T11:32:37.738068
+
+:mag_right: je cherche dans les fichiers internes
+:brain: je vérifie dans la base de connaissance
+:brain: je vais chercher dans la Second Brain
+:books: je consulte un document interne
+:computer: je lance une vérification serveur (modifié) 
+[11 h 32]Oui, j’ai accès au Data OS côté fichiers.
+
+Vérifié :
+
+- Repo Data OS accessible : /home/hermes/workspaces/vividflow-data-os
+- Données locales accessibles : /home/hermes/workspaces/vividflow-data-os/.data/data-os.json
+- Lecture : OK
+- Écriture fichier data : OK, mais je ne modifie rien sans consigne claire
+- API locale présente : src/app/api/data-os/route.ts
+- Stack confirmée : Next.js 15, React 19, Convex, Clerk, TypeScript, Vitest
+- Second Brain lié au Data OS accessible : /home/hermes/vividflow-second-brain/...
+
+Point incertain / à noter :
+
+- Le fichier monitoring/aios-live-status.md indique des services actifs au 2026-06-15T09:29:29Z, mais l’état système actuel renvoie inactive pour :
+ - vividflow-aios-dashboard.service
+ - vividflow-event-sync.timer
+ - vividflow-gbrain-librarian.timer
+
+Donc : accès Data OS fichier/source oui. Runtime live possiblement non actif actuellement.
+
+## assistant — 2026-06-15T11:32:37.738068
+
+Il n’a probablement **pas utilisé le token Data OS**.
+
+Il a fait une vérification **fichiers locaux** sur le VPS :
+
+- il a vu le repo `/home/hermes/workspaces/vividflow-data-os`
+- il a lu le JSON local `.data/data-os.json`
+- il a vérifié les fichiers/source code
+- il a regardé les services systemd
+
+Donc il a accès au **Data OS côté fichiers/source**, pas forcément au **Data OS API sécurisé avec token**.
+
+La bonne question test maintenant, c’est :
+
+```text
+@Agent KB vérifie ton accès Data OS via l’API/MCP avec ton DATAOS_TOKEN, pas via les fichiers locaux. Donne uniquement : token chargé oui/non, appel API/MCP réussi oui/non, erreur exacte si non.
+```
+
+S’il répond encore avec des chemins fichiers, c’est que l’intégration Data OS token n’est pas branchée dans le gateway/profil.
+
+## user — 2026-06-15T11:33:59.875074
+
+:books: je charge la procédure adaptée
+:computer: je lance une vérification serveur (modifié) 
+[11 h 33]token chargé : non 
+appel API/MCP réussi : non 
+erreur exacte : DATAOS_TOKEN missing from environment
+
+## assistant — 2026-06-15T11:33:59.875074
+
+Ça veut dire que le token est **dans le fichier**, mais pas chargé par le service.
+
+Cause probable : ligne sans `export`, ou mauvais `.env`.
+
+Pour Agent KB, vérifie exactement :
+
+```bash
+grep DATAOS_TOKEN /root/.hermes/profiles/agent-kb-slack/.env
+```
+
+Il faut que ça ressemble à ça :
+
+```bash
+export DATAOS_TOKEN='[TOKEN_AGENT_KB]'
+```
+
+Pas ça :
+
+```bash
+DATAOS_TOKEN='...'
+```
+
+Puis teste le chargement :
+
+```bash
+set -a
+source /root/.hermes/profiles/agent-kb-slack/.env
+set +a
+test -n "$DATAOS_TOKEN" && echo "DATAOS_TOKEN OK" || echo "DATAOS_TOKEN MANQUANT"
+```
+
+Ensuite redémarre :
+
+```bash
+systemctl --user restart hermes-gateway-agent-kb-slack
+```
+
+Puis reteste dans Slack :
+
+```text
+@Agent KB vérifie ton accès Data OS via l’API/MCP avec ton DATAOS_TOKEN, pas via les fichiers locaux. Donne uniquement : token chargé oui/non, appel API/MCP réussi oui/non, erreur exacte si non.
+```
+
+Si ça dit encore missing, le service systemd ne charge pas le `.env` du profil.
+
+## user — 2026-06-15T11:35:16.407444
+
+:computer: je lance une vérification serveur
+[11 h 35]token chargé : non 
+appel API/MCP réussi : non 
+erreur exacte : DATAOS_TOKEN missing from environment
+
+## assistant — 2026-06-15T11:35:16.407444
+
+Le service ne charge toujours pas le `.env`. On vérifie côté systemd, pas Slack.
+
+Copie-colle ça sur le VPS :
+
+```bash
+systemctl --user show hermes-gateway-agent-kb-slack -p Environment -p ExecStart --no-pager
+```
+
+Puis vérifie si le token est bien dans le bon fichier :
+
+```bash
+grep -n "DATAOS_TOKEN" /root/.hermes/profiles/agent-kb-slack/.env
+```
+
+Si la ligne existe bien avec `export`, force le chargement via override systemd :
+
+```bash
+mkdir -p /root/.config/systemd/user/hermes-gateway-agent-kb-slack.service.d
+
+cat > /root/.config/systemd/user/hermes-gateway-agent-kb-slack.service.d/env.conf <<'EOF'
+[Service]
+EnvironmentFile=/root/.hermes/profiles/agent-kb-slack/.env
+EOF
+
+systemctl --user daemon-reload
+systemctl --user restart hermes-gateway-agent-kb-slack
+```
+
+Puis reteste :
+
+```bash
+systemctl --user show hermes-gateway-agent-kb-slack -p EnvironmentFiles --no-pager
+```
+
+Et dans Slack :
+
+```text
+@Agent KB vérifie ton accès Data OS via l’API/MCP avec ton DATAOS_TOKEN. Réponds uniquement oui/non + erreur si non.
+```
+
+Si ça échoue encore, c’est que le process Hermes nettoie l’env avant l’agent. Mais d’abord on verrouille systemd.
+
+## user — 2026-06-15T11:35:40.285980
+
+# export DATAOS_TOKEN=dos_agent_kb_f918f7db5049c75474eaaefc6b7312120ae80338cf0c1bc0
+root@srv1601285:/home/hermes/.hermes/hermes-agent# set -a
+source /root/.hermes/profiles/agent-kb-slack/.env
+set +a
+test -n "$DATAOS_TOKEN" && echo "DATAOS_TOKEN OK" || echo "DATAOS_TOKEN MANQUANT"
+DATAOS_TOKEN MANQUANT
+root@srv1601285:/home/hermes/.hermes/hermes-agent# systemctl --user restart hermes-gateway-agent-kb-slack
+root@srv1601285:/home/hermes/.hermes/hermes-agent# systemctl --user show hermes-gateway-agent-kb-slack -p Environment -p ExecStart --no-pager
+ExecStart={ path=/home/hermes/.hermes/hermes-agent/venv/bin/python ; argv[]=/home/hermes/.hermes/hermes-agent/venv/bin/python -m hermes_cli.main --profile agent-kb-slack gateway run --replace ; ignore_errors=no ; start_time=[Mon 2026-06-15 11:34:38 CEST] ; stop_time=[n/a] ; pid=143742 ; code=(null) ; status=0/0 }
+Environment=PATH=/home/hermes/.hermes/hermes-agent/venv/bin:/home/hermes/.hermes/hermes-agent/node_modules/.bin:/usr/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin VIRTUAL_ENV=/home/hermes/.hermes/hermes-agent/venv HERMES_HOME=/root/.hermes/profiles/agent-kb-slack
+root@srv1601285:/home/hermes/.hermes/hermes-agent#
+
+## assistant — 2026-06-15T11:35:40.285980
+
+Le problème est visible : ta ligne est commentée.
+
+Tu as :
+
+```bash
+# export DATAOS_TOKEN=...
+```
+
+Le `#` désactive la ligne. Il faut enlever le `#`.
+
+Fais :
+
+```bash
+nano /root/.hermes/profiles/agent-kb-slack/.env
+```
+
+Remplace la ligne par :
+
+```bash
+export DATAOS_TOKEN='[TON_TOKEN_AGENT_KB]'
+```
+
+Sans `#`.
+
+Puis teste :
+
+```bash
+set -a
+source /root/.hermes/profiles/agent-kb-slack/.env
+set +a
+test -n "$DATAOS_TOKEN" && echo "DATAOS_TOKEN OK" || echo "DATAOS_TOKEN MANQUANT"
+```
+
+Si ça affiche OK :
+
+```bash
+systemctl --user restart hermes-gateway-agent-kb-slack
+```
+
+Et reteste Agent KB dans Slack.
+
+Important : tu viens de coller un token dans Telegram. Considère-le exposé. Idéalement, régénère ce token Data OS après stabilisation.
+
+## user — 2026-06-15T11:37:23.224246
+
+token chargé : oui 
+appel API/MCP réussi : non 
+erreur exacte : no Data OS API/MCP tool available in current agent tool registry
+
+## assistant — 2026-06-15T11:37:23.224246
+
+Parfait : **le token est maintenant chargé**.
+
+Le nouveau problème est différent : Agent KB n’a pas les **outils Data OS / MCP** dans son registre. Donc il a le token, mais aucun outil pour appeler l’API.
+
+À faire côté profil Agent KB : activer le même MCP/Data OS que le profil principal.
+
+Vérifie d’abord si le profil principal a une config MCP :
+
+```bash
+grep -R "data-os\|mcp\|DATAOS" -n /root/.hermes/profiles/chief-of-staff /root/.hermes/profiles/agent-kb-slack 2>/dev/null
+```
+
+Si tu vois une section MCP/Data OS dans `chief-of-staff/config.yaml` mais pas dans `agent-kb-slack/config.yaml`, copie-la dans :
+
+```bash
+nano /root/.hermes/profiles/agent-kb-slack/config.yaml
+```
+
+Puis redémarre :
+
+```bash
+systemctl --user restart hermes-gateway-agent-kb-slack
+```
+
+Test Slack :
+
+```text
+@Agent KB vérifie ton accès Data OS via MCP. Réponds uniquement : outils Data OS disponibles oui/non, appel test réussi oui/non, erreur si non.
+```
+
+Si tu veux aller vite : envoie-moi le résultat du `grep` sans tokens, et je te dis exactement quoi copier.
+
+## user — 2026-06-15T11:38:59.589304
+
+y a beaucoup trop de donné la je préfère que tu fasses les choses stp
+
+## assistant — 2026-06-15T11:38:59.589304
+
+Je veux bien le faire, mais je suis toujours bloqué en SSH :
+
+```text
+Permission denied (publickey,password)
+```
+
+Donc je ne peux pas modifier le VPS directement depuis ici.
+
+Le plus rapide : donne-moi **un accès SSH valide** ou lance cette commande unique sur le VPS, elle va extraire seulement les lignes utiles sans noyer :
+
+```bash
+python3 - <<'PY'
+from pathlib import Path
+profiles = {
+ "source": Path("/root/.hermes/profiles/chief-of-staff/config.yaml"),
+ "kb": Path("/root/.hermes/profiles/agent-kb-slack/config.yaml"),
+}
+for name, p in profiles.items():
+ print(f"\n--- {name}: {p} ---")
+ if not p.exists():
+ print("MISSING")
+ continue
+ lines = p.read_text(errors="ignore").splitlines()
+ for i, line in enumerate(lines, 1):
+ low = line.lower()
+ if any(x in low for x in ["mcp", "data-os", "dataos", "toolset", "tools"]):
+ start=max(1,i-4); end=min(len(lines),i+12)
+ for j in range(start,end+1):
+ txt=lines[j-1]
+ if "token" in txt.lower() or "key" in txt.lower() or "secret" in txt.lower():
+ txt = txt.split(":")[0] + ": [REDACTED]"
+ print(f"{j}: {txt}")
+PY
+```
+
+Colle-moi uniquement la sortie. 
+Je te dirai exactement quoi ajouter dans `agent-kb-slack/config.yaml`.
+
+## user — 2026-06-15T11:39:32.711433
+
+comment débloquer le SSH pour toujours
+
+## assistant — 2026-06-15T11:39:32.711433
+
+Oui. Le plus propre : tu ajoutes **ma clé publique Hermes** dans `authorized_keys` du VPS, comme ça je pourrai SSH sans te redemander.
+
+Sur le VPS, lance exactement :
+
+```bash
+mkdir -p /root/.ssh
+chmod 700 /root/.ssh
+
+grep -qxF 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHG0ZEuB0ompP6QXv/iE4q+bc1MoSs2Xq9ylKzTq1qQu hermes-vividflow-vps-access' /root/.ssh/authorized_keys 2>/dev/null || echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHG0ZEuB0ompP6QXv/iE4q+bc1MoSs2Xq9ylKzTq1qQu hermes-vividflow-vps-access' >> /root/.ssh/authorized_keys
+
+chmod 600 /root/.ssh/authorized_keys
+```
+
+Puis dis-moi “fait”, et je teste l’accès.
+
+Ensuite je créerai un alias SSH local pour que ce soit permanent côté moi aussi.

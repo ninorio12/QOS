@@ -1,0 +1,64 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260517_232533_835781
+source_file: /home/hermes/.hermes/sessions/20260517_232533_835781.jsonl
+source_sha256_16: fd93f98eba606eaa
+date: 2026-05-17
+---
+
+# Recovered session root/20260517_232533_835781
+
+
+## user — 2026-05-17T23:28:28.175040
+
+[Thomas] rend les points fixes s'il te plait et retire CHF 0
+Dernier mois
+Jun. ensuite CA client
+CHF 34’900
+6 clients change en CHF XXX, XXX clients ''ce mois ''
+
+## assistant — 2026-05-17T23:28:28.175040
+
+Operation interrupted: waiting for model response (1.2s elapsed).
+
+## assistant — 2026-05-17T23:38:16.926214
+
+Need patch ContactsTable.
+
+## assistant — 2026-05-17T23:38:16.926214
+
+C’est fait et déployé.
+
+Modifs appliquées :
+- Favicon remplacé par un `favicon.svg` propre, plus net à petite taille.
+- Graphique CA :
+ - points rendus fixes
+ - suppression du tooltip `CHF 0 / Dernier mois / Jun`
+ - bloc CA maintenant : `CA client / CHF 34’900 / 6 clients ce mois`
+ - ajout sous le graphique : `6 clients en 2026`
+- Dropdowns natifs supprimés : remplacés par des menus custom premium.
+- Contacts :
+ - checkbox header sélectionne bien toutes les lignes visibles.
+- Kanban :
+ - animation drag & drop ajoutée.
+ - croix de suppression ajoutée sur chaque card.
+ - suppression testée : le nombre de cards diminue bien.
+
+Vérifications :
+- `npm run typecheck` OK
+- `npm test` OK — 4/4 tests
+- `npm run build` OK
+- Serveur local relancé sur `http://127.0.0.1:3015`
+- Prod redéployée : https://vividflow-service-execution-os.vercel.app
+- QA prod Playwright :
+ - favicon = `/favicon.svg`
+ - `select` natifs = 0
+ - sélection globale contacts = 12/12 lignes
+ - tooltip ancien = absent
+ - boutons suppression cards = présents
+ - console erreurs = 0
+
+Hard refresh si l’ancien favicon reste en cache navigateur : `Cmd/Ctrl + Shift + R`.

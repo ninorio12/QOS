@@ -1,0 +1,22 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260614_215752_834b38.jsonl
+captured_at: 2026-06-14T22:16:36.298576
+platform: telegram
+type: conversation_delta
+---
+
+## assistant — 2026-06-14T21:58:06.923719
+
+C’était un problème d’autorisation Slack. Les agents tournaient, mais ils ignoraient tes messages parce que ton user Slack `U0BA8LKAH5H` n’était pas dans `SLACK_ALLOWED_USERS`. J’ai corrigé et redémarré les 5 agents actifs : - Agent KB : actif - Agent CSM : actif - Agent Operations : actif - Data Analyst : actif - Agent Debug : actif Teste maintenant en mentionnant un agent dans Slack. Si un seul ne répond pas, envoie-moi le nom exact du canal + l’agent mentionné.
+
+## user — 2026-06-14T21:58:06.923719
+
+What do you see in this image? [Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_2cbcd318ce79.jpg]
+
+## assistant — 2026-06-14T21:58:06.923719
+
+Je vois Slack ouvert sur l’app **“Debug Engineer”**. Point important : en bas, Slack affiche : **“L’envoi de messages vers cette application a été désactivé.”** Donc le problème n’est probablement pas seulement côté agent/Hermes : **Slack bloque l’envoi de messages à cette app**. Ça explique pourquoi tu ne peux pas lui parler / pourquoi il ne répond pas. À vérifier côté Slack App : - app activée dans le workspace - DM/messages autorisés vers l’app - bot bien installé - permissions/scopes OK - éventuellement réinstaller l’app si Slack l’a désactivée Il y a aussi une fenêtre d’appel vidéo en haut à droite, mais le signal utile pour nous c’est clairement le message de blocage Slack.
+
+## assistant — 2026-06-14T21:58:39.611212
+
+Oui. Étapes à suivre **toujours dans cet ordre** pour chaque agent Slack qui affiche “envoi désactivé” : 1. Va dans Slack → **Apps** → clique sur l’agent concerné. 2. Si tu vois : **“L’envoi de messages vers cette application a été désactivé”** → ouvre **Slack App Management** pour cette app. 3. Dans l’app Slack, vérifie **App Home** : - active **Home Tab** si besoin - surtout active **Messages Tab / Allow users to send Slash commands and messages from the messages tab** - sauvegarde 4. Vérifie **Bot User / Display Information** : - le bot user existe - il n’est pas désactivé - nom visible correct 5. Vérifie **OAuth & Permissions** : scopes minimum : - `app_mentions:read` - `chat:write` - `im:history` - `im:read` - `im:write` - `channels:history` - `channels:read` - `groups:history` si canal privé - `groups:read` si canal privé 6. Clique **Reinstall to Workspace** après toute modification de scopes ou App Home. 7. Retourne dans Slack, ouvre le DM de l’agent, envoie : `test` 8. Si ça ne répond pas, mentionne-le dans son canal dédié : - Agent KB → `agent-kb` - Agent CSM → `agent-csm` - Agent Operations → `agent-operations` - Data Analyst → `data-analyst` - Agent Debug → canal debug / tous-vividflow selon config 9. Si toujours rien : là seulement, je redémarre côté Hermes/gateway et je lis les logs. Le point clé : **tant que Slack dit “messages désactivés”, ce n’est pas un bug de prompt ni de mémoire. C’est l’app Slack qui bloque l’entrée.**

@@ -1,7 +1,7 @@
 import {
-  LayoutDashboard, GitMerge, Users, PhoneCall, TrendingUp, Rocket, CreditCard,
+  LayoutDashboard, GitMerge, Users, Building2, PhoneCall, TrendingUp, Gauge, Rocket, CreditCard,
   CalendarDays, HardDrive, FolderOpen, ListChecks, BotMessageSquare, CheckSquare,
-  ScrollText, Database, Wallet, Plug, Settings, PhoneOutgoing, Megaphone, type LucideIcon,
+  ScrollText, Database, Wallet, Plug, Settings, Megaphone, type LucideIcon,
 } from 'lucide-react'
 
 export type ModuleDef = { href: string; label: string; icon: LucideIcon; group: string }
@@ -10,15 +10,17 @@ export type ModuleDef = { href: string; label: string; icon: LucideIcon; group: 
 // Utilisé par la bottom-nav (favoris), la page « Tout » et la personnalisation.
 export const MODULES: ModuleDef[] = [
   { href: '/dashboard',          label: 'Tableau de bord',      icon: LayoutDashboard,  group: 'Acquisition' },
-  { href: '/pipeline',           label: 'Pipeline',             icon: GitMerge,         group: 'Acquisition' },
+  { href: '/pipeline',           label: 'Pipeline Leads',       icon: GitMerge,         group: 'Acquisition' },
+  { href: '/pipeline/clients',   label: 'Pipeline Clients',     icon: Building2,        group: 'Acquisition' },
   { href: '/contacts',           label: 'Contacts',             icon: Users,            group: 'Acquisition' },
-  { href: '/performance',        label: 'Cockpit Setter',       icon: TrendingUp,       group: 'Acquisition' },
   { href: '/prospection',        label: 'Prospection',          icon: PhoneCall,        group: 'Acquisition' },
-  { href: '/closing',            label: 'Closing',              icon: PhoneOutgoing,    group: 'Acquisition' },
-  { href: '/media-buyer',        label: 'Meta Ads',             icon: Megaphone,        group: 'Acquisition' },
-  { href: '/onboarding',         label: 'Onboarding',           icon: Rocket,           group: 'Acquisition' },
-  { href: '/paiement',           label: 'Paiement',             icon: CreditCard,       group: 'Acquisition' },
-  { href: '/calendrier',         label: 'Calendrier',           icon: CalendarDays,     group: 'Acquisition' },
+  { href: '/closing',            label: 'Closing',              icon: CheckSquare,      group: 'Acquisition' },
+  { href: '/performance',        label: 'Suivi Setting',         icon: Gauge,            group: 'Pilotage' },
+  { href: '/cockpit',            label: 'Performance',          icon: TrendingUp,       group: 'Pilotage' },
+  { href: '/media-buyer',        label: 'Meta Ads',             icon: Megaphone,        group: 'Pilotage' },
+  { href: '/onboarding',         label: 'Onboarding',           icon: Rocket,           group: 'Pilotage' },
+  { href: '/paiement',           label: 'Paiement',             icon: CreditCard,       group: 'Pilotage' },
+  { href: '/calendrier',         label: 'Calendrier',           icon: CalendarDays,     group: 'Pilotage' },
   { href: '/bibliotheque/data',    label: 'Data',               icon: HardDrive,        group: 'Bibliothèque' },
   { href: '/bibliotheque/records', label: 'Records',            icon: FolderOpen,       group: 'Bibliothèque' },
   { href: '/bibliotheque/process', label: 'Process',            icon: ListChecks,       group: 'Bibliothèque' },
@@ -31,7 +33,7 @@ export const MODULES: ModuleDef[] = [
   { href: '/parametres',         label: 'Paramètres',           icon: Settings,         group: 'Configuration' },
 ]
 
-export const GROUP_ORDER = ['Acquisition', 'Bibliothèque', 'Agentique', 'Configuration'] as const
+export const GROUP_ORDER = ['Acquisition', 'Pilotage', 'Bibliothèque', 'Agentique', 'Configuration'] as const
 
 export const DEFAULT_FAVORITES = ['/dashboard', '/pipeline', '/contacts', '/prospection']
 export const FAV_KEY = 'dataos:navFavorites'

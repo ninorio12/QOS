@@ -1,0 +1,18 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260615_095428_a5e053.jsonl
+captured_at: 2026-06-15T09:57:06.603339
+platform: telegram
+type: conversation_delta
+---
+
+## assistant — 2026-06-15T09:54:34.844853
+
+Oui, exactement : la “même démarche” qui a marché, c’était : 1. **Lancer le gateway en manuel** 2. **Désactiver Telegram + WhatsApp dans le profil Slack** 3. **Ajouter le Slack user ID autorisé** 4. **Corriger le provider/model si OpenRouter plante** 5. **Tester dans Slack** 6. **Installer en service systemd 24/24** Pour chaque nouveau bot, il faut refaire ça avec son **profil Hermes dédié**. Exemple pour **Agent KB** : ```bash /home/hermes/.local/bin/hermes profile create agent-kb-slack --clone-from vividflow-slack-extension ``` Puis tu édites son `.env` : ```bash nano /root/.hermes/profiles/agent-kb-slack/.env ``` Tu mets/remplaces : ```bash SLACK_BOT_TOKEN=xoxb-... SLACK_APP_TOKEN=xapp-... SLACK_ALLOWED_USERS=U0BA8LKAH5H,U0BALTG244U TELEGRAM_BOT_TOKEN= WHATSAPP_ENABLED=false ``` Ensuite config modèle : ```bash nano /root/.hermes/profiles/agent-kb-slack/config.yaml ``` Vérifie que tu as : ```yaml model: provider: openai-codex default: gpt-5.5 max_tokens: 4096 ``` Puis test manuel : ```bash /home/hermes/.local/bin/hermes --profile agent-kb-slack gateway run ``` Tu dois voir : ```text [Slack] Authenticated as @agent-kb... [Slack] Socket Mode connected ✓ slack connected Gateway running with 1 platform(s) ``` Si Slack répond bien, tu fais : ```bash CTRL+C /home/hermes/.local/bin/hermes --profile agent-kb-slack gateway install /home/hermes/.local/bin/hermes --profile agent-kb-slack gateway start /home/hermes/.local/bin/hermes --profile agent-kb-slack gateway status ``` Même logique pour les autres : ```bash agent-csm-slack agent-operations-slack data-analyst-slack agent-debug-slack media-buyer-slack ``` Point important : **ne relance pas avec `TELEGRAM_BOT_TOKEN= WHATSAPP_ENABLED=false ...` en préfixe**, ça n’écrase pas forcément le token déjà dans le `.env`. Il faut vraiment modifier le `.env` du profil comme vous l’aviez fait avec le script Python / nano.
+
+## user — 2026-06-15T09:54:34.844853
+
+✓ Systemd linger is enabled (service survives logout) root@srv1601285:/home/hermes/.hermes/hermes-agent# ^C root@srv1601285:/home/hermes/.hermes/hermes-agent# /home/hermes/.local/bin/hermes profile create agent-kb-slack --clone-from vividflow-slack-extension Profile 'agent-kb-slack' created at /root/.hermes/profiles/agent-kb-slack 0 bundled skills synced. Wrapper created: /root/.local/bin/agent-kb-slack Next steps: agent-kb-slack setup Configure API keys and model agent-kb-slack chat Start chatting agent-kb-slack gateway start Start the messaging gateway ⚠ This profile has no API keys yet. Run 'agent-kb-slack setup' first, or it will inherit keys from your shell environment. Edit ~/.hermes/profiles/agent-kb-slack/SOUL.md to customize personality root@srv1601285:/home/hermes/.hermes/hermes-agent#
+
+## assistant — 2026-06-15T09:54:34.844853
+
+Parfait. Là il faut configurer **Agent KB** avant de le lancer. Fais maintenant : ```bash nano /root/.hermes/profiles/agent-kb-slack/.env ``` Dans le fichier, mets/ajoute ces lignes — avec les vrais tokens Slack **uniquement sur le VPS**, pas ici : ```bash SLACK_BOT_TOKEN=xoxb-... SLACK_APP_TOKEN=xapp-... SLACK_ALLOWED_USERS=U0BA8LKAH5H,U0BALTG244U TELEGRAM_BOT_TOKEN= WHATSAPP_ENABLED=false ``` Puis : ```bash chmod 600 /root/.hermes/profiles/agent-kb-slack/.env ``` Ensuite teste le lancement : ```bash /home/hermes/.local/bin/hermes --profile agent-kb-slack gateway run ``` Objectif : voir `Socket Mode connected` + `✓ slack connected`. Si ça plante, colle-moi uniquement les logs **sans tokens**.

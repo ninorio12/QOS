@@ -2,9 +2,13 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { X, ChevronDown, Search, Check, Plus, ClipboardList, CreditCard, FileText, Workflow, ArrowUpRight } from 'lucide-react'
+import { X, ChevronDown, Search, Check, Plus, ClipboardList, CreditCard, FileText, Workflow, ArrowUpRight, Send, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useQuery, useMutation } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
 import { type GHLContact } from '@/lib/ghl'
+import { COUNTRIES as ADDR_COUNTRIES, regionConfig } from '@/lib/regions'
+import { lostReasonLabel, lostReasonIcon, lostStageLabel, lostObjectionLabel, lostObjectionIcon } from '@/lib/lostReasons'
 import { type GHLPipelineData, type Opportunity } from '@/components/pipeline/types'
 import { type ContactPipelineInfo } from '@/app/contacts/page'
 import { fetchJSON } from '@/lib/fetchJSON'
@@ -68,7 +72,7 @@ const SOURCES = ['Direct', 'Meta Ads', 'WhatsApp', 'LinkedIn', 'Téléphone', 'S
 
 const SOURCE_OPTS = [
   { id: 'inbound',        color: '#16A34A', bg: '#DCFCE7', label: 'Inbound'        },
-  { id: 'outbound',       color: '#CA8A04', bg: '#FEF9C3', label: 'Outbound'       },
+  { id: 'outbound',       color: '#EC4899', bg: '#FCE7F3', label: 'Outbound'       },
   { id: 'recommandation', color: '#7C3AED', bg: '#EDE9FE', label: 'Recommandation' },
 ] as const
 
@@ -279,6 +283,8 @@ interface Props {
 // ─── Modal ────────────────────────────────────────────────────
 export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, contact, pipelineInfo, initialCanton, initialStatut, initialSource, mode }: Props) {
   const isEdit = !!contact
+  // Source = origine immuable : verrouillée dès qu'elle est posée (à la création). Plus modifiable en édition.
+  const sourceLocked = isEdit && !!((contact as (Record<string, unknown> & { source?: string }) | undefined)?.source)
   const router = useRouter()
 
   function clientFullName() {
@@ -321,6 +327,8 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
   // Determine current pipeline type for pre-selection in edit mode (réception excluded — auto IA only)
   const [saving,        setSaving]        = useState(false)
   const [error,         setError]         = useState<string | null>(null)
+  const [confirmDel,    setConfirmDel]    = useState(false)
+  const [deleting,      setDeleting]      = useState(false)
   const [countryCode,   setCountryCode]   = useState(parsedPhone.countryCode)
   const [showCountry,   setShowCountry]   = useState(false)
   const [countrySearch, setCountrySearch] = useState('')
@@ -329,22 +337,54 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
   const [selectedStageId,    setSelectedStageId]    = useState<string | null>(null)
   const [inoutbound, setInoutbound] = useState<'inbound' | 'outbound' | 'recommandation'>(((contact as (Record<string,unknown> & {source?:string}) | undefined)?.source as 'inbound'|'outbound'|'recommandation') ?? initialSource ?? 'inbound')
   const [clientValue,        setClientValue]        = useState('')
+  // Préremplit le montant du deal depuis la fiche client existante (source de vérité = pipeline_clients).
+  const clientRow = useQuery(api.pipeline_clients.getByContact, contact?.id ? { contactId: contact.id as never } : 'skip') as { value?: number } | null | undefined
+  const valuePrefilled = useRef(false)
+  useEffect(() => {
+    if (valuePrefilled.current) return
+    if (clientRow && typeof clientRow.value === 'number' && clientRow.value > 0) {
+      setClientValue(String(clientRow.value))
+      valuePrefilled.current = true
+    }
+  }, [clientRow])
+  // Étape commerciale (agrégée Convex : prospection + pipeline + onboarding).
+  const commercialStage = useQuery(api.crm_contacts.commercialStage, contact?.id ? { contactId: contact.id as never } : 'skip') as { lost: boolean; key: string; label: string } | null | undefined
+
+  // ── Envoyer en prospection (colonne "Leads interne") — n'importe quelle fiche, sauf les clients. ──
+  const sendToProspection = useMutation(api.osProspection.sendToInternalLeads)
+  const [prospState, setProspState] = useState<'idle' | 'sending' | 'done'>('idle')
+  async function handleSendToProspection() {
+    if (!contact?.id) return
+    setProspState('sending'); setError(null)
+    try {
+      await sendToProspection({ contactId: contact.id as never })
+      setProspState('done')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur lors de l'envoi en prospection")
+      setProspState('idle')
+    }
+  }
   const [tagInput,      setTagInput]      = useState('')
   const [tags,          setTags]          = useState<string[]>(contact?.tags ?? [])
 
   const [canton, setCanton]   = useState<string>(initialCanton ?? '')
+  const [country, setCountry] = useState<string>(contact?.country ?? '')
+  const rc = regionConfig(country)  // libellé + options (Canton CH / Région FR / texte libre)
   const [statut, setStatut]   = useState<'lead' | 'client' | 'perdu'>(
     mode === 'leads' ? 'lead' : mode === 'clients' ? 'client' : (initialStatut ?? 'lead')
   )
+  const [role,   setRole]     = useState<string>((contact as Record<string, unknown> & { role?: string } | undefined)?.role ?? '')
   const [metier, setMetier]   = useState<string>((contact as Record<string, unknown> & { metier?: string } | undefined)?.metier ?? '')
   const [niche,  setNiche]    = useState<string>((contact as Record<string, unknown> & { niche?: string } | undefined)?.niche ?? '')
+  const [roleOptions,   setRoleOptions]   = useState<string[]>([])
   const [metierOptions, setMetierOptions] = useState<string[]>([])
   const [nicheOptions,  setNicheOptions]  = useState<string[]>([])
 
   useEffect(() => {
     fetch('/api/crm/contacts/options')
       .then(r => r.json())
-      .then((d: { metiers?: string[]; niches?: string[] }) => {
+      .then((d: { roles?: string[]; metiers?: string[]; niches?: string[] }) => {
+        setRoleOptions(d.roles ?? [])
         setMetierOptions(d.metiers ?? [])
         setNicheOptions(d.niches ?? [])
       })
@@ -395,6 +435,19 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
     setTags(prev => prev.filter(x => x !== t))
   }
 
+  // Suppression du contact depuis la fiche (cascade Convex : lead + client + historique + prospection).
+  async function handleDelete() {
+    if (!contact) return
+    setDeleting(true); setError(null)
+    try {
+      const res = await fetch(`/api/contact/${contact.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      onClose() // la liste se rafraîchit via la query live Convex
+    } catch {
+      setError('Suppression échouée.'); setDeleting(false)
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.firstName.trim()) { setError('Le prénom est requis.'); return }
@@ -419,9 +472,11 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             city:        form.city,
             postalCode:  form.postalCode,
             website:     form.website,
+            country:     country || undefined,
             canton:      canton || undefined,
             statut,
             source:      inoutbound,
+            role:        role || undefined,
             metier:      metier || undefined,
             niche:       niche  || undefined,
             tags,
@@ -451,6 +506,8 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           city:        form.city        || null,
           postalCode:  form.postalCode  || null,
           website:     form.website     || null,
+          country:     country          || null,
+          role:        role             || null,
           metier:      metier           || null,
           niche:       niche            || null,
           tags,
@@ -471,8 +528,8 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             companyName: form.companyName || undefined,
             address1: form.address1 || undefined, city: form.city || undefined,
             postalCode: form.postalCode || undefined, website: form.website || undefined,
-            source: inoutbound, statut, canton: canton || undefined,
-            metier: metier || undefined, niche: niche || undefined, tags: [],
+            source: inoutbound, statut, country: country || undefined, canton: canton || undefined,
+            role: role || undefined, metier: metier || undefined, niche: niche || undefined, tags: [],
           }),
         })
         const data = await res.json().catch(() => ({})) as { contact?: { id: string; _id: string }; error?: string }
@@ -488,7 +545,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           firstName: form.firstName || null, lastName: form.lastName || null,
           email: form.email || null, phone: phone || null,
           companyName: form.companyName || null,
-          metier: metier || null, niche: niche || null,
+          role: role || null, metier: metier || null, niche: niche || null,
           dateAdded: new Date().toISOString(), dateUpdated: null, tags: [],
         }
         onAdd?.(newContact)
@@ -502,8 +559,15 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
     }
   }
 
+  // Fermeture clavier (Échap).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-soren-card w-full sm:rounded-2xl sm:max-w-xl shadow-2xl max-h-[92vh] flex flex-col">
 
@@ -513,9 +577,6 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             <h2 className="text-base font-bold text-soren-text">
               {isEdit ? 'Modifier le contact' : mode === 'clients' ? 'Nouveau client' : mode === 'leads' ? 'Nouveau lead' : 'Nouveau contact'}
             </h2>
-            <p className="text-xs text-soren-subtle mt-0.5">
-              {isEdit ? 'Les modifications sont synchronisées avec le CRM.' : 'Contact + opportunité synchronisés automatiquement'}
-            </p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-soren-elevated flex items-center justify-center hover:bg-[#E5E7EB] transition-colors">
             <X size={14} className="text-soren-muted" />
@@ -545,19 +606,9 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               <input value={form.companyName} onChange={set('companyName')} placeholder="Dupont Construction" className={inputCls} />
             </div>
 
-            <div>
-              <label className={labelCls}>Canton</label>
-              <Select
-                value={canton}
-                onChange={setCanton}
-                placeholder="— Choisir —"
-                options={Object.entries({AG:'Argovie',AI:'Appenzell Rh.-Int.',AR:'Appenzell Rh.-Ext.',BE:'Berne',BL:'Bâle-Campagne',BS:'Bâle-Ville',FR:'Fribourg',GE:'Genève',GL:'Glaris',GR:'Grisons',JU:'Jura',LU:'Lucerne',NE:'Neuchâtel',NW:'Nidwald',OW:'Obwald',SG:'Saint-Gall',SH:'Schaffhouse',SO:'Soleure',SZ:'Schwytz',TG:'Thurgovie',TI:'Tessin',UR:'Uri',VD:'Vaud',VS:'Valais',ZG:'Zoug',ZH:'Zurich'}).map(([code, name]) => ({ value: code, label: name }))}
-                className="w-full"
-              />
-            </div>
-
             <div className="grid grid-cols-2 gap-3">
-              <Combobox label="Métier" value={metier} onChange={setMetier} options={metierOptions} placeholder="ex: Architecte" />
+              <Combobox label="Rôle"   value={role}   onChange={setRole}   options={roleOptions}   placeholder="ex: CEO, Directeur" />
+              <Combobox label="Métier" value={metier} onChange={setMetier} options={metierOptions} placeholder="ex: Conseil, BTP, e-commerce" />
               <Combobox label="Niche"  value={niche}  onChange={setNiche}  options={nicheOptions}  placeholder="ex: Immobilier" />
             </div>
 
@@ -627,6 +678,34 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             </div>
 
             <div>
+              <label className={labelCls}>Pays</label>
+              <Select
+                value={country}
+                onChange={v => { setCountry(v); setCanton('') }}
+                placeholder="— Choisir —"
+                options={ADDR_COUNTRIES.map(c => ({ value: c, label: c }))}
+                className="w-full"
+              />
+            </div>
+
+            {country && (
+              <div>
+                <label className={labelCls}>{rc.label}</label>
+                {rc.options ? (
+                  <Select
+                    value={canton}
+                    onChange={setCanton}
+                    placeholder="— Choisir —"
+                    options={rc.options}
+                    className="w-full"
+                  />
+                ) : (
+                  <input value={canton} onChange={e => setCanton(e.target.value)} placeholder="Canton, région…" className={inputCls} />
+                )}
+              </div>
+            )}
+
+            <div>
               <label className={labelCls}>Site web</label>
               <div className="relative">
                 <input type="url" value={form.website} onChange={set('website')} placeholder="https://exemple.fr" className={inputCls + ' pr-9'} />
@@ -645,6 +724,28 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
 
           {/* ── Statut + Source (même fiche partout) ── */}
           <div className="border-t border-soren-border pt-5 flex flex-col gap-4">
+            {/* ── Étape commerciale — où en est le contact dans le funnel (bleu actif / rouge + croix si perdu). ── */}
+            {commercialStage && (
+              <div className="flex flex-col gap-2">
+                <Section title="Étape commerciale" />
+                <span className={`inline-flex w-fit items-center gap-1.5 text-[12px] font-bold px-3 py-1.5 rounded-full border ${
+                  commercialStage.lost
+                    ? 'bg-[#FEE2E2] text-[#B91C1C] border-[#FECACA] dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/25'
+                    : 'bg-[#EFF6FF] text-[#2563EB] border-[#BFDBFE] dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/25'
+                }`}>
+                  {commercialStage.lost && <X size={13} className="flex-shrink-0" strokeWidth={3} />}
+                  {commercialStage.label}
+                </span>
+                {/* Bouton Closing — uniquement quand le lead est en R1 ou R2 (et pas perdu). */}
+                {!commercialStage.lost && (commercialStage.key === 'r1' || commercialStage.key === 'r2') && (
+                  <button type="button" onClick={() => goToModule('/closing')}
+                    className="inline-flex w-fit items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-full bg-[#FF4D00] text-white shadow-sm hover:brightness-110 transition-all">
+                    <ArrowUpRight size={14} /> Préparer le closing
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Statut — locked depending on mode */}
             <div className="flex flex-col gap-2">
               <Section title="Statut" />
@@ -661,11 +762,11 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                     <button key={opt.id} type="button"
                       disabled={locked}
                       onClick={() => !locked && setStatut(opt.id)}
-                      className={`flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all ${locked ? 'opacity-30 cursor-not-allowed' : ''}`}
-                      style={{ borderColor: isSelected ? opt.color : '#E5E7EB', background: isSelected ? opt.color + '14' : '#F9F9F7' }}
+                      className={`flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all ${locked ? 'opacity-30 cursor-not-allowed' : ''} ${isSelected ? '' : 'border-soren-border bg-soren-elevated'}`}
+                      style={isSelected ? { borderColor: opt.color, background: opt.color + '14' } : undefined}
                     >
                       <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
-                      <span className="text-[11px] font-bold" style={{ color: isSelected ? opt.color : '#374151' }}>{opt.label}</span>
+                      <span className={`text-[11px] font-bold ${isSelected ? '' : 'text-soren-text'}`} style={isSelected ? { color: opt.color } : undefined}>{opt.label}</span>
                       {isSelected && <Check size={11} style={{ color: opt.color }} />}
                     </button>
                   )
@@ -676,7 +777,46 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                 {statut === 'client' && 'Le contact apparaîtra dans le pipeline Clients.'}
                 {statut === 'perdu'  && 'Le contact apparaîtra dans les leads perdus.'}
               </p>
+              {/* Perdu en (étape) + raison (+ objection si non qualifié) — renseignés depuis Prospection / Pipeline (lecture seule). */}
+              {statut === 'perdu' && lostStageLabel(contact?.lostStage, contact?.lostReason) && (() => {
+                const LostIcon = lostReasonIcon(contact?.lostReason)
+                return (
+                  <div className="flex flex-col gap-1.5 mt-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-medium text-soren-muted">Perdu en&nbsp;:</span>
+                      <span className="inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full bg-soren-elevated text-soren-text">
+                        {lostStageLabel(contact?.lostStage, contact?.lostReason)}
+                      </span>
+                    </div>
+                    {lostReasonLabel(contact?.lostReason) && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-medium text-soren-muted">Raison&nbsp;:</span>
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#FEE2E2] text-[#B91C1C]">
+                          <LostIcon size={11} className="flex-shrink-0" />{lostReasonLabel(contact?.lostReason)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
+
+            {/* ── Envoyer en prospection (colonne "Leads interne") — pill discrète, toute fiche non-client. ── */}
+            {isEdit && contact?.id && statut !== 'client' && (
+              <button type="button" onClick={handleSendToProspection} disabled={prospState !== 'idle'}
+                title="Ajouter ce contact au board Prospection · colonne Leads interne"
+                className={`self-start inline-flex items-center gap-1.5 h-7 pl-2.5 pr-3 rounded-full border text-[11px] font-semibold transition-colors disabled:cursor-default ${
+                  prospState === 'done'
+                    ? 'border-[#FF4D00]/40 bg-[#FF4D00]/10 text-[#C2410C]'
+                    : 'border-soren-border text-soren-muted hover:border-[#FF4D00]/50 hover:text-[#FF4D00] hover:bg-[#FF4D00]/[0.06]'
+                }`}>
+                {prospState === 'done'
+                  ? <><Check size={13} className="text-[#FF4D00]" /> Ajouté en leads interne</>
+                  : prospState === 'sending'
+                    ? <><Send size={13} className="animate-pulse" /> Envoi…</>
+                    : <><Send size={13} /> Envoyer en leads interne</>}
+              </button>
+            )}
 
             {/* Montant du deal — only when client */}
             {statut === 'client' && (
@@ -685,6 +825,62 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                 <input type="number" value={clientValue} onChange={e => setClientValue(e.target.value)} placeholder="ex: 3500" className={inputCls} />
               </div>
             )}
+
+            {/* Date de la transaction — renseignée à la conversion (lecture seule). */}
+            {statut === 'client' && contact?.dealDate && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-medium text-soren-muted">Date de la transaction&nbsp;:</span>
+                <span className="inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full bg-soren-elevated text-soren-text">
+                  {new Date(contact.dealDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+            )}
+
+            {/* ── Origine : quel lead ce client était avant sa conversion (source immuable + date d'acquisition). ── */}
+            {statut === 'client' && (() => {
+              const src = SOURCE_OPTS.find(o => o.id === (contact?.source as string))
+              const acquired = (contact as (Record<string, unknown> & { createdAt?: string }) | undefined)?.createdAt
+              return (
+                <div className="flex flex-col gap-2">
+                  <Section title="Origine (en tant que lead)" />
+                  <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                    <span className="inline-flex items-center gap-1.5 font-semibold px-2.5 py-1 rounded-full"
+                      style={src ? { background: src.bg, color: src.color } : undefined}>
+                      {src && <span className="w-2 h-2 rounded-full" style={{ background: src.color }} />}
+                      Lead {src?.label ?? contact?.source ?? '—'}
+                    </span>
+                    {acquired && (
+                      <span className="text-soren-muted">acquis le {new Date(acquired).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* ── Module Objections — vert = surmontée (won), rouge = non surmontée (lost). Toutes fiches. ── */}
+            {(lostObjectionLabel(contact?.wonObjection) || lostObjectionLabel(contact?.lostObjection)) && (() => {
+              const WonIcon = lostObjectionIcon(contact?.wonObjection)
+              const LostIcon = lostObjectionIcon(contact?.lostObjection)
+              return (
+                <div className="flex flex-col gap-2">
+                  <Section title="Objections" />
+                  <div className="flex flex-wrap gap-2">
+                    {lostObjectionLabel(contact?.wonObjection) && (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#DCFCE7] text-[#166534] border border-[#BBF7D0] dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/25">
+                        <WonIcon size={12} className="flex-shrink-0" />{lostObjectionLabel(contact?.wonObjection)}
+                        <span className="text-[9px] font-bold uppercase tracking-wide opacity-70">surmontée</span>
+                      </span>
+                    )}
+                    {lostObjectionLabel(contact?.lostObjection) && (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#FEE2E2] text-[#B91C1C] border border-[#FECACA] dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/25">
+                        <LostIcon size={12} className="flex-shrink-0" />{lostObjectionLabel(contact?.lostObjection)}
+                        <span className="text-[9px] font-bold uppercase tracking-wide opacity-70">non surmontée</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Raccourcis client — edit mode only (need a saved contact) */}
             {statut === 'client' && isEdit && contact?.id && (
@@ -698,8 +894,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                     { label: 'Process',    Icon: Workflow,     color: '#8B5CF6', action: () => goToModule('/bibliotheque/process') },
                   ].map(({ label, Icon, color, action }) => (
                     <button key={label} type="button" onClick={action}
-                      className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 border-soren-border hover:border-[#C8CBD0] transition-all"
-                      style={{ background: '#F9F9F7' }}
+                      className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 border-soren-border bg-soren-elevated hover:border-[#C8CBD0] transition-all"
                     >
                       <Icon size={16} style={{ color }} />
                       <span className="text-[10px] font-bold text-soren-text leading-tight text-center">{label}</span>
@@ -717,17 +912,19 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                   const isSelected = inoutbound === opt.id
                   return (
                     <button key={opt.id} type="button"
-                      onClick={() => setInoutbound(opt.id)}
-                      className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all"
-                      style={{ borderColor: isSelected ? opt.color : '#E5E7EB', background: isSelected ? opt.bg : '#F9F9F7' }}
+                      onClick={() => { if (!sourceLocked) setInoutbound(opt.id) }}
+                      disabled={sourceLocked}
+                      className={`flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all ${isSelected ? '' : 'border-soren-border bg-soren-elevated'} ${sourceLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      style={isSelected ? { borderColor: opt.color, background: opt.bg } : undefined}
                     >
                       <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
-                      <span className="text-[10px] font-bold leading-tight text-center" style={{ color: isSelected ? opt.color : '#374151' }}>{opt.label}</span>
+                      <span className={`text-[10px] font-bold leading-tight text-center ${isSelected ? '' : 'text-soren-text'}`} style={isSelected ? { color: opt.color } : undefined}>{opt.label}</span>
                       {isSelected && <Check size={11} style={{ color: opt.color }} />}
                     </button>
                   )
                 })}
               </div>
+              {sourceLocked && <p className="text-[10px] text-soren-subtle">La source est l'origine du lead : définie à la création, elle ne peut plus être modifiée.</p>}
             </div>
           </div>
 
@@ -747,6 +944,20 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                 : (isEdit ? 'Enregistrer' : mode === 'leads' ? 'Créer le lead' : mode === 'clients' ? 'Créer le client' : 'Créer le contact')}
             </button>
           </div>
+
+          {isEdit && (
+            confirmDel ? (
+              <div className="flex items-center gap-2 pt-1">
+                <span className="flex-1 text-[12px] text-soren-muted">Supprimer définitivement ce contact et tout ce qui y est lié ?</span>
+                <button type="button" onClick={() => setConfirmDel(false)} className="text-[12px] font-semibold text-soren-muted px-3 py-1.5">Annuler</button>
+                <button type="button" onClick={handleDelete} disabled={deleting} className="text-[12px] font-semibold text-white bg-red-500 hover:bg-red-600 rounded-full px-3 py-1.5 disabled:opacity-50">{deleting ? 'Suppression…' : 'Confirmer'}</button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setConfirmDel(true)} className="flex items-center justify-center gap-1.5 text-[12px] font-semibold text-red-500 hover:text-red-600 transition-colors pt-1">
+                <Trash2 size={13} /> Supprimer ce contact
+              </button>
+            )
+          )}
         </form>
       </div>
     </div>,

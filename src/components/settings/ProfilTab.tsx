@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Save, Check, Upload, Trash2 } from 'lucide-react'
 import { inputCls, labelCls } from './_shared'
 import PasswordSection from './PasswordSection'
-import { useUser } from '@clerk/nextjs'
+import { useSafeUser as useUser } from '@/lib/clerkSafe'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 // Convertit un dataURL (photo locale) en File pour l'upload Clerk.

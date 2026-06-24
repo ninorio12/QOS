@@ -28,7 +28,8 @@ const PAGE_LABELS: Record<string, string> = {
   '/contacts':           'Contacts',
   '/prospection':        'Prospection',
   '/closing':            'Closing',
-  '/performance':        'Cockpit Setter',
+  '/cockpit':            'Performance',
+  '/performance':        'Suivi Setting',
   '/media-buyer':        'Meta Ads',
   '/onboarding':         'Onboarding',
   '/paiement':           'Paiement',
@@ -78,6 +79,7 @@ export default function Header() {
   const [searching, setSearching] = useState(false)
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Search results
   const q = searchQuery.toLowerCase().trim()
@@ -126,8 +128,19 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  // Raccourci ⌘K / Ctrl+K → focus la recherche.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault(); inputRef.current?.focus(); setSearchOpen(true)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+
   return (
-    <header className="fixed top-0 left-60 right-0 h-14 bg-soren-app border-b border-soren-border/50 flex items-center px-6 gap-4 z-40">
+    <header className="fixed top-0 left-56 right-0 h-12 bg-soren-app border-b border-soren-border/50 flex items-center px-5 gap-4 z-40">
       {/* Breadcrumb */}
       <div className="flex items-center gap-1.5 flex-1 min-w-0">
         <span className="text-xs font-semibold uppercase tracking-wider text-soren-subtle">VividFlow</span>
@@ -144,6 +157,7 @@ export default function Header() {
         <div ref={searchRef} className="relative">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-soren-subtle pointer-events-none" />
           <input
+            ref={inputRef}
             type="text"
             value={searchQuery}
             onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true) }}
@@ -152,8 +166,8 @@ export default function Header() {
               if (e.key === 'Enter') { e.preventDefault(); goFirstResult() }
               else if (e.key === 'Escape') { setSearchOpen(false); e.currentTarget.blur() }
             }}
-            placeholder="Rechercher une page, un contact..."
-            className="w-64 bg-soren-elevated border-0 rounded-full pl-8 pr-4 py-1.5 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#FF4D00]/40 transition-all"
+            placeholder="Rechercher…"
+            className="w-56 lg:w-72 h-8 bg-soren-elevated/40 dark:bg-white/[0.06] backdrop-blur-md border border-soren-border/40 dark:border-white/10 rounded-full pl-8 pr-4 text-[12.5px] text-soren-text placeholder-soren-subtle outline-none focus:bg-soren-elevated/70 dark:focus:bg-white/[0.1] focus:ring-2 focus:ring-[#FF4D00]/15 transition-all"
           />
 
           {/* Dropdown résultats */}
@@ -217,9 +231,9 @@ export default function Header() {
         <button
           onClick={toggleTheme}
           aria-label="Basculer le thème"
-          className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full text-soren-muted hover:text-soren-text hover:bg-soren-elevated transition-all"
+          className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full text-soren-muted hover:text-soren-text hover:bg-soren-elevated transition-all"
         >
-          {mounted && theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          {mounted && theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
         </button>
       </div>
     </header>

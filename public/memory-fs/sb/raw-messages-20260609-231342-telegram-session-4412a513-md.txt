@@ -1,0 +1,38 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260609_225518_e03cef.jsonl
+captured_at: 2026-06-09T23:13:42.112321
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-06-09T22:55:56.044875
+
+ok j'ai mis à jour le dossier avec les photos des agents et le logo officiel de vividflow on revient à la signature tu peux utiliser le logo officiel stp
+
+## assistant — 2026-06-09T22:55:56.044875
+
+Oui, c’est en place. Dossier créé dans **Content Agent** : [Inbox Telegram — fichiers reçus](https://drive.google.com/drive/folders/1DlWeVeb3iRa_VUjpnJ6ldlTH0cn-wbEX) À partir de maintenant, si tu m’envoies ici une photo, un fichier ou un asset utile, je le range là-bas pour garder une trace.
+
+## user — 2026-06-09T22:55:56.044875
+
+bah oui et tu as travaillé sur une signature pour chaque émail envoyé avec le logo et le site tu le mets ou tout ca
+
+## assistant — 2026-06-09T22:55:56.044875
+
+Tu as raison : je vérifie où elle est stockée et si elle est injectée automatiquement dans les envois.
+
+## assistant — 2026-06-09T22:55:56.044875
+
+Je la mets à deux endroits : **fichier source** + **procédure d’envoi automatique**. Je crée maintenant le point d’entrée propre pour que je ne l’oublie plus.
+
+## assistant — 2026-06-09T22:55:56.044875
+
+Oui, tu as raison de me recadrer. Je viens de le mettre proprement ici : - **Signature officielle HTML** : `/home/hermes/outputs/vividflow-signature-official/signature-vividflow-officielle-snippet.html` - **Logo officiel utilisé dans les emails** : `/home/hermes/workspaces/vividflow-data-os/public/brand/vividflow-logo.jpg` - **Script d’envoi obligatoire maintenant** : `/home/hermes/.hermes/profiles/chief_of_staff/scripts/send_vividflow_email.py` Ce script ajoute automatiquement : - **Équipe VividFlow** - le logo officiel - le lien `vividflow.co` - l’envoi via la boîte `hey@vividflow.co`, pas ton email perso. J’ai aussi écrit la règle dans le Second Brain pour que ce soit la norme, pas juste un fichier perdu.
+
+## user — 2026-06-09T22:55:56.044875
+
+Terminé. Ce que j’ai trouvé : - Le problème n’était pas juste GBrain. - Hermes écrivait bien parfois dans USER.md / MEMORY.md, mais le Chief gardait un agent en cache avec un ancien system prompt. - Donc une info pouvait être écrite sur disque, mais rester invisible à l’agent pendant la session suivante. - En plus, les limites mémoire étaient trop basses : USER.md était déjà proche du plafond, donc les infos personnelles critiques pouvaient ne pas rentrer proprement. Ce que j’ai corrigé sur le VPS : - Patch run_agent.py - Après un write mémoire réussi, Hermes invalide maintenant son system prompt. - Donc la mémoire fraîche est relue au prochain tour. - Ajout d’une capture déterministe pour les infos critiques comme : - “mon mail perso est …” - “mon email est …” - “mon adresse mail est …” - Ces infos vont dans USER.md, pas dans GBrain. - Patch gateway/run.py - Le cache Telegram du Chief tient maintenant compte de : - memories/USER.md - memories/MEMORY.md - taille + mtime des fichiers - Si la mémoire change sur disque, l’agent cache est recréé. - Config profils Hermes - memory_enabled = true - user_profile_enabled = true - user_char_limit >= 4000 - memory_char_limit >= 8000 - Appliqué à tous les profils actifs. Vérification faite : - J’ai injecté un email factice de test : - hermes-memory-test-1781038270@example.com - Hermes l’a bien écrit dans chief_of_staff/memories/USER.md. - Le system prompt a bien été invalidé. - Après restart de hermes-gateway-chief_of_staff.service, le Chief relisait encore l’email depuis la mémoire. - Ensuite j’ai restauré le USER.md original pour ne pas laisser de faux email. - Vérif finale : le faux email n’est plus présent. - Service Chief actif après restart. J’ai aussi mis à jour le skill GBrain/Second Brain avec cette procédure, parce que c’était un vrai piège structurel : GBrain ne remplace pas la mémoire profil immédiate. Les infos personnelles critiques doivent être dans Hermes profile memory, et le cache doit se recharger quand elle change. État final : - audit : terminé - fix : terminé - verify : terminé À partir de maintenant, si tu donnes à Chief ton mail perso clairement dans Telegram, il doit le retenir directement et ne plus te le redemander une heure après.
+
+## assistant — 2026-06-09T22:55:56.044875
+
+Parfait. Là c’est le bon correctif, pas un pansement. Ce que je retiens opérationnellement : - **infos personnelles critiques → USER.md** - **process / connaissance projet → Second Brain / GBrain** - **cache Chief invalidé dès que mémoire disque change** - **plus de dépendance à une session Telegram ancienne** J’ai aussi gardé ce fix comme fait durable côté mémoire, parce que c’est une règle d’infra importante pour la suite.

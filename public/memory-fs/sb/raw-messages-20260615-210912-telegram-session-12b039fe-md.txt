@@ -1,0 +1,42 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260615_205754_3ca1c7.jsonl
+captured_at: 2026-06-15T21:09:12.014934
+platform: telegram
+type: conversation_delta
+---
+
+## assistant — 2026-06-15T20:57:57.839690
+
+Tu as raison. Il y avait deux problèmes : 1. L’ordre Slack quotidien était prévu sur `#recherche-developpement`, pas sur `#knowledge-base`. 2. Le fichier était vide parce que le job de scraping n’avait pas encore réellement rempli le Sheet. J’ai corrigé/testé maintenant : - Ordre posté dans Slack `#knowledge-base` pour Agent KB. - Ordre posté dans Slack `#recherche-developpement` pour Data Analyst. - Sheet rempli avec 6 lignes de test. - Ces lignes sont volontairement en Qualité C / à vérifier, donc elles ne doivent pas partir dans Data OS. - QA Coordinateur relancée pour vérifier que le rouge/suspect fonctionne. Important : j’ai aussi vu que le delivery Slack du cron Hermes renvoie `platform 'slack' not configured/enabled`. Donc je suis passé par l’API Slack du VPS pour poster réellement. Prochaine correction à faire : remplacer le cron Slack par un script VPS fiable, sinon demain il postera sur Telegram mais pas Slack.
+
+## assistant — 2026-06-15T20:57:57.839690
+
+Oui, je suis d’accord. Le scraping était trop faible pour être exploitable. J’ai corrigé immédiatement : - **Import Data OS mis en pause** pour éviter d’envoyer de mauvais leads. - Le job scraping passe en mode **qualité d’abord**. - Il doit sortir **10 lignes test maximum** avant volume. - Si les 10 lignes sont faibles, il **s’arrête** au lieu de remplir 100 lignes nulles. - Qualité C = **jamais importée**. - Règle durable ajoutée dans le process Second Brain. On ne scale pas tant que l’échantillon n’est pas bon. Demain matin, je veux d’abord un mini-batch propre, pas une base remplie pour faire joli.
+
+## assistant — 2026-06-15T20:57:57.839690
+
+Oui. Là la bonne piste n’est pas “forcer Google Maps au hasard”. J’ai vérifié GitHub. Le meilleur angle pour nous : **1. Base Suisse : local.ch / annuaires suisses** - Repo trouvé : `Anwaar-Rasool/swiss-local-business-directory-scraper` - Il scrape `local.ch` en 2 étapes : - collecte URLs par catégorie + ville - extraction des fiches business - C’est le plus proche de notre besoin Suisse romande. **2. Enrichissement Google Maps** - Repos utiles : - `asiifdev/business-leads-ai-automation` - `Leo-devv/MapScraperPro` - `jhowbhz/maps-to-lead` - Ils utilisent Puppeteer/Playwright + stealth + export CSV. - Bon pour récupérer : entreprise, site, téléphone, adresse, avis, rating. - Mauvais pour : décisionnaire nominatif fiable. **3. Décisionnaire / email** - Ça ne doit pas venir de Maps seul. - Workflow propre : - Maps/local.ch trouve l’entreprise. - Site officiel trouve équipe/contact/mentions légales. - Email uniquement s’il est visible publiquement. - Décisionnaire seulement si page équipe, registre, site, source claire. - Sinon Qualité C / à vérifier. Ma recommandation nette : **Pipeline hybride** 1. `local.ch` par niche + canton pour sortir des entreprises suisses propres. 2. Google Maps seulement pour enrichir téléphone/site/adresse/activité. 3. Scrape site officiel pour décisionnaire + email. 4. Scoring strict. 5. 10 leads test. 6. Si 7/10 sont A/B, on scale à 100/jour. Je ne laisserais pas l’agent faire du scraping libre. Il faut lui donner ce pipeline précis, sinon il va remplir de la merde.
+
+## user — 2026-06-15T20:57:57.839690
+
+pour ce repo : Anwaar-Rasool/swiss-local-business-directory-scraper trouve moi le lien internet stp
+
+## assistant — 2026-06-15T20:57:57.839690
+
+Voici le lien : https://github.com/Anwaar-Rasool/swiss-local-business-directory-scraper
+
+## user — 2026-06-15T21:00:45.336232
+
+trop bien et quoi d'autre tu peux utiliser appolo.io tu penses ?
+
+## assistant — 2026-06-15T21:00:45.336232
+
+Oui, **Apollo.io peut être utile**, mais pas comme source principale. Je le mettrais comme **outil d’enrichissement**, pas comme scraper de base. Le bon usage : 1. **On trouve les entreprises nous-mêmes** - local.ch - Google Maps - sites officiels - registres / annuaires suisses 2. **Apollo sert ensuite à enrichir** - nom du dirigeant - rôle - LinkedIn - email pro probable - taille entreprise - secteur 3. **On garde notre scoring** - Apollo peut halluciner / être incomplet en Suisse romande - donc pas d’import automatique si pas de source cohérente - si Apollo donne un email mais aucun signal site/LinkedIn : Qualité C Mon avis net : **Apollo est très bon pour accélérer l’enrichissement contact, mais mauvais si on lui confie toute la prospection.** Stack idéale : - **local.ch** : base entreprises Suisse - **Google Maps** : validation activité + téléphone + site - **site officiel** : preuve métier + contact - **Apollo** : décisionnaire + email - **Data OS** : source finale propre après QA Donc oui, je l’utiliserais, mais en couche 4, pas en point de départ.
+
+## user — 2026-06-15T21:01:10.231916
+
+browser harness et browser use ca serait utile ?
+
+## assistant — 2026-06-15T21:01:10.231916
+
+Oui, mais pas au même endroit. **Browser Use : oui, très utile.** Je l’utiliserais pour le pipeline récurrent : - ouvrir local.ch / Google Maps / sites officiels - naviguer comme un humain - extraire en structure propre - gérer des pages dynamiques - réutiliser une session/profil - faire des runs répétables avec schéma de sortie C’est le bon outil pour **production scraping + enrichissement web**. **Browser Harness : utile, mais plutôt en debug/QA.** Je l’utiliserais quand Browser Use bloque ou quand il faut vérifier visuellement : - page qui charge mal - bouton/carte Google Maps difficile à cliquer - screenshot + inspection DOM - comprendre pourquoi une extraction rate - vérifier une fiche ou un formulaire manuellement Donc ma stack idéale : 1. **local.ch scraper** : base entreprises suisses. 2. **Browser Use** : enrichissement autonome sur Google Maps + sites officiels. 3. **Apollo** : enrichissement décisionnaire/email. 4. **Browser Harness** : debug visuel quand ça casse. 5. **Sheet + QA Coordinateur** : validation avant Data OS. Je ne mettrais pas Browser Harness au cœur du scraping. Trop chirurgical. Le cœur, c’est **Browser Use + règles strictes + output structuré**.

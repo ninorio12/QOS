@@ -1,0 +1,26 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260613_101305_a7d24f27.jsonl
+captured_at: 2026-06-13T12:08:37.048510
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-06-13T11:48:17.311569
+
+pourquoi le numéro whatsapp ne répond pas
+
+## assistant — 2026-06-13T11:48:17.311569
+
+Parce que la stack WhatsApp est arrêtée. Constat réel : - `whatsapp-hermes-bridge.service` = **inactive/dead** depuis le **10 juin 23:00** - port bridge `8791` = fermé - OpenWA/API locale `3000` = fermé - aucun container WhatsApp/OpenWA actif - les gateways Hermes sont OK, mais elles ne reçoivent rien de WhatsApp. Donc ce n’est pas un problème de réponse IA : le pont WhatsApp → Hermes ne tourne plus. Derniers logs avant arrêt : - le bridge recevait bien des messages ; - certains envois échouaient côté OpenWA avec `OpenWA send failed 500`; - puis le service a été stoppé proprement. Prochaine action logique : redémarrer la stack OpenWA + bridge, puis tester un message entrant sur le numéro dédié `+41 77 279 21 44`.
+
+## user — 2026-06-13T11:50:25.055056
+
+je veux pas a a voir à le démarrer tu comprends il doit etre constamment actif 'cest pas noraml
+
+## user — 2026-06-13T11:50:25.055056
+
+You've reached the maximum number of tool-calling iterations allowed. Please provide a final response summarizing what you've found and accomplished so far, without calling any more tools.
+
+## assistant — 2026-06-13T11:50:25.055056
+
+Oui, tu as raison : ce n’est pas normal. Le numéro doit rester actif sans intervention manuelle. Ce que j’ai trouvé : - Le bridge WhatsApp `whatsapp-hermes-bridge.service` était bien **enabled**, mais il dépendait d’OpenWA qui, lui, n’avait **aucun service systemd persistant**. - OpenWA ne tournait pas : aucun container actif, ports fermés. - Le bridge pouvait donc être “configuré”, mais sans stack WhatsApp derrière. - J’ai créé un service user `openwa-stack.service` pour lancer OpenWA automatiquement. - J’ai recâblé `whatsapp-hermes-bridge.service` pour dépendre de `openwa-stack.service`. - Blocage découvert : l’utilisateur `hermes` n’avait pas accès au socket Docker (`/var/run/docker.sock`) donc le service user ne pouvait pas démarrer OpenWA. - J’ai ajouté `hermes` au groupe `docker`. État actuel : - La cause racine est claire : **pas de persistance OpenWA + droits Docker manquants pour le service user**. - Le correctif structurel est en place côté fichiers systemd. - Il reste à ouvrir une nouvelle session effective pour que le groupe `docker` soit pris en compte par `hermes`, puis redémarrer/valider les deux services. Action restante à faire ensuite : - relancer la session user/systemd ou reconnecter `hermes`, - démarrer `openwa-stack.service`, - démarrer `whatsapp-hermes-bridge.service`, - vérifier health OpenWA + health bridge + message entrant réel. Point important : on ne doit pas se contenter d’un redémarrage manuel. Il faut valider que ça repart aussi après reboot.

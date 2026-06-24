@@ -1,0 +1,375 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260519_175810_457138
+source_file: /home/hermes/.hermes/sessions/20260519_175810_457138.jsonl
+source_sha256_16: 35a0591085b94646
+date: 2026-05-19
+---
+
+# Recovered session root/20260519_175810_457138
+
+
+## assistant — 2026-05-19T18:07:41.484842
+
+J’ai checké tes emails de facturation. Le signal est clair : **les “10 balles, 10 balles, 10 balles” viennent surtout d’Anthropic**, pas directement de ton abonnement ChatGPT à 200$/mois.
+
+## Verdict direct
+
+**Oui, ça coûte trop cher si c’est censé être uniquement pour Brvndlab.**
+
+Mais nuance importante :
+
+> Je ne peux pas prouver que tout vient de Brvndlab. 
+> Par contre, je vois que ton compte Anthropic recharge automatiquement des crédits dès qu’ils sont consommés.
+
+Et Brvndlab a des routes IA Anthropic qui ne loggent pas toutes les consommations. Donc on a un trou noir.
+
+---
+
+## Les charges trouvées
+
+### 1. Anthropic — API Claude
+
+C’est exactement ce que tu décris : des recharges autour de 10–11$.
+
+Emails trouvés :
+
+- 8 mai : **$10.85**
+- 10 mai : **$11.24**
+- 12 mai : **$11.67**
+- 12 mai : **$10.98**
+- 13 mai : **$11.38**
+- 14 mai : **$11.40**
+- 14 mai : **$11.05**
+- 16 mai : **$10.90**
+
+Total Anthropic visible sur 30 jours :
+
+**$89.47**
+
+Pourquoi :
+- “Auto-recharge credits”
+- donc ton compte Anthropic recharge automatiquement des crédits API
+- dès que le solde descend, il reprend environ 10–11$
+
+Conclusion :
+**c’est bien de la consommation API, pas ton abonnement ChatGPT.**
+
+---
+
+### 2. OpenRouter
+
+Là aussi, gros morceau.
+
+Charges trouvées :
+
+- 13 mai : **$21.10**
+- 14 mai : **$21.10**
+- 14 mai : **$21.10**
+- 14 mai : **$21.10**
+- 14 mai : **$21.10**
+- 14 mai : **$21.10**
+- 15 mai : **$21.10**
+
+Total OpenRouter :
+
+**$147.70**
+
+Pourquoi :
+- achats / top-ups OpenRouter
+- probablement utilisé par des agents, tests, workflows ou outils externes
+
+Important :
+
+> Brvndlab n’a pas l’air d’utiliser OpenRouter dans son code principal. 
+> Le code Brvndlab que j’ai vu utilise directement Anthropic.
+
+Donc OpenRouter est probablement plus lié à Hermes / agents / dev / expérimentations qu’à Brvndlab SaaS.
+
+---
+
+### 3. Convex
+
+Charges trouvées :
+
+- 13 mai : **$11.00**
+- 14 mai : **$11.68**
+
+Total Convex :
+
+**$22.68**
+
+Il y a aussi un email d’alerte :
+
+> “Your team’s monthly spending on the Convex Starter plan has reached your configured warning threshold of $10.”
+
+Pourquoi :
+- usage backend/base de données
+- probablement lié à Brvndlab ou un autre projet Convex actif
+- ce n’est pas le plus grave, mais à surveiller
+
+---
+
+### 4. Apify
+
+Charges / alertes :
+
+- paiement réussi : **$29**
+- alerte : usage à 50% de la limite $29
+- alerte précédente : free usage dépassé
+
+Pourquoi :
+- usage scraping / actors Apify
+
+Important :
+
+> Pour Brvndlab, Apify est censé être interdit / à éviter. 
+> Donc si Apify sert encore à un workflow Brvndlab, il faut le couper.
+
+---
+
+### 5. Clerk
+
+Charge trouvée :
+
+- **$25**
+
+Pourquoi :
+- authentification / gestion utilisateurs
+- probablement lié à Brvndlab si Clerk est utilisé sur le SaaS
+
+C’est normal comme coût SaaS, mais ça doit rentrer dans la marge.
+
+---
+
+### 6. Hostinger
+
+Email trouvé :
+
+- tentative de paiement échouée : **$26.47**
+- plan : **KVM 2 pour srv1601285.hstgr.cloud**
+- alerte CPU limit sur le VPS
+
+Pourquoi :
+- VPS / infra Hermes ou services hébergés
+
+Ce n’est pas directement une conso Brvndlab IA. 
+Mais c’est un coût infra.
+
+---
+
+### 7. Squarespace / Google Workspace
+
+Plusieurs emails d’échec de paiement pour Google Workspace :
+
+- domaine `brvndlab.com`
+- domaine `mentoraplus.com`
+
+Montant non visible dans l’email.
+
+Pourquoi :
+- carte non autorisée / paiement échoué
+- risque de suspension Google Workspace si non réglé
+
+---
+
+### 8. tldv / tldx
+
+Plusieurs tentatives échouées :
+
+- **$29**
+- paiement non passé
+
+Pourquoi :
+- abonnement tl;dv
+
+Ce n’est pas une charge réussie, mais c’est un abonnement actif qui essaie de passer.
+
+---
+
+### 9. Genspark / MainFunc
+
+Charges trouvées :
+
+- 11 mai : **$27.01**
+- 18 mai : **$20.70**
+
+Total :
+
+**$47.71**
+
+Pourquoi :
+- abonnement Genspark Plus / changement ou prorata d’abonnement
+
+Pas lié à Brvndlab.
+
+---
+
+## Total charges visibles importantes
+
+Sur les emails récents :
+
+- Anthropic : **$89.47**
+- OpenRouter : **$147.70**
+- Convex : **$22.68**
+- Apify : **$29**
+- Clerk : **$25**
+- Genspark : **$47.71**
+
+Total visible :
+
+**environ $361.56**
+
+Sans compter :
+- Google Workspace Squarespace
+- Hostinger échoué
+- tl;dv échoué
+- autres outils non captés
+
+---
+
+## Est-ce que c’est dû à Brvndlab ?
+
+### Ce qui est probablement Brvndlab
+
+- **Anthropic** : possible, car Brvndlab appelle Anthropic.
+- **Convex** : probable si Brvndlab tourne dessus.
+- **Clerk** : probable si Brvndlab utilise Clerk.
+- **Google Workspace brvndlab.com** : oui, domaine Brvndlab.
+
+### Ce qui n’est probablement pas Brvndlab
+
+- **OpenRouter** : pas vu dans le code Brvndlab principal.
+- **Genspark** : non.
+- **tl;dv** : outil externe.
+- **Hostinger** : infra VPS / Hermes, pas forcément Brvndlab.
+- **Apify** : ne devrait pas être Brvndlab si on respecte notre règle produit.
+
+---
+
+## Le vrai problème
+
+Dans Brvndlab, j’ai vu une table `aiUsage`.
+
+Mais elle ne montre que :
+
+**0,7843 €** de coût IA loggé sur la période visible.
+
+Alors que tes emails Anthropic montrent :
+
+**$89.47** de recharges API.
+
+Donc il y a un écart énorme.
+
+Ça veut dire une de ces 3 choses :
+
+1. Brvndlab consomme via des routes non loggées.
+2. Les charges Anthropic viennent d’autres outils / agents.
+3. Les deux.
+
+Et j’ai effectivement trouvé des routes Brvndlab qui appellent Anthropic directement, notamment :
+
+- `generate-script`
+- `brainstorm`
+- `analyze-video`
+- `analyze-pdf`
+- `generate-carousel`
+- `generate-story`
+- `suggest-topics`
+
+Certaines utilisent **Claude Opus**, qui peut coûter cher.
+
+Donc oui : **Brvndlab peut brûler de l’argent sans que tu le voies proprement dans l’admin.**
+
+---
+
+## Rentabilité Brvndlab
+
+Si un client paie :
+
+### 149€/mois
+
+Impossible si le client peut consommer librement l’IA.
+
+Même **$50/mois d’IA** par client mange déjà trop la marge.
+
+### 349€/mois
+
+Possible, mais seulement avec quotas.
+
+Si un client consomme **$100–150/mois**, ça commence déjà à devenir dangereux.
+
+### 749€/mois
+
+Possible, mais il faut quand même verrouiller Opus et les générations lourdes.
+
+---
+
+## Mon avis
+
+**Ne supprime pas toute l’IA.**
+
+Mais **coupe immédiatement le mode illimité.**
+
+Priorité :
+
+1. **Désactiver auto-recharge Anthropic ou baisser le plafond**
+2. **Créer une clé Anthropic dédiée uniquement à Brvndlab**
+3. **Créer une clé séparée pour Hermes / dev / tests**
+4. **Logger 100% des appels IA**
+5. **Mettre quotas par utilisateur**
+6. **Mettre Haiku/Sonnet par défaut**
+7. **Verrouiller Opus**
+8. **Interdire les générations répétées sans coût visible**
+9. **Afficher coût par client / feature dans admin**
+10. **Couper Apify si utilisé par Brvndlab**
+
+---
+
+## Décision simple
+
+À ta place, je fais ça :
+
+### Maintenant
+
+- Je ne supprime pas Brvndlab IA.
+- Je coupe Opus en prod.
+- Je limite les générations lourdes.
+- Je désactive ou baisse l’auto-recharge Anthropic.
+- Je sépare les clés API.
+
+### Ensuite
+
+On ajoute un dashboard :
+
+- coût IA aujourd’hui
+- coût IA 7 jours
+- coût IA par client
+- coût IA par feature
+- marge estimée par client
+- alerte si un client dépasse son quota
+
+---
+
+## Conclusion
+
+Ton intuition est bonne.
+
+Les charges récurrentes à **10–11$** viennent bien d’**Anthropic API auto-recharge**.
+
+Mais actuellement, **Brvndlab ne sait pas te dire proprement si c’est lui qui consomme**, parce que tout n’est pas loggé.
+
+Donc tant qu’on n’a pas :
+- une clé dédiée Brvndlab
+- un tracking complet
+- des quotas
+
+Brvndlab peut devenir non rentable très vite.
+
+Ma recommandation ferme :
+
+> On met Brvndlab en mode IA contrôlée avant d’ouvrir davantage aux clients. 
+> Sinon tu vas vendre du SaaS, mais financer leurs générations IA à perte.

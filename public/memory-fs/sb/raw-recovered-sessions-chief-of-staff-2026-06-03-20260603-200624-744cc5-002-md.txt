@@ -1,0 +1,2182 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260603_200624_744cc5
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260603_200624_744cc5.jsonl
+source_sha256_16: f3aec1ddd656dfb6
+date: 2026-06-03
+---
+
+# Recovered session chief_of_staff/20260603_200624_744cc5
+
+
+## assistant — 2026-06-03T20:06:40.546549
+
+Oui. Avec beaucoup de contacts, le danger c’est le chaos.
+
+Il faut penser **volume dès maintenant**.
+
+## Règle produit
+
+Ne jamais afficher “tous les contacts” comme une grosse liste morte. 
+Il faut des vues utiles.
+
+## Pour Contacts
+
+À ajouter/prioriser :
+
+### 1. Vues sauvegardées
+Exemples :
+- Leads actifs
+- À relancer
+- R1 cette semaine
+- R2 chauds
+- Perdus récents
+- Clients actifs
+- Sans prochaine action
+- Par canton
+- Par niche
+- Par source
+
+### 2. Filtres rapides
+- statut : lead / client / perdu
+- pipeline stage
+- source
+- niche
+- canton
+- owner
+- dernière interaction
+- prochaine action
+- priorité
+- score
+
+### 3. Recherche forte
+Recherche sur :
+- nom
+- entreprise
+- email
+- téléphone
+- LinkedIn
+- niche
+- notes
+
+### 4. Tags
+Tags simples :
+- chaud
+- à relancer
+- priorité
+- mauvais fit
+- referral
+- besoin urgent
+- dormant
+
+### 5. Déduplication
+Obligatoire.
+
+Quand on ajoute un contact :
+- vérifier email
+- téléphone
+- LinkedIn
+- nom + entreprise
+
+Si doublon :
+- proposer “fusionner” ou “mettre à jour”.
+
+---
+
+## Pour Prospection
+
+Vue board simple :
+- À contacter
+- Contacté
+- Relance 1
+- Relance 2
+- Réponse
+- À qualifier
+- Ignoré
+
+Mais avec filtres :
+- canal
+- mot-clé
+- date dernière action
+- prochaine relance
+- owner
+- niche
+
+Important :
+**ne pas mélanger tous les canaux dans le bruit.**
+
+Il faut pouvoir voir :
+- LinkedIn seulement
+- Cold email seulement
+- Cold call seulement
+
+---
+
+## Pour Pipeline
+
+Pipeline = vue haute.
+
+Il doit rester visuel :
+- Nouveau lead
+- En conversation
+- R1
+- R2
+- Nouveau client
+
+Chaque carte doit montrer seulement :
+- nom
+- entreprise
+- source
+- montant potentiel
+- prochaine action
+- retard si bloqué
+
+Pas 15 infos.
+
+---
+
+## À dire à Claude Code
+
+```text
+Important volume requirement:
+
+The Data OS will contain a large number of contacts and prospects.
+Design Contacts, Prospection and Pipeline for volume from the beginning.
+
+Do not rely on one long unfiltered table.
+
+Contacts must support:
+- saved views
+- fast filters
+- full-text search
+- tags
+- sorting
+- pagination or virtualized list if needed
+- duplicate detection
+
+Required saved views:
+- Leads actifs
+- À relancer
+- R1 cette semaine
+- R2 chauds
+- Perdus récents
+- Clients actifs
+- Sans prochaine action
+- Par source
+- Par niche
+- Par canton
+
+Filters:
+- status
+- pipelineStage
+- source
+- niche
+- canton
+- owner
+- lastInteractionAt
+- nextActionAt
+- priorityScore
+- tags
+
+Search fields:
+- fullName
+- companyName
+- email
+- phone
+- linkedinUrl
+- niche
+- notes
+
+Duplicate detection:
+When creating a contact/prospect, check existing records by:
+- email
+- phone
+- linkedinUrl
+- normalized fullName + companyName
+
+If a duplicate is found, show a warning and allow:
+- update existing
+- merge
+- cancel
+
+Prospection must support:
+- board by phase/status
+- filters by channel, keyword, owner, niche, nextFollowUpAt
+- separate channel views: LinkedIn, Cold Email, Cold Call
+- stale prospect detection
+
+Pipeline must remain high-level:
+- card view by stage
+- minimal card content
+- overdue/blocked visual indicators
+- quick next-action creation
+- no overloaded cards
+
+MCP/dataos_state must also support volume:
+- pagination
+- filters
+- limits
+- stale leads summary
+- follow-ups due
+- high-priority contacts only by default
+```
+
+## Mon avis
+
+Oui : **visuel, filtré, orienté action**.
+
+Le Data OS ne doit pas devenir un Google Sheet plus joli. 
+Il doit te montrer :
+- qui suivre maintenant
+- qui est chaud
+- qui est bloqué
+- qui vaut ton temps
+- quelle prochaine action faire.
+
+## user — 2026-06-03T20:06:40.546549
+
+[The user sent a voice message~ Here's what they said: "Quelle c'est-ce que c'est d'utiliser la coté de l'ancien tableau, donc on va voir tous les noms, le nom d'entreprise et le numéro de téléphone. En fait, avoir des phases, est-ce qu'elle a appelé, est-ce qu'il a répondu, etc., tu vois, qu'elle puisse suivre ça. Et d'un côté, il va y avoir aussi les adjectifs d'appel, est-ce qu'elle a bien appelé, ou tu vois, à chaque fois qu'elle m'est fait monter l'objectif, tu vois."]
+
+## assistant — 2026-06-03T20:06:40.546549
+
+Oui. Là tu parles surtout du module **Prospection**, version simple et opérationnelle.
+
+Il doit garder l’esprit Excel : une liste claire avec les noms, entreprises, téléphones, et les phases.
+
+## Module : Prospection
+
+### Vue principale
+Une table simple, pas trop complexe.
+
+Colonnes visibles :
+
+- Nom
+- Entreprise
+- Téléphone
+- Email / LinkedIn
+- Canal
+- Niche / mot-clé
+- Phase
+- Statut appel
+- Dernière action
+- Prochaine relance
+- Responsable
+- Notes rapides
+
+## Phases recommandées
+
+Pour cold call :
+
+```text
+À appeler
+Appelé
+Répondu
+Pas répondu
+À rappeler
+Intéressé
+R1 booké
+Perdu
+```
+
+Pour LinkedIn/email :
+
+```text
+À contacter
+Message envoyé
+Relance 1
+Relance 2
+Réponse
+À qualifier
+R1 booké
+Perdu
+```
+
+Mais dans l’UI, on peut garder une seule logique :
+
+```text
+À contacter
+Contacté
+Pas de réponse
+À relancer
+Réponse
+À qualifier
+R1 booké
+Perdu
+```
+
+---
+
+## Objectifs d’appel
+
+Il faut un bloc **Objectifs du jour** dans Prospection.
+
+Exemple :
+
+```text
+Objectif appels aujourd’hui : 50
+Appels faits : 32
+Réponses : 8
+R1 bookés : 2
+Reste à faire : 18
+```
+
+### Ce qu’on suit
+- objectif d’appels du jour
+- nombre d’appels faits
+- nombre de réponses
+- nombre de non-réponses
+- nombre de relances prévues
+- nombre de R1 bookés
+
+## Tables utiles
+
+### prospectionRecords
+
+```ts
+prospectionRecords
+- workspaceId
+- contactId
+- fullName
+- companyName
+- phone
+- email
+- linkedinUrl
+- channel // cold_call | linkedin | cold_email
+- niche
+- keyword
+- phase
+- callStatus // not_called | called | answered | no_answer | callback | wrong_number
+- lastActionAt
+- nextFollowUpAt
+- ownerUserId
+- ownerAgentId
+- notes
+- createdAt
+- updatedAt
+```
+
+### prospectionGoals
+
+```ts
+prospectionGoals
+- workspaceId
+- ownerUserId
+- date
+- channel
+- targetCalls
+- targetMessages
+- targetFollowUps
+- targetR1Booked
+- actualCalls
+- actualMessages
+- actualFollowUps
+- actualR1Booked
+- createdAt
+- updatedAt
+```
+
+### prospectionEvents
+
+```ts
+prospectionEvents
+- workspaceId
+- prospectionRecordId
+- contactId
+- eventType // called, answered, no_answer, message_sent, follow_up, r1_booked, lost
+- notes
+- createdBy
+- createdAt
+```
+
+---
+
+## Règle d’usage
+
+Quand elle clique :
+- **Appelé**
+ - incrémente appels faits
+ - log Activités
+ - met dernière action à maintenant
+
+- **Répondu**
+ - incrémente réponses
+ - phase = Réponse / À qualifier
+ - propose tâche “Qualifier / Booker R1”
+
+- **Pas répondu**
+ - phase = À relancer
+ - propose prochaine relance
+
+- **R1 booké**
+ - crée ou met à jour le lead dans Pipeline
+ - stage = R1
+ - log Activités
+ - crée tâche préparation R1
+
+---
+
+## Prompt à donner à Claude Code
+
+```text
+Create a practical Prospection module inspired by the old spreadsheet, but native to the Data OS.
+
+Goal:
+A user should be able to work through many prospects visually and quickly, especially for cold calling.
+
+Do not overcomplicate.
+Do not make it a heavy CRM.
+It should feel like a smarter spreadsheet connected to Contacts, Pipeline, Tâches and Activités.
+
+Main view:
+A clear table with:
+- fullName
+- companyName
+- phone
+- email or linkedinUrl
+- channel
+- niche/keyword
+- phase
+- callStatus
+- lastActionAt
+- nextFollowUpAt
+- owner
+- quick notes
+
+Cold call phases:
+- À appeler
+- Appelé
+- Répondu
+- Pas répondu
+- À rappeler
+- Intéressé
+- R1 booké
+- Perdu
+
+LinkedIn/email phases:
+- À contacter
+- Message envoyé
+- Relance 1
+- Relance 2
+- Réponse
+- À qualifier
+- R1 booké
+- Perdu
+
+Add quick action buttons per row:
+- Appelé
+- Répondu
+- Pas répondu
+- À rappeler
+- Intéressé
+- R1 booké
+- Perdu
+- Ajouter note
+
+Daily objective block:
+Show and allow setting:
+- targetCalls
+- targetMessages
+- targetFollowUps
+- targetR1Booked
+
+Show progress:
+- calls done today
+- answers today
+- no answers today
+- follow-ups due
+- R1 booked today
+- remaining calls vs target
+
+Data models:
+- prospectionRecords
+- prospectionGoals
+- prospectionEvents
+
+Integration rules:
+- Creating a prospection record should create or link a Contact.
+- Quick actions must update the prospection record.
+- Quick actions must write Activités logs.
+- “R1 booké” must create/update Pipeline lead at R1.
+- “À rappeler” must create a Task with nextFollowUpAt.
+- “Perdu” must update contact/prospect status if relevant.
+- All records workspace-scoped.
+- No localStorage source of truth.
+- Add MCP tools:
+ - prospection_list
+ - prospection_create
+ - prospection_update
+ - prospection_log_event
+ - prospection_goals_get
+ - prospection_goals_set
+ - prospection_summary
+
+Acceptance:
+- User can add a prospect with name/company/phone.
+- User can mark Appelé/Répondu/Pas répondu from the table.
+- Daily objective updates visually.
+- Activity log is created on each action.
+- À rappeler creates a task.
+- R1 booké moves/creates the lead in Pipeline.
+- Build/typecheck pass.
+```
+
+## Mon avis
+
+Ce module doit être **le poste de travail d’appel**.
+
+Pas un CRM complet. 
+Juste :
+
+```text
+Qui appeler ?
+Qu’est-ce qui s’est passé ?
+Qui rappeler ?
+Combien d’appels faits vs objectif ?
+Qui passe en R1 ?
+```
+
+C’est ça qui sera utile.
+
+## user — 2026-06-03T20:06:40.546549
+
+[The user sent a voice message~ Here's what they said: "Il y a voilà un peu le moment, j'ai pas envie de modifier mon catavoise sur la partie que j'ai déjà créé. C'est juste que je veux créer les modules et qu'ils soient très synchronisés, que soit synchronisé en fait avec ce qu'on a déjà. Donc on a un libre création au niveau des modules par rapport aux liens excès de que je t'en voyais. Mais par contre je veux pas qu'on change ce qu'il y a déjà été fait. En tout cas pas trop, si il y a des chants le monde, on dirait oui mais il n'y avait pas trop."]
+
+## assistant — 2026-06-03T20:06:40.546549
+
+Oui. Directive claire :
+
+**Ne pas modifier lourdement l’existant. 
+Créer de nouveaux modules propres, mais synchronisés avec l’existant.**
+
+Donc on ne touche pas au CRM/Contacts/Pipeline sauf :
+- liens
+- champs minimaux nécessaires
+- synchro
+- logs
+- affichage léger
+
+## Modules à créer
+
+Je recommande seulement :
+
+### 1. Prospection
+Pour le tableau d’appel/outreach.
+
+Connecté à :
+- Contacts
+- Pipeline
+- Tâches
+- Activités
+
+### 2. Appels
+Pour tracker R1/R2/calls sales.
+
+Connecté à :
+- Contacts
+- Pipeline
+- Tâches
+- Activités
+- Base de connaissance
+
+### 3. Priorisation
+Pas forcément module sidebar. Peut être sous Tâches ou nouveau module léger si tu veux liberté.
+
+Connecté à :
+- Tâches
+- Calendrier
+- Activités
+
+Mais si tu veux créer des modules dédiés sans casser :
+- **Prospection**
+- **Appels**
+- **Plan d’attaque**
+
+C’est propre.
+
+## Règle d’or
+
+```text
+Existing modules remain source-of-truth where they already exist.
+New modules create linked records, not duplicates.
+```
+
+Exemple :
+- Prospection ajoute un prospect → crée/lien Contact.
+- R1 booké → crée/lien Pipeline.
+- À rappeler → crée Tâche.
+- Action faite → écrit Activité.
+- Objection → propose Base de connaissance.
+
+## Message à Claude Code
+
+```text
+Important clarification:
+
+Do not significantly modify the existing Data OS modules.
+The current Contacts, Pipeline, Tâches, Activités, Équipe IA and Base de connaissance modules must remain mostly as they are.
+
+We are allowed to create new modules inspired by the Google Sheets, but they must be synchronized with the existing Data OS.
+
+Create new modules rather than rewriting existing ones.
+
+Recommended new modules:
+1. Prospection
+2. Appels
+3. Plan d’attaque or Priorisation
+
+These modules must use the same visual system and shell as the current Data OS.
+
+Synchronization rules:
+
+Prospection:
+- Inspired by the old LinkedIn / Cold Call / Cold Email spreadsheet.
+- It should work like a smart calling/outreach table.
+- It creates or links Contacts.
+- It can create Tasks for follow-ups.
+- It writes Activities for every action.
+- If a prospect becomes qualified or R1 booked, it creates/updates the Pipeline lead.
+- It must not duplicate existing contacts.
+
+Appels:
+- Inspired by the sales call tracker.
+- It tracks discovery/R1/R2/follow-up calls.
+- It links to Contacts and Pipeline opportunities.
+- If result = follow_up, it creates a Task.
+- If result = closed, it can mark/contact client or create client link.
+- If result = lost, it can update the related pipeline/contact status.
+- Objections can be proposed to Base de connaissance.
+- Every call/action writes Activities.
+
+Plan d’attaque / Priorisation:
+- Inspired by the annual task scoring sheet.
+- It should track high-level initiatives or tasks with:
+ scope, impact, confidence, effort, score, order, plannedMonth, startDate, endDate.
+- It can create or link existing Tâches.
+- It should not replace Tâches board.
+- It writes Activities when priorities/status change.
+
+Do not:
+- rewrite Contacts
+- rewrite Pipeline
+- remove existing fields
+- rename existing modules
+- create duplicate CRM data
+- overload existing pages
+
+Allowed light changes:
+- add links from existing Contacts/Pipeline/Tâches to the new modules
+- add minimal relation fields if needed
+- add MCP tools
+- add activity logs
+- add badges/counts/shortcuts
+
+MCP:
+Extend the MCP so Hermes can use the new modules:
+- prospection_list/create/update/log_event/summary
+- calls_list/create/update/summary
+- plan_list/create/update/score
+- plus linking helpers to contacts/pipeline/tasks
+
+Acceptance:
+- Existing modules still work visually and functionally.
+- New modules appear in sidebar as their own entries or under a clear group.
+- New records link to existing Contacts/Pipeline/Tâches.
+- No duplicate contacts.
+- Every important action logs to Activités.
+- Build/typecheck pass.
+- Vercel works.
+```
+
+## Mon avis final
+
+Oui : **modules nouveaux, synchronisation forte, modifications faibles de l’existant.**
+
+C’est le bon compromis.
+
+## user — 2026-06-03T20:06:40.546549
+
+[The user sent a voice message~ Here's what they said: "J'ai une décrymée à l'hémoture, c'est ok?"]
+
+## assistant — 2026-06-03T20:06:40.546549
+
+Oui, c’est OK.
+
+Donne-lui cette directive simple :
+
+```text
+Créer les nouveaux modules, mais ne pas refondre l’existant.
+
+Modules à créer :
+- Prospection
+- Appels
+- Plan d’attaque / Priorisation
+
+Ils doivent être synchronisés avec :
+- Contacts
+- Pipeline
+- Tâches
+- Activités
+- Base de connaissance
+
+Ne pas modifier lourdement les modules existants.
+Seulement ajouter les liens, champs relationnels, logs et raccourcis nécessaires.
+
+Règle :
+nouveaux modules = espace de travail dédié.
+modules existants = source de vérité actuelle.
+```
+
+C’est propre.
+
+## user — 2026-06-03T20:06:40.546549
+
+[The user sent a voice message~ Here's what they said: "Non, je t'ai demandé de me t'écrire, les... Est-ce que tu veux mettre dans les modules ?"]
+
+## assistant — 2026-06-03T20:06:40.546549
+
+Oui. Voilà **ce que je veux mettre dans chaque module**, concrètement.
+
+## 1. Module Prospection
+
+But : poste de travail pour appeler / contacter beaucoup de prospects.
+
+### À mettre dedans
+
+#### Vue “Liste”
+Colonnes :
+- Nom
+- Entreprise
+- Téléphone
+- Email
+- LinkedIn
+- Canal : appel / LinkedIn / email
+- Niche
+- Source / mot-clé
+- Phase
+- Statut
+- Dernière action
+- Prochaine relance
+- Responsable
+- Notes
+
+#### Phases
+Pour appel :
+- À appeler
+- Appelé
+- Répondu
+- Pas répondu
+- À rappeler
+- Intéressé
+- R1 booké
+- Perdu
+
+Pour LinkedIn/email :
+- À contacter
+- Message envoyé
+- Relance 1
+- Relance 2
+- Réponse
+- À qualifier
+- R1 booké
+- Perdu
+
+#### Actions rapides par ligne
+- Appelé
+- Répondu
+- Pas répondu
+- À rappeler
+- Intéressé
+- R1 booké
+- Perdu
+- Ajouter note
+
+#### Objectifs du jour
+Bloc en haut :
+- objectif appels
+- appels faits
+- réponses
+- pas de réponse
+- relances dues
+- R1 bookés
+- reste à faire
+
+#### Connexions
+- crée/lien Contact
+- crée Tâche si relance
+- crée Pipeline si R1 booké
+- écrit Activité à chaque action
+
+---
+
+## 2. Module Appels
+
+But : suivre les calls commerciaux R1/R2/discovery.
+
+### À mettre dedans
+
+#### Vue “Liste des appels”
+Colonnes :
+- Date
+- Contact
+- Entreprise
+- Type d’appel : discovery / R1 / R2 / follow-up
+- Source
+- Offre
+- Montant
+- Résultat
+- Replay
+- Conclusion
+- Prochaine action
+
+#### Résultats
+- Closé
+- Perdu
+- À suivre
+- No-show
+
+#### Fiche appel
+Champs :
+- contact lié
+- opportunité/pipeline lié
+- date
+- durée
+- lien replay
+- notes
+- conclusion
+- objections
+- raisons gagné/perdu
+- prochaine action
+
+#### KPIs
+- total appels
+- ventes
+- perdus
+- à suivre
+- closing %
+- warning si moins de 30 appels
+
+#### Connexions
+- lié Contact
+- lié Pipeline
+- crée Tâche si à suivre
+- convertit en client si closé
+- met perdu si perdu
+- envoie objections vers Base de connaissance
+- écrit Activité
+
+---
+
+## 3. Module Plan d’attaque / Priorisation
+
+But : prioriser les gros chantiers et actions business.
+
+### À mettre dedans
+
+#### Vue “Priorisation”
+Colonnes :
+- Initiative / tâche
+- Catégorie
+- Portée
+- Impact
+- Confiance
+- Effort
+- Score
+- Ordre
+- Mois prévu
+- Début
+- Fin
+- Responsable
+- Statut
+
+#### Score
+Formule :
+```text
+score = portée × impact × confiance / effort
+```
+
+#### Catégories
+- Acquisition
+- Sales
+- Delivery
+- Contenu
+- Ops
+- Produit
+- Admin
+
+#### Vues
+- Priorisation
+- Calendrier mensuel
+- Roadmap
+- À lancer maintenant
+- Bloqué
+
+#### Connexions
+- peut créer/lier une Tâche
+- peut assigner humain ou agent
+- écrit Activité quand priorité/statut change
+- peut créer bloc Calendrier plus tard
+
+---
+
+# Résumé ultra-simple
+
+## Prospection
+```text
+Qui contacter ? Où il en est ? Quelle prochaine relance ? Objectif du jour ?
+```
+
+## Appels
+```text
+Quels calls ont eu lieu ? Résultat ? Objections ? Prochaine action ? Closing %
+```
+
+## Plan d’attaque
+```text
+Qu’est-ce qu’on doit prioriser ? Pourquoi ? Quand ? Qui s’en occupe ?
+```
+
+## Ce que je ne veux pas
+
+- pas copier Excel
+- pas 50 champs visibles
+- pas casser Contacts/Pipeline
+- pas doublonner les contacts
+- pas refaire Tâches
+- pas surcharger les cartes pipeline
+
+Voilà : **3 modules utiles, simples, synchronisés.**
+
+## user — 2026-06-03T20:06:40.546549
+
+[The user sent a voice message~ Here's what they said: "En fait, saches que la cetteur, elle, juste la partie appelée, et puis à partir de moi, il y a un aéran qui est pris, elle est... elle identifie comme quoi, le aéran est fait, donc c'est le classé de ton côté et c'est vraiment nous après qu'il y a l'onclusé ou l'aéran. Dans quel effet le travail, jusqu'au aéran."]
+
+## assistant — 2026-06-03T20:06:40.546549
+
+Oui, important. Je corrige.
+
+La personne qui utilise **Prospection** ne va pas gérer tout le cycle sales. 
+Elle fait uniquement le travail **jusqu’au R1 booké**.
+
+Après R1 booké, c’est **nous** qui reprenons dans Pipeline / Appels / Closing.
+
+## Donc module Prospection = jusqu’au R1
+
+### Objectif du module
+```text
+Appeler / contacter → qualifier léger → booker R1
+```
+
+Pas :
+- gérer R1
+- gérer R2
+- closer
+- conclure gagné/perdu après call
+- gérer client
+
+## Phases Prospection corrigées
+
+Pour cold call :
+
+- À appeler
+- Appelé
+- Pas répondu
+- À rappeler
+- Répondu
+- Intéressé
+- R1 booké
+- Non qualifié
+
+Pour LinkedIn/email :
+
+- À contacter
+- Message envoyé
+- Relance 1
+- Relance 2
+- Réponse
+- Intéressé
+- R1 booké
+- Non qualifié
+
+## Quand R1 est booké
+
+Action :
+```text
+R1 booké
+```
+
+Effets automatiques :
+- contact lié/créé
+- statut contact = lead
+- pipelineStage = R1
+- activité loggée
+- tâche créée pour nous :
+ - “Préparer R1 avec [Nom]”
+- prospectionRecord status = completed / handoff
+- la personne prospection n’a plus besoin de suivre ce lead
+
+## Ce qui est hors scope Prospection
+
+À ne pas mettre dans Prospection :
+- Résultat R1
+- Résultat R2
+- Closing
+- Objections détaillées de vente
+- Montant final
+- Conversion client
+- Perdu après R1/R2
+
+Ça va dans :
+- Pipeline
+- Appels
+- Tâches
+- Base de connaissance
+
+## Vue Prospection simplifiée
+
+Colonnes :
+- Nom
+- Entreprise
+- Téléphone
+- Canal
+- Phase
+- Dernière action
+- Prochaine relance
+- Responsable
+- Note rapide
+- Bouton : R1 booké
+
+Pas besoin de :
+- montant
+- offre
+- closing
+- objections avancées
+
+## Objectifs du jour corrigés
+
+Objectifs utiles :
+- appels à faire
+- appels faits
+- réponses
+- intéressés
+- R1 bookés
+- relances à faire
+
+Pas :
+- ventes
+- closing %
+- R2
+
+## Message à Claude Code
+
+```text
+Clarification for Prospection module:
+
+Prospection is only responsible for the work until R1 is booked.
+
+The prospection user/caller should not manage the full sales cycle.
+They call/contact prospects, do light qualification, and book R1.
+Once R1 is booked, the lead is handed off to the main VividFlow team through Pipeline/Tâches.
+
+Prospection scope:
+- create/link contact
+- call/contact prospect
+- mark called/no answer/callback/interested
+- set next follow-up
+- mark R1 booked
+- write activity logs
+- track daily call/message objectives
+
+Out of scope for Prospection:
+- R1 result
+- R2 result
+- closing
+- lost/won after sales call
+- detailed sales objections
+- client conversion
+
+Correct phases for cold call:
+- À appeler
+- Appelé
+- Pas répondu
+- À rappeler
+- Répondu
+- Intéressé
+- R1 booké
+- Non qualifié
+
+Correct phases for LinkedIn/email:
+- À contacter
+- Message envoyé
+- Relance 1
+- Relance 2
+- Réponse
+- Intéressé
+- R1 booké
+- Non qualifié
+
+When “R1 booké” is clicked:
+- create or link Contact
+- set contact.status = lead
+- create/update Pipeline opportunity
+- set pipelineStage = r1
+- create Activity log
+- create Task for VividFlow team: “Préparer R1 avec [contact]”
+- mark prospection record as completed/handoff
+- remove it from active prospection queue
+
+Prospection UI should stay simple:
+- name
+- company
+- phone
+- channel
+- phase
+- lastActionAt
+- nextFollowUpAt
+- owner
+- quick note
+- quick buttons:
+ Appelé, Pas répondu, À rappeler, Répondu, Intéressé, R1 booké, Non qualifié
+
+Daily objective block:
+- target calls/messages
+- calls/messages done
+- answers
+- interested
+- R1 booked
+- follow-ups due
+
+Do not add closing fields, sales call result fields or client conversion fields to Prospection.
+Those belong to Pipeline/Appels.
+```
+
+C’est beaucoup plus propre. 
+**Prospection = production de R1.** 
+Le reste = équipe VividFlow.
+
+## user — 2026-06-03T20:06:40.546549
+
+[The user sent a voice message~ Here's what they said: "Avec plein d'accueulements, on n'a pas eu plein de l'île, on a eu nombre d'opportunités et après on a un niveau lise en conversation, R1, R2. Il y a en fait réel sur le travail, c'est ces nouveaux lises, les âmes d'en conversation, donc il y a un en conversation. C'est ça qui s'appelle plusieurs types de conversations, c'est que l'île d'île, l'île ou appel et après cette conversation, ça s'en sort dans R1. Et du coup, on a un nom à la carte d'un nouveau lise qui passe sur la carte de l'île de la colonne conversation et R1. Et c'est le parti de conversation au niveau lise et c'est là le plus travail qu'elle va faire. Et nous, on ne veut pas forcément le détail dans le gros tableau, on veut juste qu'elle, dans son module, vie est tout ce détail. Donc on faut faire quelque chose de très propre, facile à utiliser, clean. Et bien sûr, reprendre de machine design qu'on a déjà, ça va rentrer les choses. Tu as le genre de canvas, on a là, c'est pas un canvas, plus un genre de tableau, mais s'inspirer largement des canvas. Tu as le faire quelque chose de visuellement au niveau, avec le principe de carte de tour."]
+
+## assistant — 2026-06-03T20:06:40.546549
+
+Oui. Là c’est clair.
+
+Il y a **2 niveaux** :
+
+## Niveau 1 — Pipeline VividFlow
+
+Vue haute pour nous.
+
+Colonnes :
+- Nouveau lead
+- En conversation
+- R1
+- R2
+- Nouveau client
+- Perdu
+
+On ne veut voir que :
+- nom
+- entreprise
+- source
+- prochaine étape
+- statut chaud/froid
+- éventuellement responsable
+
+Pas le détail des appels/messages.
+
+## Niveau 2 — Module Prospection
+
+Vue détaillée pour la personne qui fait le travail.
+
+Elle travaille surtout sur :
+```text
+Nouveau lead → En conversation → R1 booké
+```
+
+C’est dans **Prospection** qu’on voit :
+- appels
+- messages
+- relances
+- réponses
+- pas répondu
+- intéressé
+- historique court
+- objectif du jour
+
+Quand elle marque **R1 booké**, ça pousse la carte dans le Pipeline colonne **R1**.
+
+---
+
+# Module Prospection — design recommandé
+
+Pas une simple table froide.
+
+Je ferais une vue **board/canvas avec cartes**, proche pipeline mais plus détaillée.
+
+## Colonnes Prospection
+
+### 1. Nouveau lead
+Contacts ajoutés mais pas encore travaillés.
+
+### 2. À contacter
+Prêts à appeler/message.
+
+### 3. Contacté
+Action faite, attente réponse.
+
+### 4. En conversation
+Il y a une réponse ou échange actif.
+
+### 5. À relancer
+Relance prévue.
+
+### 6. Intéressé
+Besoin clair, prêt à booker.
+
+### 7. R1 booké
+Handoff vers équipe VividFlow.
+
+### 8. Non qualifié
+Sortie prospection.
+
+Tu peux simplifier si besoin :
+
+```text
+Nouveau lead
+À contacter
+Contacté
+En conversation
+À relancer
+R1 booké
+Non qualifié
+```
+
+C’est suffisant.
+
+---
+
+# Carte Prospection
+
+Chaque carte doit être propre, lisible, actionnable.
+
+Contenu carte :
+- Nom
+- Entreprise
+- canal : Appel / LinkedIn / Email
+- téléphone ou lien LinkedIn
+- phase actuelle
+- dernière action
+- prochaine relance
+- mini note
+- badge : chaud / à rappeler / pas répondu / intéressé
+
+Actions rapides :
+- Appelé
+- Message envoyé
+- Répondu
+- Pas répondu
+- À rappeler
+- Intéressé
+- R1 booké
+- Non qualifié
+
+---
+
+# Fiche détail carte
+
+Quand on clique une carte :
+
+Sections :
+1. **Contact**
+ - nom
+ - entreprise
+ - téléphone
+ - email
+ - LinkedIn
+ - niche/source
+
+2. **Conversation**
+ - dernier message / note
+ - historique des actions
+ - statut : pas répondu / répondu / intéressé / à rappeler
+
+3. **Prochaine action**
+ - date relance
+ - tâche liée
+ - responsable
+
+4. **Handoff R1**
+ - date R1
+ - notes pour l’équipe
+ - besoin identifié
+ - contexte rapide
+ - bouton “Marquer R1 booké”
+
+---
+
+# Objectifs visibles
+
+En haut du module :
+
+- leads à travailler
+- appels/messages faits aujourd’hui
+- réponses
+- conversations actives
+- R1 bookés
+- relances dues
+
+Pas besoin de closing %. 
+C’est un module de **production de conversations/R1**, pas de vente.
+
+---
+
+# Synchronisation avec Pipeline
+
+Règles simples :
+
+## Quand une carte est créée dans Prospection
+- crée/lien Contact
+- si statut lead → visible dans Pipeline colonne Nouveau lead
+
+## Quand elle passe “En conversation”
+- Pipeline met la carte en **En conversation**
+- Activités log :
+ - `lead.conversation_started`
+
+## Quand elle passe “R1 booké”
+- Pipeline met la carte en **R1**
+- crée tâche :
+ - “Préparer R1 avec [Nom]”
+- prospectionRecord = handoff/completed
+- Activités log :
+ - `lead.r1_booked`
+
+## Quand “Non qualifié”
+- Pipeline passe perdu ou hors pipeline selon choix
+- Activités log :
+ - `prospection.disqualified`
+
+---
+
+# Prompt Claude Code propre
+
+```text
+Create a new Prospection module for the VividFlow Data OS.
+
+Important:
+Do not modify the existing Pipeline heavily.
+Pipeline remains the high-level VividFlow commercial view.
+Prospection is the detailed working area for the caller/outreach person.
+
+Current high-level Pipeline stages:
+- Nouveau lead
+- En conversation
+- R1
+- R2
+- Nouveau client
+- Perdu
+
+Prospection should focus only on the early lifecycle:
+Nouveau lead → En conversation → R1 booké.
+
+The VividFlow team does not want all outreach/call details inside the main Pipeline.
+Those details belong inside Prospection.
+
+Design:
+Use the existing Data OS visual system.
+Create a clean board/canvas style interface with cards, inspired by the current Pipeline/card design.
+Do not create a plain ugly table only.
+The module should be visual, fast, and easy to use with many contacts.
+
+Prospection board columns:
+- Nouveau lead
+- À contacter
+- Contacté
+- En conversation
+- À relancer
+- Intéressé
+- R1 booké
+- Non qualifié
+
+If needed, simplify to:
+- Nouveau lead
+- À contacter
+- Contacté
+- En conversation
+- À relancer
+- R1 booké
+- Non qualifié
+
+Each card shows:
+- fullName
+- companyName
+- channel: appel | linkedin | email
+- phone or linkedinUrl
+- current phase
+- lastActionAt
+- nextFollowUpAt
+- short note
+- badge: pas répondu | répondu | chaud | à rappeler | intéressé
+
+Quick actions:
+- Appelé
+- Message envoyé
+- Répondu
+- Pas répondu
+- À rappeler
+- Intéressé
+- R1 booké
+- Non qualifié
+- Ajouter note
+
+Card detail drawer/modal:
+Sections:
+1. Contact
+- fullName
+- companyName
+- phone
+- email
+- linkedinUrl
+- niche/source
+
+2. Conversation
+- quick notes
+- short action history
+- current status
+
+3. Prochaine action
+- nextFollowUpAt
+- linked task
+- owner
+
+4. Handoff R1
+- R1 date/time if available
+- context for VividFlow team
+- need/pain identified
+- notes for R1
+- button: Mark R1 booked
+
+Top KPI strip:
+- leads to work
+- calls/messages done today
+- answers today
+- active conversations
+- follow-ups due
+- R1 booked today
+
+Synchronization rules:
+- Creating a prospection card creates or links a Contact.
+- Prospection must not duplicate existing Contacts.
+- Prospection status changes write Activities.
+- Moving to “En conversation” updates the high-level Pipeline stage to conversation.
+- Moving to “R1 booké” updates the high-level Pipeline stage to R1.
+- “R1 booké” creates a Task for the VividFlow team: “Préparer R1 avec [contact]”.
+- “R1 booké” marks the prospection record as handoff/completed.
+- “Non qualifié” removes or marks the lead as lost/unqualified according to existing Data OS conventions.
+- Pipeline should only show the high-level stage, not all prospection details.
+
+MCP:
+Add:
+- prospection_list
+- prospection_create
+- prospection_update
+- prospection_move
+- prospection_log_event
+- prospection_summary
+
+dataos_state should include:
+- active prospection count
+- conversations active
+- follow-ups due
+- R1 booked today
+- stale prospection cards
+
+Acceptance:
+- Existing Pipeline still works.
+- Prospection board loads with card columns.
+- Creating a card links/creates Contact.
+- Moving card to En conversation updates Pipeline.
+- Moving card to R1 booké updates Pipeline R1 and creates a Task.
+- Activity logs are created.
+- UI stays clean and visually consistent with the existing Data OS.
+- Works with many contacts using filters/search.
+- Build/typecheck pass.
+- Vercel works.
+```
+
+## Résumé
+
+**Pipeline = vision haute.** 
+**Prospection = atelier détaillé pour produire des conversations et des R1.**
+
+C’est exactement le bon découpage.
+
+## user — 2026-06-03T20:06:40.546549
+
+[The user sent a voice message~ Here's what they said: "Tu veux, par exemple, pour les contacts du coup, il y a réellement très loin, pendant que l'entreprise, on y a au téléphone, et puis, des cartes, il a fait que l'inquiétement soit chaud, froid, tiède, tu vois, du clic dessus. Ça, tu vois, quand même, c'est une gagne, les chauds froid, tiède. Et puis, après, les différentes phases, tu vois, puisque tous les jours, en fait, à voir à ce qu'il m'a répondu, à ce qu'il m'a répondu, une phase de... J'ai rappel, à ce qu'il m'a appelé, à ce qu'il m'a lissé à un message, tu vois, tiède."]
+
+## assistant — 2026-06-03T20:06:40.546549
+
+Oui. Dans **Prospection**, il faut deux dimensions séparées :
+
+1. **Phase de travail** = où on en est dans l’action.
+2. **Température** = qualité/intérêt du lead.
+
+Ne pas mélanger les deux.
+
+## Carte Prospection
+
+Chaque carte doit afficher :
+
+- Nom
+- Entreprise
+- Téléphone
+- Canal : appel / LinkedIn / email
+- **Phase**
+- **Température : chaud / tiède / froid**
+- Dernière action
+- Prochaine relance
+- Note courte
+
+## Température
+
+### Chaud
+Le prospect :
+- a répondu positivement
+- a montré un besoin clair
+- veut en savoir plus
+- est proche du R1
+
+### Tiède
+Le prospect :
+- a répondu mais pas clair
+- demande de rappeler
+- montre un intérêt léger
+- n’a pas encore accepté R1
+
+### Froid
+Le prospect :
+- ne répond pas
+- pas intéressé
+- mauvais timing
+- douteux / peu prioritaire
+
+## Phases
+
+Pour le travail quotidien :
+
+- Nouveau lead
+- À appeler
+- Appelé
+- Pas répondu
+- Message laissé
+- À rappeler
+- Répondu
+- En conversation
+- Intéressé
+- R1 booké
+- Non qualifié
+
+Tu peux aussi faire des colonnes plus simples et garder les phases dans la carte.
+
+## Ma recommandation UI
+
+Colonnes board :
+
+- Nouveau lead
+- À traiter
+- En attente réponse
+- À rappeler
+- En conversation
+- R1 booké
+- Non qualifié
+
+Et dans chaque carte :
+- phase exacte : appelé / message laissé / pas répondu / répondu
+- température : chaud / tiède / froid
+
+C’est plus propre que 12 colonnes.
+
+## Actions rapides
+
+Sur chaque carte :
+
+- Appelé
+- Pas répondu
+- Message laissé
+- Répondu
+- À rappeler
+- Mettre chaud
+- Mettre tiède
+- Mettre froid
+- R1 booké
+- Non qualifié
+
+## Effets automatiques
+
+- **Pas répondu**
+ - phase = pas répondu
+ - température = froid par défaut
+ - proposer prochaine relance
+
+- **Message laissé**
+ - phase = message laissé
+ - température = tiède ou froid
+ - prochaine relance
+
+- **Répondu**
+ - phase = répondu / en conversation
+ - température = tiède par défaut
+
+- **Intéressé**
+ - phase = intéressé / en conversation
+ - température = chaud
+
+- **R1 booké**
+ - température = chaud
+ - Pipeline = R1
+ - tâche créée pour l’équipe
+
+## Bloc objectifs
+
+En haut :
+
+- appels faits aujourd’hui
+- réponses
+- messages laissés
+- rappels programmés
+- conversations actives
+- chauds
+- R1 bookés
+
+## Prompt Claude Code mis à jour
+
+```text
+Update the Prospection module concept with two separate dimensions:
+
+1. Work phase
+Where the prospect is in the outreach/calling process.
+
+2. Lead temperature
+How promising the prospect is.
+
+Do not mix phase and temperature.
+
+Card fields:
+- fullName
+- companyName
+- phone
+- channel: appel | linkedin | email
+- phase
+- temperature: chaud | tiède | froid
+- lastActionAt
+- nextFollowUpAt
+- shortNote
+
+Recommended board columns:
+- Nouveau lead
+- À traiter
+- En attente réponse
+- À rappeler
+- En conversation
+- R1 booké
+- Non qualifié
+
+Detailed phases:
+- nouveau_lead
+- a_appeler
+- appele
+- pas_repondu
+- message_laisse
+- a_rappeler
+- repondu
+- en_conversation
+- interesse
+- r1_booke
+- non_qualifie
+
+Temperature:
+- chaud
+- tiede
+- froid
+
+Temperature meaning:
+- chaud: clear interest, pain/need identified, close to R1
+- tiede: replied or callback requested, interest unclear
+- froid: no answer, low priority, bad timing, weak fit
+
+Quick actions:
+- Appelé
+- Pas répondu
+- Message laissé
+- Répondu
+- À rappeler
+- Intéressé
+- Mettre chaud
+- Mettre tiède
+- Mettre froid
+- R1 booké
+- Non qualifié
+- Ajouter note
+
+Automatic defaults:
+- Pas répondu → phase=pas_repondu, temperature=froid, suggest nextFollowUpAt
+- Message laissé → phase=message_laisse, suggest nextFollowUpAt
+- Répondu → phase=repondu/en_conversation, temperature=tiede by default
+- Intéressé → phase=interesse/en_conversation, temperature=chaud
+- R1 booké → phase=r1_booke, temperature=chaud, update Pipeline stage to R1, create Task for team
+
+Top KPI strip:
+- calls done today
+- answers today
+- messages left today
+- callbacks scheduled
+- active conversations
+- hot leads
+- R1 booked today
+
+UI:
+Cards should show temperature with clear visual badges:
+- chaud = strong/high attention
+- tiède = medium
+- froid = low/cold
+Keep the design aligned with existing Data OS components.
+```
+
+Ça donne un module beaucoup plus utile : 
+**la phase dit quoi faire maintenant ; la température dit où mettre l’énergie.**
+
+## user — 2026-06-03T20:06:40.546549
+
+[The user sent a voice message~ Here's what they said: "Bon, en fait, c'est ça, nous prenons l'adresse numéro de téléphone en entreprise. Ça, c'est ce qu'il y a aussi dans le contact, faut que les deux soient encore stécrits dans l'un, ça paraît dans l'autre, c'est vraiment réfléchir à tous."]
+
+## assistant — 2026-06-03T20:06:40.546549
+
+Exact. C’est le point central :
+
+**Prospection ne doit pas avoir sa propre vérité contact.** 
+Nom / entreprise / téléphone / email doivent être synchronisés avec **Contacts**.
+
+## Règle absolue
+
+```text
+Contacts = source de vérité.
+Prospection = vue de travail liée à un contact.
+```
+
+Donc dans Prospection, on affiche :
+- nom
+- entreprise
+- téléphone
+- email
+- LinkedIn
+
+Mais ces champs viennent du contact lié.
+
+## Modèle propre
+
+### contacts
+Contient les infos stables :
+
+```ts
+contacts
+- fullName
+- companyName
+- phone
+- email
+- linkedinUrl
+- niche
+- canton
+- source
+- status // lead | client | perdu
+```
+
+### prospectionRecords
+Contient seulement le travail de prospection :
+
+```ts
+prospectionRecords
+- contactId
+- channel
+- phase
+- temperature
+- lastActionAt
+- nextFollowUpAt
+- owner
+- shortNote
+- status // active | handoff | archived
+```
+
+Donc si on modifie le téléphone dans Contacts, Prospection l’affiche automatiquement. 
+Si on modifie le téléphone depuis Prospection, ça met à jour Contacts.
+
+## À dire à Claude Code
+
+```text
+Critical data rule:
+
+Contact identity fields must not be duplicated between Contacts and Prospection.
+
+Contacts are the source of truth for:
+- fullName
+- companyName
+- phone
+- email
+- linkedinUrl
+- niche
+- canton
+- source
+- status
+
+Prospection records should store only prospection-specific fields:
+- contactId
+- channel
+- phase
+- temperature
+- lastActionAt
+- nextFollowUpAt
+- owner
+- shortNote
+- status
+
+In the Prospection UI, display contact fields by joining/linking the related Contact.
+If a user edits identity fields from Prospection, update the Contact record, not a duplicated copy.
+
+Creating a Prospection card:
+1. Search existing Contacts by email, phone, linkedinUrl, normalized name + company.
+2. If found, link to existing contact.
+3. If not found, create a new Contact.
+4. Then create prospectionRecord linked to contactId.
+
+Updating from either module:
+- Contacts update should reflect in Prospection.
+- Prospection identity edits should update Contacts.
+- Both should write Activity logs.
+
+No duplicated contact identity data.
+No divergence between Contacts and Prospection.
+```
+
+C’est ce qui évite le bordel quand vous aurez beaucoup de contacts.
+
+## user — 2026-06-03T20:06:40.546549
+
+[The user sent a voice message~ Here's what they said: "Donc, il y a un phleura, c'est vraiment megaponte, tout le monde. On est en gros, nous, ce qu'on actuellement, on a une vague plan lide. Et on a le dossier contact, mais en correctant, les fiches contactent. Donc, effectivement, on a une fiche contact, je pense, je suis peu heureux à regarder. Mais, on peut identifier si c'est un lide inclinant ou bien du conclunt, et tout le monde, ils sont tous lides. Donc, finalement, on prenne adresse numéro téléphone, non, mon tropisme, ça y est. Maintenant, on n'a pas y plan lide, ils arrivent en tant que nouveau lide. Il doit être basculé dans la partie en conversation, il doit être basculé dans la partie de la colonne du Canbanne. En... Maintenant, cette partie-là doit se faire en automatique se synchroniser, en fonction de ce que le 7 heures fait dans ces modules. Tu vois. Donc, je pense, il faut qu'on donne accès au module actuel de mon tact, mais derrière, on va faire quelque chose qui se synchronise et qui peut être un vrai outil de travail. Et je pense que tu l'as vu, les excels comme elles fonctionnent. Il faut qu'on fasse vraiment ça, tu vas qu'on puisse, à chaque phase, mettre le mot qu'on veut, etc. Enfin, pas le mot qu'on veut, mais un mot qui est déjà préselectionné, on clique dessus."]
+
+## assistant — 2026-06-03T20:06:40.546549
+
+Oui. Là le modèle final est clair.
+
+## Source de vérité
+
+Tous les prospects/leads/clients/perdus sont dans **Contacts**.
+
+Un contact a un statut :
+- lead
+- client
+- perdu
+
+Et s’il est lead, il peut apparaître dans le **Pipeline**.
+
+## Ce que fait Prospection
+
+Prospection n’est pas une base contact séparée.
+
+C’est un **outil de travail** branché sur Contacts.
+
+La personne voit des cartes/contacts à travailler, clique sur des statuts pré-définis, et ça synchronise automatiquement :
+
+```text
+Prospection → Contacts → Pipeline → Tâches → Activités
+```
+
+## Cycle voulu
+
+### 1. Nouveau lead
+Un contact arrive avec :
+- nom
+- entreprise
+- téléphone
+- email/LinkedIn si dispo
+- source
+
+Il est créé dans **Contacts** :
+```text
+status = lead
+pipelineStage = nouveau_lead
+```
+
+Il apparaît dans :
+- Contacts
+- Pipeline colonne Nouveau lead
+- Prospection colonne Nouveau lead / À traiter
+
+### 2. La personne travaille le lead dans Prospection
+
+Elle clique sur des boutons pré-définis :
+
+- Appelé
+- Pas répondu
+- Message laissé
+- À rappeler
+- Répondu
+- En conversation
+- Intéressé
+- R1 booké
+- Non qualifié
+
+Chaque clic :
+- met à jour prospectionRecord
+- met à jour le contact si besoin
+- met à jour le Pipeline si besoin
+- crée une Activité
+- crée une Tâche si relance/R1
+
+### 3. Passage en conversation
+
+Si elle clique :
+```text
+Répondu / En conversation / Intéressé
+```
+
+Alors :
+```text
+Pipeline = En conversation
+```
+
+Ça ne doit pas être manuel deux fois.
+
+### 4. Passage R1
+
+Si elle clique :
+```text
+R1 booké
+```
+
+Alors :
+```text
+Pipeline = R1
+```
+
+Et automatiquement :
+- tâche créée pour nous : “Préparer R1 avec [Nom]”
+- prospectionRecord passe en handoff/completed
+- activité loggée
+
+### 5. Non qualifié
+
+Si elle clique :
+```text
+Non qualifié
+```
+
+Alors :
+- contact peut rester lead mais `leadStatus = non_qualifie`
+- ou passer perdu selon convention actuelle
+- Pipeline retire ou classe dans perdu
+- activité loggée
+
+---
+
+# Ce qu’il faut dans l’UI
+
+## Prospection = Kanban de travail
+
+Colonnes simples :
+- Nouveau lead
+- À traiter
+- En attente
+- À rappeler
+- En conversation
+- R1 booké
+- Non qualifié
+
+Chaque carte :
+- nom
+- entreprise
+- téléphone
+- température : chaud / tiède / froid
+- phase actuelle
+- prochaine relance
+- note rapide
+
+## Boutons / statuts pré-sélectionnés
+
+Pas de texte libre pour les phases principales.
+
+Actions :
+- Appelé
+- Pas répondu
+- Message laissé
+- À rappeler
+- Répondu
+- En conversation
+- Intéressé
+- R1 booké
+- Non qualifié
+
+Température :
+- Chaud
+- Tiède
+- Froid
+
+Notes :
+- là, texte libre OK
+
+---
+
+# À dire à Claude Code
+
+```text
+Final Prospection synchronization model:
+
+Contacts are the source of truth for all people/companies.
+Every lead, client and lost prospect is a Contact.
+
+Contact identity fields:
+- fullName
+- companyName
+- phone
+- email
+- linkedinUrl
+- source
+- niche
+- canton
+
+Contact commercial fields:
+- status: lead | client | perdu
+- pipelineStage: nouveau_lead | en_conversation | r1 | r2 | nouveau_client | perdu
+- leadStatus: active | handoff | non_qualifie | dormant
+
+Prospection is not a separate contact database.
+Prospection is a working board linked to Contacts.
+
+Prospection records should store only:
+- contactId
+- phase
+- temperature: chaud | tiede | froid
+- channel: appel | linkedin | email
+- lastActionAt
+- nextFollowUpAt
+- owner
+- shortNote
+- status: active | handoff | archived
+
+Prospection board columns:
+- Nouveau lead
+- À traiter
+- En attente
+- À rappeler
+- En conversation
+- R1 booké
+- Non qualifié
+
+Cards display Contact fields through contactId:
+- fullName
+- companyName
+- phone
+- email/linkedin if available
+- source/niche
+Plus prospection fields:
+- phase
+- temperature
+- nextFollowUpAt
+- shortNote
+
+Predefined quick actions only:
+- Appelé
+- Pas répondu
+- Message laissé
+- À rappeler
+- Répondu
+- En conversation
+- Intéressé
+- R1 booké
+- Non qualifié
+
+Temperature quick buttons:
+- Chaud
+- Tiède
+- Froid
+
+Synchronization rules:
+1. Creating a new lead from Prospection:
+ - search existing Contacts by phone, email, linkedinUrl, normalized fullName + companyName
+ - if found, link to Contact
+ - if not found, create Contact
+ - set contact.status = lead
+ - set contact.pipelineStage = nouveau_lead
+ - create prospectionRecord linked to contactId
+ - show in Pipeline Nouveau lead
+
+2. Action “Répondu”, “En conversation” or “Intéressé”:
+ - update prospectionRecord.phase
+ - set contact.pipelineStage = en_conversation
+ - ensure Pipeline card appears/moves to En conversation
+ - write Activity log
+
+3. Action “R1 booké”:
+ - update prospectionRecord.phase = r1_booke
+ - prospectionRecord.status = handoff
+ - set contact.pipelineStage = r1
+ - ensure Pipeline card moves to R1
+ - create Task: “Préparer R1 avec [contact]”
+ - write Activity log
+
+4. Action “À rappeler”:
+ - require or suggest nextFollowUpAt
+ - create/update linked Task
+ - write Activity log
+
+5. Action “Non qualifié”:
+ - update prospectionRecord.status = archived
+ - set contact.leadStatus = non_qualifie
+ - remove from active prospection board
+ - move Pipeline to perdu or remove from pipeline depending current app convention
+ - write Activity log
+
+6. Identity field edits:
+ - if edited in Prospection, update Contact, not prospectionRecord
+ - Contact changes must reflect automatically in Prospection
+
+7. No duplicated contact identity fields.
+8. No manual double update between Prospection and Pipeline.
+9. Every action creates an Activity log.
+10. MCP must expose these actions for Hermes.
+
+MCP tools:
+- prospection_list
+- prospection_create_or_link_contact
+- prospection_move
+- prospection_quick_action
+- prospection_set_temperature
+- prospection_set_next_followup
+- prospection_summary
+
+Acceptance:
+- New lead created in Prospection appears in Contacts and Pipeline Nouveau lead.
+- Existing Contact can be linked to Prospection without duplicate.
+- Clicking En conversation moves Pipeline card to En conversation.
+- Clicking R1 booké moves Pipeline card to R1 and creates a Task.
+- Contact phone/company/name stay synchronized between Contacts and Prospection.
+- Actions are chosen from predefined buttons, not free-form phases.
+- Activity logs are written automatically.
+- Existing Contacts/Pipeline are not heavily redesigned.
+```
+
+## Résumé simple
+
+**Contacts contient les gens.** 
+**Pipeline montre l’étape commerciale.** 
+**Prospection est le cockpit de travail pour faire avancer les leads jusqu’à R1.**
+
+Et la personne clique sur des statuts pré-définis. 
+Pas de double saisie. Pas de doublons.
+
+## user — 2026-06-03T20:06:40.546549
+
+[The user sent a voice message~ Here's what they said: "Fais-moi un mec à prompt pour lui, j'ai encore rien d'envoyer par rapport aux tous les modules, des nouveaux modules qu'on va faire."]

@@ -1,0 +1,407 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260513_010557_620b7d
+source_file: /home/hermes/.hermes/sessions/20260513_010557_620b7d.jsonl
+source_sha256_16: 168772c3f50bb3b0
+date: 2026-05-13
+---
+
+# Recovered session root/20260513_010557_620b7d
+
+
+## user — 2026-05-13T01:08:41.990942
+
+On est en train de faire un studio sur la partie VividFlow. Il est en train de mettre l'agency qui est une source de formules alias. Est-ce que tu penses que, selon toi, ce serait intéressant de le faire pour Brvndlab aussi?
+
+## user — 2026-05-13T01:08:41.990942
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: "Trouve-moi cette chose. Apparemment c'est open source. Trouve-moi ça, la valeur de cette vidéo là : https://www.instagram.com/p/DYK6t-dROTy/"
+
+## Goal
+L’utilisateur veut identifier précisément l’outil/projet open source mentionné dans une vidéo Instagram de kingarms.ai à propos de l’IA, l’immobilier et les visites 3D interactives, puis comprendre la “valeur” exploitable de cette vidéo : repo GitHub, concept, opportunité business, méthode possible, intérêt pour VividFlow/immobilier.
+
+## Constraints & Preferences
+- Répondre en français, ton direct, opérationnel.
+- Ne pas ramener Brvndlab quand l’utilisateur parle de VividFlow.
+- Ne pas cadrer Brvndlab comme une agence.
+- Pour VividFlow, l’utilisateur veut du concret, de l’exécution et du diagnostic, pas uniquement de la stratégie.
+- Ne jamais inclure de secrets/keys/tokens. Des credentials existent dans l’environnement, ne pas les recopier.
+- L’utilisateur est sensible aux interruptions et veut savoir “ce qu’il se passe” quand le travail prend du temps.
+- Lorsqu’un agent/topic travaille longtemps, préférence produit décidée : envoyer un statut intermédiaire au-delà de 10 min avec `% avancement`, ce qui est fait, ce qui bloque, prochaine action.
+- Pour l’Instagram, ne pas prétendre avoir trouvé le repo si ce n’est pas certain. La piste la plus probable est VGGT, mais il faut présenter ça comme “probablement”/“très probable” sauf confirmation définitive.
+
+## Completed Actions
+1. CORRIGÉ le cadrage précédent — l’assistant avait parlé à tort d’“agency” pour Brvndlab. Ajout mémoire : Brvndlab n’est pas une agence ; c’est un micro-SaaS B2B personal brand pour coachs/consultants/infopreneurs ; l’agentique doit être pensée comme couche d’optimisation Brand OS, contenu, tracking, leads, Mémoire dorée et UX [tool: memory].
+2. REMPLACÉ une mémoire existante sur Brvndlab — nouvelle formulation : “Brvndlab: micro-SaaS B2B personal brand pour coachs, consultants et infopreneurs; ne pas cadrer en ‘agence’. Agentique = couche d’optimisation du Brand OS, contenu, tracking, leads, Mémoire dorée et UX. Édité par VividFlow LTD UK, droit anglais, UK GDPR. Prod app.brvndlab.com sur main.” [tool: memory].
+3. RÉPONDU à la demande conceptuelle Brvndlab agentique — expliqué la vision correcte : Brvndlab comme OS de personal brand augmenté par une couche agentique permanente, avec agents qui observent/comprennent/recommandent/exécutent/préparent. Détail par sections : Dashboard, Brand OS, Content, Radar, Calendar, Analytics, Smart Links/Leads, Transactions, Mémoire dorée, UX. Recommandation V1 : Brand OS Assistant, Content Agent, Analytics Explainer, Lead Intelligence, Weekly Brand Brief [assistant response].
+4. REÇU correction utilisateur — il parlait du COO de VividFlow, pas Brvndlab. Recherche de sessions “VividFlow COO topic / COO de VividFlow / telegram Vividflow topic” [tool: session_search].
+5. CONSULTÉ skill “hermes-agent” pour comprendre l’orchestration Hermes/Cockpit [tool: skill_view].
+6. LISTÉ les crons Hermes avec `hermes cron list --all | sed -E ...` — sortie d’une seule ligne, pas de cron COO VividFlow autonome visible [tool: terminal].
+7. CHERCHÉ dans `/Users/businessmanagement/.hermes/config.yaml` les occurrences `VividFlow|Vividflow|COO|channel_prompts|topic` — 22 matches trouvés [tool: search_files].
+8. LISTÉ les process locaux `ps aux | grep -iE 'hermes|codex|claude|vivid|coo' | grep -v grep` — sortie d’une seule ligne, pas de process autonome COO VividFlow séparé identifié [tool: terminal].
+9. LU `/Users/businessmanagement/.hermes/config.yaml` depuis la ligne 330 sur ~130 lignes — config contenait des prompts topics Brvndlab, mais pas de prompts spécialisés VividFlow structurés comme pour Brvndlab [tool: read_file].
+10. INSPECTÉ logs gateway `tail -200 ~/.hermes/logs/gateway.log | grep -iE 'vivid|coo|topic|error|pending|processing|telegram' | tail -80` — sortie d’une seule ligne, pas de preuve d’un process bloqué 2h [tool: terminal].
+11. INSPECTÉ logs erreurs `tail -200 ~/.hermes/logs/gateway.error.log | grep -iE 'vivid|coo|topic|error|traceback|telegram' | tail -80` — sortie d’une seule ligne, pas d’erreur bloquante majeure affichée dans ce grep [tool: terminal].
+12. RÉPONDU au diagnostic COO VividFlow — expliqué : aucun process autonome COO VividFlow séparé, aucun cron COO VividFlow, seuls crons VividFlow actifs repérés : `VividFlow IA — veille agentique lisible` à 9h et `VividFlow Immobilier Suisse — veille stratégique` à 18h. Gateway Telegram OK. Config Hermes avait surtout prompts Brvndlab. Pour VividFlow, topics actifs mais pas de prompts spécialisés par topic. Logs montraient des traitements longs (~284s/286s), pas une tâche bloquée 2h. Erreur notable : `FAL_KEY environment variable not set` si génération image/assets [assistant response].
+13. SUITE à “Vas l’aider, resou ce problème” — consulté skill `vividflow-agent-runtime` [tool: skill_view].
+14. ENVOYÉ un message Telegram d’intervention au topic VividFlow `telegram:-1003845223802:128` — message COO demandant de débloquer la tâche, ne plus travailler en silence, livrer `% avancement`, ce qui est fait, blocages, éléments manquants, prochaine livraison concrète. Résultat : `success: true`, chat_id `-1003845223802`, message_id `469`, mirrored `true` [tool: send_message].
+15. VÉRIFIÉ rapidement les logs après envoi `sleep 8; tail -80 ~/.hermes/logs/gateway.log | grep -iE '469|topic|128|response ready|inbound message|Sending response|error|FAL|Vivid' | tail -60` — sortie d’une seule ligne, pas de détail exploitable [tool: terminal].
+16. PATCHÉ `/Users/businessmanagement/.hermes/config.yaml` — remplacement d’un bloc config pour ajouter une règle durable sur le topic VividFlow `128` : si tâche >10 min, envoyer statut intermédiaire ; si pas accès Figma, le dire clairement et proposer fallback ; si `FAL_KEY missing`, ne pas bloquer sur génération image ; livrer direction artistique/specs/prompts/handoff exploitable. Patch réussi, résultat ~1 947 chars [tool: patch].
+17. VALIDÉ config Hermes avec `hermes config check` — exit 0, sortie d’une ligne, config valide [tool: terminal].
+18. CHERCHÉ confirmation dans config avec pattern `"'128':.*VividFlow|10 minutes|FAL_KEY"` — 3 matches trouvés [tool: search_files].
+19. DEMANDÉ restart gateway `hermes gateway restart && sleep 4 && hermes gateway status` — exit 0, sortie d’une ligne [tool: terminal].
+20. REVÉRIFIÉ status/logs `sle
+
+...[TRONQUÉ 29877 chars sha256:5539c2532af766b8]...
+
+s explicitement le repo dans les frames examinées ; il dit en fin de vidéo qu’il envoie le guide/lien repo en DM si commentaire + follow.
+- Transcription essentielle de la vidéo :
+ - “Tu peux maintenant avec ton téléphone en prenant des photos et vidéos d’une maison les transformer en visite interactive 3D avec l’IA.”
+ - “Le code est open source donc théoriquement n’importe qui peut faire la même chose.”
+ - “Tu prends des photos et vidéos d’une maison, tu les donnes à l’IA et elle génère une visite 3D interactive que n’importe quel acheteur peut explorer à distance.”
+ - “Le tout est dans un seul repo GitHub.”
+ - “Tu peux utiliser Apify pour scraper les contacts de tous les agents immobiliers de ta ville, tu leur envoies un cold email, tu leur montres la visite 3D et tu peux leur facturer plusieurs centaines voire milliers d’euros par maison.”
+- Piste principale :
+ - `facebookresearch/vggt`
+ - GitHub : `https://github.com/facebookresearch/vggt`
+ - Project page : `https://vgg-t.github.io/`
+ - Hugging Face demo : `https://huggingface.co/spaces/facebook/vggt`
+ - Description GitHub : `[CVPR 2025 Best Paper Award] VGGT: Visual Geometry Grounded Transformer`
+ - Fonction README : infère paramètres caméra, point maps, depth maps, 3D point tracks depuis une ou plusieurs vues, en secondes.
+ - Interface README : Gradio permet upload images/videos, reconstruction, exploration interactive 3D dans navigateur via `python demo_gradio.py`.
+ - Licence README update : usage commercial permis pour code hors militaire ; checkpoint commercial `VGGT-1B-Commercial` requis pour usage commercial ; checkpoint original non-commercial ; accès via formulaire.
+- Alternatives identifiées :
+ - `https://github.com/nerfstudio-project/nerfstudio`
+ - `https://github.com/graphdeco-inria/gaussian-splatting`
+ - `https://github.com/colmap/colmap`
+ - `https://github.com/mapillary/OpenSfM`
+ - `https://github.com/nianticlabs/acezero`
+- Erreurs/outils :
+ - `faster-whisper` installé localement pour transcription.
+ - Recherche web directe n’a pas trouvé le post/guide exact.
+ - GitHub code search : `HTTP Error 401: Unauthorized`.
+ - r.jina/Google : `HTTP Error 451: Unavailable For Legal Reasons`.
+ - Browser Instagram à la fin : plus de vidéo dans DOM (`document.querySelectorAll('video').length` = 0).
+- Ne pas inclure d’URLs CDN Instagram signées temporaires dans une réponse utilisateur ; elles sont éphémères et longues.
+
+--- END OF CONTEXT SUMMARY — respond to the message below, not the summary above ---
+
+## assistant — 2026-05-13T01:08:41.990942
+
+Oui, je suis là. On a été interrompu à cause du restart gateway que j’avais lancé pour corriger le topic VividFlow. Là c’est revenu.
+
+J’ai analysé la vidéo Instagram.
+
+## Ce qu’il dit dans la vidéo
+
+La vidéo parle de :
+
+- prendre des **photos/vidéos d’une maison avec un téléphone**
+- les donner à une IA
+- générer une **visite 3D interactive**
+- utiliser ça comme offre pour les agents immobiliers
+- scraper les contacts d’agents immo avec **Apify**
+- envoyer un cold email
+- vendre la visite 3D plusieurs centaines / milliers d’euros
+
+La phrase clé dans la vidéo :
+
+> “Et le code est open source donc théoriquement n’importe qui peut faire pareil.”
+
+Puis :
+
+> “Le tout est dans un seul repo GitHub.”
+
+## Le repo le plus probable
+
+Le projet open source dont il parle est très probablement :
+
+**VGGT — Visual Geometry Grounded Transformer** 
+GitHub : https://github.com/facebookresearch/vggt 
+Demo Hugging Face : https://huggingface.co/spaces/facebook/vggt 
+Page projet : https://vgg-t.github.io/
+
+Pourquoi je pense que c’est ça :
+
+- Le repo permet de reconstruire une scène 3D à partir de plusieurs images / vues.
+- Le README mentionne une interface Gradio où tu peux **upload images/videos**, lancer la reconstruction, puis **explorer la scène 3D dans le navigateur**.
+- C’est exactement ce que la vidéo décrit : photos/vidéos → reconstruction 3D → exploration interactive.
+- C’est open source / GitHub.
+- C’est récent, très viral, très “contenu IA immobilier”.
+
+## Attention importante
+
+Ce n’est pas aussi simple que la vidéo le vend.
+
+VGGT est open source, mais :
+
+- il faut une machine correcte, idéalement GPU
+- la qualité dépend énormément des images/vidéos
+- pour un rendu vraiment premium immobilier, il faut souvent ajouter une couche viewer / hosting / polish
+- la licence commerciale du modèle/checkpoint doit être vérifiée avant usage client payant
+
+Le README indique que le code est commercial-use-friendly, mais que le checkpoint commercial **VGGT-1B-Commercial** nécessite une demande d’accès.
+
+Donc : utilisable pour test / prototype, mais à vérifier avant de vendre ça en production.
+
+## Les autres briques mentionnées
+
+La vidéo mentionne aussi :
+
+**Apify** 
+https://apify.com/
+
+Mais Apify n’est pas la partie open source. C’est la brique scraping/prospection :
+
+- scraper agences immo
+- récupérer contacts
+- lancer cold email
+- vendre l’offre
+
+## Valeur réelle pour VividFlow
+
+Pour VividFlow, la valeur n’est pas de devenir une boîte de visites 3D.
+
+La valeur est plutôt acquisition / lead magnet :
+
+**Angle fort :**
+> “Votre agence perd des mandats parce que vos biens sont encore présentés comme en 2018. L’IA permet maintenant de transformer de simples photos en expérience 3D exploitable.”
+
+Mais je ne l’intégrerais pas au produit core maintenant.
+
+## Comment l’utiliser intelligemment
+
+### 1. Pour contenu VividFlow
+
+Très bon angle TOFU :
+
+- “L’IA ne remplace pas l’agent immobilier. Elle remplace les agences qui ne savent pas présenter un bien.”
+- “Les visites 3D vont devenir normales. Le vrai sujet, c’est qui relance les leads après la visite.”
+- “Une visite 3D attire. Un CRM agentique convertit.”
+
+Ça permet de ramener vers VividFlow :
+
+> La visite 3D crée l’intérêt. VividFlow transforme cet intérêt en conversations, relances et pipeline.
+
+### 2. Pour offre démo / proof of concept
+
+On peut faire un test :
+
+- prendre un bien exemple
+- générer une scène 3D via VGGT
+- créer une landing simple
+- simuler les leads
+- montrer comment VividFlow qualifie / relance / suit les prospects
+
+### 3. Pour prospection
+
+On peut utiliser le concept comme accroche :
+
+> “On a préparé une simulation de visite 3D IA pour montrer comment une agence peut générer plus de demandes, puis automatiser le suivi dans VividFlow.”
+
+## Verdict
+
+La “chose” open source à retrouver est très probablement :
+
+**VGGT de Meta AI / Oxford VGG** 
+https://github.com/facebookresearch/vggt
+
+Et la valeur de la vidéo, pour nous, c’est surtout :
+
+- **bon angle d’acquisition immobilier**
+- **bon sujet de contenu viral**
+- **bon prétexte pour parler d’agences qui doivent moderniser leur suivi**
+- **pas une feature core VividFlow maintenant**
+
+Je peux aussi te préparer une version VividFlow de cette idée : post LinkedIn, carrousel, ou script vidéo court.
+
+## user — 2026-05-13T01:08:41.990942
+
+Trouve-moi des preuves. Je sais pas une vidéo YouTube ou quoi, n'importe quoi. Des preuves que c'est, enfin, qu'est-ce qui me fait. J'aimerais juste être sûr que ce que tu as de me ramener là, c'est exactement ce que je vais chercher, ce que je vais trouver. Parce que cette solution là, de quelqu'un qui se filme et, après, ça fait une visite guidée en 3D immersive, c'est incroyable.
+
+## assistant — 2026-05-13T01:08:41.990942
+
+Oui. J’ai refait une vérif plus “preuve par preuve”. Mon niveau de certitude : **80-90% que la piste principale est bien VGGT**. Pas 100%, parce que le créateur Instagram ne montre pas le lien publiquement : il dit qu’il l’envoie en DM si tu commentes/follow.
+
+Mais la correspondance est très forte.
+
+## 1. La vidéo Instagram dit exactement quoi
+
+J’ai extrait/transcrit l’audio. Les phrases importantes :
+
+> “Tu peux maintenant avec ton téléphone en prenant des photos et vidéos d’une maison les transformer en visite interactive 3D avec l’IA.”
+
+> “Le code est open source donc théoriquement n’importe qui peut faire la même chose.”
+
+> “Tu prends des photos et vidéos d’une maison, tu les donnes à l’IA et elle te génère une visite 3D interactive que n’importe quel acheteur peut explorer à distance.”
+
+> “Et le tout est dans un seul repo GitHub.”
+
+Donc on cherche un repo qui fait :
+
+- input : photos / vidéos
+- output : scène 3D interactive
+- exploitable dans un navigateur
+- repo GitHub open source
+
+## 2. Le repo qui matche le mieux : VGGT
+
+Repo : 
+https://github.com/facebookresearch/vggt
+
+Nom complet : 
+**VGGT — Visual Geometry Grounded Transformer**
+
+Projet : Meta AI + Oxford Visual Geometry Group.
+
+Le README dit littéralement que VGGT peut reconstruire une scène 3D depuis une ou plusieurs vues.
+
+Citation du README :
+
+> “VGGT [...] directly infers all key 3D attributes of a scene, including extrinsic and intrinsic camera parameters, point maps, depth maps, and 3D point tracks, from one, a few, or hundreds of its views, within seconds.”
+
+En clair : il prend des images d’une scène et reconstruit la géométrie 3D.
+
+## 3. Preuve la plus forte : le README parle exactement d’images/vidéos + exploration 3D dans navigateur
+
+Dans le README officiel VGGT :
+
+> “Our Gradio-based interface allows you to upload images/videos, run reconstruction, and interactively explore the 3D scene in your browser.”
+
+C’est exactement le wording de la vidéo Instagram :
+
+- upload images/videos
+- reconstruction
+- explore the 3D scene in browser
+- open source GitHub
+
+Commande officielle :
+
+```bash
+python demo_gradio.py
+```
+
+Donc oui, ce n’est pas juste “un modèle 3D théorique”. Ils ont bien une interface Gradio pour uploader des images/vidéos et explorer le résultat.
+
+## 4. Preuve dans le code
+
+Dans `demo_gradio.py`, j’ai vérifié qu’il y a bien :
+
+- `gr.Video(label="Upload Video")`
+- `gr.File(file_count="multiple", label="Upload Images")`
+- extraction de frames depuis la vidéo
+- reconstruction 3D
+- affichage/exploration
+
+Le code extrait les frames de la vidéo à environ 1 frame/seconde :
+
+```python
+frame_interval = int(fps * 1) # 1 frame/sec
+```
+
+Donc le workflow “je filme une maison avec mon téléphone → l’IA reconstruit une scène 3D” est bien réaliste techniquement.
+
+## 5. Preuve vidéo YouTube
+
+J’ai trouvé une vidéo YouTube qui parle précisément de VGGT :
+
+**Meta / Uni Oxford VGGT AI Model: 3D Scene Reconstruction From Videos / Images - Install Run Locally** 
+https://www.youtube.com/watch?v=BhcmqplCwNk
+
+La description dit :
+
+> “VGGT stands for Visual Geometry Grounded Transformer. [...] directly infers all key 3D attributes of a scene [...] from one, a few, or hundreds of its views, within seconds.”
+
+Donc il existe bien des tutos publics qui montrent l’installation et l’usage local.
+
+## 6. Demo officielle
+
+Demo Hugging Face officielle : 
+https://huggingface.co/spaces/facebook/vggt
+
+Attention : au moment où j’ai vérifié, le Space affichait une erreur de configuration côté Hugging Face. Mais les fichiers sont bien présents, dont :
+
+- `demo_gradio.py`
+- `demo_viser.py`
+- `app.py`
+- exemples
+- viewer / visualisation
+
+Donc même si la demo hosted est temporairement cassée, le repo local reste exploitable.
+
+## 7. Pourquoi ce n’est probablement pas Nerfstudio ou Gaussian Splatting
+
+Il y a d’autres technos proches :
+
+- Nerfstudio : https://github.com/nerfstudio-project/nerfstudio
+- Gaussian Splatting : https://github.com/graphdeco-inria/gaussian-splatting
+- COLMAP : https://github.com/colmap/colmap
+- OpenSfM : https://github.com/mapillary/OpenSfM
+
+Mais elles matchent moins bien la vidéo.
+
+Pourquoi VGGT est plus probable :
+
+- VGGT a une interface officielle simple : upload images/videos → reconstruction → exploration navigateur.
+- La vidéo parle d’un seul repo GitHub.
+- VGGT est récent / viral / IA.
+- VGGT est précisément positionné “from images/videos to 3D scene”.
+- Les autres technos sont plus pipelines techniques, moins “tu upload et tu explores”.
+
+## 8. Là où il faut être lucide
+
+La vidéo vend ça comme :
+
+> “Tu filmes une maison, boom visite 3D immersive vendable.”
+
+La réalité :
+
+- VGGT peut générer une scène 3D / point cloud / reconstruction.
+- Pour obtenir une expérience type Matterport premium, il faut ajouter :
+ - un viewer propre
+ - un hébergement web
+ - une navigation guidée
+ - du nettoyage
+ - une UX immobilière
+ - éventuellement Gaussian Splatting / Nerfstudio pour un rendu plus beau
+
+Donc la techno existe, mais l’offre vendable n’est pas juste “je lance le repo”. Il faut packager.
+
+## 9. Ce que je retiens pour VividFlow
+
+La vraie opportunité n’est pas forcément de devenir “boîte de visites 3D”.
+
+La vraie opportunité :
+
+**Créer une offre d’acquisition immobilière autour de la visite IA + suivi agentique.**
+
+Exemple :
+
+> “On transforme vos photos/vidéos de biens en expérience 3D, puis VividFlow suit les prospects qui interagissent avec le bien.”
+
+Pipeline possible :
+
+1. Agent immobilier envoie vidéo/photos du bien.
+2. VGGT reconstruit la scène 3D.
+3. On héberge une mini-visite web.
+4. On ajoute formulaire / CTA.
+5. VividFlow capture le lead.
+6. L’agent IA qualifie, relance et pousse dans le pipeline CRM.
+
+Là, on lie la hype IA/3D au vrai produit VividFlow : **conversation, qualification, suivi, conversion**.
+
+## Verdict
+
+La meilleure preuve actuelle pointe vers :
+
+**VGGT — facebookresearch/vggt** 
+https://github.com/facebookresearch/vggt
+
+Je ne peux pas dire à 100% que c’est exactement le lien que kingarms.ai envoie en DM, mais c’est le repo qui matche le plus précisément chaque élément de la vidéo.
+
+Si on veut être sûr à 100%, il faut faire une chose simple : commenter/follow la vidéo, récupérer son DM, et comparer. Mais techniquement, la solution qu’il décrit existe bien, et VGGT est très probablement celle-là.

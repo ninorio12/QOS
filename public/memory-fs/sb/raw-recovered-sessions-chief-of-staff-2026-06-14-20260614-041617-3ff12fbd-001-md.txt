@@ -1,0 +1,107 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260614_041617_3ff12fbd
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260614_041617_3ff12fbd.jsonl
+source_sha256_16: 42706952ef2dc7c1
+date: 2026-06-14
+---
+
+# Recovered session chief_of_staff/20260614_041617_3ff12fbd
+
+
+## user — 2026-06-14T04:18:11.347885
+
+Corrigé — et voilà la vraie raison, plus nette que ce que je t'ai dit.
+
+Pourquoi c'était lent (vraie cause)
+J'ai travaillé dans le mauvais repo. J'ai édité ~/Documents/Claude AI/Brvndlab — la copie iCloud, dépréciée, où git gèle (objets rapatriés du cloud, status/checkout qui pendent). Le repo canonique est ~/dev/brvndlab-claude/brvndlab-app, justement migré là pour éviter ce freeze.
+
+Pire : une mémoire le disait déjà (« Plus jamais ~/Documents, repo clair = ~/dev/brvndlab-claude »). Je ne l'ai pas lue avant de plonger dans le code. C'est l'erreur de fond — pas le git, pas l'infra : j'ai attaqué sans vérifier le bon point de départ.
+
+Ce que je ne reproduirai plus
+Vérifier le repo canonique AVANT de toucher au code (~/dev/brvndlab-claude, jamais ~/Documents).
+Pas de diagnostic git pas-à-pas. Dès que je vois un repo dans ~/Documents, je change de copie au lieu de me battre contre des git status à 20s.
+Exécuter d'un trait comme tu l'attends — pas 4 allers-retours sur une modif de 2 lignes.
+Pour Hermes — l'essentiel
+La modif (faite) : dans brvndlab-app/src/app/(app)/angles/[id]/page.tsx, retirer des imports Mail + MessageCircle, et du tableau TRANSFORM_BUTTONS les entrées Email et Question audience ; garder Script / Story / Carousel / Post / Lead magnet (tous « Bientôt »).
+
+À refaire dans le bon repo ~/dev/brvndlab-claude/brvndlab-app (pas la copie iCloud que j'ai éditée). ⚠️ Point à trancher avant deploy : ce repo canonique est en clair uniquement, branche hermes/audit-nonbloquant ; la copie iCloud était sur feat/dark-mode. Il faut confirmer quelle lignée alimente la prod avant de vercel --prod — sinon risque de perdre le dark mode en prod. C'est exactement le genre d'arbitrage de divergence que Hermes gère.
+
+Mon edit dans la copie iCloud reste dispo comme référence du diff exact, mais c'est ~/dev/brvndlab-claude qui doit recevoir le changement et partir en live.
+
+## user — 2026-06-14T04:18:11.347885
+
+You've reached the maximum number of tool-calling iterations allowed. Please provide a final response summarizing what you've found and accomplished so far, without calling any more tools.
+
+## assistant — 2026-06-14T04:18:11.347885
+
+Oui, d’accord avec le diagnostic : la vraie erreur était bien le point de départ. J’ai intégré la correction opérationnelle côté Hermes pour éviter qu’on retombe dans `~/Documents/Claude AI/Brvndlab`.
+
+Statut actuel :
+
+- J’ai chargé le contexte Brvndlab/Hermes.
+- J’ai patché le skill opérationnel `brvndlab-autonomous-dev` :
+ - repo canonique = `~/dev/brvndlab-claude/brvndlab-app`
+ - copie iCloud `~/Documents/Claude AI/Brvndlab/brvndlab-app` = dépréciée / à éviter
+ - règle ajoutée : si on tombe sur `Documents`, on ne diagnostique pas git, on bascule vers le repo canonique.
+- J’ai vérifié l’accès au Mac via Tailscale/SSH :
+ - Mac visible
+ - SSH OK
+ - repo canonique trouvé
+ - copie iCloud aussi présente, donc risque de confusion confirmé.
+- Dans le repo canonique `~/dev/brvndlab-claude/brvndlab-app`, j’ai vérifié :
+ - branche actuelle : `feat/dark-mode`
+ - dernier commit : `745bcd8 Pipeline: retire le bouton Assigner des cartes`
+ - le fichier ciblé contient encore `Mail`, `MessageCircle`, `Email`, `Question audience`.
+
+Point important : contrairement à ce que le message disait, le repo canonique est actuellement sur `feat/dark-mode`, pas `hermes/audit-nonbloquant`. Donc la lignée dark mode est bien présente dans le repo canonique au moment de ma vérification. Ça réduit fortement le risque de déployer une version “claire uniquement”, mais il faut quand même vérifier remote/prod avant `vercel --prod`.
+
+Je n’ai pas finalisé le patch fichier avant la limite d’outils, car la structure exacte dans le repo canonique est plus simple que le diff décrit. Le tableau actuel est :
+
+```ts
+const TRANSFORM_BUTTONS = [
+ { icon: FileText, label: "Script" },
+ { icon: Smartphone, label: "Story" },
+ { icon: Layers, label: "Carousel" },
+ { icon: FileText, label: "Post" },
+ { icon: Mail, label: "Email" },
+ { icon: Magnet, label: "Lead magnet" },
+ { icon: MessageCircle, label: "Question audience" },
+];
+```
+
+La correction restante est donc très ciblée :
+
+```ts
+import {
+ ChevronLeft,
+ Trash2,
+ Bookmark,
+ FileText,
+ Smartphone,
+ Layers,
+ Magnet,
+ ChevronDown,
+ ChevronUp,
+} from "lucide-react";
+
+const TRANSFORM_BUTTONS = [
+ { icon: FileText, label: "Script" },
+ { icon: Smartphone, label: "Story" },
+ { icon: Layers, label: "Carousel" },
+ { icon: FileText, label: "Post" },
+ { icon: Magnet, label: "Lead magnet" },
+];
+```
+
+À faire ensuite :
+
+1. Appliquer ce patch dans `~/dev/brvndlab-claude/brvndlab-app`.
+2. Lancer un check ciblé/build.
+3. Vérifier branche remote/prod Vercel avant deploy.
+4. Si tout est cohérent avec `feat/dark-mode`, déployer prod puis smoke test `app.brvndlab.com`.
+
+Conclusion : le diagnostic est maintenant inscrit dans la procédure Hermes, le bon repo est confirmé, la bonne branche semble être `feat/dark-mode`, et il ne reste qu’un patch trivial + vérification prod avant déploiement.

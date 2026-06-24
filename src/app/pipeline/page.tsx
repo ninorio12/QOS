@@ -2,7 +2,7 @@ import KanbanBoard from '@/components/pipeline/KanbanBoard'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from '../../../convex/_generated/api'
 import { stageColor } from '@/components/pipeline/types'
-import type { GHLPipelineData, Opportunity } from '@/components/pipeline/types'
+import type { GHLPipelineData } from '@/components/pipeline/types'
 import { GitMerge } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -12,7 +12,7 @@ const DEFAULT_PIPELINE: GHLPipelineData = {
   id: 'leads',
   name: 'Leads',
   stages: [
-    { id: 'nouveau-lead',   name: 'Nouveau lead',    color: '#6366F1', position: 0 },
+    { id: 'nouveau-lead',   name: 'Nouveaux leads',  color: '#6366F1', position: 0 },
     { id: 'conversation',   name: 'En conversation', color: '#F59E0B', position: 1 },
     { id: 'r1',             name: 'R1',              color: '#3B82F6', position: 2 },
     { id: 'r2',             name: 'R2',              color: '#8B5CF6', position: 3 },
@@ -53,31 +53,12 @@ export default async function PipelinePage() {
         }))
       : [DEFAULT_PIPELINE]
 
-    const allLeads = await new ConvexHttpClient(url).query(api.crm_leads.list)
-    const opportunities: Opportunity[] = (allLeads as {
-      _id: string; name: string; email?: string; phone?: string; company?: string;
-      pipelineId: string; stageId: string; value: number; source?: string;
-      status: string; initials: string; createdAt: string; contactId?: string
-    }[]).map(l => ({
-      id:         l._id,
-      name:       l.name,
-      company:    l.company ?? '',
-      value:      l.value,
-      source:     l.source ?? '',
-      createdAt:  l.createdAt.split('T')[0],
-      initials:   l.initials,
-      stageId:    l.stageId,
-      pipelineId: l.pipelineId,
-      email:      l.email ?? '',
-      phone:      l.phone ?? '',
-      contactId:  l.contactId ?? '',
-      tags:       [],
-      status:     l.status as Opportunity['status'],
-    }))
-
+    // Sécurité : on NE rend PAS les leads dans le HTML serveur (fuite noms/emails/tél/valeurs
+    // avant tout contrôle d'accès). Le board se peuple côté client via sa live query, sous la
+    // garde de ModuleGuard (un compte sans /pipeline est redirigé). Cf. backlog auth pré-prod.
     return (
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-        <KanbanBoard initialPipelines={pipelines} initialOpportunities={opportunities} />
+        <KanbanBoard initialPipelines={pipelines} initialOpportunities={[]} />
       </div>
     )
   } catch {

@@ -1,0 +1,239 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260515_235405_dd87c305
+source_file: /home/hermes/.hermes/sessions/20260515_235405_dd87c305.jsonl
+source_sha256_16: dfbeb847e1621264
+date: 2026-05-15
+---
+
+# Recovered session root/20260515_235405_dd87c305
+
+
+## user — 2026-05-15T23:54:45.936272
+
+[Jonathan] J'ai essayé de reconnecter l'API de YouTube. Enfin, j'ai tout coupé parce que je devrais juste me recentrer sur la logique des choses et maintenant j'essaie d'implémenter ça. Donc je suis cette directive. Elle est meilleure : https://brvndlab-mockups.vercel.app/brvndlab-radar-scraping-hermes
+
+## assistant — 2026-05-15T23:54:45.936272
+
+J’ai ouvert la directive. Elle est bonne, mais je corrige un point important avant que tu perdes du temps :
+
+**YouTube API officielle = OK pour vidéos, Shorts, stats, chaîne. 
+Pas fiable comme source de transcripts.** 
+Pour les transcripts Radar, on garde la règle Brvndlab : **kome.ai d’abord, SearchAPI.io ensuite**. L’API YouTube ne doit pas devenir la source transcript centrale.
+
+Ce que je ferais maintenant :
+
+## 1. Ne reconnecte pas YouTube en OAuth pour Radar
+
+Pour Radar, on tracke des créateurs publics. Donc logique :
+
+- **YouTube Radar** : API key Google, pas OAuth utilisateur.
+- **YouTube Analytics du compte client** : OAuth, mais c’est un autre module/scope.
+- **Transcripts** : pipeline séparé `kome.ai → SearchAPI.io fallback`.
+
+Donc si tu étais en train de reconnecter “l’API YouTube” via compte Google, stop : pour Radar, c’est probablement le mauvais niveau d’intégration.
+
+## 2. Architecture saine à implémenter
+
+On doit séparer clairement :
+
+- **Convex** = source de vérité, jobs, résultats, UI.
+- **Hermès worker** = orchestration/polling/scraping.
+- **Adapters plateforme** = YouTube / Instagram / TikTok.
+- **Providers externes** = seulement quand nécessaire.
+
+Structure logique :
+
+```txt
+Convex
+ radarCreators
+ radarPosts
+ radarScrapeJobs
+ radarSignals
+ radarTranscripts
+
+Hermès Worker
+ checkDueCreators()
+ lightweightCheck(platform, creator)
+ fullScrapeIfNewPost()
+ enrichPost()
+ upsertToConvex()
+
+Adapters
+ youtubeAdapter
+ instagramAdapter
+ tiktokAdapter
+ transcriptAdapter
+```
+
+## 3. Ordre d’exécution recommandé
+
+**Étape 1 — YouTube proprement**
+- API key serveur.
+- Récupérer :
+ - channel info
+ - dernières vidéos
+ - Shorts si détectables
+ - stats vidéo
+ - publishedAt
+- Upsert idempotent dans Convex.
+- Pas de transcript au début sauf fallback déjà prêt.
+
+**Étape 2 — Orchestration adaptative**
+- Chaque creator a :
+ - `lastCheckedAt`
+ - `lastPostAt`
+ - `postingFrequency`
+ - `nextCheckAt`
+ - `platform`
+ - `status`
+- Le cron ne scanne que les créateurs `nextCheckAt <= now`.
+- Si pas actif : fréquence réduite.
+- Si actif : fréquence augmentée.
+
+**Étape 3 — Instagram**
+- Ne pas faire un gros scrape permanent.
+- D’abord lightweight check.
+- Full scrape seulement si nouveau post/reel/carousel détecté.
+- À isoler hors Convex, dans worker Hermès.
+
+**Étape 4 — TikTok**
+- Pas maison en premier.
+- Provider low-cost type Scrapfly ou équivalent.
+- Cadence basse : 1-2 fois/jour.
+- Anti-bot TikTok = piège à temps.
+
+## 4. Le vrai piège à éviter
+
+Ne mélange pas ça :
+
+```txt
+Radar = surveillance marché/public creators
+YouTube Analytics = données privées du compte utilisateur
+Content = production interne
+Smart Links = attribution distribution/cash
+```
+
+Là on est uniquement sur **Radar**.
+
+Donc pas besoin de reconnecter l’utilisateur à YouTube pour faire tourner Radar. On a besoin d’une **clé serveur + worker + stockage propre**.
+
+## 5. Mini-spec technique à suivre
+
+Je te conseille d’implémenter dans cet ordre :
+
+1. `convex/radarCreators.ts`
+ - add/update creator
+ - list tracked creators
+ - mark checked
+ - compute next check
+
+2. `convex/radarPosts.ts`
+ - upsert post par `platform + externalId`
+ - jamais doublonner
+ - stocker stats brutes + normalisées
+
+3. `convex/radarJobs.ts`
+ - create job
+ - claim due jobs
+ - mark success/error
+
+4. Worker Hermès
+ - `radar-heartbeat`
+ - prend les creators dus
+ - appelle adapter
+ - pousse résultats Convex
+
+5. UI Radar
+ - affiche uniquement data réelle
+ - état vide propre
+ - pas de fausses métriques mockup
+
+## Mon avis tranché
+
+Oui, la directive est meilleure.
+
+Mais je ne partirais pas sur “reconnecter YouTube”. 
+Je partirais sur :
+
+**YouTube public API server-side → Convex → Radar UI.** 
+Puis transcripts séparés. 
+Puis Instagram. 
+Puis TikTok.
+
+Si tu veux, je peux prendre le lead technique et te faire la première passe d’implémentation propre : schema Convex + adapter YouTube + worker heartbeat + smoke test.
+
+## user — 2026-05-16T00:04:30.254059
+
+[Jonathan] Volontiers, volontiers. Je ne veux pas être dans la position où, sur Instagram, j'avais payé cher et tout. Tu vois ce que j'ai mis là, radar bear, orbit. Tu peux me faire une présentation juste simple parce que, tu sais, quand il y a trop de mots techniques, je ne comprends pas. Juste me résumer de manière simple. Du coup à quoi est-ce que ça va ressembler ? Et l'idée que tu as en tête, tu peux m'envoyer un petit truc local pour que je puisse comprendre. Faut juste que ce soit user friendly et simple pour moi.
+
+## assistant — 2026-05-16T00:04:30.254059
+
+Oui. Je t’ai fait un petit support local simple, sans jargon :
+
+MEDIA:/home/hermes/radar-orbit-presentation.html
+
+Et aperçu visuel :
+
+MEDIA:/home/hermes/.hermes/cache/screenshots/browser_screenshot_5bdff763e1004956a6d05251dd9d1108.png
+
+Résumé simple de l’idée :
+
+## Ce qu’on construit
+
+**Radar Orbit** = une veille intelligente qui tourne autour de YouTube, Instagram et TikTok.
+
+Pas un gros scraper bête qui aspire tout. 
+Plutôt un assistant qui regarde :
+
+- est-ce que ce créateur a posté ?
+- si non, on ne fait rien
+- si oui, on analyse le contenu
+- plus un créateur est actif, plus on le surveille
+- moins il poste, moins on dépense dessus
+
+## Par plateforme
+
+**YouTube**
+- On utilise l’API officielle.
+- C’est propre, stable, peu coûteux.
+- Pas besoin de reconnecter les comptes utilisateurs pour surveiller des créateurs publics.
+
+**Instagram**
+- On ne repaye pas cher comme avec Apify.
+- Hermès fait un check léger.
+- Scrape complet seulement s’il y a un nouveau post/reel/carrousel.
+
+**TikTok**
+- Trop chiant techniquement à scraper nous-mêmes au début.
+- On passe par un fournisseur low-cost.
+- Cadence basse, genre 1-2 fois par jour.
+
+## L’idée business
+
+On reprend le contrôle.
+
+Au lieu d’avoir :
+
+> “Apify décide du prix, des limites, des règles”
+
+On a :
+
+> “Hermès décide quoi regarder, quand, et pourquoi”
+
+Donc Radar devient une vraie machine de veille marché, pas juste un abonnement externe qui peut exploser.
+
+## user — 2026-05-16T00:05:42.449438
+
+[Jonathan] pdf jamais html
+
+## assistant — 2026-05-16T00:05:42.449438
+
+Oui, tu as raison. J’ai mémorisé : **PDF, jamais HTML** pour ce type de livrable.
+
+Voici la version PDF :
+
+MEDIA:/home/hermes/radar-orbit-presentation.pdf

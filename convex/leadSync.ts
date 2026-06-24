@@ -10,9 +10,33 @@ async function prospForContact(ctx: any, contactId: string) {
     .find((r: any) => r.contactId === contactId && r.status !== "archived")
 }
 
-// Déplace le lead Pipeline + miroir colonne Prospection. stageId: 'nouveau-lead'|'conversation'|'r1'
+// ── Mapping canonique colonnes Prospection ⇄ stages Pipeline Leads (leads outbound) ──
+// Source unique pour les DEUX sens, évite toute dérive entre osProspection et leadSync.
+export const NRP_COLUMNS = ["nrp1", "nrp2", "nrp3", "nrp4"]
+// Sens Prospection → Leads : une colonne = un stage.
+export const LEAD_STAGE_FOR_COLUMN: Record<string, string> = {
+  leads_a_traiter: "nouveau-lead",
+  leads_interne: "nouveau-lead",   // entrée du board (contacts poussés manuellement depuis la fiche)
+  nrp1: "conversation", nrp2: "conversation", nrp3: "conversation", nrp4: "conversation",
+  rdv_booke: "r1",
+  a_suivre: "conversation",   // lead parqué (à reprendre plus tard) → reste ouvert en conversation
+  perdu: "conversation",
+}
+// Sens Leads → Prospection : un stage = une colonne.
+// "conversation" garde la NRP courante si déjà en NRP, sinon NRP 1 (1ʳᵉ relance).
+// R1/R2 → RDV booké (post-handoff). nouveau-client/inconnu → null = ne pas déplacer la colonne.
+export function columnForLeadStage(stageId: string, currentCol?: string): string | null {
+  // "Leads interne" est collante : un re-sync au stage nouveau-lead ne ré-aspire pas la card vers "Leads à traiter".
+  if (stageId === "nouveau-lead") return currentCol === "leads_interne" ? "leads_interne" : "leads_a_traiter"
+  if (stageId === "conversation") return currentCol && NRP_COLUMNS.includes(currentCol) ? currentCol : "nrp1"
+  if (stageId === "r1" || stageId === "r2") return "rdv_booke"
+  return null
+}
+
+// Déplace le lead Pipeline + miroir colonne Prospection. stageId: 'nouveau-lead'|'conversation'|'r1'|'r2'
 // Idempotent : ne patch/insère l'historique du lead que si le stage change réellement ;
-// le miroir prospection s'exécute toujours (sert aussi quand l'appel vient du Kanban après patch).
+// le miroir prospection (status + boardColumn) s'exécute toujours → la carte Prospection suit la
+// carte Leads (et inversement via osProspection.setColumn).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function moveStage(ctx: any, contactId: string, stageId: string) {
   const lead = await ctx.db.query("crm_leads").withIndex("by_contact", (q: any) => q.eq("contactId", contactId)).first()
@@ -22,21 +46,30 @@ export async function moveStage(ctx: any, contactId: string, stageId: string) {
   }
   const rec = await prospForContact(ctx, contactId)
   if (rec) {
-    const status = stageId === "r1" ? "handoff" : "active"
-    if (rec.status !== status) await ctx.db.patch(rec._id, { status, updatedAt: now() })
+    const patch: Record<string, unknown> = {}
+    const status = stageId === "r1" || stageId === "r2" ? "handoff" : "active"
+    if (rec.status !== status) patch.status = status
+    // Miroir de COLONNE (avant : seul le status était synchronisé → carte Prospection figée).
+    const targetCol = columnForLeadStage(stageId, rec.boardColumn)
+    if (targetCol && rec.boardColumn !== targetCol) patch.boardColumn = targetCol
+    if (Object.keys(patch).length) await ctx.db.patch(rec._id, { ...patch, updatedAt: now() })
   }
 }
 
 // Marque perdu partout. stage = stade au moment de la perte ('nouveau-lead'|'conversation') ; dérivé si non fourni.
 // Idempotent sur le lead et le record (ne repatch pas si déjà lost).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function markLost(ctx: any, contactId: string, opts: { reason?: string; stage?: string; by?: string }) {
+export async function markLost(ctx: any, contactId: string, opts: { reason?: string; stage?: string; objection?: string; by?: string }) {
   const by = opts.by ?? "human:thomas"
   const rec = await prospForContact(ctx, contactId)
   const stage = opts.stage ?? (rec && (rec.phase1Status || rec.phase2Status || rec.phase3Status) ? "conversation" : "nouveau-lead")
   const lead = await ctx.db.query("crm_leads").withIndex("by_contact", (q: any) => q.eq("contactId", contactId)).first()
   if (lead && lead.status !== "lost") await ctx.db.patch(lead._id, { status: "lost" })
-  await ctx.db.patch(contactId as Id<"crm_contacts">, { statut: "perdu", leadStatus: "non_qualifie", updatedAt: now() })
+  // Contact = source de vérité : statut + ÉTAPE de perte + raison/objection RÉELLES (quand fournies).
+  const contactPatch: Record<string, unknown> = { statut: "perdu", leadStatus: "non_qualifie", lostStage: stage, updatedAt: now() }
+  if (opts.reason !== undefined) contactPatch.lostReason = opts.reason
+  if (opts.objection !== undefined) contactPatch.lostObjection = opts.objection
+  await ctx.db.patch(contactId as Id<"crm_contacts">, contactPatch)
   if (rec && rec.status !== "lost") {
     await ctx.db.patch(rec._id, { status: "lost", lostReason: opts.reason ?? "autre", lostStage: stage, updatedAt: now() })
     await ctx.db.insert("prospection_events", { workspaceId: WORKSPACE, prospectionRecordId: rec._id, contactId, eventType: "perdu", phase: stage, createdBy: by, createdAt: now() })

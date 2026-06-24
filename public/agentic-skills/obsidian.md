@@ -59,3 +59,9 @@ Use `patch` for focused note changes when the current content gives you stable c
 ## Wikilinks
 
 Obsidian links notes with `[[Note Name]]` syntax. When creating notes, use these to link related content.
+
+## VividFlow / Hermes architecture framing
+
+When Jonathan asks whether Obsidian is useful for Hermes memory or a Second Brain, frame Obsidian as a validated wiki, not as the agent's raw memory. Hermes is the activation layer: it reads, links, challenges, extracts decisions/actions, writes reusable skills, and coordinates agents. Supermemory is fast semantic recall, Skills are procedures, Data OS is operational truth, and NotebookLM is a document lens.
+
+Use `references/hermes-activation-architecture.md` for the detailed role split, wording, weekly activation briefs, and safety boundaries.

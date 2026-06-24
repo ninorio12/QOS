@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useUser } from '@clerk/nextjs'
+import { useSafeUser as useUser } from '@/lib/clerkSafe'
 import { Lock, Check } from 'lucide-react'
 import { inputCls, labelCls } from './_shared'
 

@@ -1,0 +1,2107 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260603_215405_053e4d
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260603_215405_053e4d.jsonl
+source_sha256_16: 98d869cf1ad4bc16
+date: 2026-06-03
+---
+
+# Recovered session chief_of_staff/20260603_215405_053e4d
+
+
+## assistant — 2026-06-03T21:54:27.653487
+
+Le prochain : **Plan d’attaque / Priorisation**.
+
+Pas Appels maintenant, parce que le Calendrier couvre déjà R1/R2 avec un petit ajout.
+
+## Pourquoi Plan d’attaque
+
+C’est simple et utile tout de suite :
+- tu mets les gros chantiers
+- tu scores l’impact
+- tu vois quoi faire en premier
+- tu peux créer des tâches liées
+
+## Module simple
+
+Nom : **Plan d’attaque**
+
+Vue principale : une table propre.
+
+Colonnes :
+- Initiative
+- Catégorie
+- Impact
+- Confiance
+- Effort
+- Score
+- Mois
+- Responsable
+- Statut
+- Tâche liée
+
+Score :
+```text
+impact × confiance / effort
+```
+
+Je retirerais “portée” pour simplifier.
+
+## Statuts
+
+- Idée
+- À faire
+- En cours
+- Bloqué
+- Terminé
+- Abandonné
+
+## Catégories
+
+- Acquisition
+- Sales
+- Delivery
+- Produit
+- Ops
+- Contenu
+- Admin
+
+## Actions
+
+- créer initiative
+- modifier score
+- lier à une tâche
+- créer tâche depuis initiative
+- marquer en cours / terminé
+- log dans Activités
+
+## Ce que ça remplace
+
+Ça remplace le Sheet “Plan d’attaque”, mais en plus propre.
+
+## Prompt court
+
+```text
+Create a simple “Plan d’attaque” module.
+
+Do not overbuild it.
+It replaces the task scoring spreadsheet with a native Data OS view.
+
+Main table fields:
+- title
+- category
+- impact
+- confidence
+- effort
+- score
+- plannedMonth
+- responsible
+- status
+- linkedTaskId
+
+Score formula:
+score = impact * confidence / effort
+
+Rules:
+- effort cannot be 0
+- confidence between 0 and 1 or 1–10, choose one and keep consistent
+- sort by score descending by default
+
+Statuses:
+- idée
+- à faire
+- en cours
+- bloqué
+- terminé
+- abandonné
+
+Categories:
+- Acquisition
+- Sales
+- Delivery
+- Produit
+- Ops
+- Contenu
+- Admin
+
+Actions:
+- create initiative
+- edit initiative
+- create linked Task
+- link existing Task
+- mark status
+- write Activity log on create/update/status change
+
+Integration:
+- does not replace Tâches
+- can create or link Tâches
+- visible in Activités
+- available through MCP:
+ - attack_plan_list
+ - attack_plan_create
+ - attack_plan_update
+ - attack_plan_create_task
+
+Acceptance:
+- User can create an initiative.
+- Score calculates automatically.
+- Table sorts by score.
+- User can create/link a Task.
+- Activity log is written.
+- Existing Tâches module is unchanged.
+```
+
+Simple, propre, utile.
+
+## user — 2026-06-03T21:54:27.653487
+
+[The user sent a voice message~ Here's what they said: "On faudrait faire un module, on faudrait juste un deuxième, je pense, un module où on voit des KPIs et un calendrier avec les actions faites, etc, à le monde d'appel du Sconsaur. Mais bien sûr, en fait, ça sera tout comme ça."]
+
+## assistant — 2026-06-03T21:54:27.653487
+
+Oui. Le deuxième module doit être **Performance**.
+
+Pas “Appels” lourd. 
+Un module simple qui agrège ce qui se passe.
+
+## Module 2 : Performance
+
+But :
+voir les KPIs + calendrier des actions faites.
+
+Il récupère les données de :
+- Prospection
+- Calendrier
+- Tâches
+- Activités
+- Pipeline
+
+## Ce qu’on met dedans
+
+### 1. KPIs
+- appels faits
+- messages envoyés
+- réponses
+- R1 bookés
+- R2 bookés
+- no-shows
+- perdus
+- leads chauds
+- relances dues
+- taux réponse
+- taux R1
+
+### 2. Calendrier d’activité
+Vue jour/semaine/mois avec :
+- appels faits
+- messages envoyés
+- relances
+- R1
+- R2
+- tâches terminées
+
+Ce n’est pas forcément le calendrier rendez-vous. 
+C’est plutôt un **calendrier d’exécution / historique d’actions**.
+
+### 3. Objectifs
+- objectif appels/jour
+- objectif messages/jour
+- objectif R1/semaine
+- progression
+
+### 4. Filtres
+- période
+- personne
+- canal
+- température
+- source
+- étape pipeline
+
+## Pourquoi c’est mieux
+
+Prospection = outil de travail. 
+Performance = pilotage.
+
+```text
+Prospection : je fais les appels.
+Performance : je vois si le travail avance.
+```
+
+## Prompt Claude Code
+
+```text
+Create a second simple module: Performance.
+
+Do not create a heavy Appels module.
+Performance should aggregate KPIs and action history from existing Data OS records.
+
+Purpose:
+Give a clear view of acquisition execution and results:
+- what actions were done
+- by whom
+- when
+- what results came out
+- how it compares to objectives
+
+Data sources:
+- Prospection records/events
+- Calendar events
+- Tasks
+- Activities
+- Pipeline stages
+
+Main sections:
+
+1. KPI cards
+Show:
+- calls done
+- messages sent
+- answers
+- messages left
+- follow-ups scheduled
+- R1 booked
+- R2 booked
+- no-shows
+- lost
+- hot leads
+- response rate
+- R1 booking rate
+
+2. Objective progress
+Show:
+- target calls/day
+- target messages/day
+- target R1/week
+- actual progress
+- remaining
+
+3. Activity calendar
+A calendar or timeline view showing actions done:
+- calls
+- messages
+- follow-ups
+- R1
+- R2
+- tasks completed
+- lost leads
+
+This is not the appointment calendar.
+It is an execution/activity calendar.
+
+4. Filters
+- date range
+- owner
+- channel
+- source
+- temperature
+- pipeline stage
+
+Integration rules:
+- Do not duplicate data.
+- Read from Prospection/Activities/Tasks/Calendar/Pipeline.
+- If goals are edited here, update the same prospectionGoals/objectives used by Prospection.
+- Every manual objective update writes Activity log.
+- Keep UI simple and visual.
+
+MCP:
+Add:
+- performance_summary
+- performance_calendar
+- performance_goals_get
+- performance_goals_update
+
+Acceptance:
+- KPIs display from real records.
+- Date filters work.
+- Activity calendar shows calls/messages/R1/R2/tasks.
+- Goals show target vs actual.
+- No mock data.
+- Existing modules unchanged.
+```
+
+Je ferais donc :
+
+1. **Prospection** = travail quotidien.
+2. **Performance** = KPIs + calendrier d’actions.
+
+Et pas plus pour l’instant.
+
+## user — 2026-06-03T21:54:27.653487
+
+[The user sent a voice message~ Here's what they said: "encore une fois dans performance, il n'y a pas besoin de mettre l'air de l'air. Je pense que juste l'air un, c'est suffisant parce que performance c'est vraiment pour la cetteur, ok ? Le jus de bord est-ce qu'il a produit l'air ? Et puis aussi avoir une partie, c'est avec un genre de tâche, quand tu cliques, sa barre fait ce que tu as fait la tâche, et c'est tâche du jour, tâche du jour, appelé tant de personnes, tâche du jour, tu peux créer des tâches. C'est ça, quoi ? Avec un calendrier assez simple, et sur les calendriers, tu vas en mettre des captions, de ce qu'on s'agit."]
+
+## assistant — 2026-06-03T21:54:27.653487
+
+Oui. **Performance = pour la setter uniquement.** 
+Donc on enlève R2, closing, no-show, etc.
+
+Le module doit répondre à une seule question :
+
+```text
+Est-ce qu’elle a produit des R1 ?
+```
+
+## Module Performance — version simple
+
+### 1. KPIs setter
+
+- appels faits aujourd’hui
+- messages envoyés
+- réponses
+- relances faites
+- R1 bookés
+- objectif R1
+- objectif appels/messages
+- taux réponse
+- taux R1
+
+Pas de R2. 
+Pas de closing. 
+Pas de CA.
+
+---
+
+### 2. Tâches du jour
+
+Une section type checklist :
+
+Exemples :
+- Appeler 50 leads
+- Envoyer 30 messages LinkedIn
+- Relancer 20 prospects
+- Booker 2 R1
+- Nettoyer les leads perdus
+
+Chaque tâche :
+- titre
+- objectif chiffré
+- progression
+- bouton terminer
+- statut
+
+Quand elle clique / coche :
+- met à jour la progression
+- log Activités
+- visible dans calendrier
+
+---
+
+### 3. Calendrier simple
+
+Pas calendrier rendez-vous complet.
+
+Un calendrier d’activité simple :
+- jour par jour
+- actions réalisées
+- objectifs
+- R1 bookés
+
+Exemples de captions :
+- “32 appels faits”
+- “8 réponses”
+- “2 R1 bookés”
+- “15 relances”
+- “objectif atteint”
+- “objectif manqué”
+
+---
+
+## Prompt Claude Code corrigé
+
+```text
+Performance module clarification.
+
+Performance is only for the setter/prospection role.
+It should not include R2, closing, revenue or sales team performance.
+
+The main question:
+Did the setter produce R1?
+
+Create a simple Performance module focused on daily execution and R1 production.
+
+Sections:
+
+1. Setter KPI cards
+Show:
+- calls done today
+- messages sent today
+- replies today
+- follow-ups done today
+- R1 booked today
+- target calls/messages
+- target R1
+- response rate
+- R1 booking rate
+
+Do NOT show:
+- R2
+- closing rate
+- revenue
+- won/lost sales after R1
+- no-show unless directly relevant later
+
+2. Tâches du jour
+Create a simple daily task/checklist area.
+
+Examples:
+- Appeler 50 leads
+- Envoyer 30 messages LinkedIn
+- Relancer 20 prospects
+- Booker 2 R1
+- Nettoyer les leads perdus
+
+Each daily task should have:
+- title
+- type: calls | messages | followups | r1 | cleanup | custom
+- targetNumber
+- currentProgress
+- status: todo | in_progress | done
+- ownerUserId
+- date
+
+User can:
+- create a daily task
+- update progress
+- mark done
+- duplicate for tomorrow if useful
+
+Progress can also be updated automatically from Prospection events when possible.
+
+3. Simple activity calendar
+This is not the appointment calendar.
+It is a simple execution calendar for the setter.
+
+For each day, show captions like:
+- “32 appels faits”
+- “8 réponses”
+- “2 R1 bookés”
+- “15 relances”
+- “objectif atteint”
+- “objectif manqué”
+
+Calendar should aggregate from:
+- prospectionEvents
+- prospectionGoals
+- daily setter tasks
+- Activities if useful
+
+Filters:
+- date range
+- owner
+- channel
+
+Integration rules:
+- Read real data from Prospection and Activities.
+- Daily task progress should sync with Prospection events where possible.
+- Manual task updates write Activity log.
+- No mock data.
+- Keep UI simple, visual and fast.
+- Use existing Data OS design.
+
+MCP:
+Add:
+- setter_performance_summary
+- setter_daily_tasks_list
+- setter_daily_tasks_create
+- setter_daily_tasks_update
+- setter_activity_calendar
+
+Acceptance:
+- User sees if R1 objective is met.
+- User can create daily tasks.
+- User can mark/update daily tasks.
+- Prospection actions update KPIs.
+- Calendar shows simple captions per day.
+- No R2/closing/revenue shown.
+```
+
+Résumé : 
+**Performance = production setter : tâches du jour + R1 produits + calendrier d’exécution.**
+
+## user — 2026-06-03T21:54:27.653487
+
+[The user sent a voice message~ Here's what they said: "Ok, très bien, mais juste là, je n'ai pas encore, tu vois, quand je clique sur « Nouveaux Lids » dans « Prospections », j'ai encore une nouvelle fiche contact, alors qu'il fallait la même fiche contact, qu'il faut que tout soit synchronisé et rappel, il faudrait lui dire de le faire."]
+
+## assistant — 2026-06-03T21:54:27.653487
+
+Oui. Il faut lui envoyer ce correctif maintenant.
+
+```text
+Correction urgente Prospection → Nouveau lead.
+
+Quand on clique “Nouveau lead” dans Prospection, il ne faut pas ouvrir une nouvelle fiche/formulaire séparé.
+
+Il faut réutiliser exactement le formulaire existant “Nouveau contact” du module Contacts.
+
+Différence seulement :
+- status prérempli = lead
+- pipelineStage prérempli = nouveau_lead
+- temperature préremplie = froid
+- création automatique du prospectionRecord lié
+- apparition automatique dans Prospection > Nouveau lead
+- apparition automatique dans Pipeline > Nouveau lead
+- log Activités lead.created
+
+Règle absolue :
+Contacts reste la source de vérité.
+Prospection ne doit jamais créer une fiche contact parallèle.
+
+Implémentation attendue :
+- extraire/réutiliser le composant ou la mutation existante de création Contact
+- depuis Prospection, appeler le même flow que Contacts
+- ajouter uniquement les defaults Prospection
+- après save, créer/link prospectionRecord avec contactId
+- ne pas dupliquer fullName/companyName/phone/email/linkedin dans prospectionRecord
+- si un contact existe déjà avec le même téléphone/email/linkedin, proposer de le lier plutôt que créer un doublon
+
+Acceptance:
+- Créer un lead depuis Prospection crée bien un Contact visible dans Contacts.
+- Le même contact apparaît dans Pipeline Nouveau lead.
+- Le même contact apparaît dans Prospection Nouveau lead.
+- Modifier le téléphone/nom/entreprise dans Contacts se reflète dans Prospection.
+- Modifier ces champs depuis Prospection met à jour Contacts.
+- Aucun doublon contact n’est créé.
+```
+
+La phrase clé : 
+**“Prospection doit appeler le même flow de création Contact, pas un formulaire parallèle.”**
+
+## user — 2026-06-03T21:54:27.653487
+
+[The user sent a voice message~ Here's what they said: "Et d'ailleurs, qui me crée des moqueurs, mais des vraies, il faut ne vous l'itre, comme ça, je vois un peu près à quoi ça ressemble."]
+
+[The user sent a voice message~ Here's what they said: "et qu'ils ne m'en face bien"]
+
+## assistant — 2026-06-03T21:54:27.653487
+
+Oui. Dis-lui de créer des **données de démo réelles en base**, pas du mock UI.
+
+Prompt :
+
+```text
+Ajoute des données de démo réelles pour tester Prospection, mais pas des mocks front.
+
+Important:
+- Les données doivent être créées dans la vraie source de vérité Convex.
+- Pas de hardcoded mock data dans le composant React.
+- Pas de localStorage.
+- Elles doivent utiliser les mêmes mutations que la création normale.
+
+Créer environ 12 leads de démo réalistes.
+
+Chaque lead doit :
+- créer un vrai Contact
+- créer un prospectionRecord lié
+- apparaître dans Prospection
+- apparaître dans Pipeline si status = lead
+- avoir une température froid/tiède/chaud
+- avoir un téléphone visible
+- avoir une entreprise
+- avoir une phase différente
+
+Répartition souhaitée :
+- 2 Nouveau lead
+- 2 Phase 1
+- 2 Phase 2
+- 2 Phase 3
+- 2 R1 booké
+- 2 Perdu
+
+Exemples noms :
+- Marc Dupuis — Dupuis Finance — +41 79 123 45 67
+- Sophie Martin — Helvetia Conseil — +41 78 456 12 90
+- Lucas Meyer — Meyer Recrutement — +41 76 222 88 44
+- Amina Keller — Keller RH — +41 77 555 39 10
+- Julien Morel — Morel Digital — +41 79 888 41 22
+- Clara Rossi — Rossi Patrimoine — +41 78 991 22 13
+- Thomas Weber — Weber Advisory — +41 76 330 75 18
+- Nadia Blanc — Blanc Fiduciaire — +41 77 812 64 39
+- Pierre Laurent — Laurent Immobilier — +41 79 444 90 11
+- Elise Bernard — Bernard Coaching — +41 78 667 25 80
+- Karim Faure — Faure Assurance — +41 76 901 13 47
+- Laura Schmidt — Schmidt Consulting — +41 77 210 66 55
+
+Sources/canaux variés :
+- appel
+- linkedin
+- email
+
+Températures :
+- froid
+- tiède
+- chaud
+
+Important:
+Ajouter aussi un moyen de nettoyer ces données de démo si besoin :
+- soit un bouton admin discret “Nettoyer données démo”
+- soit une mutation/dev script `seedProspectionDemo` et `cleanupProspectionDemo`
+- chaque donnée de démo doit avoir `isDemo = true`
+
+Acceptance:
+- Les cartes apparaissent réellement dans le board Prospection.
+- Les contacts apparaissent aussi dans Contacts.
+- Les leads actifs apparaissent aussi dans Pipeline.
+- Les cartes ne viennent pas d’un tableau mock front.
+- On peut nettoyer les données de démo.
+```
+
+Et ajoute-lui bien :
+
+```text
+Fais-le proprement et vérifie visuellement le rendu après seed.
+```
+
+Ça te permettra de juger l’UI avec de vraies cartes.
+
+## user — 2026-06-03T21:54:27.653487
+
+[The user sent a voice message~ Here's what they said: "J'ai vraiment que la carton, il n'y a un truc qui n'a pas compris que vous n'avez pas bien compris, si tu vois la colonie nouvelle lide c'est qu'à transmission, en fait on a plutôt l'appeler lide à traiter, et on va avoir des lides, donc on va avoir la même carte que la pipeline lide, on va même carte, donc le nom est prénom, en dessous il faudrait l'entreprise à côté le numéro de téléphone, le patch, le patch, le patch, c'est une bonne recommandation, et là où actuellement, sur la pipeline lide, on a le petit avatar qui sont les initiales du nom prénom du concrète, à la place de ce petit avatar, à cette place là exactement, on va juste savoir si c'est froid chaud au ciel, ok ?"]
+
+## assistant — 2026-06-03T21:54:27.653487
+
+Oui. Correctif précis :
+
+## Colonne 1
+
+Dans Prospection, **“Nouveau lead”** doit être renommé :
+
+```text
+Lead à traiter
+```
+
+Parce que c’est la file de travail.
+
+## Carte
+
+La carte Prospection doit reprendre **la même structure que la carte Pipeline lead**.
+
+Mais à la place de l’avatar avec initiales :
+
+```text
+mettre l’icône température
+```
+
+Exactement au même emplacement.
+
+## Contenu carte
+
+- icône température à gauche : chaud / tiède / froid
+- nom prénom
+- entreprise
+- téléphone
+- badge phase
+- badge statut / action
+- prochaine relance si besoin
+
+## Prompt à envoyer
+
+```text
+Prospection card/column correction.
+
+Rename the first Prospection column:
+- from “Nouveau lead”
+- to “Lead à traiter”
+
+Reason:
+This column is the work queue for leads to process.
+
+Card visual correction:
+Prospection cards must use the same visual structure as the existing Pipeline lead cards.
+
+Important:
+Where the existing Pipeline card currently shows the contact initials/avatar, replace that exact avatar area with the lead temperature indicator.
+
+Do not add the temperature somewhere else.
+Use the same avatar position.
+
+Temperature indicator:
+- froid
+- tiède
+- chaud
+
+It should visually replace the initials avatar.
+
+Card content should match the Pipeline lead card structure:
+- temperature icon/avatar in place of initials
+- fullName
+- companyName
+- phone number
+- phase badge
+- status/action badge
+- nextFollowUpAt if available
+
+The phone number must be visible on the card.
+
+Lead temperature click behavior:
+Clicking the temperature icon cycles:
+froid → tiède → chaud → froid
+
+This must:
+- update the contact/prospection temperature
+- sync across Pipeline and Prospection
+- write Activity log
+- not open the contact drawer
+
+Keep the cards compact and visually consistent with the existing Pipeline.
+```
+
+Donc : 
+**Lead à traiter + même carte que Pipeline + avatar remplacé par température.**
+
+## user — 2026-06-03T21:54:27.653487
+
+[The user sent a voice message~ Here's what they said: "Et en fait, ce truc, c'est qu'une fois que le lide a traité, il ne va pas bouger dans face 1, face 2, face 3. Face 1, face 2, face 3, en fait, justement, c'est à rappeler, etc, c'est ça, et c'est devant le lide, que ça va bouger, tu vois. C'est pas si parce que je veux dire. Et c'est une fois que c'est en R1 bouquet ou perdu, que le lide est glissé dans R1, bouquet ou perdu."]
+
+## assistant — 2026-06-03T21:54:27.653487
+
+Oui, là je comprends.
+
+Les colonnes **Phase 1 / Phase 2 / Phase 3** ne sont pas des colonnes où la carte doit aller.
+
+Elles doivent être **des statuts/étapes visibles dans la carte**.
+
+## Board final Prospection
+
+Colonnes uniquement :
+
+1. **Lead à traiter**
+2. **R1 booké**
+3. **Perdu**
+
+C’est tout.
+
+## Dans la carte
+
+La carte reste dans **Lead à traiter** tant qu’elle n’est pas :
+- R1 booké
+- Perdu
+
+Et dans la carte, on affiche :
+- Phase 1 / Phase 2 / Phase 3
+- Appelé / Pas répondu / Message laissé / À rappeler / Répondu
+- Température
+- prochaine relance
+
+## Logique
+
+```text
+Lead à traiter
+ └── carte avance dans ses statuts internes :
+ Phase 1 → Phase 2 → Phase 3
+
+Si R1 booké → colonne R1 booké
+Si perdu → colonne Perdu
+```
+
+## Exemple carte
+
+```text
+🔥 Marc Dupuis
+Dupuis Finance
++41 79 123 45 67
+
+Phase 2 · À rappeler
+Relance : demain 10:00
+```
+
+La carte est toujours dans **Lead à traiter**.
+
+## Prompt correctif
+
+```text
+Important correction for Prospection board behavior.
+
+Do NOT use Phase 1 / Phase 2 / Phase 3 as board columns.
+
+The Prospection board must have only 3 columns:
+1. Lead à traiter
+2. R1 booké
+3. Perdu
+
+Phase 1, Phase 2 and Phase 3 are internal statuses shown inside the card, not columns.
+
+Behavior:
+- A lead stays in “Lead à traiter” while it is being worked.
+- Inside the card, show its current phase:
+ - Phase 1
+ - Phase 2
+ - Phase 3
+- Also show its current phase status:
+ - Appelé
+ - Pas répondu
+ - Message laissé
+ - À rappeler
+ - Répondu
+ - Intéressé
+
+Only move the card to another board column when:
+- R1 is booked → move to “R1 booké”
+- lead is lost/unqualified/no answer after final phase → move to “Perdu”
+
+So the sequence is:
+Lead à traiter
+ phase/status changes internally
+ then final movement only to R1 booké or Perdu
+
+Card display:
+- same structure as Pipeline lead card
+- temperature icon replaces initials avatar
+- fullName
+- companyName
+- phone
+- current phase: Phase 1/2/3
+- phase status
+- nextFollowUpAt
+
+Quick actions update internal phase/status:
+- Appelé
+- Pas répondu
+- Message laissé
+- À rappeler
+- Répondu
+- Intéressé
+
+Final actions move column:
+- R1 booké
+- Perdu
+
+Rules:
+- Pas répondu/message laissé in Phase 1 can advance internal phase to Phase 2 after follow-up scheduling.
+- Pas répondu/message laissé in Phase 2 can advance internal phase to Phase 3.
+- No positive result after Phase 3 can move to Perdu.
+- Répondu/Intéressé can lead to R1 booké flow.
+```
+
+Donc board ultra-simple : 
+**Lead à traiter → R1 booké / Perdu** 
+Et Phase 1/2/3 = progression interne dans la carte.
+
+## user — 2026-06-03T21:54:27.653487
+
+fait un gros prompte pour les changements discutés
+
+## assistant — 2026-06-03T21:54:27.653487
+
+Voici le **gros prompt correctif** à envoyer à Claude Code.
+
+```text
+We need to correct the Prospection module behavior and UI based on the final product decision.
+
+The current implementation misunderstood the board structure.
+
+IMPORTANT:
+Do not rebuild the whole app.
+Do not redesign existing Contacts/Pipeline heavily.
+Apply targeted corrections to Prospection and its synchronization.
+
+CORE RULE
+
+Contacts remain the source of truth.
+
+Contact identity fields:
+- fullName
+- companyName
+- phone
+- email
+- linkedinUrl
+- source
+- niche
+- canton
+
+Prospection must not duplicate these fields.
+Prospection records must link to contactId and store only work/prospection fields:
+- contactId
+- phase
+- phaseStatus
+- temperature
+- channel
+- nextFollowUpAt
+- shortNote
+- status
+- ownerUserId
+- createdAt
+- updatedAt
+
+If identity fields are edited from Prospection, update the Contact record.
+
+--------------------------------------------------
+1. BOARD STRUCTURE CORRECTION
+--------------------------------------------------
+
+The Prospection board must NOT use Phase 1 / Phase 2 / Phase 3 as columns.
+
+Final board columns must be only:
+
+1. Lead à traiter
+2. R1 booké
+3. Perdu
+
+Remove these as columns:
+- Nouveau lead
+- Phase 1
+- Phase 2
+- Phase 3
+- À traiter
+- En attente
+- À rappeler
+- En conversation
+
+Reason:
+Phase 1, Phase 2 and Phase 3 are internal progression states inside the card.
+The card stays in “Lead à traiter” while the setter works it.
+It only moves out when the final outcome happens:
+- R1 booké
+- Perdu
+
+Column behavior:
+- New leads appear in “Lead à traiter”.
+- A lead remains in “Lead à traiter” through Phase 1, Phase 2 and Phase 3.
+- R1 booked leads move to “R1 booké”.
+- Lost/unqualified/no-response-after-final-phase leads move to “Perdu”.
+
+--------------------------------------------------
+2. INTERNAL PHASE LOGIC
+--------------------------------------------------
+
+Each prospection card has an internal phase:
+
+phase:
+- phase1
+- phase2
+- phase3
+
+Each phase has a phaseStatus:
+
+phaseStatus:
+- a_appeler
+- appele
+- repondu
+- pas_repondu
+- message_laisse
+- a_rappeler
+- interesse
+- negatif
+- mauvais_numero
+- non_qualifie
+
+Quick actions:
+- Appelé
+- Répondu
+- Pas répondu
+- Message laissé
+- À rappeler
+- Intéressé
+- Réponse négative
+- Mauvais numéro
+- Non qualifié
+- R1 booké
+- Perdu
+- Ajouter note
+
+Rules:
+- First action on a lead sets phase = phase1.
+- Pas répondu / Message laissé / À rappeler in phase1 keeps the card in Lead à traiter and can schedule nextFollowUpAt.
+- When the next attempt is due or user advances attempt, phase becomes phase2.
+- Same logic from phase2 → phase3.
+- If phase3 has no positive outcome, move to Perdu.
+- Réponse négative → move to Perdu.
+- Mauvais numéro → move to Perdu.
+- Non qualifié → move to Perdu.
+- Intéressé → keep in Lead à traiter but mark temperature = chaud and allow R1 booking.
+- R1 booké → move to R1 booké.
+
+--------------------------------------------------
+3. CARD VISUAL CORRECTION
+--------------------------------------------------
+
+Prospection cards must use the same visual structure as the existing Pipeline lead cards.
+
+Important:
+Where the existing Pipeline card currently shows the contact initials/avatar, replace that exact avatar area with the lead temperature indicator.
+
+Do not place temperature somewhere else.
+It must replace the initials avatar.
+
+Lead temperature:
+- froid
+- tiède
+- chaud
+
+Default for new leads:
+- froid
+
+Card content:
+- temperature icon/avatar instead of initials
+- fullName
+- companyName
+- phone number visibly displayed
+- current phase: Phase 1 / Phase 2 / Phase 3
+- phaseStatus badge
+- nextFollowUpAt if available
+- shortNote if available
+
+The phone number is critical and must be visible on the card.
+
+Example card:
+[temperature icon] Marc Dupuis
+Dupuis Finance
++41 79 123 45 67
+Phase 2 · À rappeler
+Relance : demain 10:00
+
+Keep card compact and aligned with existing Data OS/Pipeline design.
+
+--------------------------------------------------
+4. TEMPERATURE QUICK INTERACTION
+--------------------------------------------------
+
+The temperature icon/avatar must be clickable directly on the card.
+
+Clicking it cycles temperature without opening the drawer:
+
+froid → tiède → chaud → froid
+
+This must:
+- update the lead/contact temperature
+- update the UI immediately
+- synchronize across Prospection and Pipeline
+- write an Activity log
+- not open the contact drawer
+
+Lead temperature is only for status = lead.
+
+If contact.status = client:
+- do not show temperature as avatar
+- show amount/value instead if available
+
+If contact.status = perdu:
+- do not show temperature as avatar
+- show lost state/reason if available
+
+--------------------------------------------------
+5. NEW LEAD CREATION CORRECTION
+--------------------------------------------------
+
+When the user clicks “Nouveau lead” in Prospection, do not open a separate contact form.
+
+It must reuse the existing Contact creation flow/form as much as possible.
+
+Creating a lead from Prospection is the same as creating a Contact, but with defaults:
+
+Defaults:
+- contact.status = lead
+- contact.pipelineStage = nouveau_lead or equivalent existing stage
+- contact.temperature = froid
+- prospectionRecord.status = active
+- prospectionRecord.phase = phase1 or empty until first action
+- board column = Lead à traiter
+
+Fields in form:
+- fullName
+- companyName
+- phone
+- email
+- linkedinUrl
+- source
+- niche
+- canton
+- channel: appel | linkedin | email
+- shortNote
+
+On save:
+1. Search existing Contacts by:
+ - phone
+ - email
+ - linkedinUrl
+ - normalized fullName + companyName
+2. If found, link to existing Contact instead of duplicating.
+3. If not found, create Contact using the existing Contact creation mutation/logic.
+4. Set Contact status = lead.
+5. Set Contact temperature = froid by default.
+6. Create prospectionRecord linked to contactId.
+7. Show card in Prospection column “Lead à traiter”.
+8. Show/contact remains available in Contacts.
+9. Show lead in existing Pipeline as Nouveau lead / relevant lead stage.
+10. Write Activity log: lead.created.
+
+Acceptance:
+- Creating a lead from Prospection creates a real Contact.
+- It does not create a parallel contact.
+- Same Contact appears in Contacts, Pipeline and Prospection.
+- Editing Contact phone/company/name syncs everywhere.
+- No duplicate is created if phone/email/linkedin already exists.
+
+--------------------------------------------------
+6. R1 BOOKÉ FLOW
+--------------------------------------------------
+
+When clicking “R1 booké”, do not simply move the card.
+
+Open the existing Calendrier event creation flow/modal/form.
+
+Keep Calendrier simple.
+Do not rebuild Calendrier.
+Do not add a complex participant system.
+
+Prefill:
+- eventType = R1
+- contact = linked Contact
+- title = “R1 - [Contact / Company]”
+
+User chooses:
+- date
+- start time
+- end time / duration
+- notes
+- existing calendar options / Google Meet link if already supported
+
+On save:
+1. Create calendar event normally using existing Calendrier logic.
+2. Move Prospection card to “R1 booké”.
+3. Set pros
+
+...[TRONQUÉ 12217 chars sha256:1c857087c9670420]...
+
+perature
+
+--------------------------------------------------
+11. DEMO DATA
+--------------------------------------------------
+
+Add demo data only as real records in Convex/source of truth, not front-end mocks.
+
+Create around 12 realistic demo leads.
+
+Each demo lead must:
+- create a real Contact
+- create a prospectionRecord linked to contactId
+- appear in Contacts
+- appear in Pipeline if active lead
+- appear in Prospection
+- have phone, company, channel, temperature, phase/status
+
+Mark them with isDemo = true if possible.
+
+Add a cleanup script or admin/dev mutation:
+- seedProspectionDemo
+- cleanupProspectionDemo
+
+No hardcoded React mock data.
+No localStorage.
+
+--------------------------------------------------
+12. MCP EXTENSION
+--------------------------------------------------
+
+Extend MCP for Prospection if not done:
+
+- prospection_list
+- prospection_create_or_link_contact
+- prospection_quick_action
+- prospection_set_temperature
+- prospection_set_next_followup
+- prospection_mark_r1_booked
+- prospection_mark_lost
+- prospection_summary
+
+MCP rules:
+- operate on the same data as UI
+- no mock data
+- every write creates Activity log
+- respect HERMES_API_SECRET auth for writes when configured
+
+--------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------
+
+- Prospection board has only 3 columns:
+ Lead à traiter / R1 booké / Perdu
+
+- Phase 1/2/3 are visible inside cards, not board columns.
+
+- Prospection cards use the same visual structure as Pipeline lead cards.
+
+- Temperature icon replaces initials avatar at the exact avatar position.
+
+- Clicking temperature cycles:
+ froid → tiède → chaud → froid
+ without opening the drawer.
+
+- Phone number is visible on every lead card.
+
+- New lead from Prospection reuses Contact creation logic/form.
+ It creates/links a real Contact.
+
+- New lead defaults:
+ status = lead
+ temperature = froid
+ board = Lead à traiter
+
+- Same Contact appears synchronized in:
+ Contacts
+ Pipeline
+ Prospection
+
+- R1 booké opens existing calendar event modal,
+ creates R1 event,
+ moves Pipeline to R1,
+ creates preparation task,
+ logs activity.
+
+- Perdu flow updates Prospection/Pipeline/Contact and logs activity.
+
+- Filter/search bar works.
+
+- KPI strip stays focused on setter/R1 production only.
+
+- Demo data are real backend records, not mocks.
+
+- Existing Contacts, Pipeline, Calendrier and Tâches still work.
+
+- Build/typecheck pass.
+
+- Vercel deployment works.
+```
+
+Tu peux lui envoyer tel quel.
+
+## user — 2026-06-03T21:54:27.653487
+
+[The user sent a voice message~ Here's what they said: "Ok, maintenant, je pense qu'on se retrouve dans le brainstorming de la prochaine module. C'est qui n'est pas pour inspection, mais le deuxième module, la commande."]
+
+## assistant — 2026-06-03T21:54:27.653487
+
+Oui. Deuxième module : **Performance Setter**.
+
+Il doit être simple, pas un dashboard général.
+
+## But du module
+
+Répondre à :
+
+```text
+Est-ce que la setter fait les actions prévues et produit des R1 ?
+```
+
+## Nom possible
+
+- **Performance**
+- **Suivi Setter**
+- **Objectifs**
+- **Production R1**
+
+Je choisirais : **Performance**.
+
+## Structure du module
+
+### 1. Résumé du jour
+
+Cartes KPI :
+- appels faits
+- messages envoyés
+- réponses
+- relances faites
+- R1 bookés
+- objectif atteint / pas atteint
+
+### 2. Objectifs du jour
+
+Checklist simple :
+- appeler X leads
+- envoyer X messages
+- relancer X leads
+- booker X R1
+
+Chaque objectif :
+- cible
+- progression
+- bouton +1
+- bouton terminé
+
+### 3. Calendrier d’exécution
+
+Vue calendrier simple avec captions par jour :
+- “42 appels”
+- “9 réponses”
+- “2 R1”
+- “objectif atteint”
+
+Pas un calendrier rendez-vous. 
+Juste un historique d’activité.
+
+### 4. Filtres
+
+- période
+- setter
+- canal
+- source
+
+## Ce qu’on ne met PAS
+
+- R2
+- closing
+- chiffre d’affaires
+- client delivery
+- pipeline global
+- analyse compliquée
+
+## Connexion
+
+Performance lit :
+- Prospection events
+- objectifs du jour
+- Activités
+- Calendrier uniquement pour R1 si besoin
+
+Performance peut créer :
+- objectifs/tâches du jour
+- logs d’activité
+
+## Mon avis
+
+C’est le bon complément :
+
+```text
+Prospection = faire le travail
+Performance = voir si le travail est fait
+```
+
+Pas plus compliqué.
+
+## user — 2026-06-03T21:54:27.653487
+
+ca va pas du tout
+
+[Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_d50eafbe5e82.jpg]
+[screenshot]
+
+## assistant — 2026-06-03T21:54:27.653487
+
+Oui, ça ne va pas. Le problème principal : **ce n’est pas un vrai cockpit setter**, c’est un kanban trop vide et trop large.
+
+## Ce qui cloche
+
+1. **Les colonnes prennent trop de place**
+- R1 booké et Perdu sont des états finaux.
+- Elles ne doivent pas occuper 2 grosses colonnes vides.
+- Là, ça gaspille l’espace.
+
+2. **Lead à traiter est trop large mais pas assez structuré**
+On doit voir beaucoup plus de leads d’un coup.
+
+3. **Les cartes sont trop grandes**
+Elles prennent trop de hauteur pour peu d’info.
+
+4. **Les actions rapides ne sont pas visibles**
+La setter doit cliquer vite :
+- Appelé
+- Pas répondu
+- Message laissé
+- À rappeler
+- Répondu
+- R1 booké
+- Perdu
+
+Là, elle doit sûrement ouvrir la carte. Trop lent.
+
+5. **R1 booké / Perdu devraient être des filtres ou sections compactes**
+Pas des colonnes énormes au même niveau que le travail actif.
+
+---
+
+# Direction correcte
+
+## Layout recommandé
+
+Faire une vue en 2 zones :
+
+### Zone principale : Leads à traiter
+Large, dense, actionnable.
+
+Elle prend 70–80% de la largeur.
+
+Affichage en **liste/cartes compactes**, pas grandes colonnes vides.
+
+Chaque ligne/carte :
+- icône température
+- nom
+- entreprise
+- téléphone
+- phase/status
+- prochaine relance
+- actions rapides
+
+### Zone droite : Résultats du jour
+Petite colonne latérale.
+
+Sections compactes :
+- R1 bookés aujourd’hui
+- Perdus aujourd’hui
+- Relances dues
+
+Pas des gros kanbans.
+
+---
+
+# Carte compacte idéale
+
+```text
+🔥 Manon Chevalier · Chevalier Coaching
++41 79 258 14 70
+Phase 1 · À appeler · Relance aujourd’hui
+
+[Appelé] [Pas répondu] [Message laissé] [Répondu] [R1 booké] [Perdu]
+```
+
+Ou en carte plus propre :
+
+```text
+🔥 Manon Chevalier
+Chevalier Coaching · +41 79 258 14 70
+Phase 1 · À appeler
+
+Appelé | Pas répondu | Répondu | R1 booké
+```
+
+La clé : **actions visibles sans ouvrir la fiche.**
+
+---
+
+# Prompt correctif à envoyer
+
+```text
+Prospection UI correction.
+
+The current board is not good enough.
+It feels like an empty kanban and wastes space with large R1 booké / Perdu columns.
+
+Prospection is a setter cockpit.
+It must be fast, dense, and action-oriented.
+
+Change the layout.
+
+Do not use three equal-width kanban columns.
+
+Recommended layout:
+1. Main area: “Leads à traiter”
+ - takes 70–80% of width
+ - dense list or compact card grid
+ - shows all active leads to work
+
+2. Right side panel: “Résultats”
+ - compact panel
+ - shows R1 bookés today
+ - Perdus today
+ - Relances dues
+ - not huge empty columns
+
+Active leads should stay in the main work queue until final outcome.
+R1 booké and Perdu are final outcomes, not large work columns.
+
+Card/list item must be compact and action-oriented.
+
+Each lead item shows:
+- temperature icon/avatar instead of initials
+- fullName
+- companyName
+- phone number clearly visible
+- phase: Phase 1 / Phase 2 / Phase 3
+- phaseStatus
+- nextFollowUpAt if available
+- shortNote if available
+
+Quick action buttons must be visible directly on the card/list item:
+- Appelé
+- Pas répondu
+- Message laissé
+- Répondu
+- À rappeler
+- R1 booké
+- Perdu
+
+Do not require opening the drawer for common actions.
+
+Temperature icon:
+- clickable directly
+- cycles froid → tiède → chaud → froid
+- updates instantly and logs Activity
+
+R1 booké:
+- opens existing Calendar event modal
+- creates R1 event
+- moves Pipeline to R1
+- creates preparation task
+- logs Activity
+- removes the lead from active work queue and shows it in right-side Résultats
+
+Perdu:
+- opens/selects lost reason if needed
+- updates Contact/Pipeline
+- logs Activity
+- removes the lead from active work queue and shows it in right-side Résultats
+
+Top KPIs can stay, but reduce visual height if needed.
+
+Filters/search should stay compact.
+
+The goal:
+The setter should see many leads at once and execute calls fast.
+
+Acceptance:
+- No large empty R1/Perdu columns.
+- Main list shows many leads compactly.
+- Phone is immediately visible.
+- Quick actions are visible without opening details.
+- R1 booké and Perdu appear as compact result summaries.
+- Existing design style is respected.
+```
+
+## Verdict
+
+Il faut passer de :
+
+```text
+Kanban final states
+```
+
+à :
+
+```text
+cockpit de travail dense + panneau résultats
+```
+
+Là, ce sera beaucoup plus utile.
+
+## user — 2026-06-03T21:54:27.653487
+
+[The user sent a voice message~ Here's what they said: "Là je ne suis vraiment pas content, là je ne suis vraiment pas fait, c'est que je veux qu'on garde encore l'île des attrétés, faisin, phase 2, phase 3, R1 bouquet, R1, R1 perdu. Peut-être que c'est que dans l'île des attrétés, les câbles, déjà ils doivent être moins épaisse, donc c'est non prénom, avec le nom d'entreprise, c'est très bien, le numéro de téléphone, ok très bien. Maintenant, le logo, vous savoir si c'est chaud, tu sais, il faut qu'il soit tout petit. Tout petit, on bat à 3 de la carte, tout petit, de la même taille que la taille des avatars dans la paille planique, ok, tu gardes ça. Maintenant, quand ils arrivent dans l'île des attrétés, ils sont par définition, tous froid, ok. Maintenant, il y a phase 1, phase 2, phase 3, et phase 1, phase 2, phase 3, la carte, en fait, en fait, si vous voulez, la phase 1, phase 2, phase 3, elle est associée à la carte. Tu vois, la carte doit rester à gauche. Elle a mis de faudrait l'île des attrétés, nouveau l'île, en fait, faudrait le nouveau l'île, en conversation, et en fait, en conversation, ça veut dire que, en phase 2, phase 3, il y a une nouvelle carte, en fait, ce n'est pas des cas, mais ça, c'est des menus déroulés, où tu mets, si c'est appelé, répondu à répondu, etc."]
+
+## assistant — 2026-06-03T21:54:27.653487
+
+Oui, j’ai compris. Là il faut corriger proprement.
+
+Tu veux garder l’idée **Pipeline visuel**, mais avec des cartes plus fines et une logique différente :
+
+## Structure voulue
+
+Colonnes :
+
+1. **Nouveau lead**
+2. **En conversation**
+3. **R1 booké**
+4. **Perdu**
+
+Pas besoin de grosses colonnes Phase 1 / Phase 2 / Phase 3.
+
+Les **phases 1/2/3 sont dans la carte**, via menus déroulants.
+
+---
+
+## Carte lead
+
+Carte plus fine.
+
+Affichage :
+- petit avatar température, même taille que les avatars du Pipeline
+- nom prénom
+- entreprise
+- téléphone
+- phase actuelle
+- statut phase via menu déroulant
+
+Température :
+- nouveau lead = **froid par défaut**
+- icône petite, pas énorme
+- cliquable pour changer froid / tiède / chaud
+
+---
+
+## Logique des colonnes
+
+### Nouveau lead
+Tous les leads qui viennent d’arriver.
+
+Par défaut :
+- température = froid
+- phase = vide ou phase 1 à démarrer
+
+### En conversation
+Dès qu’il y a une vraie action de prospection :
+- appelé
+- répondu
+- message laissé
+- à rappeler
+- phase 1/2/3 en cours
+
+La carte va dans **En conversation**.
+
+Mais dans la carte, on choisit :
+- Phase 1
+- Phase 2
+- Phase 3
+
+Et pour chaque phase :
+- Appelé
+- Répondu
+- Pas répondu
+- Message laissé
+- À rappeler
+- Intéressé
+
+### R1 booké
+Quand le rendez-vous est pris.
+
+### Perdu
+Quand négatif, non qualifié, mauvais numéro, ou aucune réponse après phase 3.
+
+---
+
+# Prompt correctif à envoyer
+
+```text
+Prospection correction — final clarification.
+
+The previous layout is wrong.
+
+We want to keep a visual board/pipeline style, but with thinner cards and correct logic.
+
+Board columns should be:
+
+1. Nouveau lead
+2. En conversation
+3. R1 booké
+4. Perdu
+
+Do NOT use Phase 1 / Phase 2 / Phase 3 as board columns.
+
+Phase 1 / Phase 2 / Phase 3 must be fields inside the card, controlled with dropdowns/menus.
+
+Column meaning:
+
+Nouveau lead:
+- new leads that just arrived
+- default temperature = froid
+- card is not yet actively worked
+
+En conversation:
+- active working area
+- lead has been called/contacted/replied/follow-up scheduled
+- phase/status are managed inside the card
+
+R1 booké:
+- final successful handoff
+- R1 appointment booked
+
+Perdu:
+- negative answer
+- non qualified
+- wrong number
+- no answer after final phase
+
+Card design:
+Cards must be thinner and more compact.
+
+Each card should show:
+- small temperature avatar/icon, same size as existing Pipeline avatars
+- fullName
+- companyName
+- phone number
+- current phase dropdown: Phase 1 / Phase 2 / Phase 3
+- current phase status dropdown:
+ - Appelé
+ - Répondu
+ - Pas répondu
+ - Message laissé
+ - À rappeler
+ - Intéressé
+ - Négatif
+ - Mauvais numéro
+ - Non qualifié
+
+Temperature:
+- New leads default to froid
+- temperature values:
+ - froid
+ - tiède
+ - chaud
+- temperature icon must be small, not oversized
+- clicking it cycles froid → tiède → chaud → froid
+- it must sync with Contact/Pipeline/Prospection and write Activity log
+
+Behavior:
+- Creating a lead from Prospection creates/links a real Contact.
+- New lead appears in Nouveau lead with temperature = froid.
+- When user performs first real action or changes phase/status, move card to En conversation.
+- In En conversation, the user can update Phase 1 / Phase 2 / Phase 3 and status using dropdowns directly on the card.
+- If status becomes Intéressé, temperature can become chaud.
+- If R1 booké is selected, open existing Calendar event modal with type R1 prefilled.
+- On R1 save:
+ - move card to R1 booké
+ - move Pipeline to R1
+ - create Task “Préparer R1 avec [contact]”
+ - write Activity log
+- If Négatif / Mauvais numéro / Non qualifié, move to Perdu.
+- If Phase 3 ends with no response, move to Perdu.
+
+Important:
+Do not make cards thick.
+Do not make temperature icon huge.
+Do not create a dense separate list view.
+Keep the visual board style, but make cards compact and usable.
+
+Acceptance:
+- Board columns are Nouveau lead / En conversation / R1 booké / Perdu.
+- Cards are compact.
+- Temperature avatar is small, same size as Pipeline avatar.
+- New leads are froid by default.
+- Phase 1/2/3 are dropdowns inside the card.
+- Status is a dropdown inside the card.
+- Phone number is visible.
+- R1 booké opens calendar modal.
+- Existing Contacts/Pipeline stay synchronized.
+```
+
+Phrase courte à lui dire aussi :
+
+```text
+On garde le board visuel. Les phases ne sont pas des colonnes : ce sont des menus dans la carte.
+```
+
+## user — 2026-06-03T21:54:27.653487
+
+[The user sent a voice message~ Here's what they said: "Vient en restant me rapidement, en gros faudrait une colonne, en fait un peu comme si je fais dans les excelles, ta la colonne ou ta les leads, et ta les différentes phases qui sont en face de la carte, et en face de la carte, ben du coup taille différentes phases, la phase une, tu mets quelque chose, ensuite la phase deux, tu mets des quelque chose autres, à ce point tu mets quelque chose autres, il y a un bouquet ou perdu, là c'est vraiment la carte qui doit être déplacée, c'est pas si tu vois ce qu'il faut."]
+
+## assistant — 2026-06-03T21:54:27.653487
+
+Oui. Là c’est clair.
+
+Tu veux une **vue type Excel améliorée**, pas un kanban classique.
+
+## Structure exacte
+
+Chaque lead = une ligne/carte horizontale.
+
+À gauche :
+- nom
+- entreprise
+- téléphone
+- température
+
+À droite, sur la même ligne :
+- Phase 1
+- Phase 2
+- Phase 3
+- R1 booké
+- Perdu
+
+Donc les phases sont **des colonnes d’action en face du lead**, pas des colonnes où la carte se déplace.
+
+## Exemple
+
+```text
+🔥 Marc Dupuis | Dupuis Finance | +41 79 123 45 67
+Phase 1: Pas répondu | Phase 2: À rappeler | Phase 3: — | R1: — | Perdu: —
+```
+
+Ou visuellement :
+
+```text
+Lead Phase 1 Phase 2 Phase 3 R1 booké Perdu
+Marc Dupuis Pas répondu À rappeler — — —
+Sophie Martin Répondu — — R1 12/06 —
+Lucas Meyer Pas répondu Pas répondu Perdu — Oui
+```
+
+## Donc
+
+- On ne déplace pas la carte entre Phase 1 / Phase 2 / Phase 3.
+- On remplit les statuts en face.
+- La carte/le lead ne “bouge” vraiment que si :
+ - R1 booké
+ - Perdu
+
+## Prompt court correctif
+
+```text
+Prospection layout correction.
+
+The user wants a smart spreadsheet/card-row layout, not a classic Kanban.
+
+Each lead should appear as one horizontal row/card.
+
+Left side of the row:
+- temperature icon
+- fullName
+- companyName
+- phone number
+
+Right side of the same row:
+- Phase 1 status
+- Phase 2 status
+- Phase 3 status
+- R1 booké
+- Perdu
+
+Phase 1 / Phase 2 / Phase 3 are not board columns where cards move.
+They are action/status cells in front of each lead, like the old Excel tracker.
+
+Each phase cell should be a dropdown:
+- —
+- Appelé
+- Répondu
+- Pas répondu
+- Message laissé
+- À rappeler
+- Intéressé
+
+R1 booké cell:
+- empty by default
+- button/select to book R1
+- clicking opens existing calendar event modal with type R1 prefilled
+
+Perdu cell:
+- empty by default
+- select lost reason:
+ - négatif
+ - mauvais numéro
+ - non qualifié
+ - pas de réponse après phase 3
+ - hors cible
+ - autre
+
+Final movement:
+The lead only gets final status when:
+- R1 booké is filled → status/handoff, Pipeline R1, calendar event, preparation task
+- Perdu is filled → lost/archive, Pipeline Perdu
+
+Design:
+Make it visually premium and consistent with Data OS:
+- not a raw ugly table
+- use compact cards/rows
+- clear columns
+- sticky lead identity on the left if useful
+- phone number visible
+- temperature icon small, same size as pipeline avatar
+- filters/search above
+
+This should feel like:
+“Excel logic, Data OS visual quality.”
+
+Acceptance:
+- One lead = one row/card.
+- Phase 1/2/3 appear as cells in the same row.
+- Updating a phase does not move the card.
+- Only R1 booké or Perdu changes final status.
+- R1 booké opens calendar modal.
+- Contact/Pipeline remain synced.
+```
+
+C’est ça : **Excel horizontal + design Data OS.**
+
+## user — 2026-06-03T21:54:27.653487
+
+[The user sent a voice message~ Here's what they said: "Exactement, c'est ça. Un genre d'essayer l'horizontale, mais version design d'ATAOS propre, et en fait les leads à traiter R1 bouquet est perdu. En fait, on peut le voir un peu comme un kanban où tu peux prendre et glisser, parce qu'il y a aussi l'ENR1 et l'un plus besoin d'être en l'excellent entre nous-mêmes. Et si il est perdu, c'est pareil, il a plus besoin d'afficher dans les leads à traiter. Tu vois ce que veut dire, mais tant qu'il est dans le leads à traiter, il faut qu'il y ait toujours la passant à la passe de la fin 3."]
+
+## assistant — 2026-06-03T21:54:27.653487
+
+Exactement. Donc le bon modèle est hybride :
+
+**Lead à traiter = tableau horizontal type Excel design.** 
+**R1 booké / Perdu = sorties finales type kanban.**
+
+## Structure finale
+
+### Colonne / zone 1 : Lead à traiter
+C’est la zone principale.
+
+Dedans, chaque lead est une **ligne horizontale premium** avec :
+
+- identité contact
+- Phase 1
+- Phase 2
+- Phase 3
+- action R1 booké
+- action Perdu
+
+Tant que le lead est actif, il reste là.
+
+### Zone 2 : R1 booké
+Le lead sort de “Lead à traiter”.
+
+### Zone 3 : Perdu
+Le lead sort aussi de “Lead à traiter”.
+
+## Logique
+
+```text
+Lead à traiter
+ → Phase 1 / Phase 2 / Phase 3 se remplissent dans la ligne
+
+Si R1 booké :
+ → sort de Lead à traiter
+ → va dans R1 booké
+ → Calendrier + Pipeline R1 + tâche
+
+Si Perdu :
+ → sort de Lead à traiter
+ → va dans Perdu
+ → Pipeline Perdu / archive
+```
+
+## Prompt final correctif
+
+```text
+Final Prospection layout model.
+
+Use a hybrid layout:
+
+1. Main zone: “Lead à traiter”
+This is not a classic kanban column.
+It is a premium horizontal tracker, inspired by Excel but visually aligned with the Data OS.
+
+Each active lead appears as one horizontal row/card.
+
+Row/card structure:
+Left identity block:
+- small temperature icon/avatar
+- fullName
+- companyName
+- phone number
+
+Then phase cells:
+- Phase 1
+- Phase 2
+- Phase 3
+
+Then final action cells:
+- R1 booké
+- Perdu
+
+Phase cells are dropdowns, not movement columns.
+Each phase cell options:
+- —
+- Appelé
+- Répondu
+- Pas répondu
+- Message laissé
+- À rappeler
+- Intéressé
+
+R1 booké:
+- button/cell
+- opens existing Calendar event modal with type R1 prefilled
+- after save, removes lead from Lead à traiter
+- shows it in R1 booké area
+- updates Pipeline to R1
+- creates preparation Task
+- writes Activity log
+
+Perdu:
+- button/cell or dropdown
+- asks/selects lost reason:
+ - négatif
+ - mauvais numéro
+ - non qualifié
+ - pas de réponse après phase 3
+ - hors cible
+ - autre
+- after confirm, removes lead from Lead à traiter
+- shows it in Perdu area
+- updates Pipeline/Contact according to existing convention
+- writes Activity log
+
+2. Side/final zones:
+- R1 booké
+- Perdu
+
+These can be compact kanban-style result columns or compact lists.
+They should not dominate the screen.
+The active work area “Lead à traiter” is the main area.
+
+Important behavior:
+- While active, the lead stays in Lead à traiter.
+- Phase 1/2/3 are always visible in the row.
+- Updating Phase 1/2/3 does not move the lead out.
+- Only R1 booké or Perdu removes it from the active list.
+
+Design:
+- “Excel logic, Data OS visual quality”
+- not a raw table
+- compact premium rows/cards
+- clear separators
+- sticky identity block if useful
+- phone number visible
+- temperature icon small, same size as existing Pipeline avatar
+- filters/search above
+
+Acceptance:
+- Active leads show as horizontal rows under Lead à traiter.
+- Each row has Phase 1, Phase 2, Phase 3 visible.
+- Phase cells are dropdowns.
+- R1 booké removes from active list and syncs Calendar/Pipeline/Task.
+- Perdu removes from active list and syncs Pipeline/Contact.
+- R1 booké and Perdu are visible as final result areas.
+```
+
+C’est exactement le bon compromis : 
+**tableau Excel horizontal pour travailler vite + sorties visuelles R1/Perdu.**
+
+## user — 2026-06-03T21:54:27.653487
+
+[The user sent a voice message~ Here's what they said: "Ok, on est au long du soleil de l'autre module. Est-ce qu'il y a?"]
+
+## assistant — 2026-06-03T21:54:27.653487
+
+Oui. L’autre module logique : **Performance Setter**.
+
+Mais très simple.
+
+## Module : Performance
+
+But :
+voir si la setter produit bien des R1.
+
+## Ce qu’il contient
+
+### 1. Score du jour
+- appels faits
+- messages envoyés
+- réponses
+- R1 bookés
+- objectif R1
+- objectif atteint ou non
+
+### 2. Tâches du jour
+Checklist :
+- appeler X leads
+- relancer X leads
+- envoyer X messages
+- booker X R1
+
+Avec progression :
+```text
+Appeler 50 leads — 32/50
+Booker 2 R1 — 1/2
+```
+
+### 3. Calendrier d’activité
+Par jour :
+- 42 appels
+- 11 réponses
+- 2 R1
+- objectif atteint
+
+### 4. Filtres
+- jour/semaine/mois
+- setter
+- canal
+
+Pas de R2, pas de closing, pas de CA.
+
+## Utilité
+Prospection = faire le travail. 
+Performance = voir si le travail a été fait.

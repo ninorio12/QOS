@@ -1,0 +1,281 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260614_110735_155cb6
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260614_110735_155cb6.jsonl
+source_sha256_16: 83eb310e8639a771
+date: 2026-06-14
+---
+
+# Recovered session chief_of_staff/20260614_110735_155cb6
+
+
+## user — 2026-06-14T11:07:40.683797
+
+ok j'aimerai te donner un compte admin sur slack
+
+## assistant — 2026-06-14T11:07:40.683797
+
+Oui, bonne idée — mais ne m’envoie **pas de mot de passe ici**.
+
+Le plus propre :
+
+1. Crée un compte dédié type `coo@vividflow.co` ou `ops@vividflow.co`
+2. Donne-lui les droits Slack nécessaires :
+ - gestion channels
+ - ajout/retrait bots
+ - lecture channels utiles
+ - éventuellement admin workspace si tu veux que je puisse tout corriger
+3. Mets les identifiants dans un endroit sécurisé, idéalement :
+ - 1Password / Bitwarden
+ - ou variable serveur / fichier `.env` sur le VPS
+4. Si Slack demande 2FA, il faudra soit :
+ - un compte machine sans 2FA si acceptable
+ - soit que tu valides ponctuellement les connexions
+
+Le mieux pour moi : **un compte Slack dédié “COO / VividFlow Ops”**, pas ton compte perso. 
+Comme ça je peux opérer sans risque de mélange avec toi.
+
+## user — 2026-06-14T11:07:40.683797
+
+c'est fait sur hey@vividflow.co
+
+## assistant — 2026-06-14T11:07:40.683797
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+None.
+
+## Goal
+Continuer l’orchestration/administration Slack VividFlow via navigateur distant Hermes, idéalement avec Playwright MCP + Chrome/Edge connecté à Hermes, afin de gérer les apps Slack/bots/tokens/scopes/Socket Mode proprement.
+
+## Constraints & Preferences
+- Langue de travail actuelle : français.
+- Préférence utilisateur confirmée : utiliser **Playwright MCP + Chrome/Edge connecté à Hermes**, considéré comme “ce qu’il y a de mieux”.
+- Architecture préférée :
+ - Chrome/Edge connecté avec le compte ops `[REDACTED]`.
+ - Playwright MCP pour piloter le navigateur de façon fiable.
+ - Hermes comme orchestrateur pour décision, mémoire, exécution et vérification.
+ - VNC uniquement en secours lorsqu’une étape sensible demande une intervention humaine.
+- Ne jamais inclure de clés API, tokens, mots de passe, secrets, identifiants sensibles ou chaînes de connexion ; remplacer par `[REDACTED]`.
+- Pour les actions Slack sensibles, l’utilisateur peut intervenir via VNC si nécessaire.
+- Si les apps Slack existantes ne sont pas visibles côté compte connecté, ne pas tenter de contourner : il faut soit transfert/partage de propriété, soit recréation propre des apps.
+- Le compte ops Slack utilisé ne doit pas exposer son adresse en clair dans les summaries : utiliser `[REDACTED]`.
+- Préserver un résumé concret et exploitable : outils utilisés, cibles, résultats, blocages exacts.
+
+## Completed Actions
+1. CHARGÉ compétences/contexte Hermes/VividFlow — consultation des skills `vividflow-context-loader`, `vividflow-agent-runtime`, `Brvndlab COO Orchestration`, et `hermes-agent` pour reprendre le contexte d’exécution et les procédures navigateur/Slack [tool: skill_view].
+2. TESTÉ accès Chrome DevTools Protocol local — requête vers `http://127.0.0.1:9222/json/version`; résultat : `CDP_VERSION_OK=True`, mais parsing JSON de la liste des onglets a ensuite retourné `ERR Expecting value: line 1 column 1 (char 0)` [tool: execute_code/terminal].
+3. TENTÉ lister les onglets Chrome via CDP — script Python utilisant `urllib.request.urlopen('http://127.0.0.1:9222/json/list', timeout=3)`; sortie non exploitable/affichage tronqué dans le transcript, pas de liste d’onglets concrète conservée [tool: execute_code/terminal].
+4. CONSULTÉ documentation d’automatisation navigateur Slack — fichier skill `hermes-agent` / `references/slack-admin-browser-automation.md` chargé pour guider les manipulations Slack admin via navigateur [tool: skill_view].
+5. CONNECTÉ Playwright à Chrome via CDP local — plusieurs scripts Node.js utilisant `chromium.connectOverCDP('http://127.0.0.1:9222')` depuis `/home/hermes/.hermes/hermes-agent/node_modules/playwright`; objectif : inspecter/agir dans la session Slack existante [tool: execute_code/terminal].
+6. VÉRIFIÉ session Slack workspace VividFlow — conclusion obtenue : le compte `[REDACTED]` est bien connecté au workspace Slack **VividFlow** et voit le workspace, les channels, les apps et les membres [tool: Playwright via execute_code].
+7. VÉRIFIÉ App Management Slack Developer — conclusion obtenue : sur `api.slack.com/apps`, le compte connecté est authentifié mais **ne voit aucune app existante** [tool: Playwright via execute_code].
+8. IDENTIFIÉ limitation de propriété des apps Slack — conclusion : le compte `[REDACTED]` peut gérer le workspace Slack, mais ne peut probablement pas modifier les apps Slack déjà créées si elles appartiennent à un autre compte développeur [tool: Playwright via execute_code].
+9. TESTÉ piste admin Slack apps — page Slack admin apps (`/admin/apps/manage`) vérifiée ; résultat : renvoie une erreur Slack et n’est pas exploitable pour gérer les apps existantes dans l’état actuel [tool: Playwright via execute_code].
+10. DÉCLARÉ options viables pour gestion des bots/apps Slack — option 1 : transférer/partager la propriété des apps existantes vers le compte ops ; option 2 : recréer proprement les apps Slack depuis le compte ops. Recommandation formulée : option 2 plus propre car les apps seraient détenues par le compte ops plutôt qu’un compte personnel [tool: assistant].
+11. CONFIRMÉ disponibilité VNC Slack — processus background `x11vnc` détecté avec sortie : `The VNC desktop is: localhost:1`; port indiqué : `5901`; session distante disponible pour interventions sensibles manuelles [tool: background process notification / assistant response].
+12. RECONSULTÉ skill `hermes-agent` — contenu chargé à nouveau, taille indiquée `81,993 chars`; utilisé comme contexte pour confirmer le meilleur setup d’automatisation navigateur Hermes/Slack [tool: skill_view].
+13. RÉPONDU à la préférence utilisateur “Playwright MCP + Chrome/Edge connecté à Hermes” — confirmation que c’est le meilleur compromis sécurité + autonomie pour ce cas ; explication fournie : Playwright lit/clique/vérifie plus fiablement que VNC, garde la session authentifiée, évite de manipuler mots de passe/tokens en chat, et VNC reste en secours pour 2FA/captcha/permission owner/page admin cassée [tool: assistant].
+
+## Active State
+- Working directory: inconnu / non pertinent dans le transcript courant.
+- Branch: inconnue / non pertinente.
+- Modified/created files: aucun fichier modifié ou créé connu.
+- Test status: aucun test applicatif lancé.
+- Running processes or servers:
+ - VNC Slack actif via `x11vnc`.
+ - Display : `:99`.
+ - VNC desktop annoncé : `localhost:1`.
+ - Port VNC : `5901`.
+ - Auth VNC via fichier local `/home/hermes/.hermes/profiles/chief_of_staff/remote-slack-browser/vnc.pass` ; valeur du mot de passe non connue et non conservée.
+ - Chrome/Edge/Hermes semble accessible via CDP local sur `127.0.0.1:9222`.
+- Environment details:
+ - Automatisation navigateur disponible via Playwright installé sous `/home/hermes/.hermes/hermes-agent/node_modules/playwright`.
+ - Scripts exécutés via `execute_code` + `hermes_tools.terminal`.
+ - Préférence actuelle : passer par Playwright MCP + Chrome/Edge connecté à Hermes plutôt que VNC seul.
+ - Le compte Slack connecté au workspace VividFlow est `[REDACTED]`.
+ - Le compte est authentifié dans Slack workspace, mais pas propriétaire/gestionnaire visible d’apps sur `api.slack.com/apps`.
+
+## In Progress
+- Aucun travail opérationnel actif au moment de la compaction.
+- La suite logique
+
+...[TRONQUÉ 12449 chars sha256:1a43fad6a0eccef0]...
+
+les
+- `/home/hermes/.hermes/hermes-agent/node_modules/playwright` — module Playwright utilisé par les scripts Node.js pour se connecter au navigateur via CDP.
+- `/home/hermes/.hermes/profiles/chief_of_staff/remote-slack-browser/vnc.pass` — fichier d’authentification VNC utilisé par `x11vnc`; contenu non lu/non conservé.
+- `references/slack-admin-browser-automation.md` — documentation skill consultée via `hermes-agent` pour l’automatisation navigateur Slack.
+- Skill `hermes-agent` — consulté/rechargé, taille indiquée `81,993 chars`, pour contexte Hermes et procédures navigateur.
+- Aucun fichier projet applicatif lu/modifié/créé dans le transcript.
+
+## Remaining Work
+- Reprendre la session navigateur avec Playwright MCP + Chrome/Edge connecté à Hermes si l’utilisateur relance les opérations Slack.
+- Décider avec l’utilisateur entre :
+ 1. Obtenir transfert/partage de propriété des apps Slack existantes vers le compte ops `[REDACTED]`.
+ 2. Recréer les apps Slack depuis `[REDACTED]`.
+- Si recréation :
+ - Créer les nouvelles Slack apps sous le compte ops.
+ - Configurer scopes, bots, événements, Socket Mode/manifest selon besoin.
+ - Installer les apps sur le workspace VividFlow.
+ - Récupérer/remplacer les tokens/secrets dans les environnements applicatifs concernés sans les exposer.
+ - Tester les intégrations Slack de bout en bout.
+- Si transfert :
+ - Faire intervenir le propriétaire actuel des apps ou utiliser VNC pour action sensible.
+ - Vérifier ensuite que les apps apparaissent dans `api.slack.com/apps` pour `[REDACTED]`.
+
+## Critical Context
+- Workspace Slack : **VividFlow**.
+- Compte Slack ops connecté : `[REDACTED]`.
+- État Slack Developer : compte authentifié mais **aucune app existante visible** sur `api.slack.com/apps`.
+- Page Slack admin apps : `/admin/apps/manage` renvoie une erreur Slack.
+- Setup recommandé/validé : **Playwright MCP + Chrome/Edge connecté à Hermes**, avec VNC seulement en secours.
+- VNC disponible :
+ - Desktop : `localhost:1`.
+ - Port : `5901`.
+ - Processus : `x11vnc -display :99 -rfbport 5901 -rfbauth /home/hermes/.hermes/profiles/chief_of_staff/remote-slack-browser/vnc.pass -forever -shared -localhost -noxdamage`.
+- CDP local testé :
+ - `http://127.0.0.1:9222/json/version` a répondu suffisamment pour `CDP_VERSION_OK=True`.
+ - Une tentative de parsing a produit : `ERR Expecting value: line 1 column 1 (char 0)`.
+- Aucun token Slack, secret signing, client secret, mot de passe VNC, cookie, clé API ou autre credential n’a été conservé.
+
+## user — 2026-06-14T11:07:40.683797
+
+ok bah lets go alors fait
+
+## user — 2026-06-14T11:07:40.683797
+
+You've reached the maximum number of tool-calling iterations allowed. Please provide a final response summarizing what you've found and accomplished so far, without calling any more tools.
+
+## assistant — 2026-06-14T11:07:40.683797
+
+J’ai commencé proprement.
+
+Fait :
+- J’ai chargé le contexte VividFlow/Hermes utile pour Slack.
+- J’ai confirmé que le navigateur Chrome distant est bien accessible via CDP sur `127.0.0.1:9222`.
+- J’ai vérifié que le MCP `data_os` est déjà actif.
+- J’ai tenté d’ajouter Playwright MCP à Hermes pour piloter Chrome/Slack proprement.
+- Le package Playwright MCP est disponible (`@playwright/mcp`), mais la commande `hermes mcp add` bloque sur le parsing des arguments `--args` / timeout de connexion.
+
+État réel :
+- Slack ops via `hey@vividflow.co` est la bonne direction.
+- Chrome distant est prêt.
+- Playwright est utilisable en direct via scripts Node/Chrome CDP.
+- Playwright MCP n’est pas encore enregistré proprement dans Hermes.
+
+Blocage :
+- Pas un blocage Slack.
+- Blocage uniquement sur l’enregistrement MCP Hermes : la CLI interprète mal les arguments Playwright ou attend une confirmation interactive.
+
+Prochaine action logique :
+- Contourner la CLI et éditer directement la config MCP Hermes, puis tester `playwright` dans `hermes mcp list`.
+- Ensuite reprendre Slack App Management depuis Chrome connecté et créer/migrer les apps bots sous `hey@vividflow.co`.
+
+Je continue par là dès que les appels outils sont de nouveau disponibles.
+
+## user — 2026-06-14T11:07:40.683797
+
+[IMPORTANT: Background process proc_ead58e9e0250 matched watch pattern "tunneled".
+Command: ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R 80:127.0.0.1:6080 nokey@localhost.run
+Matched output:
+04ce75487112cd.lhr.life tunneled with tls termination, https://04ce75487112cd.lhr.life
+create an account and add your key for a longer lasting domain name. see https://localhost.run/docs/forever-free/ for more information.]
+
+## assistant — 2026-06-14T11:07:40.683797
+
+Parfait. Le navigateur distant est exposé ici :
+
+https://04ce75487112cd.lhr.life
+
+À faire côté humain maintenant :
+- ouvre ce lien
+- connecte/valide Slack si demandé
+- laisse la fenêtre ouverte
+
+Moi je reprends ensuite via Chrome/CDP pour finaliser la partie Slack apps/bots.
+
+## user — 2026-06-14T11:10:58.763349
+
+[{"type": "text", "text": "je suis sur Darty Securité je pense que c'est ca qui bloque je veux qu'il accepte aide moi\n\n[Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_d7315e105dcc.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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HHp5dtcSdM9tcSHbXEh21xIdtcSHbXEh21xIdt0eQItdUPL1DOgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA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
+
+## assistant — 2026-06-14T11:10:58.763349
+
+Oui, probablement Darty Sécurité / antivirus web qui intercepte le tunnel.
+
+Fais ça :
+
+1. Essaie d’abord en **HTTP** :
+ `http://04ce75487112cd.lhr.life`
+
+2. Si Darty bloque encore :
+ - ouvre **Darty Sécurité**
+ - va dans **Protection Web / Navigation sécurisée / Sites bloqués**
+ - cherche `04ce75487112cd.lhr.life`
+ - mets-le en **site autorisé / exception**
+ - recharge la page
+
+3. Si tu vois une option type :
+ - “continuer quand même”
+ - “faire confiance à ce site”
+ - “ajouter une exception”
+ 
+ accepte.
+
+Important : c’est bien notre tunnel temporaire vers le navigateur distant. Tu peux l’autoriser pour cette session. 
+Si ça ne passe pas, je te générerai un autre lien avec un tunnel différent.
+
+## user — 2026-06-14T11:12:58.210276
+
+[{"type": "text", "text": "What do you see in this image?\n\n[Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_2e317c8e13f5.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQIASwBLAAD/2wBDAAQDAwQDAwQEAwQFBAQFBgoHBgYGBg0JCggKDw0QEA8NDw4RExgUERIXEg4PFRwVFxkZGxsbEBQdHx0aHxgaGxr/2wBDAQQFBQYFBgwHBwwaEQ8RGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhr/wgARCAUiB2ADASIAAhEBAxEB/8QAHAABAAEFAQEAAAAAAAAAAAAAAAIDBAUGBwEI/8QAGwEBAQEBAQEBAQAAAAAAAAAAAAECAwQFBgf/2gAMAwEAAhADEAAAAeVih4Dw98eHvjw9eD1ESREkRJESREkUSREkRJESREkRJESRVJESREvPB68HrwevB68HrwevB68HrwevB68HrwevB6iJIiSIkiJIiSIkiJIiSIkiJIiSIkiJIiSIkiJIiSIkiJIiSIkiJIiSIkiJIiSIkiJIiSIkiJIiSIkiJIiSIkiJIiSIkiJIiSIkiJIiSIkiJIiSIkiJIiSIkiJIiSIkiJIiSIkiJI+nrwevB68HrwevB68HrwevB68HrwevB68HvsRJESRRJESREkRJFUkUSREkRJFUkRJEVfKXhWURVUfCt5S8KvlKseJIikIJiCYgmIJiCaoJogmIJiCYgmIJiCYgmIJiCfhFIRSEUhFIRSEUhFIQTEExBMQTEExBMQTEExBMQSEUhFIRSEUhFIRSEUhFIRSEUhFIRSEUhFIRSEUhFIRSEUhFIRSEUhFIRSEUhFIRSEUhFIRSEUhFIRSEUhFIRSEUhFIRSEUhFIRSEUhFIRSEUhFIRSEUvSCYgmIJiCYgmIJiCYgmIJiHshFIRSEUhFIRSEUhFIRS9IJiCYgmIJiCYgmIJqgmIJogmIJiCYszygPPPfB4kXlOfmdU2xe+X7+uNjsdccUPT8QAAAAAAAAAAAKAAAAAAABQAAAAAAAAAAAAAAAAAgAAAAAAIAAAAAAAABQAAAAAAQAAAAAAAAAKAAAAAAAAAAAAAAACgAAAAAAAAAAAAAAAAAAAAAAKfnviPPfDzz3w8qU6kXF3aXfL2711TmH0j4f13Eucd24Tj1arvWi9U+t/Oub2fQbM0p3XFHH8tvF+ci2XXOrHL/OlxOa3e75Q5G6HmTkbp+GNJVM+a50Hn25mP1zf9oOMZXfMocadIxtabvOkdGOdZTcL45M6VaGgN3zpzqvsezHPMH3rkBhAoAAAAAAAAAAAAAAAAAQAAAAAEAAAAAAAAoAAAAAAAAAIAAAAAAAAAFAAAAAAAAAAAAAAAAABQAAAAAAAABX3A0hu+umKAEAAdJx7RjpHN930gAAAp+V/LKPlfwoeV/ChU9nFS6toY77vvvHvfm/ud01/F2uudp0Dn76f4PYrnVB0DF6mNou9MEtj1ob3jtVG53WhDoFnpYyO5axhymB0jm42rZOYq3nEa6Nkz+sYcnvGgDdsbrY3+ho43/C60Ngzmhl6BotEAAAAAAAAAAAAAAAABAAAAAAAAQAAAAACgAAAAAAAAAAAAAgAAAAAAAAUAAAAAAAAAAAAAAAAAAAFAAAAAAAABAAAG9Q0gbzowAAAXYs8898PIyiRnCcQp+0iopiopiopiopiopiopiopiopiopiopiopiopiopqqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKaKimKimKimKimKimKimKimKimKimKimKimKimKimWopiopiopiopiopiopiopiopiopiopiopiopiopiopiopiopiopkqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKYqKaqimiopqqKYqKYqKYqKYqKYqKYqKYqKYqKaKimKimKimKimKimKimKimL975z155LwjGXhCXkijSq0umQoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADIj4nu8898sj575ZGUZblClVpfV8gUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAN6NFdq1A1UfE93nnvlkfPfLIyjLcoUqtL6vkCgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOuZiXIY7bZaNlDno+L7vPPfLI+e+WRlGXSUKVWl9TyBQG4ah1nX9yy1LsdxxvFHZ9V1NCdr0drTG+rnQnTrleUOjwjnZ0WznTZ+g1xd1yjm8pbfM010LOnIHU8xXFHQcamoOgSl567djTQMF06ic3dYxVc8dDyacpZ3xcG7ZDLizoGX05Q61Xjj2b3TY64a63z4x+6YneE4+6dE5m61yWa6b55gtY1LzpO043w3NdAyes8SdUxBoW6aruC0dX27YjnGK6pKOUur6Xqa5cdc1XNw2N6rjU07X+1aPNaYNQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADu3CevYeLjmPX8IaYPi+7zz3yyPnvmpCUZblGlVpfU8gUB0Pnviut3XGmHUtExDU7RzLCJq67FzGabNe8rWdKz3F0rpPNlm5bnxpb2nmOEZvQNXw6TsLjzTeN04mjZtbirtmB5iOx6/wA8S7/dc2M9VtOareyajpI6HrWBJ2PRNXS9Zhykb/U54XoOS5Ys3uegpcnuHPFz06lzYblppNdgteUrnp+W40joltoith6by2vLrm46cs6tcchG8bBydL0fJ8lanZOXYxm9Hr8xWdo0rTEtaiAUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3zQx27TtCGRHxPd5575ZGMo6kZRluUaVWl9TyBQAuy0X4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+LBfiwX4sF+JD4nu8898sjGUdSMoy3KNKrS+p5AoDI3tOoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWQ+J7vIyjZ5GUdSMoy3KNKrS+p5AoDNVKdQAAAAAAFUpAAAAAAAAAF4WapTAAABWKJdloAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXhZqtIAAAAAAAAAAAAAAAAL+xPAAAAAAAAAWQ+J7vIyjZ5GUdSMo+7zSpVaX1PKFAZqpTqAAAAADpnM8uda0W5zUaN70aRzWz6bfHKcN2Dj9AAAAAAVXnpVtbm2AAL3ufz/ANYjAXOk9MqjdeXMc8xfbtQOZigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKnvnpVtbq1AAHWOT9bjznPR8YanW2rbTi+X3q0OUCgAAAAAAAFxb3BQuLe4LYADYNf2A6zz3oevRW0Lo1ic3ye83py6fU7I44KAsh8T3eRlGzyMo6kffPd5pUqtL6nlCgM1Up1AAAAABd2g2C91IbdS1YbXX00bjpwAAAAAALyzFWkAADbNTFbY9WHQsXqI6HrmvgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABeWYq0gAAb7oQ37FasNvy3OhtVrr4AAAAAAAAAAyFh4AAGQx42Otqw27L86G1S1MbbX0sAAWQ+J7vIyjZ5GUdSPsZbzSpVaX1PKFAZqpTqAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFkPie7yPvlnkZQ1IyjLeaVKrS+p5QoDKTtpFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQFdQHp58T3eee+WeQnDUjKMt5pUqtL6nlCgL6UZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHvnvnxPd5575ZGMo6kZRl0zRp1Kf0/KFAX0oyAAAAAAFxb9zOGXeb6KcZud4y5yqr1DaY+f55Pdq0HG9drxyjzq2h1rtz1LZY+ffMhvtczn0LJHJLje80cpodZ5MAAM/gNsx2VrWwz3xtDadW35mfwHfNc+QYLs+JOXOvY45k7VRjm/nT8Yco2zK5c5OzXQ65E6lcGgWHY7GOPXfUMHWu4jsmMjlDtPGK2XWO4YGOfS63I4e7Hh65pna2XMFmcyjn+Y6Jmj56b9SrRtt6Dyg2KrfX8c1y1/1Q4nebXdGFwmRxhSq7wNX1nNbLXLnR65rFr0LWYt9S6/4cdl07Rq2HHdK9jleB6ldHJNl1vudcgdPpRx91iwrTYb3mo4s6hVrmea3zDHOQAAAAAAAAAAAAAAAAAAAAAAAAXe/c26wYvnnS8pHH3RLmuZOuVI4+6NuNcIdV0Uwm3UuwRyHVOsYY0B1PNHEnW+f1X2HKc5izpd0wVco2/XurGkWO/wCLjmrq2tVpwAAAAAAAAPfPfPie7zz3yyMZR1I++e9M0qdSn9PyhQF9KMgAAAAAB1TlY6DufC68dFvOeYo61leIDtvPsfg6+hdP5Ujst/wsb7vHClbg08bTuXJBsmwc7HUuWgAA3HTqmenmWv7KdPcGa4t/0Bc71sHJR2jQdVHRnOR1LEaIOxa/z0e9a5IOs1eQo6Zf8kVvuw8hHSb3lI6vynwb3PQR02tywd603BapHWtT1tWX3jkw6FsPHB07F6KOx6fpgy24c5G+7PxsdNcyG/6AHQXPh2rT9FHR7rlw6bT5sjpVpoA6LruuK69Y8vG/3fNRLsPHB1fzlI6tZ81HQs/x4dXxfPB1rWtKAAAAAAAAAAAAAAAAAAAAAAAAADoXPRvM9DHR6nNB0KjoY6/f8RR0O00dXQbXSB2LXNAG/bJx0b7S0cdDveXjomS5SL3ctAHRqnNR1bWNQAAAAAAAAAHvnvnxPd5575ZGMo6kffPemaVOpT+n5QoC+lGQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB75758T3eee+akYyjZH3z3pmlTqU/p+UKAvpeyIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCcD3z3z4nu88981IxlHUhKMt5pU6lP6flCgL6UZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHvnvnxPd5575qRjKOpCUZbzSp1Kf0/KFAX0oyAAAAAADatVDZsKWbb7c1htWLMSzmynPmV2Q0ZtNua83DXzHsvWME2DGli3exNWZ7AgAA2vO8Db5rITrqDI47XAbpZpbcNPAADb8WYQ6Ec9AAbRijGF2WjasCWYDe9GItkqmrAANwtDWnQrU0dt+LMIAzPRDkToOFNYbbXNLdY1o0x1Cgc2dS1Q1hv2gg6Cc+OmHM266UDfzQGy7Gc3AdB58G+6EAHQefABveiAAAAAAAAAAAAAAAAAAAAAAAABd9UOQOr8qIgAAAJ9QOWOg8+AADeMscxZTFg6Ic7dD1swAAAAAAAAAAPfPfPie7zz3zUjGUdSEoy3mlTqU/p+UKAvpRkAAAAAAdm0y7xUb9r+ZxZeUMdM3fmez5EwtrrnTSrr2OzBoO/wAtSOmcq3bTi7vdXvK36tgqEXeUsNYN047u2k0AA2vVNrx3hjq2RnSnquRx2uLvnA9q1y333nucjftaxOrHZqHMx0ShpOONy9s9fMb2b5/3g3u651M6DjNIzZsNlpGSN7stEvTo/wA/71oR3C00GR0WWkzN8sb/AJ0b3y/N5E891DOmWvdQgdjwfKMiZbf+dC4v9EyBcbJq3p1/B8pyh07km164ZTJ832Ctw0i7v4udk0rIGwZbQMkc07LolydLq8ozRidj1X06XU5zQOxcK2zQDsltrtqb1aaXmzb+eWl0dj0rWvDesVp90bHx/d9IoAAAAAAAAAAAAAAAAAAAAAAAB1jk+2GwbPzKUbnW06ub3Lm9M3/beU5MyukTsDM9O5BhTptrY4M6RmeKbIbRoULY3TmuwZw6BrXO9qNL6dx/Zq3WvpHkbrg5agYUUAAAAAAAB75758X3eeexs8jKOpCUZbzSp1Kf0/KFAX0oyAAAAAAAJVrcALm2AAAAAAAAAAAF9b0UoWAAAAAAAAAAAAAAZXFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB75758X3eRlGzyMo6kPfPd5p06lP6flCgL6XsiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgmIJiCYgnA9898+L7vIyjZ5CcNSPvnu806dWl9PyhQF9KMgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD3z3z4vu8jKNkYybzTrpe/z2lKrS74AAvpRkAAAAAAAAAAAAAAAAAAAACoU2z2WeuFGuQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADx55+jxEewjrMvaXu55SqU9wAC+lGQAAAAAyuKG92e27jHDsvk8qUtWzXUzkWmdawR5HWNvLO2zFcp6ruVc1TTOvcerpuPy3sa7guiaObPabXZms6T1flFAANx07bMejV8tfWBLCbTq1y6Tzbvl46PgOhUDnN72LnBi6PQxhrHZ8cc66Hc2xzO9tO8HEq/WqZplPdcOc4zG825Z6xv3hz/V+1cYrsPPt4jFPz27NMw3V65zbGdI53W02l7XjVN9oZosKlnfHmN2vRC6yl3M0jH9f5IWfQ6ciGd1kbTrdIY/B9CwJKlabSYvSuicuOr21zZnO8ntlYx2F2H02PlW5Zs47vdC4MHs9e/OW0+k+mh72vjlOS3bNnFOu5DFnFhQAAAAAAAAAAAAAAAAAAAAAAAF32rhXWDJc/2LJxzS76FSNK93jw5pmuj5I4lb9F1s1ftWp7UYLn/U8WaBlekenJbfo+smbqVtPKrruknK+s6D0mrTWtsuY0DXenUjlwoAAAAAAADzz3w8jKJGMoxH3z0jTqU6AAvpRkAAAAAAbVYYQdT5rbDpmr62OjU+ejcrjRRvFPSx0/WtVG+6EG1XelDbp6cN9ttLG3aiAADP4BNbZW01ntXoG/OyuKGTyWtDYsXYjLsQM3Z2A23EYkMxhxmbnXRnr/AFIZz3BDK3WAG3aiGUYsbE10dw5RhhsuX0MZHLawGVxQ2vBWI2OhgxksnrQv83qo2O2woyrFDK18GL7P6kNhsMaN0xuujO2+KGVr4MbHY4oZW6wAyscYNqxWKGco4kbPa4IZnKakMtmNRAAAAAAAAAAAAAAAAAAAAAAAAADLYkZP3FjK3GCGWjixnMpp42fDWIy2PojZcbjBc7Pp42TE2Iy+T1UVtm1MMrihmIYobXrdAAAAAAAAAAW/lqLny28i5jb+FadpULmnOFAAX0oyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMa9HnnvhHz3yI1KdQrwnCgAMjKlImgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJoCaAmgJwDHA8898I+e+RGpTqFeE4UABfSjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAh5PwhGpEhCpEp+pRGnUp0ABfSjIAAAAAGRMc6tiTn7bc0c4dlxpyx1bnBYOn3xyJ1GkczddxBzl0zmYdnwpzJ0/UzXHYdTNKda5KAACZsGA6ng/H20QeziyVp3k4JS3ezNUbpWNFyu6WBouT2LInO47femhtrrmmuhaAQbxVNCqbnXNSx3cdINFyuZ2Y5W7BiTmuWs+vnFm+btHDXcNPOft4va51WzW1HOK2z5k5s2rNHO2+XBzs2M1xtubObt1zJzFudsaq6TjzRm8XhztttE1h0PTTHMvnzSXdNQjT8Vu+VrmbadWDo2INchulI0dvN4c6bhmDm7b6ZqjoN6cxb3YGp1t3kabZdPonNm3QNUyuz7hHMrXrFmcedFsq0dvFA05e7mc/b1bGnOp0DmeWh0449lNtvjmDoeINTye55E5Q3bJHN8rnd9OIAAAAAAAqZbGdqOWYLr2LjmjbbytGdFrHNG35g5w3TBGIvLvtpxDFdW1Q1RueWObN318s7nomFNBdSoHNMjZ9hOS3PVNNjSHSNSrCAAAAAAAAA88DyPvhGMokJRlEadSnQAF9KMgAAAAADrmb47Yx0+yx2lnVN24xr53LV9WrlPYNNytbVHRKUdQoaprx1/huya3XVo6BUN+0i0vDqGhY+wi6wBQADe9E3zz9LOtU9471Gy2PXPXxr9i4s3O9e8ER1vYuBbwbg47ROyeccHXLnjQ7LccSH0F8+ld994CjtltxxXdKPEUdm840O75L52GY6DyZXWMhxdHYq/Ft9Nl2P56Gy7LoM632y1zBnWN/+aEfRGn8nGybtyVW87Xxsd51TmKOw5ThQ+g9T5Qrp25fP47JLjI7ppfPxvO6cSHacdydHUto4L0Iy2m6yr6EwHGkdP2rgw7Nj+Ujt9hx8duw/KVdF2riAzHbeDblGZw+gK75huOI7RW4irs9HjyOl7t8/D6e5ly4dfpclV0+lzUdkociR15yFW77Xx0dqw3LkdqqcRHVtj4MO0Zr59HZrjiKgAAAAAAHWOTjplXlw67LkA6zbcvR3baPmEdk1fQx1O65ErvOs8sR1/Z/nkdh1rQ1dZoctHa7fjiMr0bkiuuXXGUdkwHOlAAAAAAAAARBHz3wjGUSHvnseU6lOgAL6UZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHUcJsVzHGvPfKjGUYh756eU6lOgAL6VeZaroWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6FquharoWq6tTaqmniPnvhGMoRH3z08p1KdAAZqpTqAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACxvrEiCPnvhGE4RH3z08p1KdAAZqpTqAAAAAABXiUlWoWzIY8MljQvolmu6JSZLGhksaFeZaq1I8X9EtlegAAAG7aty1ZDrkb2aIv7AAGdMEZowqUQAAAXBbth14GfMAv7AG0mrGRMcyGPABljErndTQQAAF7mDWmz6wG66UAAGXtywAMuYhf2ANpNWNtNSZTFgAAAABWyJiADImOZakY4ABtOrAAuS2bXnDnC6tQAAAAA2fXSk2PXAVyg2HXgA2TWwAAut6Odt/0E8AAAANrNUbRq4AAbBnzQFSmDbDU21WRggAAAAAAA
+
+## assistant — 2026-06-14T11:12:58.210276
+
+Je vois l’historique Darty Sécurité.
+
+Il bloque explicitement notre tunnel :
+- `http://04ce75487112cd.lhr.life`
+- `https://04ce75487112cd.lhr.life`
+
+Statut affiché : **Harmful website blocked**.
+
+Donc oui, c’est bien Darty Sécurité qui empêche l’accès.
+
+Action :
+- Il faut ouvrir le détail de la ligne `04ce75487112cd.lhr.life`
+- chercher **Allow / Trust / Add exception / Autoriser ce site**
+- autoriser **le domaine complet** : `04ce75487112cd.lhr.life`
+
+Si l’app ne propose pas d’autorisation depuis l’historique, va plutôt dans :
+**Darty Sécurité → Protection web / Browsing protection → Exceptions / Sites autorisés → Ajouter un site**
+
+Ajoute :
+`04ce75487112cd.lhr.life`
+
+Puis recharge :
+`http://04ce75487112cd.lhr.life`
+
+## user — 2026-06-14T11:15:02.532749
+
+[{"type": "text", "text": "je vais ou ?\n\n[Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_94ca69fad3a9.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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
+
+## assistant — 2026-06-14T11:15:02.532749
+
+Va dans **Settings** en bas à gauche.
+
+Ensuite cherche l’un de ces menus :
+- **Browsing protection**
+- **Web protection**
+- **Website exceptions**
+- **Allowed websites**
+- **Blocked websites**
+
+Objectif : ajouter une exception/autorisation pour :
+
+`04ce75487112cd.lhr.life`
+
+Si tu vois une option **“Allow website”** ou **“Add allowed website”**, c’est celle-là. 
+Ne touche pas à Family Protection pour l’instant.

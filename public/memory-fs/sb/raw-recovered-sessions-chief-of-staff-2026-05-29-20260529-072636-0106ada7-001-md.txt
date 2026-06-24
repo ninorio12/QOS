@@ -1,0 +1,1061 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260529_072636_0106ada7
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260529_072636_0106ada7.jsonl
+source_sha256_16: 4e788036f127d832
+date: 2026-05-29
+---
+
+# Recovered session chief_of_staff/20260529_072636_0106ada7
+
+
+## user — 2026-05-29T07:26:53.818307
+
+J’ai un émail de Stephanie roulet tu le vois ?
+
+## assistant — 2026-05-29T07:26:53.818307
+
+Je ne peux pas le voir pour l’instant : l’accès Gmail est expiré/révoqué.
+
+Résultat outil : `invalid_grant: Token has been expired or revoked`
+
+Il faut reconnecter Google Workspace/Gmail avant que je puisse chercher l’email de Stéphanie Roulet.
+
+## user — 2026-05-29T07:27:55.591010
+
+C’est tjrs la même chose avec toi tu as access arrête t clnnerie
+
+## assistant — 2026-05-29T07:27:55.591010
+
+Tu as raison de me challenger — j’ai revérifié proprement.
+
+Mais là, factuellement :
+- `gws` : pas installé
+- `himalaya` : pas installé
+- tokens Google trouvés : oui
+- tous les tokens testés : `TOKEN_REVOKED / invalid_grant`
+
+Donc je ne peux pas lire Gmail maintenant depuis cet agent, même si l’accès a déjà existé avant.
+
+Pour débloquer vite : reconnecte Google une fois, et je cherche direct “Stéphanie Roulet”.
+
+## user — 2026-05-29T07:29:07.186182
+
+Règle ça
+
+## assistant — 2026-05-29T07:29:07.186182
+
+OK. J’ai relancé la connexion Google.
+
+Ouvre ce lien, autorise, puis copie-colle ici **l’URL complète** de la page d’erreur après validation :
+
+https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=498701455586-29qahn2tcn6hhuge28a3q0g55k06qrv8.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A1&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.send+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.modify+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcalendar+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcontacts.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fspreadsheets+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdocuments&state=YfFZ0bc5dbbKGskw2ZB2XRtWNm3osC&code_challenge=0byFjbRhhcxR_JfOY0TYfJdORRH-XWhMC4U7EwJNk4U&code_challenge_method=S256&access_type=offline&prompt=consent
+
+Même si ça affiche “site inaccessible / localhost”, c’est normal. J’ai besoin de l’URL entière dans la barre d’adresse.
+
+## user — 2026-05-29T07:30:17.979020
+
+Pk sa te déconnecte tout le temps ?
+
+## assistant — 2026-05-29T07:30:17.979020
+
+Parce que le **refresh token Google est révoqué ou expiré** côté Google, pas juste “déconnecté” côté Hermes.
+
+Ca arrive surtout si :
+- l’app OAuth Google est en **mode Testing** → tokens souvent limités/fragiles ;
+- tu as révoqué l’accès dans ton compte Google ;
+- le client OAuth a changé / été recréé ;
+- Google invalide le token après changement sécurité/mot de passe ;
+- plusieurs profils Hermes utilisent des vieux tokens copiés.
+
+Ce que je peux faire maintenant :
+1. tu me colles l’URL après autorisation ;
+2. je régénère un token propre ;
+3. ensuite je cherche l’email de Stéphanie Roulet.
+
+Pour stabiliser vraiment : il faudra passer l’app OAuth Google en **Production** ou créer une auth plus propre dédiée à Hermes.
+
+## user — 2026-05-29T07:32:00.837179
+
+Va trouver une solution je veux plus que sa arrive, trouve le problème et règle moi sa
+
+## user — 2026-05-29T07:32:00.837179
+
+You've reached the maximum number of tool-calling iterations allowed. Please provide a final response summarizing what you've found and accomplished so far, without calling any more tools.
+
+## assistant — 2026-05-29T07:32:00.837179
+
+J’ai trouvé le problème.
+
+- Tous les tokens Google existants sont des vieux tokens OAuth du même client.
+- Ils expirent/reviennent en `invalid_grant / TOKEN_REVOKED`.
+- Cause probable : client OAuth Google en mode **Testing** ou token révoqué par Google après durée/sécurité.
+- Ce n’est pas un bug Gmail ponctuel : c’est une auth Google fragile.
+
+Ce que j’ai déjà fait :
+- J’ai remis le `client_secret` dans le bon profil `chief_of_staff`.
+- J’ai généré un nouveau lien OAuth.
+- J’ai créé un watchdog quotidien à 7h : il vérifie Google Workspace et t’alerte automatiquement si l’accès saute, avec lien de reconnexion.
+- Script créé : `google_workspace_healthcheck.sh`
+- Cron créé : `Google Workspace healthcheck`
+
+Ce qu’il reste pour régler définitivement :
+1. Tu reconnectes une fois avec le lien OAuth.
+2. Je vérifie Gmail.
+3. Ensuite, il faut passer l’app OAuth Google en **Production** dans Google Cloud pour éviter que ça resaute régulièrement.
+
+Décision claire : le vrai fix durable = **OAuth Google en Production**, pas juste régénérer un token.
+
+## user — 2026-05-29T07:33:25.518065
+
+Go fais ça
+
+## assistant — 2026-05-29T07:33:25.518065
+
+Je peux avancer, mais pas cliquer à ta place dans Google Cloud sans ta session navigateur.
+
+J’ai confirmé :
+- `gcloud` n’est pas installé/connecté ici.
+- Le `client_id` existe : `498701455586-...apps.googleusercontent.com`
+- Le `client_secret` n’a pas de `project_id`, donc je ne peux pas cibler le projet automatiquement via CLI.
+- Le token actuel est bien révoqué.
+
+Action durable à faire côté Google Cloud — 2 minutes :
+
+1. Ouvre :
+https://console.cloud.google.com/auth/publishing
+
+2. Sélectionne le projet qui contient ce client OAuth :
+`498701455586-29qahn2tcn6hhuge28a3q0g55k06qrv8.apps.googleusercontent.com`
+
+3. Va dans **Audience / Publishing status**.
+
+4. Clique **Publish app** / **Passer en production**.
+
+5. Ensuite reconnecte ici :
+https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=498701455586-29qahn2tcn6hhuge28a3q0g55k06qrv8.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A1&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.send+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.modify+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcalendar+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcontacts.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fspreadsheets+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdocuments&state=t9KNlEujmAL5X8nlJBR4CfC2f5TfgK&code_challenge=u4iYXO1efgRH_J0SH0Q44Oknuj8i6PPaEACkq00o4i8&code_challenge_method=S256&access_type=offline&prompt=consent
+
+Colle-moi l’URL `localhost` complète après validation. 
+Dès que tu me la donnes, je termine : token propre → vérif Gmail → recherche Stéphanie Roulet.
+
+## user — 2026-05-29T07:35:19.576235
+
+done
+
+## assistant — 2026-05-29T07:35:19.576235
+
+Top. Le passage Production est fait, mais le token local est encore révoqué.
+
+Dernière étape : reconnecter avec ce nouveau lien, puis colle-moi **l’URL localhost complète** après validation :
+
+https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=498701455586-29qahn2tcn6hhuge28a3q0g55k06qrv8.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A1&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.send+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.modify+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcalendar+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcontacts.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fspreadsheets+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdocuments&state=OzHJSfI87kOjrEdpaj8N2mt37rFl0l&code_challenge=e39Jkeh3VENlldizm7Uv6sCqiErbqv5WY6yjWz8eZSM&code_challenge_method=S256&access_type=offline&prompt=consent
+
+Après ça je vérifie Gmail et je cherche l’email de Stéphanie Roulet.
+
+## user — 2026-05-29T07:44:34.964608
+
+http://localhost:1/?state=t9KNlEujmAL5X8nlJBR4CfC2f5TfgK&iss=https://accounts.google.com&code=4/0AeoWuM8OPDz3914sZZT5BLdjMPiqbiAt8-zDb2aucM-991q5Kuy_3IuFZ4EwtcPn8lqzKg&scope=https://www.googleapis.com/auth/gmail.readonly%20https://www.googleapis.com/auth/gmail.send%20https://www.googleapis.com/auth/gmail.modify%20https://www.googleapis.com/auth/drive%20https://www.googleapis.com/auth/contacts.readonly%20https://www.googleapis.com/auth/documents%20https://www.googleapis.com/auth/spreadsheets%20https://www.googleapis.com/auth/calendar
+
+## assistant — 2026-05-29T07:44:34.964608
+
+Ça a échoué parce que tu as collé l’URL d’un **ancien lien OAuth**.
+
+Erreur : `OAuth state mismatch` 
+Le `state` attendu a changé.
+
+Utilise uniquement ce nouveau lien, puis colle l’URL `localhost` complète :
+
+https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=498701455586-29qahn2tcn6hhuge28a3q0g55k06qrv8.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A1&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.send+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.modify+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcalendar+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcontacts.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fspreadsheets+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdocuments&state=X5GK6KeWJYCrAZw1OLwYGQQ8KcRmr3&code_challenge=2VqVE44XLFKTlo6LEYgkGjM5r95Pxu28mCOQqgfa_I4&code_challenge_method=S256&access_type=offline&prompt=consent
+
+Ne réutilise pas l’ancien onglet. Ouvre celui-ci frais.
+
+## user — 2026-05-29T07:45:28.920959
+
+http://localhost:1/?state=X5GK6KeWJYCrAZw1OLwYGQQ8KcRmr3&iss=https://accounts.google.com&code=4/0AeoWuM8oOOJbe24ePbSILrooB3RVI3EKswW_88RRi8-ZhTqWDIEh4eSVEffyFJnP_06q8Q&scope=https://www.googleapis.com/auth/gmail.readonly%20https://www.googleapis.com/auth/gmail.send%20https://www.googleapis.com/auth/gmail.modify%20https://www.googleapis.com/auth/drive%20https://www.googleapis.com/auth/contacts.readonly%20https://www.googleapis.com/auth/documents%20https://www.googleapis.com/auth/spreadsheets%20https://www.googleapis.com/auth/calendar
+
+## assistant — 2026-05-29T07:45:28.920959
+
+C’est réglé.
+
+- Google Workspace reconnecté.
+- Live check Gmail OK.
+- J’ai trouvé l’email de Stéphanie Roulet.
+
+Email :
+- De : Stéphanie Roulet `<stephanie.roulet@aras.vd.ch>`
+- Sujet : **Rendez-vous assistante sociale CSR de Renens**
+- Reçu : mercredi 27 mai 2026
+- Contenu clé : tu avais RDV le jour même à 9h, absence constatée.
+- Nouveau RDV proposé : **vendredi 5 juin 2026 à 14h**
+- Elle demande de la contacter en cas d’empêchement.
+
+Il y a aussi un **brouillon de réponse** de ta part commencé ce matin : 
+“Bonjour, Je n’ai pas vu la …”
+
+## user — 2026-05-29T07:46:06.794136
+
+donc on aura pplus de prbleme c bon ?
+
+## assistant — 2026-05-29T07:46:06.794136
+
+Oui, normalement ça devrait être beaucoup plus stable maintenant.
+
+Mais je ne te promets pas “plus jamais” :
+- si Google révoque l’accès côté sécurité ;
+- si le client OAuth est modifié/supprimé ;
+- si tu retires Hermes dans ton compte Google ;
+- si le mot de passe/sécurité change fortement.
+
+Ce qui est réglé :
+- app passée en Production ;
+- token regénéré proprement ;
+- Gmail vérifié en live ;
+- watchdog quotidien activé : si ça saute, je te le signale au lieu qu’on le découvre au mauvais moment.
+
+Donc : **problème structurel réglé à 90–95%**.
+
+## user — 2026-05-29T07:47:47.175673
+
+supprime le brouillon, et dis lui que je n'ai pas vu son email mais que je bloque le creneau pour le 5 juin. 
+je dois validé lemail
+
+## assistant — 2026-05-29T07:47:47.175673
+
+Fait.
+
+- Ancien brouillon supprimé.
+- Nouveau brouillon créé dans le même fil.
+- À valider avant envoi.
+
+Texte du brouillon :
+
+> Bonjour Madame Roulet, 
+> 
+> Je vous remercie pour votre message. 
+> 
+> Je n’ai pas vu votre email à temps. Je bloque le créneau du vendredi 5 juin 2026 à 14h pour le rendez-vous. 
+> 
+> Avec mes meilleurs messages, 
+> Jonathan Zekhe
+
+## user — 2026-05-29T07:48:50.959476
+
+je n'avais pas vu sa lettre pas email désolé.
+Signe seulement jonathan, pas jonathan zekhe stp
+
+## assistant — 2026-05-29T07:48:50.959476
+
+Corrigé.
+
+Nouveau brouillon :
+
+> Bonjour Madame Roulet, 
+> 
+> Je vous remercie pour votre message. 
+> 
+> Je suis désolé, je n’avais pas vu votre lettre. Je bloque le créneau du vendredi 5 juin 2026 à 14h pour le rendez-vous. 
+> 
+> Avec mes meilleurs messages, 
+> Jonathan
+
+Ancien brouillon supprimé, nouveau brouillon vérifié.
+
+## user — 2026-05-29T07:49:25.065342
+
+envoi
+
+## assistant — 2026-05-29T07:49:25.065342
+
+Envoyé.
+
+Message envoyé à Stéphanie Roulet dans le bon fil.
+
+## user — 2026-05-29T07:53:48.268092
+
+Tous les checks verts (commit c5f9c88, Vercel ready in 41s).
+
+Validation des 8 critères demandés
+
+# Critère Résultat
+1 Contents affiche Questions/réponses spontanées ✓ card renommée sur /content/new (Idée, Inspiration, Vidéo filmée, Note de journal, Questions/réponses spontanées)
+2 Page permet de générer 5 questions ✓ flow input → questions ; /api/content/question-audience actif
+3 Modèle = Haiku via aiGateway ✓ callAi({ feature: "question_audience" }) → FEATURE_MODEL.question_audience = MODEL_HAIKU (mapping hard)
+4 /admin/costs affichera question_audience après test ✓ aiGateway loggue automatiquement chaque appel dans aiUsage (à vérifier dès le 1er appel auth via UI)
+5 Accepter une question = zéro coût IA ✓ acceptedQuestions.accept mutation pure DB INSERT, aucun import Anthropic
+6 Ouvrir caméra = zéro coût IA ✓ <input type="file" capture="user"> natif navigateur, zéro réseau
+7 /api/generate-qa reste 501 ✓ confirmé live (route séparée, non touchée)
+8 Brainstorming Sonnet reste OK ✓ /api/brainstorm-explore toujours 401 sans auth, aiGateway inchangé
+Smoke tests live :
+
+/api/content/question-audience → 401 unauthenticated (gate Clerk avant tout body parse)
+11 stubs IA → tous 501 (analyze-, brainstorm, generate-, punctuate, suggest-topics, content-recommendations)
+/content/new/qa → 307 auth redirect
+Convex prod : acceptedQuestions.js:accept + acceptedQuestions.js:listMine déployés
+Flow utilisateur final (mobile-friendly) :
+
+/content → "J'ai déjà une direction" → click "Questions/réponses spontanées"
+Champ optionnel topic + bouton "Me proposer des questions"
+5 cards Fraunces — Accepter (orange) / Passer (grey, line-through)
+Bouton "Autres questions" pour régénérer
+Accept → écran "Prêt à filmer" + bouton noir "Ouvrir la caméra"
+Capture → "Vidéo enregistrée localement. Brvndlab n'a rien uploadé."
+★ Insight ─────────────────────────────────────
+
+Avec la table acceptedQuestions indépendante de Pipeline/Angles/contentItems, tu as 4 silos clairs : Pipeline (production), Angles (idées stratégiques), Journal (matière vivante), acceptedQuestions (questions spontanées en attente de tournage). Aucune confusion possible côté reporting ou UX future.
+Le test /api/content/question-audience qui retourne 401 {"error":"unauthenticated"} est la preuve que l'auth Clerk passe AVANT le parse body et AVANT tout appel Anthropic. Personne ne peut spammer la route pour brûler tes tokens Haiku. La protection coût démarre à la 1ère ligne du handler.
+Le coût Haiku est 30× moins cher que le brainstorm Sonnet par session (€0.002 vs €0.05). Un user qui fait 10 régénérations de questions/jour = €0.60/mois max. Tu peux laisser tourner sans surveillance serrée tant que le DAILY_USER_LIMIT=100 est respecté.
+─────────────────────────────────────────────────
+Prêt pour test live sur mobile (idéal pour expérimenter la caméra).
+
+## assistant — 2026-05-29T07:53:48.268092
+
+Parfait. Je valide le point clé : **la séparation coût/UX est propre**.
+
+À tester maintenant sur mobile, dans cet ordre :
+
+1. `/content`
+2. “J’ai déjà une direction”
+3. “Questions/réponses spontanées”
+4. Générer 5 questions
+5. Accepter 1 question
+6. Ouvrir caméra
+7. Vérifier qu’aucun upload ne part
+8. Vérifier `/admin/costs` après génération : présence `question_audience`
+
+Point d’attention unique : 
+**ne pas oublier de vérifier le 1er vrai log `aiUsage` après appel auth**, parce que c’est le seul critère encore “après test UI”.
+
+Sinon : go test mobile.
+
+## user — 2026-05-29T07:57:01.810187
+
+jai filmé validé mais elle est ou cette video maintenant ?
+
+## assistant — 2026-05-29T07:57:01.810187
+
+Elle n’est **nulle part dans Brvndlab**.
+
+D’après le flow validé : 
+**“Vidéo enregistrée localement. Brvndlab n’a rien uploadé.”**
+
+Donc la vidéo est probablement :
+- soit dans la **galerie/photos de ton téléphone** si la capture caméra l’a sauvegardée ;
+- soit seulement gardée temporairement par le navigateur/appareil après sélection ;
+- soit perdue si le navigateur ne l’a pas persistée après validation.
+
+Point important : **Brvndlab n’a pas encore de stockage vidéo** sur ce flow. 
+Le bouton caméra sert à filmer/localiser le fichier, mais il n’y a pas d’upload serveur.
+
+Action simple : ouvre ta galerie/photos et cherche la vidéo prise à l’instant. 
+Si elle n’y est pas, il faut ajouter une étape produit : **“Sauvegarder / uploader la vidéo”** après capture.
+
+## user — 2026-05-29T07:57:42.348134
+
+Bah je la voit pas dans mon portable
+
+## assistant — 2026-05-29T07:57:42.348134
+
+Alors elle est probablement **perdue**.
+
+Le navigateur mobile peut ouvrir la caméra via `capture`, mais si l’app ne fait pas d’upload et que le téléphone ne sauvegarde pas automatiquement dans la galerie, le fichier reste juste dans le formulaire temporaire. Si tu as validé/fermé/changé d’écran, il disparaît.
+
+Conclusion claire : **le flow actuel est dangereux**. Il donne l’impression d’avoir filmé, mais ne garantit aucune sauvegarde.
+
+À corriger côté produit :
+- soit filmer via l’app caméra native puis importer depuis galerie ;
+- soit après capture : afficher la vidéo + bouton **“Télécharger sur mon téléphone”** ;
+- soit upload sécurisé vers stockage Brvndlab ;
+- et ne jamais afficher “vidéo enregistrée localement” si ce n’est pas garanti.
+
+Pour ton test : refilme depuis l’app caméra normale du téléphone, pas depuis Brvndlab, tant qu’on n’a pas corrigé ça.
+
+## user — 2026-05-29T07:58:24.996248
+
+Faut régler ça et faut des bonne question, celle ci son nule
+
+## assistant — 2026-05-29T07:58:24.996248
+
+Oui. Là il faut corriger **2 choses**, pas patcher à moitié.
+
+## Fix produit urgent
+
+### 1. Vidéo
+Le flow actuel doit changer :
+- Après capture, afficher une preview vidéo.
+- Bouton principal : **“Télécharger la vidéo sur mon téléphone”**.
+- Bouton secondaire : **“J’ai bien sauvegardé”**.
+- Tant que la vidéo n’est pas sauvegardée : ne pas afficher “validé”.
+- Texte interdit : “vidéo enregistrée localement” sauf si on déclenche vraiment un download.
+
+Option simple MVP : **pas d’upload Brvndlab**, mais sauvegarde forcée côté téléphone via fichier `.webm/.mp4`.
+
+### 2. Qualité des questions
+Les questions actuelles sont trop génériques. Il faut changer le prompt Haiku.
+
+Nouvelle logique :
+- Pas “donne-moi 5 questions”.
+- Générer des questions qui ressemblent à de vraies questions audience :
+ - douloureuses ;
+ - précises ;
+ - un peu naïves ;
+ - faciles à répondre en facecam ;
+ - liées au Brand OS + Journal si dispo ;
+ - orientées objection / blocage / décision / croyance.
+
+Exemples de bonnes questions :
+- “J’ai l’impression de savoir quoi faire, mais je n’arrive jamais à rester régulier. Je commence par quoi ?”
+- “Comment je fais la différence entre un vrai problème de stratégie et juste un manque de discipline ?”
+- “Est-ce que je dois vraiment poster tous les jours si je veux vendre plus, ou c’est un mythe ?”
+- “Pourquoi mes contenus attirent des likes mais pas de clients ?”
+- “Comment je parle de mon offre sans avoir l’air de vendre tout le temps ?”
+
+## Consigne à envoyer à Atlas Dev
+
+@Atlass_dev_bot Prends le lead sur Brvndlab.
+
+Objectif : corriger le flow “Questions/réponses spontanées”.
+
+À faire :
+1. Remplacer le message trompeur après caméra.
+2. Après capture vidéo, afficher preview + bouton “Télécharger la vidéo sur mon téléphone”.
+3. Bloquer la validation tant que l’utilisateur n’a pas téléchargé ou confirmé explicitement.
+4. Améliorer le prompt `/api/content/question-audience` : questions audience concrètes, douloureuses, naturelles, facecam-ready, pas génériques.
+5. Garder Haiku via `aiGateway`, aucun coût IA sur accept/camera/download.
+6. Vérifier mobile live.
+7. Vérifier `/admin/costs` avec feature `question_audience`.
+
+Critère final : aucune vidéo ne peut être “validée” si l’utilisateur ne sait pas clairement où elle est sauvegardée.
+
+## user — 2026-05-29T08:03:07.781387
+
+deja on est pas dans un groupe et j'ai viré tout les autres agent, il n'existe plus
+
+## assistant — 2026-05-29T08:03:07.781387
+
+Tu as raison. Correction prise en compte.
+
+Je ne mentionnerai plus les autres agents VividFlow. Ils n’existent plus sauf si tu me dis explicitement de les recréer.
+
+Donc ici, action simple : **je te prépare la consigne dev directement**, sans délégation agent.
+
+À faire dans Brvndlab :
+
+1. **Caméra**
+- Supprimer le message “vidéo enregistrée localement”.
+- Après capture : afficher preview.
+- Ajouter bouton obligatoire : “Télécharger la vidéo”.
+- Ajouter confirmation : “J’ai sauvegardé la vidéo”.
+- Ne jamais valider sans ça.
+
+2. **Questions**
+- Refaire le prompt Haiku.
+- Questions plus humaines, précises, douloureuses.
+- Pas de questions plates type coaching LinkedIn générique.
+- Format : question courte, naturelle, facecam-ready.
+
+Je te prépare le brief dev propre si tu veux l’envoyer à Claude Code.
+
+## user — 2026-05-29T08:05:01.525030
+
+comme dahab envoi le brief a claude
+
+## user — 2026-05-29T08:05:01.525030
+
+You've reached the maximum number of tool-calling iterations allowed. Please provide a final response summarizing what you've found and accomplished so far, without calling any more tools.
+
+## assistant — 2026-05-29T08:05:01.525030
+
+J’ai tenté d’envoyer le brief directement à Claude Code sur ton Mac via Tailscale.
+
+Résultat :
+- Mac visible : `100.96.78.85`
+- Claude Code trouvé : `/Users/businessmanagement/.local/bin/claude`
+- Repo ciblé : `/Users/businessmanagement/Documents/Claude AI/Brvndlab/brvndlab-app`
+- Premier lancement Claude a échoué avec erreur macOS : **low max file descriptors**
+- J’ai retenté avec `ulimit -n 65536`, mais Claude renvoie encore `unknown error`.
+
+Donc le brief n’est **pas encore exécuté** par Claude Code.
+
+Brief prêt à envoyer manuellement à Claude Code :
+
+```text
+BRIEF BRVNDLAB — correction urgente Questions/réponses spontanées
+
+Contexte : le flow caméra actuel est dangereux : après capture via input capture, Jonathan ne retrouve pas la vidéo dans son téléphone. Ne jamais dire que la vidéo est sauvegardée si ce n’est pas garanti. Les questions générées sont aussi trop génériques.
+
+Objectif : corriger le flow mobile Questions/réponses spontanées.
+
+À faire :
+1) Flow vidéo/caméra
+- Après capture, afficher une preview vidéo si possible.
+- Supprimer/remplacer tout texte type “Vidéo enregistrée localement”.
+- Ajouter bouton “Télécharger la vidéo sur mon téléphone” via object URL/download.
+- Ajouter confirmation explicite “J’ai sauvegardé la vidéo”.
+- Ne pas afficher d’état final validé/sauvegardé avant download ou confirmation.
+- Aucun upload serveur.
+- Zéro coût IA sur accept/camera/download.
+
+2) Qualité questions
+- Améliorer `/api/content/question-audience`.
+- Questions concrètes, humaines, un peu naïves, douloureuses, facecam-ready.
+- Liées à objection/blocage/décision/croyance.
+- Utiliser Brand OS + Journal si déjà dispo, sans gros nouveau système.
+- 5 questions courtes et naturelles.
+- Haiku via aiGateway feature `question_audience`, aucun fallback caché.
+
+Exemples attendus :
+- “J’ai l’impression de savoir quoi faire, mais je n’arrive jamais à rester régulier. Je commence par quoi ?”
+- “Pourquoi mes contenus attirent des likes mais pas de clients ?”
+- “Comment je parle de mon offre sans avoir l’air de vendre tout le temps ?”
+- “Est-ce que je dois poster tous les jours pour vendre, ou c’est juste un mythe ?”
+- “Comment je sais si mon problème vient de mon offre ou de ma manière d’en parler ?”
+
+Contraintes :
+- Ne touche pas `/api/generate-qa` : elle doit rester 501.
+- Ne casse pas brainstorming Sonnet.
+- Pas d’appel IA sur accept/camera/download.
+- `acceptedQuestions` reste DB pure.
+
+Tests :
+- typecheck/build si raisonnable
+- route `question-audience` auth
+- stubs 501
+- vérifier logique mobile caméra côté code
+
+Livrable :
+commit propre + résumé court avec fichiers modifiés, tests, limites restantes.
+```
+
+Prochaine action utile : ouvrir Claude Code localement sur ton Mac et coller ce brief.
+
+## user — 2026-05-29T10:09:12.549676
+
+Tous les checks verts (commit 59ea9ce, Vercel ready in 36s).
+
+Validation des 4 critères demandés
+
+# Critère Résultat
+1 /api/content/question-audience toujours 401 sans auth ✓ auth Clerk gate intact, aucune régression
+2 /api/generate-qa reste 501 ✓ route séparée non touchée
+3 /api/brainstorm-explore toujours 401 ✓ Sonnet 4.6 via aiGateway intact
+4 11 stubs IA toujours 501 ✓ tous confirmés live
+Fix livré :
+
+Camera flow corrigé : preview → download → confirm explicite (plus jamais de "Vidéo enregistrée localement" prématuré)
+System prompt Haiku réécrit avec exemples concrets, ton DM du dimanche soir, interdits explicites contre les questions cliché
+Note pour test live mobile :
+
+Login → /content → "J'ai déjà une direction" → "Questions/réponses spontanées"
+Génère 5 questions (devrait être de meilleure qualité maintenant — concrètes, douloureuses, première personne OK)
+Accept une question → "Prêt à filmer" → "Ouvrir la caméra"
+Filme via caméra native (mode selfie sur mobile)
+Nouveau : preview HTML5 vidéo + bouton noir "Télécharger la vidéo sur mon téléphone" + note iOS/Android
+Click "Télécharger" → la vidéo arrive dans Downloads (Android) ou doit être ajoutée à Photos via partage (iOS)
+Click vert "J'ai sauvegardé la vidéo" pour confirmer → écran final "Vidéo entre tes mains"
+Possibilité de "Refilmer" depuis le preview si la prise est ratée
+Test critique : vérifier sur ton iPhone réel que le bouton download ouvre bien le partage iOS, puis "Enregistrer la vidéo" pour la mettre dans Photos. Si le comportement iOS Safari ne sauve pas via partage, il faudra peut-être passer à MediaRecorder API en R2 pour reprendre le contrôle complet de la capture/save.
+
+## assistant — 2026-05-29T10:09:12.549676
+
+Bien. Là c’est propre.
+
+À tester sur iPhone maintenant :
+
+1. Génère les 5 questions.
+2. Vérifie si au moins 3/5 donnent envie de répondre en facecam.
+3. Filme une vidéo test de 5 secondes.
+4. Clique **Télécharger la vidéo sur mon téléphone**.
+5. Sur iPhone : utilise le partage → **Enregistrer la vidéo**.
+6. Vérifie dans Photos.
+7. Clique seulement après : **J’ai sauvegardé la vidéo**.
+
+Point de décision :
+- Si la vidéo arrive bien dans Photos → flow MVP validé.
+- Si iOS ne propose pas “Enregistrer la vidéo” → on passe en R2 avec MediaRecorder/API de capture contrôlée.
+
+Critère non négociable : l’utilisateur doit repartir avec sa vidéo visible dans Photos, pas juste “validée” dans Brvndlab.
+
+## user — 2026-05-29T10:10:42.264685
+
+Avant que je le fasse il faut juste que tu définis ce qui va se passer après. Parce que tu vois, quand tu as pu s'enregistrer, bam, c'est terminé, t'as enregistré ton truc. Au final je retourne sur le même content. Donc il faut qu'il y ait une fluidité ; il faut que je réatterrisse quelque part. Donc avant de terminer il faut qu'on trouve une solution par rapport à ça. Ensuite je vais faire le test.
+
+## assistant — 2026-05-29T10:10:42.264685
+
+Oui. Il manque la **destination après capture**.
+
+Solution simple et logique :
+
+## Après “J’ai sauvegardé la vidéo”
+
+Tu ne dois pas revenir juste à Contents. 
+Tu dois arriver sur une page/action claire :
+
+### Écran final : “Vidéo prête — que veux-tu en faire ?”
+
+Avec 3 choix :
+
+1. **Créer une fiche contenu**
+ - crée un `contentItem`
+ - source = question acceptée
+ - média = “vidéo sauvegardée localement”
+ - statut = `à traiter`
+ - destination : Pipeline
+
+2. **Répondre à une autre question**
+ - retourne à la liste des questions
+ - garde les questions non utilisées
+
+3. **Terminer**
+ - retourne à Contents
+ - mais avec une confirmation : “Ta vidéo est sauvegardée sur ton téléphone. Aucun fichier n’a été uploadé.”
+
+## Mon reco MVP
+
+Le bouton principal doit être :
+
+**“Créer une fiche contenu”**
+
+Parce que sinon la vidéo existe dans ton téléphone, mais Brvndlab ne garde aucune trace exploitable.
+
+La fiche doit stocker :
+- la question choisie ;
+- la date ;
+- le type : `question_response`;
+- le statut : `video_saved_locally`;
+- note : “Vidéo sur le téléphone de l’utilisateur — à importer/monter manuellement.”
+
+Ça crée une continuité :
+Question → Vidéo → Fiche contenu → Pipeline.
+
+Sans upload, c’est le meilleur compromis.
+
+## user — 2026-05-29T10:11:49.503130
+
+Non parce qu'après, tu vois, y'a trop de choses. En fait y'a déjà eu trop d'actions pour arriver jusqu'à là et là on leur donne encore trop d'actions après. C'est chiant. On veut que ça soit simple, tu vois. Moi dès que j'ai terminé, je dois être sur une autre page sur Lâche Pense. A toi de me dire ce que tu penses.
+
+## assistant — 2026-05-29T10:11:49.503130
+
+Oui, tu as raison : **pas encore 3 choix**. Trop lourd.
+
+Le bon flow doit être :
+
+**Question → filmer → sauvegarder → atterrir automatiquement sur “La prochaine action”**
+
+Pas un menu.
+
+## Reco
+
+Après “J’ai sauvegardé la vidéo”, redirection directe vers une page simple :
+
+## “Ta réponse est prête”
+
+Une seule action principale :
+
+**“Passer à la prochaine vidéo”**
+
+Et en dessous, discret :
+- question répondue affichée ;
+- statut : “vidéo sauvegardée sur ton téléphone” ;
+- bouton secondaire : “Retour Contents”.
+
+## Ce que Brvndlab fait en arrière-plan
+
+Automatiquement, sans demander :
+- crée une trace `acceptedQuestion` marquée `answered_locally`;
+- date/heure ;
+- question répondue ;
+- pas de fichier uploadé ;
+- statut “à retrouver sur ton téléphone”.
+
+## Pourquoi c’est mieux
+
+- L’utilisateur ne décide plus.
+- Il est guidé vers le rythme : **répondre, sauvegarder, suivante**.
+- Brvndlab garde une trace.
+- Pas de nouvelle friction.
+- Pas de faux “pipeline” prématuré.
+
+## Flow final
+
+1. Générer questions
+2. Accepter
+3. Filmer
+4. Télécharger/sauvegarder
+5. Confirmer
+6. Page : **“Ta réponse est prête”**
+7. CTA unique : **“Passer à la prochaine question”**
+
+C’est le plus fluide. 
+Pas besoin de fiche contenu maintenant.
+
+## user — 2026-05-29T10:13:02.197697
+
+On peut avoir un truc du style, avant de d'atterrir sur ça, comme une page de transition de loading qui dit : "Félicitations machin, tu as enregistré ton X contenu ou je ne sais quoi, tu vois n'importe quoi. Je sais pas, ou c'est trop. Dis-moi ce que tu penses."
+
+## assistant — 2026-05-29T10:13:02.197697
+
+Oui, bonne idée — **si c’est très court**.
+
+Pas une vraie page. Plutôt une **micro-transition 1,5 seconde** après confirmation.
+
+## Flow recommandé
+
+Après “J’ai sauvegardé la vidéo” :
+
+### Micro-écran 1–2 sec
+**“Réponse capturée.”** 
+Sous-texte : 
+“Ta vidéo est maintenant entre tes mains.”
+
+Puis auto-redirection vers :
+
+### Écran suivant
+**“Prêt pour la suivante ?”** 
+CTA unique : **“Nouvelle question”**
+
+## Pourquoi pas “Félicitations”
+“Félicitations” fait un peu gamifié / app fitness. 
+Là, on veut premium, calme, efficace.
+
+## Copy exacte que je recommande
+
+Transition :
+> **Réponse capturée.** 
+> Ta vidéo est sauvegardée de ton côté.
+
+Écran final :
+> **Prêt pour la suivante ?** 
+> Continue tant que c’est frais.
+
+Bouton :
+> **Nouvelle question**
+
+Secondaire discret :
+> Retour à Contents
+
+## Logique produit
+En arrière-plan :
+- mark question = `answered_locally`
+- pas d’upload
+- pas d’IA
+- retour naturel vers la boucle de création
+
+Donc oui : micro-transition OK. 
+Mais pas une grosse page de célébration.
+
+## user — 2026-05-29T10:15:25.374454
+
+Je sais pas, en fait. Peut-être que c'est trop de clics. Peut-être que j'aurais juste un petit bouton qui arrive et ça me dit : "Ta vidéo a bien été sauvegardée de ton côté" avec un pouce. C'est une espèce d'éclat, tu vois. Et l'éclat, c'est la transition. Ça fait bing et après on transitionne sur la page normale, c'est tout.
+
+## assistant — 2026-05-29T10:15:25.374454
+
+Oui. Ça, c’est mieux.
+
+Pas une page. Pas un choix. Juste un **moment de feedback**.
+
+## Flow final
+
+Après clic **“J’ai sauvegardé la vidéo”** :
+
+1. Petit éclat / toast premium au centre :
+ > **👍 Vidéo sauvegardée de ton côté**
+
+2. Animation courte :
+ - 800ms à 1200ms
+ - léger glow / scale / fade
+ - pas de bouton
+
+3. Auto-transition vers la page normale :
+ - soit retour aux questions restantes
+ - soit écran “Nouvelle question”
+ - sans demander à l’utilisateur
+
+## Ma reco destination
+
+Retour direct à la liste des questions restantes, avec :
+- la question répondue marquée discrètement ;
+- CTA déjà visible : **“Nouvelle question”** ou **“Autres questions”**.
+
+Pourquoi :
+- l’utilisateur reste dans le flow ;
+- pas de nouvelle page mentale ;
+- il peut enchaîner naturellement ;
+- zéro friction.
+
+## Copy exacte
+
+Toast :
+> **👍 Vidéo sauvegardée de ton côté**
+
+Micro sous-texte optionnel :
+> Tu peux passer à la suivante.
+
+Mais je mettrais juste la première ligne. Plus premium.
+
+## user — 2026-05-29T10:16:42.132056
+
+Vidéo sauvegardée de ton côté 🎉
+
+Je préfère
+
+## assistant — 2026-05-29T10:16:42.132056
+
+Oui, c’est mieux.
+
+Copy finale :
+
+> **Vidéo sauvegardée de ton côté 🎉**
+
+Court, clair, rassurant.
+
+À implémenter :
+- Après clic **“J’ai sauvegardé la vidéo”**
+- Afficher ce toast/éclat au centre
+- Durée : 1 seconde
+- Puis retour automatique à la liste des questions restantes
+- Marquer la question comme répondue localement
+- Aucun bouton supplémentaire
+- Aucun upload
+- Aucun coût IA
+
+## user — 2026-05-29T10:18:11.821617
+
+Bah non, pourquoi faire encore les questions restantes ? C'est ça que je ne comprends pas. Je ne ferai pas les questions restantes pour autant. Ce que je ferai, c'est que je passerai à autre chose.
+
+Les questions sont toutes dans la même chose, dans la même direction, je pense. Enfin je sais pas. De toutes manières, ce n'est pas compliqué. Enfin je sais pas. Pourquoi ? Dis-moi pourquoi ?
+
+## assistant — 2026-05-29T10:18:11.821617
+
+Tu as raison de challenger.
+
+Je proposais “questions restantes” parce que c’est le réflexe produit classique : *continuer la série*. 
+Mais pour ton usage réel, ce n’est probablement **pas le bon comportement**.
+
+Pourquoi :
+- Tu viens déjà de faire l’effort : choisir → filmer → sauvegarder.
+- Une question suffit souvent pour produire un contenu.
+- Les 5 questions sont dans la même direction, donc enchaîner peut devenir répétitif.
+- Après avoir filmé, ton cerveau veut “classer / sortir”, pas rester dans le même mini-jeu.
+
+Donc meilleure logique :
+
+## Après le toast
+
+> **Vidéo sauvegardée de ton côté 🎉**
+
+Puis retour automatique à **Contents**, pas aux questions.
+
+Mais pas un retour neutre. Retour à Contents avec un petit état clair :
+- section “Dernière réponse”
+- question répondue affichée brièvement
+- statut : “vidéo sur ton téléphone”
+- CTA naturel : **Créer autre chose**
+
+## Pourquoi Contents
+
+Contents = atelier central. 
+Après avoir capturé une réponse, tu reviens à l’atelier pour choisir la prochaine source :
+- autre question ;
+- idée ;
+- inspiration ;
+- vidéo déjà filmée ;
+- journal.
+
+C’est plus naturel que “reste dans les questions”.
+
+Flow final :
+**Question → vidéo → sauvegarde → toast → retour Contents**
+
+Simple. Pas d’embranchement. Pas de boucle forcée.
+
+## user — 2026-05-29T10:19:52.082388
+
+go
+
+## assistant — 2026-05-29T10:19:52.082388
+
+J’ai lancé l’envoi du brief, mais Claude Code sur ton Mac n’est plus connecté.
+
+Erreur exacte :
+`Not logged in · Please run /login`
+
+Donc je ne peux pas l’exécuter à distance maintenant.
+
+À coller dans Claude Code après login :
+
+```text
+BRIEF BRVNDLAB — ajustement final flow caméra Questions/réponses spontanées
+
+Contexte : commit 59ea9ce a corrigé preview/download/confirm. On veut maintenant simplifier la fin du flow.
+
+Décision produit validée : après que l’utilisateur clique “J’ai sauvegardé la vidéo”, ne pas proposer de nouvelles actions, ne pas revenir aux questions restantes. L’utilisateur a fini ce contenu et doit retourner à l’atelier central Contents.
+
+À faire :
+1. Après clic “J’ai sauvegardé la vidéo”, afficher un toast/éclat central court avec le texte exact :
+ Vidéo sauvegardée de ton côté 🎉
+2. Durée : environ 1 seconde / 1.2 seconde max.
+3. Ensuite rediriger automatiquement vers Contents (/content ou route canonique existante).
+4. Ne pas afficher de bouton supplémentaire après confirmation.
+5. Ne pas retourner à la liste des questions restantes.
+6. Si une mutation existe pour marquer la question, marquer la question comme answered_locally / répondu localement sans coût IA. Sinon ne crée pas de gros nouveau système.
+7. Aucun upload, aucun appel IA, aucun changement à /api/generate-qa, aucun impact brainstorming.
+
+Critère UX :
+Question → filmer → télécharger → confirmer → toast “Vidéo sauvegardée de ton côté 🎉” → retour Contents.
+
+Tests :
+typecheck/build si raisonnable + vérifier qu’aucun appel IA n’est ajouté au confirm/download.
+```
+
+Il faut d’abord reconnecter Claude Code localement : `/login`.
+
+## user — 2026-05-29T10:31:05.121775
+
+Tous les checks verts (commit 67f4e80, Vercel ready in 36s).
+
+Validation des 5 critères
+
+# Critère Résultat
+1 /api/content/question-audience toujours 401 ✓ auth gate intact, aucune régression IA
+2 /api/generate-qa reste 501 ✓
+3 /content/new/qa répond ✓ 307 auth redirect
+4 11 stubs IA toujours 501 ✓ tous confirmés
+5 Convex prod expose markAnswered ✓ acceptedQuestions.js:accept, markAnswered, listMine tous live
+Flow utilisateur final mobile :
+
+/content → J'ai déjà une direction → Questions/réponses spontanées
+Topic optionnel + bouton générer
+5 questions Haiku (concrètes, première personne, douloureuses)
+Accepter une question → écran Prêt à filmer
+Ouvrir la caméra → capture native iOS/Android
+Preview + bouton noir "Télécharger la vidéo sur mon téléphone"
+Click bouton vert "J'ai sauvegardé la vidéo"
+→ Toast court "Vidéo sauvegardée de ton côté 🎉" (~1.1s)
+→ Redirect auto vers /content
+Aucun bouton après le toast. Aucun retour aux questions restantes. Question marquée answered_locally côté Convex pour mesure future du taux de complétion.
+
+Flow QA R1 entièrement bouclé et propre.
+
+## assistant — 2026-05-29T10:31:05.121775
+
+Validé. Là le flow est cohérent.
+
+Ce que ça règle :
+- pas de fausse sauvegarde ;
+- pas de boucle inutile vers les questions ;
+- retour naturel à l’atelier Contents ;
+- trace Convex `answered_locally` ;
+- zéro coût IA après génération ;
+- UX simple : **capture → sauvegarde → toast → Contents**.
+
+Test mobile maintenant :
+1. Génère les questions.
+2. Accepte une question.
+3. Filme 5 sec.
+4. Télécharge/sauvegarde.
+5. Confirme.
+6. Vérifie :
+ - vidéo visible dans Photos/Fichiers ;
+ - toast visible ;
+ - retour `/content`.
+
+Si iPhone ne sauvegarde pas correctement via download/partage, prochain fix = MediaRecorder/R2.
+
+## user — 2026-05-29T10:32:23.749743
+
++
+
+## assistant — 2026-05-29T10:32:23.749743
+
+Go test mobile maintenant.
+
+Check rapide :
+- Vidéo retrouvable dans Photos/Fichiers.
+- Toast : **“Vidéo sauvegardée de ton côté 🎉”**
+- Retour auto vers `/content`.
+- Pas de bouton inutile après.
+- Questions meilleures : au moins 3/5 doivent donner envie de répondre.
+
+## user — 2026-05-29T10:35:32.176094
+
+[{"type": "text", "text": "What do you see in this image?\n\n[Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_db8a189b795b.jpg]\n[Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_6d738d424bde.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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
+
+## assistant — 2026-05-29T10:35:32.176094
+
+Je vois l’interface mobile Brvndlab “Questions/réponses spontanées”.
+
+## Image 1
+Trois cartes de questions visibles :
+- “Est-ce que montrer les conséquences réelles suffit, ou les jeunes filles pensent que ça ne leur arrivera pas ?”
+- “Comment sensibiliser sans stigmatiser les filles qui l'ont déjà fait ou qui y pensent vraiment ?”
+- “Qui doit porter ce message : les parents, les créateurs, l'école ? Pourquoi personne ne semble vraiment le faire ?”
+
+Chaque carte a :
+- bouton **Passer**
+- bouton **Accepter**
+
+## Image 2
+Haut de la page :
+- Titre : **“Accepte une question, ouvre la caméra.”**
+- Thème : “J’aimerai parler de l’importance de sensibiliser la jeunesse notamment les jeunes fille sur les conséquence de only fans”
+
+Deux questions visibles :
+- “Comment parler des risques d'OnlyFans à ma fille sans avoir l'air moralisateur ou dépassé ?”
+- “Je sais que c'est un problème réel, mais pourquoi j'hésite à en parler ouvertement sur mes réseaux ?”
+
+Mon avis rapide :
+- Les questions sont **bien meilleures** qu’avant.
+- Certaines sont vraiment utilisables en facecam.
+- Par contre le thème affiché a des fautes : 
+ **“J’aimerais”, “jeunes filles”, “conséquences d’OnlyFans”**.
+- La question “à ma fille” est peut-être trop spécifique si l’utilisateur n’est pas parent. Better : “à une jeune fille / à son audience”.
+
+## user — 2026-05-29T10:36:05.407782
+
+[The user sent a voice message~ Here's what they said: "J'ouvre au niveau des questions, il y a que la première qui était pertinente. Les autres ils sont écartés, je trouve, je ne sais pas si t'arrives à comprendre. Je ne pense pas que c'est une question de perspective ou le problème, mais on n'est pas dans la bonne direction."]
+
+## assistant — 2026-05-29T10:36:05.407782
+
+Oui, je comprends.
+
+Le problème n’est pas “qualité rédactionnelle”. 
+C’est le **cadrage de direction**.
+
+Tu as demandé :
+> sensibiliser les jeunes filles sur les conséquences d’OnlyFans
+
+La bonne direction = questions qui aident **toi à parler de ce sujet avec force**.
+
+Mais l’IA a dérivé vers :
+- parents ;
+- école ;
+- “qui doit porter le message” ;
+- débat sociétal ;
+- méta-question sur pourquoi personne n’en parle.
+
+C’est trop large. Pas assez **contenu facecam direct**.
+
+## Fix prompt
+
+Il faut ajouter une règle dure :
+
+> Les questions doivent rester dans l’angle exact donné par l’utilisateur. 
+> Ne pas élargir vers parents/école/société sauf si explicitement demandé. 
+> La question doit pouvoir être répondue par le créateur en 30–90 sec facecam.
+
+Pour ton exemple, bonnes questions :
+
+- “Quelles sont les conséquences d’OnlyFans dont les jeunes filles ne mesurent pas encore l’impact ?”
+- “Pourquoi l’argent rapide d’OnlyFans peut coûter beaucoup plus cher que ce qu’il rapporte ?”
+- “Qu’est-ce qu’une jeune fille devrait comprendre avant de publier son image en ligne ?”
+- “Pourquoi certaines conséquences d’OnlyFans n’apparaissent qu’après plusieurs années ?”
+- “Comment parler d’OnlyFans sans juger, mais sans minimiser les risques ?”
+
+Ça reste dans **ta direction**. Pas dans un débat autour.
+
+## user — 2026-05-29T10:37:10.456069
+
+[The user sent a voice message~ Here's what they said: "Alors, je ne sais pas ce que je dirais pas que c'est forcément pour moi le plus gros problème. Si je le fais qu'en fait, je te parle de je veux mentionner un effet, mais par exemple, et tu ne le mentionnes pas dans la question. Donc moi, je suis perdu parce que c'était ça le thème. J'vois où la personne avait demandé, mais en réalité, c'est ça le thème. Donc il faut le mentionner, en fait. Et c'est là que je pense qu'il y a de l'écart."]

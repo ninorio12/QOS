@@ -99,8 +99,18 @@ async function getHetznerCost(startDate: string, endDate: string) {
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
-function getMockBudget(period: string) {
-  const { startDate, endDate, days } = getDateRange(period)
+function rangeFromParams(req: NextRequest): { startDate: string; endDate: string; days: number } {
+  const from = req.nextUrl.searchParams.get('from')
+  const to   = req.nextUrl.searchParams.get('to')
+  if (from && to) {
+    const days = Math.max(1, Math.ceil((new Date(to).getTime() - new Date(from).getTime()) / 86_400_000) + 1)
+    return { startDate: from, endDate: to, days }
+  }
+  return getDateRange(req.nextUrl.searchParams.get('period') ?? 'month')
+}
+
+function getMockBudget(period: string, range: { startDate: string; endDate: string; days: number }) {
+  const { startDate, endDate, days } = range
   const mockServices = {
     claude:      { label: 'Claude API',    cost: parseFloat((47 * CLAUDE_COST_PER_MSG + 3 * CLAUDE_COST_PER_DEVIS).toFixed(4)), details: '47 réponses IA · 3 devis générés',                           type: 'usage' as const },
     twilio:      { label: 'Twilio',        cost: 1.84,   details: 'SMS 0.92€ · Appels 0.62€ · WhatsApp 0.30€',                                                                                          type: 'usage' as const },
@@ -118,13 +128,13 @@ function getMockBudget(period: string) {
 
 export async function GET(req: NextRequest) {
   const period = req.nextUrl.searchParams.get('period') ?? 'month'
-  const { startDate, endDate, days } = getDateRange(period)
+  const { startDate, endDate, days } = rangeFromParams(req)
 
   let supabase: Awaited<ReturnType<typeof createClient>>
   try {
     supabase = await createClient()
   } catch {
-    return Response.json(getMockBudget(period))
+    return Response.json(getMockBudget(period, { startDate, endDate, days }))
   }
 
   // Run all 5 I/O operations in parallel
@@ -154,7 +164,7 @@ export async function GET(req: NextRequest) {
       getHetznerCost(startDate, endDate),
     ])
   } catch {
-    return Response.json(getMockBudget(period))
+    return Response.json(getMockBudget(period, { startDate, endDate, days }))
   }
 
   const claudeCount = claudeMessages ?? 0

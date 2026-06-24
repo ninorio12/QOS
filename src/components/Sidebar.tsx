@@ -7,16 +7,16 @@ import { useSWRConfig } from 'swr'
 import { useSafeClerk } from '@/lib/clerkSafe'
 import {
   LayoutDashboard, GitMerge, Users, MessageSquare, CalendarDays,
-  TrendingUp, BotMessageSquare, CheckSquare,
+  TrendingUp, Gauge, BotMessageSquare, CheckSquare,
   ScrollText, Database, Wallet, Settings, LogOut, GitBranch, FileText,
   Radio, ChevronDown, Library, FolderOpen, HardDrive, ListChecks, Users2, CreditCard, Rocket, Plug, PhoneCall,
-  PhoneOutgoing, Megaphone,
+  Megaphone, Building2,
 } from 'lucide-react'
 import Image from 'next/image'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { firstAllowedRoute } from '@/components/nav/modules'
 
-type NavItem = { href: string; icon: React.ElementType; label: string; also?: string[] }
+type NavItem = { href: string; icon: React.ElementType; label: string; also?: string[]; exclude?: string[] }
 
 const PREFETCH_MAP: Record<string, string> = {
   '/dashboard':     '/api/dashboard',
@@ -48,9 +48,14 @@ const ACQUISITION_PRE: NavItem[] = [
 
 const ACQUISITION_POST: NavItem[] = [
   { href: '/contacts',      icon: Users,           label: 'Contacts' },
-  { href: '/performance',   icon: TrendingUp,      label: 'Cockpit Setter' },
   { href: '/prospection',   icon: PhoneCall,       label: 'Prospection' },
-  { href: '/closing',       icon: PhoneOutgoing,   label: 'Closing' },
+  { href: '/closing',       icon: CheckSquare,     label: 'Closing' },
+]
+
+// Pilotage — suivi & delivery (sorti d'Acquisition).
+const PILOTAGE: NavItem[] = [
+  { href: '/performance',   icon: Gauge,           label: 'Suivi Setting' },
+  { href: '/cockpit',       icon: TrendingUp,      label: 'Performance' },
   { href: '/media-buyer',   icon: Megaphone,       label: 'Meta Ads' },
   { href: '/onboarding',    icon: Rocket,          label: 'Onboarding' },
   { href: '/paiement',      icon: CreditCard,      label: 'Paiement' },
@@ -84,13 +89,15 @@ function SectionLabel({ label }: { label: string }) {
 }
 
 function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
-  const { href, icon: Icon, label, also = [] } = item
+  const { href, icon: Icon, label, also = [], exclude = [] } = item
   const { mutate, cache } = useSWRConfig()
   const router = useRouter()
   const active =
-    pathname === href ||
-    (href !== '/dashboard' && pathname.startsWith(href)) ||
-    also.some(a => pathname.startsWith(a))
+    !exclude.some(e => pathname.startsWith(e)) && (
+      pathname === href ||
+      (href !== '/dashboard' && pathname.startsWith(href)) ||
+      also.some(a => pathname.startsWith(a))
+    )
 
   function handleMouseEnter() {
     const endpoint = PREFETCH_MAP[href]
@@ -249,6 +256,7 @@ export default function Sidebar() {
 
   const acquisitionPre = visible(ACQUISITION_PRE)
   const acquisitionPost = visible(ACQUISITION_POST)
+  const pilotage = visible(PILOTAGE)
   const bibliotheques = visible(BIBLIOTHEQUES)
   const agentique = visible(AGENTIQUE)
   const configuration = visible(CONFIGURATION)
@@ -258,7 +266,7 @@ export default function Sidebar() {
   // sobre — logo immédiat + lignes shimmer — au lieu d'un fond noir vide qui fait
   // "pas chargé". La transition vers les vrais liens est alors invisible.
   if (!isLoaded || me === undefined) return (
-    <aside className="fixed left-3 top-3 bottom-3 w-56 bg-soren-sidebar rounded-2xl flex flex-col z-50 overflow-hidden shadow-xl">
+    <aside className="fixed left-3 top-3 bottom-3 w-52 bg-soren-sidebar rounded-2xl flex flex-col z-50 overflow-hidden shadow-xl">
       <Link href={homeHref} className="flex items-center gap-2.5 px-4 pt-4 pb-2.5 flex-shrink-0">
         <Image src="/vividflow-logo.png" alt="VividFlow" width={32} height={32} priority className="object-contain rounded-xl flex-shrink-0 shadow-md" />
         <span className="text-white font-sans font-bold text-[16px] tracking-[-0.01em]">VividFlow</span>
@@ -273,7 +281,7 @@ export default function Sidebar() {
   )
 
   return (
-    <aside className="fixed left-3 top-3 bottom-3 w-56 bg-soren-sidebar rounded-2xl flex flex-col z-50 overflow-hidden shadow-xl">
+    <aside className="fixed left-3 top-3 bottom-3 w-52 bg-soren-sidebar rounded-2xl flex flex-col z-50 overflow-hidden shadow-xl">
       {/* Logo */}
       <Link href={homeHref} className="flex items-center gap-2.5 px-4 pt-4 pb-2.5 flex-shrink-0">
         <Image
@@ -294,8 +302,14 @@ export default function Sidebar() {
       <nav ref={navRef} className="flex flex-col flex-1 px-2 pt-1 pb-8 overflow-y-auto sidebar-nav">
         {showAcquisition && <SectionLabel label="Acquisition" />}
         {acquisitionPre.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
-        {canSee('/pipeline') && <PipelineNav pathname={pathname} />}
+        {canSee('/pipeline') && <NavLink item={{ href: '/pipeline', icon: GitMerge, label: 'Pipeline Leads', exclude: ['/pipeline/clients'] }} pathname={pathname} />}
+        {canSee('/pipeline') && <NavLink item={{ href: '/pipeline/clients', icon: Building2, label: 'Pipeline Clients' }} pathname={pathname} />}
         {acquisitionPost.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
+
+        {pilotage.length > 0 && <>
+          <SectionLabel label="Pilotage" />
+          {pilotage.map(item => <NavLink key={item.href} item={item} pathname={pathname} />)}
+        </>}
 
         {bibliotheques.length > 0 && <>
           <SectionLabel label="Bibliothèques" />

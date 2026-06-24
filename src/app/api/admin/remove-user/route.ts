@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { clerkClient } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from '../../../../../convex/_generated/api'
+import { isApiCallerAdmin, authedConvexClient } from '@/lib/apiAuth'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,6 +10,8 @@ export const dynamic = 'force-dynamic'
 //  et "compte déjà existant" à la ré-invitation.)
 export async function POST(req: NextRequest) {
   try {
+    // Sécurité : supprimer un utilisateur est réservé aux administrateurs.
+    if (!(await isApiCallerAdmin())) return NextResponse.json({ ok: false, error: 'Réservé aux administrateurs.' }, { status: 403 })
     const body = (await req.json().catch(() => ({}))) as { convexId?: string; email?: string }
     const { convexId, email } = body
 
@@ -34,11 +36,9 @@ export async function POST(req: NextRequest) {
 
     // 2) Convex : supprimer la ligne.
     if (convexId) {
-      const url = process.env.NEXT_PUBLIC_CONVEX_URL
-      if (url) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await new ConvexHttpClient(url).mutation(api.users.adminRemove, { id: convexId as any })
-      }
+      const convex = await authedConvexClient()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await convex.mutation(api.users.adminRemove, { id: convexId as any })
     }
 
     return NextResponse.json({ ok: true })

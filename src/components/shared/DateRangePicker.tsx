@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Portal } from '@/components/ui/Portal'
 
 const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
 const DAYS_FR   = ['L','M','M','J','V','S','D']
@@ -104,7 +105,7 @@ function MonthGrid({
   )
 }
 
-export function DateRangePicker({ onClose, onApply }: { onClose: () => void; onApply: (start: Date, end: Date, label: string) => void }) {
+export function DateRangePicker({ onClose, onApply }: { onClose: () => void; onApply: (start: Date, end: Date, label: string) => void; align?: 'left' | 'right' }) {
   const today        = new Date(); today.setHours(0,0,0,0)
   const initial      = getPresetRange('4w')
   const [preset,     setPreset]    = useState('4w')
@@ -152,11 +153,17 @@ export function DateRangePicker({ onClose, onApply }: { onClose: () => void; onA
   }
 
   return (
-    <div
-      className="absolute top-full mt-2 left-0 z-50 flex rounded-2xl shadow-2xl border border-[#E5E7EB] overflow-hidden"
-      style={{ animation: 'fadeSlideUp 180ms ease-out both', minWidth: 'min(640px, calc(100vw - 1.5rem))' }}
-      onMouseLeave={() => setHover(null)}
-    >
+    <Portal>
+      {/* Modale centrée portée vers <body> : centrage par FLEX (pas de transform, qui serait écrasé
+          par l'animation) → toujours entièrement visible, hors de tout ancêtre transform. */}
+      <div className="fixed inset-0 z-[90] bg-black/20 flex items-center justify-center p-3" onClick={onClose}>
+        <div
+          onClick={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
+          className="max-w-[calc(100vw-1rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto flex rounded-2xl shadow-2xl border border-[#E5E7EB] bg-white"
+          style={{ animation: 'fadeSlideUp 180ms ease-out both', minWidth: 'min(640px, calc(100vw - 1.5rem))' }}
+          onMouseLeave={() => setHover(null)}
+        >
       {/* Left — Presets */}
       <div className="bg-[#F9F9F7] border-r border-[#E5E7EB] py-4 px-1 flex flex-col gap-0.5 min-w-[175px]">
         {PRESETS.map(p => (
@@ -260,5 +267,7 @@ export function DateRangePicker({ onClose, onApply }: { onClose: () => void; onA
         </div>
       </div>
     </div>
+      </div>
+    </Portal>
   )
 }

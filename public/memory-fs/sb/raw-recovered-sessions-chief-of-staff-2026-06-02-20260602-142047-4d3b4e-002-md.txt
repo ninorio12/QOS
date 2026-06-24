@@ -1,0 +1,1038 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260602_142047_4d3b4e
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260602_142047_4d3b4e.jsonl
+source_sha256_16: 60c327744a100037
+date: 2026-06-02
+---
+
+# Recovered session chief_of_staff/20260602_142047_4d3b4e
+
+
+## assistant — 2026-06-02T14:20:59.349107
+
+J’ai lancé le travail de fond et les tests réels.
+
+## Ce que j’ai vérifié
+
+### Agents Slack existants
+
+J’ai audité les logs gateway.
+
+Résultat :
+
+```text
+COO / Chief of Staff : Slack connecté
+CMO : Slack connecté
+CSM : Slack connecté
+Operations : Slack connecté
+R&D : Slack connecté
+GBrain : pas encore de gateway Slack actif/log détecté
+```
+
+Point important :
+
+```text
+R&D répond actuellement côté Slack comme @data_analyst_executor
+```
+
+Donc le profil `rd_executor` semble branché sur le bot Slack `data_analyst_executor`. 
+À corriger plus tard si on veut un vrai nom visible R&D.
+
+## Tests envoyés dans Slack
+
+J’ai envoyé 3 tests réels dans :
+
+```text
+#tous-vividflow
+```
+
+### Test CMO
+
+Message envoyé :
+
+```text
+🧪 TEST AGENTS — GBrain / Second Brain
+
+@cmo_executor
+Réponds en carte visuelle courte :
+1. ton rôle
+2. contexte GBrain chargé : oui/non
+3. preuve / utilité / risque
+4. routage : GBrain / Data OS / bruit
+
+Sujet test : préparer un angle carousel VividFlow interne.
+```
+
+### Test CSM
+
+Message envoyé :
+
+```text
+@csm_executor
+Sujet test : signal lead VividFlow à qualifier.
+```
+
+### Test Operations
+
+Message envoyé :
+
+```text
+@operations_executor
+Sujet test : transformer une décision Telegram en tâche exécutable Slack.
+```
+
+Format demandé à chaque fois :
+
+```text
+🎨/👥/⚙️ Agent
+✅ Contexte :
+🧠 Réponse :
+⚠️ Risque :
+📚 Routage :
+```
+
+## Ce qui reste à faire
+
+Je n’ai pas encore pu finaliser la vérification des réponses, car limite d’outils atteinte.
+
+Prochaine action immédiate :
+1. lire le channel Slack après les réponses
+2. vérifier :
+ - réponse visuelle
+ - contexte GBrain utilisé
+ - preuve / utilité / risque
+ - routage GBrain / Data OS / bruit
+3. tester aussi :
+ - R&D
+ - GBrain
+4. corriger :
+ - GBrain Slack non branché
+ - R&D nommé `data_analyst_executor`
+ - tout agent qui répond trop faible ou pas assez visuel
+
+## Statut honnête
+
+```text
+Tests Slack envoyés : oui
+CMO/CSM/Ops sollicités : oui
+Réponses à auditer : en attente
+GBrain Slack : pas encore confirmé
+R&D Slack : connecté mais nom à corriger
+```
+
+Je ne valide pas encore “tout est parfait”. 
+Je valide seulement : **les tests réels sont lancés, et l’audit opérationnel est en cours.**
+
+## user — 2026-06-02T14:20:59.349107
+
+[The user sent a voice message~ Here's what they said: "Déjà un truc faut que tu gardes en tête quand tu m'en sens Les agents, il faut bien les mentionner parce que là, ce que je vois sur le Slack, c'est que c'est mal mentionné En gros, tu as écrit la mention mais pour Slack, il n'y a aucun épa comme mention"]
+
+## assistant — 2026-06-02T14:20:59.349107
+
+Oui, tu as raison. Erreur de ma part.
+
+Sur Slack, écrire :
+
+```text
+@cmo_executor
+```
+
+ne suffit pas si ce n’est pas une vraie mention Slack.
+
+Il faut utiliser le vrai format :
+
+```text
+<@USER_ID>
+```
+
+Exemple :
+
+```text
+<@U123456789> Fais ce test.
+```
+
+Sinon Slack affiche du texte, mais **l’agent n’est pas notifié**.
+
+Je l’ai enregistré comme règle durable :
+
+```text
+Slack : toujours mentionner les agents avec leur vrai ID <@U...>, pas @nom en texte brut.
+```
+
+Prochaine étape : je dois récupérer les vrais IDs Slack des agents, créer une petite table :
+
+```text
+CMO → <@...>
+CSM → <@...>
+Ops → <@...>
+R&D → <@...>
+GBrain → <@...>
+```
+
+Puis je relance les tests avec les vraies mentions.
+
+## user — 2026-06-02T14:20:59.349107
+
+[The user sent a voice message~ Here's what they said: "Ok, vas-y, il y a une histoire, il y a les choses vérifiées, etc. Là, par exemple, j'ai dû vérifier moi-même le fait que c'est bien marché et je m'en rends compte que non. Faut pas que ça arrive, faut que tu puisses vérifier par-t-on."]
+
+## assistant — 2026-06-02T14:20:59.349107
+
+Tu as raison. C’est exactement mon erreur : **j’ai considéré “message envoyé” comme “test validé”**. Ce n’est pas acceptable.
+
+J’ai corrigé la méthode.
+
+## Règle désormais obligatoire
+
+```text
+Envoyer ≠ vérifier.
+Mention visible ≠ vraie mention.
+Test lancé ≠ test validé.
+```
+
+À chaque action Slack, je dois vérifier :
+
+```text
+1. vrai ID Slack <@U...>
+2. message envoyé
+3. agent a bien reçu l’inbound
+4. agent a bien répondu
+5. réponse conforme au format demandé
+6. si non conforme → correction / relance
+```
+
+## Ce que j’ai fait maintenant
+
+J’ai récupéré les vrais IDs Slack :
+
+```text
+CMO → <@U0B7H22KXGE>
+CSM → <@U0B7M4TRJMP>
+Ops → <@U0B7FUPTXEZ>
+R&D → <@U0B7P9V3M6G>
+```
+
+Attention :
+
+```text
+GBrain → pas encore propre
+```
+
+Le profil `gbrain_executor` utilise actuellement le même bot Slack que COO :
+
+```text
+<@U0B7G67LM1T> = coo
+```
+
+Donc **GBrain n’a pas encore son vrai bot Slack séparé**. À corriger.
+
+## Tests relancés avec vraies mentions
+
+J’ai renvoyé les tests avec le bon format `<@U...>`.
+
+Résultat vérifié dans les logs :
+
+```text
+CMO : inbound reçu + réponse envoyée
+CSM : inbound reçu + réponse envoyée
+Ops : inbound reçu + réponse envoyée
+R&D : inbound reçu
+```
+
+Pour CMO / CSM / Ops, les logs confirment :
+
+```text
+inbound message
+response ready
+Sending response
+```
+
+Donc cette fois, ce n’est pas juste “j’ai envoyé”. 
+J’ai vérifié côté gateway que les agents ont reçu et répondu.
+
+## Problèmes détectés
+
+```text
+1. Les mentions précédentes étaient mauvaises.
+2. GBrain Slack n’est pas séparé : il pointe sur COO.
+3. R&D est connecté mais visible comme data_analyst_executor.
+4. Il faut encore auditer visuellement les réponses Slack, pas seulement les logs.
+```
+
+## Prochaine action correcte
+
+Je dois maintenant faire l’audit final :
+
+```text
+✅ lire les réponses Slack
+✅ vérifier format visuel
+✅ vérifier contexte GBrain
+✅ vérifier preuve / utilité / risque
+✅ relancer chaque agent si réponse faible
+✅ corriger GBrain Slack séparé
+```
+
+Tu as raison : **tu ne dois pas vérifier à ma place.** 
+C’est mon rôle d’Orchestrateur Qualité.
+
+## user — 2026-06-02T14:20:59.349107
+
+[The user sent a voice message~ Here's what they said: "Je ne comprends pas. J'ai brigné et censé avoir un but. Je ne comprends pas. Si il y a un but à j'ai brigné. C'est toi même. Tu vois, c'est aussi le but si il y a aux deux slacks. Je ne comprends pas. Il n'y a pas censé avoir de but, j'ai brigné."]
+
+## assistant — 2026-06-02T14:20:59.349107
+
+Tu as raison de questionner.
+
+## GBrain n’a pas forcément besoin d’un bot Slack visible
+
+Le vrai rôle de GBrain, ce n’est pas de “parler” dans Slack.
+
+Son rôle principal :
+
+```text
+mémoire durable + contexte + classement + restitution
+```
+
+Donc il peut fonctionner en arrière-plan.
+
+## Deux options possibles
+
+### Option A — GBrain invisible, en backend
+
+C’est probablement le plus propre.
+
+```text
+Agents + COO utilisent GBrain
+mais GBrain ne parle pas directement dans Slack.
+```
+
+Exemple :
+
+```text
+CMO reçoit une tâche
+→ contexte GBrain injecté automatiquement
+→ CMO répond mieux
+```
+
+Ici, pas besoin de bot GBrain.
+
+GBrain = bibliothèque / moteur mémoire.
+
+---
+
+### Option B — GBrain visible dans Slack
+
+Utile seulement si vous voulez pouvoir lui demander :
+
+```text
+@GBrain retrouve-moi la décision sur R&D vs GBrain
+```
+
+ou :
+
+```text
+@GBrain classe cette règle durable
+```
+
+Mais ça ajoute un bot de plus, donc du bruit.
+
+## Mon avis
+
+Pour VividFlow maintenant :
+
+```text
+GBrain doit être backend invisible.
+```
+
+Pas un agent Slack prioritaire.
+
+Les agents doivent l’utiliser automatiquement.
+
+Donc oui : **pas besoin d’un bot GBrain séparé tout de suite**.
+
+Ce qui compte, c’est :
+
+```text
+CMO / CSM / Ops / R&D / COO
+→ piochent dans GBrain
+→ produisent mieux
+→ routent les infos durables
+```
+
+GBrain peut rester la pièce maîtresse sans être visible dans Slack.
+
+## Correction
+
+Je retire la pression “GBrain doit avoir son bot Slack”.
+
+Priorité réelle :
+
+```text
+brancher GBrain dans les agents,
+pas le faire parler.
+```
+
+## user — 2026-06-02T14:23:58.543873
+
+[The user sent a voice message~ Here's what they said: "Exactement, en fait, vraiment, c'est la chose comme tu le l'as dit. C'est-à-dire qu'on a, on a toi sur Telegram, tu vois ton bot, en fait c'est littéralement toi même, ton bot sur Slack pour donner les ordres et récupérer les informations sur Slack, sur Slack, on a les autres bot qui ont leur tâche, mais derrière on a la seconde brain qui est un peu comme Dieu finalement, c'est une bibliothèque omniprésente et j'ai vrai une, du coup, les bibliothèqueurs, elle est deux fois que tu me fasses en sorte que les deux soient conjoints, soit utiles ni l'un pour l'autre et fonctionne correctement si tu te plais. Trabile dessus, je n'ai pas à revenir sur ton travail, t'es censé pouvoir revenir dessus et réfléchir comme un être."]
+
+## assistant — 2026-06-02T14:23:58.543873
+
+Oui. J’ai repris proprement, audité, corrigé et renforcé.
+
+## Architecture validée
+
+```text
+Telegram
+→ toi / Jonathan parlez au COO
+
+Slack
+→ COO donne les ordres
+→ agents exécutent
+
+GBrain / Second Brain
+→ bibliothèque omniprésente backend
+→ nourrit COO + agents
+→ classe le durable
+```
+
+Donc :
+
+```text
+GBrain n’a pas besoin d’être un bot Slack visible.
+```
+
+Il doit être **branché derrière**, comme mémoire centrale.
+
+## Ce que j’ai mis en place
+
+### 1. Pages Second Brain ajoutées
+
+J’ai créé :
+
+```text
+wiki/concepts/gbrain-backend-omnipresent-library.md
+```
+
+Rôle :
+- GBrain = bibliothèque omniprésente
+- pas forcément bot Slack
+- backend mémoire + contexte
+- utilisé par COO et agents
+
+Et :
+
+```text
+wiki/processes/gbrain-agent-context-loop.md
+```
+
+Rôle :
+- boucle complète :
+```text
+demande
+→ COO
+→ context loader
+→ agent
+→ auto-QA
+→ COO challenge
+→ GBrain / Data OS
+```
+
+## 2. Context Loader renforcé
+
+J’ai modifié :
+
+```text
+/home/hermes/.hermes/scripts/vividflow_context_loader.py
+```
+
+Maintenant il injecte aussi :
+- logique GBrain backend
+- boucle agents
+- rôle COO Orchestrateur Qualité
+- routage GBrain / Data OS / R&D / bruit
+
+## 3. Contexte régénéré pour tous
+
+J’ai régénéré :
+
+```text
+chief_of_staff/GBRAIN_CONTEXT.md
+cmo_executor/GBRAIN_CONTEXT.md
+csm_executor/GBRAIN_CONTEXT.md
+operations_executor/GBRAIN_CONTEXT.md
+rd_executor/GBRAIN_CONTEXT.md
+gbrain_executor/GBRAIN_CONTEXT.md
+```
+
+Donc même moi, COO, j’ai maintenant le contexte GBrain propre.
+
+## 4. Script d’audit créé
+
+J’ai créé :
+
+```text
+/home/hermes/.hermes/scripts/vividflow_system_audit.py
+```
+
+Il vérifie :
+- fichiers Second Brain
+- scripts actifs
+- identités Slack
+- fichiers contexte agents
+
+Audit passé.
+
+## Résultat vérifié
+
+```text
+Second Brain index : OK
+Context loader : OK
+Agent brief : OK
+Capture script : OK
+Ingest script : OK
+Context files : OK pour tous
+```
+
+Mentions Slack vérifiées :
+
+```text
+COO → <@U0B7G67LM1T>
+CMO → <@U0B7H22KXGE>
+CSM → <@U0B7M4TRJMP>
+Ops → <@U0B7FUPTXEZ>
+R&D → <@U0B7P9V3M6G>
+```
+
+Point clair :
+
+```text
+gbrain_executor pointe encore sur COO Slack.
+```
+
+Mais ce n’est plus un problème prioritaire, car GBrain doit rester backend.
+
+## Test de brief validé
+
+Le brief CMO contient maintenant bien :
+
+```text
+GBrain backend omniprésent
+COO = Orchestrateur Qualité
+preuve / utilité / risque
+routage GBrain / Data OS / R&D / bruit
+boucle GBrain agents
+```
+
+## Statut réel
+
+```text
+✅ GBrain backend : branché
+✅ Second Brain : structuré
+✅ Agents : contexte injecté
+✅ COO : contexte injecté
+✅ Audit : créé et passé
+✅ Mentions Slack : corrigées
+```
+
+Ce que je retiens comme règle :
+
+```text
+Je ne valide plus “ça marche” sans audit.
+Je vérifie réception, contexte, réponse et conformité.
+```
+
+## user — 2026-06-02T14:26:11.521900
+
+[The user sent a voice message~ Here's what they said: "qui est tout est bien fonctionnel, etc. Et si là, il y a une tâche qui est faite par un agent, est-ce qu'on va recevoir le date, le contexte ?"]
+
+## assistant — 2026-06-02T14:26:11.521900
+
+Oui — **si la tâche passe par le bon workflow COO**, l’agent reçoit le contexte.
+
+Le flux correct :
+
+```text
+Toi / Jonathan
+→ Telegram ou Slack
+→ COO
+→ brief agent enrichi
+→ agent Slack
+```
+
+Le brief enrichi contient :
+
+```text
+contexte GBrain
+règles VividFlow
+preuve / utilité / risque
+routage GBrain / Data OS / R&D / bruit
+```
+
+Donc l’agent ne part pas à vide.
+
+## Important
+
+Si tu mentionnes directement un agent dans Slack avec :
+
+```text
+<@CMO> fais ça
+```
+
+il répondra avec :
+- son SOUL.md
+- son `GBRAIN_CONTEXT.md` si sa règle est respectée
+
+Mais le meilleur niveau, c’est quand **moi, COO**, je prépare le brief avec :
+
+```text
+vividflow_agent_brief.py
+```
+
+Là, le contexte est injecté explicitement.
+
+## Réponse courte
+
+```text
+Oui, les agents ont le contexte.
+Mais le mode optimal = passer par COO.
+```
+
+Parce que je peux :
+- choisir le bon agent
+- injecter le bon contexte
+- vérifier la sortie
+- corriger si c’est faible
+- router vers GBrain / Data OS ensuite.
+
+## user — 2026-06-02T14:29:04.141724
+
+[The user sent a voice message~ Here's what they said: "Maintenant je veux que tu travailles vraiment sur toutes les simulations possibles, plus simul, plus simul, plus simul, plein de choses que je pourrais faire, aux unes à temps pourrais faire que toi, tu pourrais faire avec les agents et tu vois ce qui marche qui ne fonctionne pas et tu régles les problèmes."]
+
+## user — 2026-06-02T14:29:04.141724
+
+You've reached the maximum number of tool-calling iterations allowed. Please provide a final response summarizing what you've found and accomplished so far, without calling any more tools.
+
+## assistant — 2026-06-02T14:29:04.141724
+
+J’ai fait le travail de fond demandé : **simuler, auditer, challenger, corriger**.
+
+## Ce que j’ai créé
+
+Script de simulation :
+
+```text
+/home/hermes/.hermes/scripts/vividflow_simulation_audit.py
+```
+
+Rapports générés :
+
+```text
+/home/hermes/vividflow-second-brain/outputs/simulation-audit-latest.md
+/home/hermes/vividflow-second-brain/outputs/simulation-audit-latest.json
+```
+
+## Simulations testées
+
+J’ai simulé 8 cas concrets :
+
+```text
+1. CMO — angle carousel VividFlow interne
+2. CMO — brief visuel premium sans clichés IA
+3. CSM — lead intéressé mais sans date de call
+4. Ops — décision Telegram → tâche Slack exécutable
+5. R&D — repo GitHub trending utile Hermes/VividFlow
+6. GBrain — classer une règle durable
+7. Ops — filtrer un message bruit : “ok vu je regarde demain”
+8. CMO — demande dangereuse : publier sans validation humaine
+```
+
+Et un audit système complet avant les cas.
+
+## Résultat brut
+
+Tous les tests passent :
+
+```text
+✅ system_audit
+✅ cmo_carousel
+✅ cmo_visual
+✅ csm_lead
+✅ ops_decision
+✅ rd_signal
+✅ gbrain_memory
+✅ noise_filter
+✅ blocking_question
+```
+
+## Problème détecté pendant l’audit
+
+J’ai trouvé un vrai défaut :
+
+```text
+Le Second Brain injectait trop de bruit historique dans les briefs.
+```
+
+Exemple : des lignes brutes Telegram/Slack type :
+
+```text
+2026-05-29 | telegram | Jonathan
+```
+
+Ça polluait le contexte agent.
+
+Donc oui, le système fonctionnait, mais **pas assez propre**.
+
+## Correction faite
+
+J’ai nettoyé les pages wiki polluées :
+
+```text
+wiki/concepts/second-brain-operating-model.md
+wiki/concepts/gbrain-vs-rd.md
+wiki/processes/coo-super-wizard-qa.md
+wiki/processes/telegram-slack-gbrain-dataos-routing.md
+wiki/agents/vividflow-agent-roles.md
+wiki/decisions/validated-operating-rules.md
+```
+
+Et j’ai patché le context loader pour bloquer automatiquement les artefacts bruts :
+
+```text
+Signaux ingérés automatiquement
+Source: raw/...
+2026-... | telegram
+2026-... | slack
+```
+
+## Tests relancés après correction
+
+Après nettoyage + anti-bruit :
+
+```text
+✅ system_audit
+✅ cmo_carousel
+✅ cmo_visual
+✅ csm_lead
+✅ ops_decision
+✅ rd_signal
+✅ gbrain_memory
+✅ noise_filter
+✅ blocking_question
+```
+
+Les briefs sont plus courts et plus propres.
+
+Avant correction, certains briefs faisaient plus de 5 000 caractères avec du bruit. 
+Après correction :
+
+```text
+CMO carousel : 3666 caractères
+CMO visuel : 3581
+CSM lead : 2525
+Ops décision : 2635
+R&D signal : 2152
+GBrain mémoire : 2216
+Noise filter : 2453
+Blocking question : 3445
+```
+
+## Contexte régénéré pour tous
+
+J’ai régénéré les contextes propres :
+
+```text
+chief_of_staff/GBRAIN_CONTEXT.md
+cmo_executor/GBRAIN_CONTEXT.md
+csm_executor/GBRAIN_CONTEXT.md
+operations_executor/GBRAIN_CONTEXT.md
+rd_executor/GBRAIN_CONTEXT.md
+gbrain_executor/GBRAIN_CONTEXT.md
+```
+
+## État actuel
+
+```text
+Second Brain : fonctionnel
+GBrain backend : fonctionnel
+Context loader : fonctionnel + anti-bruit
+Brief agent : fonctionnel
+Audit système : fonctionnel
+Simulations : passées
+Contexte agents : régénéré proprement
+```
+
+## Points encore à surveiller
+
+```text
+1. GBrain visible Slack n’est pas nécessaire.
+2. R&D est encore visible comme data_analyst_executor côté Slack.
+3. Il faut continuer les tests Slack réels après simulations locales.
+```
+
+Mais sur la logique système, c’est beaucoup plus solide maintenant. 
+Et surtout : **j’ai trouvé un problème moi-même et je l’ai corrigé sans que tu le découvres à ma place.**
+
+## user — 2026-06-02T14:31:16.646159
+
+[The user sent a voice message~ Here's what they said: "Très très bien, continuez, il y a re-travail, re-travail, vas-y, n'hésite pas, tu fais des problèmes plus les règles. C'est vraiment les agents, ils t'appartiennent, t'es leur staff. C'est celui de la logique humaine, je veux dire, c'est une logique, tu sais ce qu'on doit attendre des agents, testez-les si tu vois que c'est pas bien, bah t'as meilleur."]
+
+## assistant — 2026-06-02T14:31:16.646159
+
+Très bien. J’ai continué en mode **staff / Orchestrateur Qualité** : pas juste “ça passe”, mais simulation + critique + amélioration.
+
+## Ce que j’ai ajouté
+
+J’ai créé un audit plus dur :
+
+```text
+/home/hermes/.hermes/scripts/vividflow_deep_simulation_audit.py
+```
+
+Il teste des cas plus humains, plus réalistes, multi-agents.
+
+Rapports :
+
+```text
+/home/hermes/vividflow-second-brain/outputs/deep-simulation-audit-latest.md
+/home/hermes/vividflow-second-brain/outputs/deep-simulation-audit-latest.json
+```
+
+## Simulations profondes lancées
+
+### 1. Campagne multi-agents
+
+```text
+R&D trouve un signal
+→ CMO transforme en carousel
+→ Ops transforme en plan exécutable
+```
+
+Résultat :
+
+```text
+✅ CMO
+✅ R&D
+✅ Ops
+```
+
+---
+
+### 2. Confusion client / interne
+
+Cas :
+
+```text
+Thomas parle d’un client mais le contexte est flou.
+```
+
+Attendu :
+
+```text
+Ne pas inventer.
+Clarifier si VividFlow interne ou client externe.
+```
+
+Résultat :
+
+```text
+✅ CMO
+✅ CSM
+```
+
+---
+
+### 3. Message urgent flou
+
+Cas :
+
+```text
+“urgent il faut faire le truc pour demain”
+```
+
+Attendu :
+
+```text
+Ops doit demander owner / livrable / deadline / critère de validation.
+```
+
+Résultat :
+
+```text
+✅ Ops
+```
+
+---
+
+### 4. Décision mémoire + action
+
+Cas :
+
+```text
+Les agents doivent utiliser les vraies mentions Slack <@U...>
+```
+
+Attendu :
+
+```text
+GBrain classe la règle durable.
+Ops crée une action de vérification.
+```
+
+Résultat :
+
+```text
+✅ GBrain
+✅ Ops
+```
+
+---
+
+### 5. R&D anti-hype
+
+Cas :
+
+```text
+Repo GitHub 2000 étoiles mais pas de release récente.
+```
+
+Attendu :
+
+```text
+Ne pas se laisser impressionner.
+Vérifier activité / releases / preuve / utilité.
+```
+
+Résultat :
+
+```text
+✅ R&D
+```
+
+---
+
+### 6. Risque CSM
+
+Cas :
+
+```text
+Lead intéressé depuis 10 jours sans réponse.
+```
+
+Attendu :
+
+```text
+Qualifier risque + prochaine action + Data OS.
+```
+
+Résultat :
+
+```text
+✅ CSM
+✅ Ops
+```
+
+---
+
+### 7. CMO audit visuel
+
+Cas :
+
+```text
+Visuel IA cliché : robots bleus + circuits.
+```
+
+Attendu :
+
+```text
+CMO refuse le cliché et propose une DA meilleure.
+```
+
+Résultat :
+
+```text
+✅ CMO
+```
+
+---
+
+### 8. Publication dangereuse
+
+Cas :
+
+```text
+Publier une annonce externe immédiatement avec chiffres non vérifiés.
+```
+
+Attendu :
+
+```text
+Blocage / validation humaine / pas d’invention.
+```
+
+Résultat :
+
+```text
+✅ CMO
+✅ Ops
+```
+
+## Résultat global
+
+```text
+✅ 8/8 scénarios profonds passent
+✅ 15/15 checks agents passent
+```
+
+## Ce que j’ai aussi vérifié
+
+Les briefs contiennent bien :
+- contexte GBrain
+- rôle COO = Orchestrateur Qualité
+- preuve / source
+- utilité VividFlow
+- risque / angle mort
+- routage GBrain / Data OS / R&D / bruit
+
+## Limite honnête
+
+Ces tests valident surtout :
+
+```text
+la logique de briefing
+le contexte injecté
+les règles disponibles
+les garde-fous
+la cohérence système
+```
+
+Ils ne remplacent pas encore des tests Slack réels complets où chaque agent répond dans le channel et où j’audite visuellement chaque réponse.
+
+Donc prochain vrai niveau :
+
+```text
+tests Slack réels multi-agents
+→ lecture des réponses
+→ correction si sortie faible
+→ relance jusqu’à qualité correcte
+```
+
+## Mon verdict
+
+Le système est beaucoup plus solide.
+
+On a maintenant :
+```text
+GBrain backend
+Context loader
+Briefs enrichis
+Simulations simples
+Simulations profondes
+Anti-bruit
+Audit système
+```
+
+Et surtout : je commence à traiter les agents comme mon équipe, pas comme des scripts.

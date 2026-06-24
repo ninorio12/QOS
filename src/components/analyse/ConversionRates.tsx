@@ -9,7 +9,7 @@ import { DateRangePicker } from '@/components/shared/DateRangePicker'
 function localDate(d: Date) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
 
 type Conv = { clients: number; total: number; pct: number }
-type Overview = { conversions: { global: Conv; inbound: Conv; outbound: Conv } }
+type Overview = { conversions: { global: Conv; inbound: Conv; outbound: Conv; recommandation: Conv } }
 
 function defaultRange() {
   const to = new Date(); to.setHours(0,0,0,0)
@@ -29,16 +29,17 @@ export default function ConversionRates({ showHeader = true, variant = 'filled',
   // Si un range externe est fourni (ex: calendrier Période du dashboard), il pilote les données.
   const queryFrom = from ?? range.from
   const queryTo = to ?? range.to
-  const data = useQuery(api.paiement.overview, { from: queryFrom, to: queryTo }) as Overview | undefined
-  const c = data?.conversions ?? { global: { clients: 0, total: 0, pct: 0 }, inbound: { clients: 0, total: 0, pct: 0 }, outbound: { clients: 0, total: 0, pct: 0 } }
+  // Conversion = clients / TOTAL du module Contacts (leads + clients + perdus), prod ET démo.
+  const data = useQuery(api.paiement.overview, { from: queryFrom, to: queryTo, allContacts: true }) as Overview | undefined
+  const c = data?.conversions ?? { global: { clients: 0, total: 0, pct: 0 }, inbound: { clients: 0, total: 0, pct: 0 }, outbound: { clients: 0, total: 0, pct: 0 }, recommandation: { clients: 0, total: 0, pct: 0 } }
 
   return (
-    <div className="mb-4">
+    <div>
       {showHeader && (
         <div className="flex items-center justify-between mb-2">
           <div>
             <h2 className="text-[14px] font-black text-soren-text">Taux de conversion</h2>
-            <p className="text-[11px] text-soren-subtle">Clients convertis par rapport aux leads — {range.label}</p>
+            <p className="text-[11px] text-soren-subtle">Clients / contacts, par source · {range.label}</p>
           </div>
           <div className="relative" ref={calRef}>
             <button onClick={() => setCalOpen(v => !v)}
@@ -53,10 +54,11 @@ export default function ConversionRates({ showHeader = true, variant = 'filled',
           </div>
         </div>
       )}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <ConvCard variant={variant} label="Conversion globale"  conv={c.global}   sub="clients / contacts" bg="#FF4D00" text="#fff" muted="rgba(255,255,255,0.65)" />
-        <ConvCard variant={variant} label="Conversion Inbound"  conv={c.inbound}  sub="clients inbound / contacts inbound" bg="#1C1C1E" text="#fff" muted="#888" />
-        <ConvCard variant={variant} label="Conversion Outbound" conv={c.outbound} sub="clients outbound / contacts outbound" bg="#FF4D00" text="#fff" muted="rgba(255,255,255,0.65)" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <ConvCard variant={variant} label="Conversion globale"        conv={c.global}         sub="clients / contacts" bg="#FF4D00" text="#fff" muted="rgba(255,255,255,0.65)" />
+        <ConvCard variant={variant} label="Conversion Inbound"        conv={c.inbound}        sub="clients / contacts inbound" bg="#1C1C1E" text="#fff" muted="#888" />
+        <ConvCard variant={variant} label="Conversion Outbound"       conv={c.outbound}       sub="clients / contacts outbound" bg="#3462EE" text="#fff" muted="rgba(255,255,255,0.65)" />
+        <ConvCard variant={variant} label="Conversion Recommandation" conv={c.recommandation} sub="clients / contacts recommandation" bg="#1C1C1E" text="#fff" muted="#888" />
       </div>
     </div>
   )
@@ -69,7 +71,7 @@ function ConvCard({ label, conv, sub, bg, text, muted, variant }: { label: strin
       <div className="bg-soren-card rounded-2xl p-3 md:p-4 flex flex-col gap-1.5 shadow-sm border border-soren-border/60">
         <span className="text-[11px] font-medium text-soren-muted leading-none">{label}</span>
         <div className="flex items-baseline gap-2">
-          <p className="text-[20px] md:text-[22px] font-bold text-soren-text leading-none tabular-nums">{conv.pct}%</p>
+          <p className="text-[20px] md:text-[22px] font-bold text-soren-text leading-none tabular-nums">{conv.total > 0 ? `${conv.pct}%` : '—'}</p>
           <span className="text-[11px] text-soren-subtle">{conv.clients}/{conv.total}</span>
         </div>
         <span className="text-[10px] font-semibold text-[#FF4D00]/70">{sub}</span>
@@ -80,7 +82,7 @@ function ConvCard({ label, conv, sub, bg, text, muted, variant }: { label: strin
     <div className="rounded-2xl p-4 flex flex-col gap-1" style={{ background: bg, boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.08)' }}>
       <span className="text-[11px] font-medium" style={{ color: muted }}>{label}</span>
       <div className="flex items-baseline gap-2">
-        <p className="text-[20px] font-bold tabular-nums leading-none" style={{ color: text }}>{conv.pct}%</p>
+        <p className="text-[18px] font-bold tabular-nums leading-none" style={{ color: text }}>{conv.total > 0 ? `${conv.pct}%` : '—'}</p>
         <span className="text-[11px]" style={{ color: muted }}>{conv.clients}/{conv.total}</span>
       </div>
       <span className="text-[10px] font-semibold" style={{ color: muted }}>{sub}</span>

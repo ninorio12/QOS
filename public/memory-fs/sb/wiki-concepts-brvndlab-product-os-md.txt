@@ -1,0 +1,101 @@
+---
+title: Brvndlab — Product OS
+status: actif
+updated: 2026-06-14
+tags: [concept, product, content-os]
+sources:
+  - raw/messages/20260614-055515_telegram-session_0374dbb1.md
+  - raw/messages/20260614-052510_telegram-session_cbb3fd30.md
+  - raw/messages/20260614-052510_telegram-session_716b8a2b.md
+  - raw/messages/20260614-045355_telegram-session_d6e6a0bb.md
+  - raw/messages/20260614-045355_telegram-session_cf36adb7.md
+  - raw/messages/20260614-045355_telegram-session_873494c7.md
+  - raw/messages/20260614-045355_telegram-session_da596dfd.md
+  - raw/messages/20260614-042350_telegram-session_e0c988b4.md
+  - raw/messages/20260614-041617_telegram-session_3ff12fbd.md
+  - raw/messages/20260613-191914_telegram-session_ea9546bd.md
+  - raw/messages/20260613-194919_telegram-session_caa3d795.md
+  - raw/messages/20260613-225058_telegram-session_caa3d795.md
+---
+
+# Brvndlab — Product OS
+
+Brvndlab est cadré comme un **Content OS / Brand OS privé** pour produire du contenu vite, avec profondeur, et piloter la boucle contenu → audience → leads → cash.
+
+## Modules cœur validés
+
+- **Brand OS** : source de vérité de la marque.
+- **Content** : production depuis cette vérité.
+- **Brainstormer** : sparring partner pour angles, positionnement, conversion et perspectives.
+- **Calendar / Pipeline** : organisation et suivi de production.
+- **Smart Links / Leads / Stripe / Whop** : lecture attraction → conversion → vente.
+
+## Brainstormer — état produit
+
+Le Brainstormer doit rester prioritaire : l’ancienne interface existait, mais `/api/brainstorm-explore` devait être rebranché pour que Lya réponde réellement.
+
+À préserver dans les cartes de brainstorm :
+- idée centrale ;
+- point fort ;
+- perspective / alignement ;
+- tension / problème ;
+- ce qu’on peut en faire ;
+- transcript caché accessible au slide.
+
+## Transformations après brainstorm
+
+Décision du 2026-06-13 : simplifier les boutons de transformation en bas de carte.
+
+À garder actifs :
+- Script ;
+- Story ;
+- Carrousel ;
+- Post.
+
+À garder désactivé avec badge **Bientôt** :
+- Lead magnet.
+
+À supprimer :
+- Email ;
+- Questions audience.
+
+## Règles produit
+
+- D’abord l’idée / l’angle, ensuite le format.
+- Ne pas remettre un module email tant que le destinataire et l’usage ne sont pas clairs.
+- Ne pas prioriser Question audience dans ce flow : hors besoin immédiat.
+- Ne pas modifier la logique principale du Brainstormer ni les données existantes en nettoyant les boutons.
+
+## Environnement de dev — signal opérationnel
+
+Le repo Brvndlab exploitable côté Claude/macOS est `~/dev/brvndlab-claude/brvndlab-app`, hors `~/Documents`/iCloud. Les commits non triviaux doivent suivre le process [[processes/git-safe-commit-macos|Git safe commit — macOS / Claude harness]] pour éviter les freezes liés au quoting `eval`, aux messages multi-lignes et aux éditeurs interactifs.
+
+## Claude / développement — règle canonique
+
+Décision opérationnelle du 2026-06-14 : pour Brvndlab, Claude/Hermes doit toujours vérifier le point de départ avant d'agir.
+
+- Repo canonique : `~/dev/brvndlab-claude/brvndlab-app`.
+- Repo interdit/déprécié : `~/Documents/Claude AI/Brvndlab` et toute copie iCloud/Documents.
+- Si un chemin contient `Documents`/iCloud, ne pas diagnostiquer git : stopper et basculer vers le repo canonique.
+- Avant tout deploy, vérifier branche/remotes/Vercel pour éviter de publier une mauvaise lignée.
+- Lignée produit/prod décidée le 2026-06-14 : `main` est canonique ; `origin/feat/dark-mode` est une branche expérimentale/morte, à ne pas merger ni déployer. Suppression distante à faire seulement après réparation de l’auth GitHub.
+- Pour la correction Brainstormer validée : dans le repo canonique, supprimer `Email`, `Question audience`, `Mail` et `MessageCircle`; garder Script, Story, Carousel, Post, Lead magnet.
+
+## Claude sharp — garde-fous à privilégier
+
+Améliorations techniques validées pour rendre Claude plus rapide et fiable sur Brvndlab :
+
+- launcher dédié type `brvndlab-claude` qui ouvre directement le repo canonique ;
+- safety check avant action : blocage si chemin iCloud/Documents, secrets ou commande trop large ;
+- scripts projet courts : `guard:repo`, `check:fast`, `check:lint`, `check:prod-risk`, `smoke` ;
+- timeout sur commandes longues ;
+- missions petites et vérifiables, puis résultat essentiel seulement ;
+- clone canonique côté Hermes à envisager si SSH Mac devient un frein.
+
+
+## État opérationnel — 2026-06-14
+
+- Launcher sécurisé `brvndlab-claude` validé pour ouvrir le repo canonique et lancer le safety check.
+- Garde-fous projet validés : `scripts/brvndlab-safety-check.sh`, deny local Claude sur l’ancien repo iCloud, scripts `guard:repo`, `check:fast`, `check:lint`, `check:prod-risk`, `smoke`.
+- Brouhaha local nettoyé sans refacto produit : `.next`, `.vercel/output`, mockups sortis de `public/` vers `_legacy/mockups/`.
+- Ne pas réinjecter le fichier `angles/[id]/page.tsx` depuis `origin/feat/dark-mode` dans `main` : ce serait ramener une dérive parallèle non voulue.

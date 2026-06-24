@@ -1,0 +1,38 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260616_092957_331fe4.jsonl
+captured_at: 2026-06-16T09:35:59.947613
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-06-16T09:30:44.643637
+
+le scrapping est de très mauvaise qualité, tu sais pourquoi ?
+
+## assistant — 2026-06-16T09:30:44.643637
+
+C’est arrêté. J’ai mis en pause : - scraping quotidien leads Suisse romande - ordre quotidien scraping - validation Coordinateur après scraping L’import Data OS était déjà en pause. Donc plus aucun flux automatique ne va continuer à remplir ce doc ou importer ces leads.
+
+## user — 2026-06-16T09:30:44.643637
+
+utilise tes superpouvoirs de brainstorming pour comprendre pourquoi c'est un echec, rien n'a été remplis correctement et comment y remedier ?
+
+## assistant — 2026-06-16T09:30:44.643637
+
+Oui. Diagnostic brutal : ce n’est pas “le scraping” qui a échoué, c’est le **système de qualification avant scraping**. Pourquoi c’est un échec : 1. **La cible était trop floue** “Dirigeants Suisse romande” est trop large. Résultat : l’agent a cherché des entreprises, pas des prospects actionnables. 2. **On a confondu entreprise et lead** Une ligne avec “Entreprise + ville + site” n’est pas un lead. Un vrai lead = entreprise + décideur identifié + rôle + source + contact pro vérifiable. 3. **Pas de source primaire stricte** L’agent n’avait pas une source fiable imposée ligne par ligne. Il aurait dû partir de local.ch / Google Maps / site officiel, puis seulement enrichir. 4. **Pas de batch test assez dur** Le système aurait dû s’arrêter après 5 à 10 lignes faibles. Là il a continué à produire du bruit. 5. **Le scoring ne protégeait pas assez** Les lignes “à vérifier” ont été traitées comme du travail en cours, alors qu’elles auraient dû être considérées comme quasi-rejetées. 6. **Apollo aurait pu empirer le problème** Apollo rend les données plus “propres” en apparence, mais si la source primaire est mauvaise, ça donne juste une mauvaise base mieux maquillée. 7. **Le sheet n’était pas pensé comme une QA machine** Il manquait une logique simple : `source entreprise`, `source décideur`, `source email`, `preuve`, `décision filtre`. Sans preuve, l’agent remplit des cases au lieu de construire une base vendable. Comment y remédier : 1. **Repartir sur un ICP ultra précis** Exemple : “fiduciaires 5-30 employés, VD/GE, dirigeant visible, site actif, email pro présent”. 2. **Faire 10 leads maximum** Pas 50, pas quotidien. 10 lignes. Audit dur. Si moins de 7 bons, on change la méthode. 3. **Source primaire obligatoire** Ordre : - local.ch / annuaire métier / Google Maps - site officiel - page équipe / mentions légales / contact - Apollo uniquement pour enrichir ou confirmer 4. **Quality gate non négociable** Une ligne est importable seulement si : - entreprise réelle - décideur identifié - rôle clair - canton OK - source URL - email/téléphone pro sourcé - pas de donnée inventée - pas de Qualité C 5. **Arrêt automatique si mauvais signal** Si sur les 10 premières lignes : - 3+ sans décideur - 3+ sans source email - 3+ avec données incertaines → stop. On ne scale pas. 6. **Un agent ne doit plus “remplir un doc”** Sa mission doit être : “prouver 10 opportunités commerciales exploitables”. Pas “trouver des lignes”. Ma recommandation : on jette ce batch, on garde le doc seulement comme preuve d’échec, et on reconstruit un pipeline **test 10 leads → QA → seulement ensuite automatisation**. La bonne question maintenant : **tu veux attaquer quelle niche précise pour le prochain batch test ?**
+
+## user — 2026-06-16T09:32:57.557100
+
+les niches je te les ai dit, immobilier (mendataire, agent immobilier, courtier) et cabinet de conseil (juridique, marketing, stratégie)
+
+## assistant — 2026-06-16T09:32:57.557100
+
+Oui, là c’est beaucoup plus clair. Donc l’échec vient aussi d’un point précis : **le scraper a traité “dirigeants Suisse romande” comme cible**, alors que la vraie cible était : 1. **Immobilier** - mandataires - agents immobiliers - courtiers 2. **Cabinets de conseil** - juridique - marketing - stratégie Correction : il faut faire **deux pipelines séparés**, pas un seul scraping général. - Immobilier : sources type agences, courtiers locaux, annuaires immobiliers, Google Maps, sites d’agences. - Conseil : sources type cabinets spécialisés, sites officiels, pages équipe, annuaires professionnels. Et pour chaque niche, on sort seulement des lignes avec : - décideur identifié - rôle exact - entreprise - canton/ville - site/source - email ou téléphone pro sourcé - raison de pertinence Ma recommandation : on commence par **immobilier uniquement**, parce que c’est plus facile à vérifier publiquement et plus proche d’un besoin opérationnel évident. Question unique : Tu veux qu’on commence le batch test par **immobilier** ou par **cabinets de conseil** ?
+
+## user — 2026-06-16T09:34:00.783800
+
+oui mais je veux le contact des dirigeants exclusivement je veux pas de mail d'entreprise
+
+## assistant — 2026-06-16T09:34:00.783800
+
+Exact. C’est une contrainte centrale, et elle n’était pas assez dure. Nouvelle règle : **Pas de mail générique comme contact principal.** Donc rejet automatique si le seul email est : - `info@` - `contact@` - `admin@` - `hello@` - `office@` - `reception@` - formulaire de contact uniquement Ce qu’on veut : - prénom - nom - rôle dirigeant - entreprise - email nominatif pro, ex. `prenom.nom@domaine.ch` - ou téléphone pro direct si clairement lié au dirigeant - source qui prouve que cette personne existe et dirige Si on trouve une bonne entreprise mais aucun dirigeant joignable : → statut `à enrichir`, pas `lead`. Donc le nouveau scoring doit être inversé : - **A** : dirigeant identifié + email nominatif sourcé - **B** : dirigeant identifié + téléphone pro/direct ou LinkedIn fiable, mais email manquant - **C** : entreprise intéressante mais contact générique seulement - **Rejet** : pas de dirigeant identifié C’est probablement la plus grosse cause de l’échec : l’agent a cherché des entreprises, alors que tu voulais des **personnes précises à contacter**.

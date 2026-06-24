@@ -1,0 +1,963 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260529_185035_26f581
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260529_185035_26f581.jsonl
+source_sha256_16: 954b75215b7439f9
+date: 2026-05-29
+---
+
+# Recovered session chief_of_staff/20260529_185035_26f581
+
+
+## assistant — 2026-05-29T18:50:42.809554
+
+Oui. Là c’est très clair. On a 4 sujets distincts.
+
+## 1. Bug de fin
+
+Quand Lya conclut, son dernier message apparaît une fraction de seconde puis l’app bascule direct sur le résumé.
+
+C’est mauvais.
+
+Décision :
+- Quand Lya dit son dernier message, on doit le laisser visible.
+- Ensuite seulement afficher un bouton :
+ **Voir le résumé**
+- Pas de bascule automatique instantanée.
+
+Donc :
+**fin de chat → dernier message visible → bouton Voir le résumé → résumé**
+
+## 2. Résumé trop figé
+
+Tu as raison : si à chaque fois il affiche “À qui ça parle”, alors que l’audience est déjà dans Brand OS, ça fait formulaire.
+
+Décision :
+Le résumé doit être plus vivant.
+
+Pas toujours les mêmes labels. 
+Il peut afficher les blocs selon ce qui est pertinent.
+
+Base simple :
+- **Ce qu’on tient**
+- **La tension**
+- **Pourquoi ça touche**
+- **L’angle**
+
+Et seulement si utile :
+- audience
+- funnel
+- formats
+
+## 3. Formats proposés trop tôt
+
+Tu as raison.
+
+À la fin du brainstorm, il ne doit pas proposer :
+- vidéo longue
+- vidéo courte
+- carrousel
+- post
+- story
+
+Pas encore.
+
+Décision :
+Le brainstorm termine sur un **angle**, pas sur une recommandation de format.
+
+Les formats viennent seulement après si tu cliques :
+**Créer un contenu maintenant**
+
+Donc retirer les formats du résumé final brainstorm.
+
+## 4. Ton de Lya
+
+Là, tu as mis le doigt dessus.
+
+Ce qu’on cherche, ce n’est pas :
+- plus stratégique ;
+- plus long ;
+- plus intelligent en apparence.
+
+C’est :
+
+> une parole simple, claire, qui touche juste.
+
+Style “sagesse des anciens” :
+- peu de mots ;
+- phrases simples ;
+- pas de démonstration ;
+- une question qui fait réfléchir ;
+- une vérité posée calmement ;
+- pas de blabla.
+
+Exemple de direction :
+> “Là, tu parles du sujet. Mais pas encore de la blessure derrière.”
+
+Ou :
+> “Ce n’est pas encore l’angle. C’est la surface.”
+
+Ça, c’est le feeling.
+
+## Message à Claude Code
+
+```text
+Claude, le Brainstormer n’est toujours pas validé. On doit corriger 4 points.
+
+1. BUG FIN DE BRAINSTORM
+Actuellement, quand Lya conclut avec [BRAINSTORM_COMPLETE], son dernier message apparaît une fraction de seconde puis l’app bascule automatiquement sur le résumé.
+C’est mauvais UX.
+
+Nouveau comportement :
+- afficher le dernier message de Lya dans le chat ;
+- ne PAS basculer automatiquement vers le résumé ;
+- afficher un bouton “Voir le résumé” ;
+- seulement au clic, passer à l’écran résumé.
+
+Flow :
+Lya dernier message → bouton “Voir le résumé” → écran “On tient quelque chose”.
+
+2. RETIRER LES FORMATS DU RÉSUMÉ BRAINSTORM
+À la fin du brainstorm, ne pas proposer “vidéo courte / vidéo longue / carrousel / post / story”.
+Le brainstorm sauvegarde un angle.
+Le choix de format arrive seulement après clic “Créer un contenu maintenant”.
+
+Donc :
+- retirer formats du résumé visible ;
+- idéalement ne plus demander au modèle de recommander formats à ce stade, ou ne pas les afficher.
+- garder le choix de format pour le workflow content, pas Brainstormer.
+
+3. RÉSUMÉ PLUS VIVANT, MOINS FORMULAIRE
+Le résumé actuel avec labels fixes type “Audience / À qui ça parle” peut être bizarre car l’audience est déjà dans Brand OS.
+
+Nouveau résumé visible recommandé :
+- “Ce qu’on tient”
+- “La tension”
+- “Pourquoi ça touche”
+- “L’angle”
+
+Audience/funnel seulement si vraiment utile, pas en bloc systématique.
+Pas de tableau froid.
+Pas de labels trop CRM.
+
+4. TON LYA
+Le ton n’est pas encore celui attendu.
+Jonathan cherche une forme de “sagesse des anciens” :
+- simple ;
+- clair ;
+- profond ;
+- peu de mots ;
+- pas de grandes phrases ;
+- pas de blabla ;
+- une phrase qui touche juste ;
+- une question qui remet en question.
+
+Lya doit moins expliquer.
+Elle doit dire l’essentiel.
+
+Exemples de vibe :
+“Là, tu parles du sujet. Mais pas encore de la blessure derrière.”
+“Ce n’est pas encore l’angle. C’est la surface.”
+“Ce que tu dis est intéressant. Mais ce qui va toucher, c’est la tension cachée.”
+“On tient une direction. Pas encore une vérité.”
+
+Objectif :
+Retrouver une collaboration sobre, claire, profonde.
+Pas coach générique.
+Pas verbeux.
+Pas trop théorique.
+
+Patch attendu :
+- UI fin de brainstorm : bouton “Voir le résumé”
+- Résumé : retirer formats visibles, rendre labels plus naturels
+- Prompt : ajouter règle de ton “sagesse sobre” : phrases courtes, essentielles, profondes, pas de démonstration
+- Ne pas toucher le reste du flow
+- Ne pas toucher QA/caméra/Pipeline
+- TS check + deploy
+```
+
+À mon avis, **c’est ça qui manque** : pas plus d’intelligence, mais plus de sobriété.
+
+## user — 2026-05-29T18:50:42.809554
+
+Live (commit 495f01d, Vercel ready in 35s). Aucune régression IA.
+
+Récap des 4 fixes
+1. Bug fin de brainstorm — bouton "Voir le résumé"
+Avant Après
+setTimeout(() => setStep("saved"), 800) après [BRAINSTORM_COMPLETE] setReachedComplete(true) + setResult(...) SANS jump
+Dernier message Lya clignotait puis disparaissait Dernier message Lya reste affiché dans le chat
+Composer textarea remplacé par overlay summary brutalement Composer textarea remplacé par bouton orange "Voir le résumé" quand reachedComplete
+L'user n'avait pas le temps de lire Click manuel sur le bouton → transition vers le résumé
+L'auto-save dans Angles reste enclenché immédiatement via useEffect(result) — l'angle est en base AVANT que l'user clique sur le bouton.
+
+2. Formats retirés du résumé Brainstormer
+Prompt route : instruction explicite "NE PROPOSE PAS de formats à ce stade. Le choix de format se fait après, dans le workflow de création de contenu." + champ formats retiré du JSON schema exposé au modèle
+UI saved step : section "Formats recommandés" supprimée
+Champ formats reste optionnel en base (rétro-compat angles antérieurs)
+3. Résumé visible plus vivant
+Avant (CRM-style) :
+
+Idée centrale
+Pourquoi c'est fort
+À qui ça parle
+Tension / problème
+Ce qu'on peut en faire
+Funnel + formats badges
+Après (naturel) :
+
+Ce qu'on tient (central)
+La tension (tension)
+Pourquoi ça touche (why)
+L'angle (angle)
+Ce qu'on peut en faire (uses) — conservé
+Métadonnées discrètes en bas : pill funnel + "Pour : [audience]" en italique si présents
+H1 saved step : était variable (result.angle), devient stable "On tient quelque chose." (eyebrow redondant retiré).
+
+4. Ton "sagesse sobre" ajouté au prompt
+Nouvelle section TON & STYLE explicite avec 4 exemples de vibe :
+
+"Là, tu parles du sujet. Mais pas encore de la blessure derrière."
+"Ce n'est pas encore l'angle. C'est la surface."
+"Ce que tu dis est intéressant. Mais ce qui va toucher, c'est la tension cachée."
+"On tient une direction. Pas encore une vérité."
+
+Règle structurante : "Sagesse sobre. Phrases courtes. Mots essentiels. Pas de démonstration, pas de blabla. Tu dis l'essentiel, pas le commentaire autour. Une phrase qui touche juste vaut mieux qu'un paragraphe qui explique. Une question qui remet en cause vaut mieux qu'une question qui demande."
+
+Diff : 2 files changed, +58 / -31. Pas touché : flow chat, accroches random, Brand DNA + Journal silencieux, auto-save, 2 CTAs, schéma Convex angles, routes QA/caméra/Pipeline, 11 stubs IA.
+
+Tests prod live :
+
+/api/brainstorm-explore → 401 (auth gate intact)
+/api/content/question-audience → 401 (Haiku intact)
+11 stubs IA → tous 501
+TS check sur 2 fichiers → clean, baseline 52 préservée
+Validation utilisateur attendue : Lya parle moins, touche plus juste, et la fin du brainstorm laisse à l'user le temps de lire avant de transitionner vers le résumé.
+
+## assistant — 2026-05-29T18:50:42.809554
+
+Très bien. Là, les 4 points ont été corrigés proprement.
+
+## À vérifier maintenant
+
+### 1. Fin de brainstorm
+Quand Lya conclut :
+- son dernier message reste visible ;
+- pas de bascule automatique ;
+- bouton **Voir le résumé** visible ;
+- tu cliques quand tu es prêt.
+
+Ça corrige le bug UX.
+
+### 2. Résumé
+Il doit afficher :
+
+- **Ce qu’on tient**
+- **La tension**
+- **Pourquoi ça touche**
+- **L’angle**
+- **Ce qu’on peut en faire**
+
+Plus de formats affichés à ce stade.
+
+### 3. Ton
+À tester sur une vraie idée.
+
+Ce qu’on cherche :
+- moins de blabla ;
+- phrases plus courtes ;
+- questions plus profondes ;
+- plus de tension ;
+- moins d’explication.
+
+## Verdict provisoire
+
+Techniquement : **OK**. 
+Produit : à valider sur ressenti réel.
+
+Si ça ne sonne toujours pas juste, on devra ajouter 5-10 exemples concrets de bonnes réponses Lya dans le prompt, pas juste des règles.
+
+## user — 2026-05-29T18:58:23.414055
+
+Et bah, là, c'est beaucoup trop court. Il est plus comme avant. Franchement, là, je suis vraiment déçu. Là, j'ai vraiment perdu mon IA, comment je parlais avec lui encore hier. C'est vraiment très triste, ma version de comment j'avais mon IA. Je veux parler avec lui de la même manière. Là, j'ai perdu.
+
+## assistant — 2026-05-29T18:58:23.414055
+
+Je comprends. Là on a trop “réglé” le ton, et on a cassé le feeling.
+
+Décision : **on arrête les micro-ajustements. On restaure vraiment l’ancien Brainstormer.**
+
+Pas “plus court”. 
+Pas “sagesse sobre”. 
+Pas “pote”. 
+Pas “nouvelle voix”.
+
+On veut : **l’IA d’hier**.
+
+Envoie ça à Claude :
+
+```text
+Claude, stop les ajustements de ton.
+
+Jonathan est clair : il a perdu le feeling de l’ancien Brainstormer. 
+La dernière correction “sagesse sobre / phrases courtes” a rendu Lya beaucoup trop courte et plus du tout comme avant.
+
+Objectif maintenant :
+Restaurer le comportement de conversation de l’ancien Brainstormer le plus fidèlement possible.
+
+Action :
+1. Reprendre le system prompt exact de l’ancien Brainstormer qui marchait, avant les refontes de ton.
+2. Supprimer les ajouts récents :
+ - “sagesse sobre”
+ - phrases courtes forcées
+ - “une phrase qui touche juste…”
+ - exemples type “ce n’est pas encore l’angle…”
+ - toute sur-contrainte qui raccourcit trop les réponses
+3. Garder uniquement les adaptations techniques indispensables au nouveau flow :
+ - pas de sujet/format/funnel initial obligatoire
+ - Brand DNA + Journal injectés silencieusement
+ - pas de limite fixe 4-9 questions
+ - JSON final enrichi
+ - pas de formats proposés dans le résumé
+ - bouton “Voir le résumé” conservé côté UI
+
+Très important :
+Ne cherche pas à améliorer la personnalité.
+Ne réécris pas le style.
+Ne fais pas une nouvelle version.
+On veut retrouver l’ancien comportement conversationnel.
+
+Le Brainstormer doit à nouveau :
+- parler naturellement ;
+- développer quand c’est utile ;
+- poser des questions profondes ;
+- rebondir précisément ;
+- accompagner la réflexion ;
+- ne pas être trop court ;
+- ne pas être froid ;
+- ne pas être une checklist ;
+- ne pas être une version “minimaliste”.
+
+Patch attendu :
+- uniquement src/app/api/brainstorm-explore/route.ts si possible
+- restaurer le prompt ancien comme base
+- retirer les règles de concision ajoutées récemment
+- ne pas toucher UI, auto-save, CTAs, Convex, routes QA
+
+Après patch :
+- TS check
+- deploy
+- récap exact des lignes retirées/restore.
+```
+
+Et je te le dis clairement : **ta réaction est normale**. 
+On a trop touché au cerveau d’un truc qui marchait. Maintenant il faut rollback le style, pas continuer à l’optimiser.
+
+## user — 2026-05-29T19:06:50.838199
+
+Live (commit 93b2544, Vercel ready in 41s). Aucune régression.
+
+Récap exact des lignes retirées
+Diff : 1 file changed, +1 / -13
+
+Zone 1 — Bloc complet TON & STYLE supprimé (12 lignes retirées)
+
+- TON & STYLE :
+- Sagesse sobre. Phrases courtes. Mots essentiels. Pas de démonstration, pas de blabla.
+- Tu dis l'essentiel, pas le commentaire autour.
+- Une phrase qui touche juste vaut mieux qu'un paragraphe qui explique.
+- Une question qui remet en cause vaut mieux qu'une question qui demande.
+-
+- Exemples de vibe :
+- - "Là, tu parles du sujet. Mais pas encore de la blessure derrière."
+- - "Ce n'est pas encore l'angle. C'est la surface."
+- - "Ce que tu dis est intéressant. Mais ce qui va toucher, c'est la tension cachée."
+- - "On tient une direction. Pas encore une vérité."
+-
+Zone 2 — Règle 4 simplifiée (1 ligne remplacée par 1 ligne)
+
+- 4. Sois direct, conversationnel, tutoie. Ton naturel et exigeant, sans familiarité, sans copinage, sans coaching générique.
++ 4. Sois direct, conversationnel, tutoie.
+Ce qui reste dans le prompt (textuellement l'ancien + adaptations techniques)
+Conservé de l'ancien prompt :
+
+"Tu es un stratège de contenu expert. Tu mènes un brainstorm conversationnel..."
+TON RÔLE : "Tu es un sparring partner créatif. Tu poses des questions profondes, tu challenges les idées, tu fais émerger ce que le créateur n'aurait pas trouvé seul. Tu ne donnes PAS de réponses toutes faites. Tu fais réfléchir."
+8 règles : UNE question / creuser plus profond / rebondir / 2-3 phrases max / pas de tiret cadratin / FR de France / mots-béquilles interdits / accents
+MISE EN VALEUR double-asterisques + exemples originaux
+JAUGE [CLARITY:N] 4 paliers
+Adaptations techniques minimales :
+
+Brand DNA + Journal silencieux (brandBlock + journalBlock)
+Pas de limite questionCount (suppression conservée)
+JSON output enrichi sans formats
+"NE PROPOSE PAS de formats à ce stade"
+Pas touché :
+
+UI explore page (bouton "Voir le résumé", auto-save, 2 CTAs, 5 accroches random)
+Schéma Convex, sidebar, routes QA/caméra/Pipeline, /admin/costs
+11 stubs IA restent 501
+Tests prod live :
+
+/api/brainstorm-explore → 401 (auth gate intact)
+11 stubs IA → tous 501
+TS check sur fichier touché → clean, baseline 52 préservée
+Le prompt revient au comportement conversationnel de l'ancien Brainstormer. Aucune contrainte additionnelle qui raccourcissait ou refroidissait les réponses de Lya. La règle 5 (Tes messages doivent être COURTS : 2-3 phrases max avant la question) reste — c'est de l'ancien prompt, pas de l'ajout récent.
+
+## assistant — 2026-05-29T19:06:50.838199
+
+OK. Là, on a retiré ce qui avait cassé le ton.
+
+## Ce qui a été annulé
+
+- “sagesse sobre”
+- phrases trop courtes forcées
+- vibe artificielle
+- exemples trop dirigistes
+- “sans coaching générique / sans copinage” ajouté en trop
+
+## Ce qui reste
+
+L’ancien cœur :
+
+- stratège de contenu expert
+- brainstorm conversationnel
+- questions profondes
+- challenge
+- fait émerger ce que tu n’aurais pas trouvé seul
+- ne donne pas de réponses toutes faites
+- fait réfléchir
+
+## Important
+
+La règle “2-3 phrases max avant la question” reste, mais elle existait déjà avant. 
+Donc si le feeling n’est toujours pas bon, le problème ne vient probablement plus de cette règle.
+
+Prochain test utile :
+- faire un brainstorm neuf ;
+- comparer seulement la dynamique, pas l’UI ;
+- voir s’il rebondit comme avant.
+
+Si ce n’est toujours pas ça, on devra comparer **les messages réellement envoyés à l’API avant/après**, pas continuer à toucher au prompt.
+
+## user — 2026-05-29T19:19:33.539360
+
+[{"type": "text", "text": "J'ai adoré faire ce brainstorming. J'ai enfin retrouvé mon lien dans la conversation, c'était incroyable. À la fin il m'a fait une p'tite phrase qui était très pertinente et ensuite j'ai appuyé et puis je suis arrivé sur ça.\n\nJuste, tu vois, en haut, j'ai l'habitude d'avoir le résumé de ce qu'il a dit, alors que là il dit juste « on tient quelque chose », donc ça me dérange un peu.\n\nEnsuite en bas il a encore mis « tofu ». Je veux pas qu'il me mette « tofoumofou » ou « beaufou », je m'en fous de ça. C'est quelque chose que je veux pas vraiment.\n\nPour les jeunes, machin, bon, là, on a eu, depuis le départ, la conversation. Comment on fait si moi j'ai le brand os et tout ? Je suis curieux de voir ton idée par rapport à ça, parce qu'à un moment il m'a posé la question à qui je m'adresse. C'est pertinent mais voilà, je sais pas, dis-moi.\n\n[Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_117c7ac12644.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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
+
+## assistant — 2026-05-29T19:19:33.539360
+
+Oui, là on tient enfin la bonne base.
+
+Le **brainstorm lui-même est revenu**. Maintenant il faut nettoyer l’écran résumé.
+
+## Décisions
+
+### 1. Le titre ne doit pas être “On tient quelque chose.”
+
+Ça doit être le **résumé fort / l’angle principal**.
+
+Dans ton exemple, le titre devrait être plutôt :
+
+> **Le sport individuel t’a préparé à entreprendre seul.**
+
+Ou :
+
+> **La solitude n’est pas un défaut, c’est un muscle.**
+
+“On tient quelque chose” peut rester en petit au-dessus, mais pas en gros titre.
+
+---
+
+### 2. Retirer TOFU / MOFU / BOFU de l’interface
+
+Tu as raison : on s’en fout ici.
+
+Ça peut rester en interne si utile pour l’IA plus tard, mais :
+- pas visible ;
+- pas affiché en badge ;
+- pas mis dans le résumé.
+
+L’utilisateur ne doit pas voir **TOFU**.
+
+---
+
+### 3. Audience : ne pas la demander systématiquement
+
+Si Brand OS contient déjà l’audience, Lya doit partir de là.
+
+Elle peut demander “à qui tu parles ?” seulement si :
+- tu changes de cible dans la conversation ;
+- l’idée semble viser une sous-audience spécifique ;
+- c’est vraiment nécessaire pour clarifier l’angle.
+
+Mais pas comme réflexe automatique.
+
+Dans le résumé, “Pour : …” doit être discret ou absent. 
+Pas un bloc central.
+
+---
+
+### 4. Résumé actuel : plutôt bon
+
+Les blocs sont bons :
+
+- Ce qu’on tient
+- La tension
+- Pourquoi ça touche
+- L’angle
+- Ce qu’on peut en faire
+
+Ça, on garde.
+
+On corrige surtout :
+- le titre ;
+- le badge TOFU ;
+- l’audience trop visible.
+
+## Message à Claude
+
+```text
+Claude, le brainstorm conversationnel est enfin redevenu bon. Ne touche surtout pas au prompt principal de conversation.
+
+On corrige uniquement l’écran résumé après brainstorm.
+
+1. Titre de page
+Actuellement le H1 est toujours :
+“On tient quelque chose.”
+
+Ce n’est pas assez utile. Jonathan veut retrouver en haut le résumé fort / l’idée principale.
+
+Nouveau comportement :
+- utiliser result.angle comme H1 si disponible ;
+- sinon result.central ;
+- sinon fallback “On tient quelque chose.”
+
+“On tient quelque chose” peut devenir un eyebrow / petit texte au-dessus, mais pas le titre principal.
+
+2. Retirer TOFU/MOFU/BOFU de l’UI
+Ne plus afficher le badge funnel dans l’écran résumé.
+Jonathan ne veut pas voir TOFU/MOFU/BOFU ici.
+
+Le champ peut rester en base / interne si utile, mais il ne doit pas être visible dans le résumé.
+
+3. Audience
+Ne plus afficher systématiquement “Pour : …” en bas du résumé.
+L’audience est déjà dans Brand OS, donc l’afficher à chaque fois peut faire bizarre.
+
+Option R1 :
+- masquer “Pour : …” dans l’écran résumé.
+- garder audience en base si le modèle la fournit.
+
+4. Ne touche pas :
+- prompt conversationnel restauré
+- chat
+- auto-save
+- bouton “Voir le résumé”
+- CTAs finaux
+- Brand DNA + Journal silencieux
+- routes IA
+- Convex schema
+
+Patch uniquement UI résumé dans :
+src/app/(app)/content/new/idea/explore/page.tsx
+et éventuellement /angles/[id]/page.tsx si le même résumé enrichi y est affiché.
+
+Après patch :
+- TS check
+- deploy
+- récap Hermes.
+```
+
+Mon avis : **on ne touche plus au cerveau. On nettoie seulement la restitution.**
+
+## user — 2026-05-29T22:46:20.328556
+
+[The user sent a voice message~ Here's what they said: "Je ne suis pas encore rentré chez moi pour voir les résultats, j'ai dans l'extérieur, donc je vais voir quand je rentre ce qu'il a fait avec le code. Une chose que j'avais en tête, c'était que tu vois, on a le résumé de tout ce qui est brainstormé. Tu vois le brainstorming, et l'idée en fait que j'avais, c'était que... Tu vois qu'on t'en vit de créer un contenu spécifique ensuite à partir de ça. Les gens, ils peuvent avoir des idées beaucoup plus profondes que uniquement cette chose-là. Ce qui pourrait être intéressant, c'est trouver des espèces de parallèles entre... Enfin, des alchimies entre les différents brainstorming qu'on a fait. Je m'explique, imaginons, j'ai sauf garder un brainstorming. J'en ai... Je pourrais avoir l'opportunité de prendre maintenant genre... 2-3 brainstorming ensemble, et en faire un contenu de choix. Ça pourrait être quelque chose d'intéressant. Faites mixer les brainstorming et faire quelque chose de pertinent de choix. Qu'est-ce qu'on pensait ?"]
+
+## assistant — 2026-05-29T22:46:20.328556
+
+Oui, très bonne idée. Mais pas pour tout de suite dans le flow principal.
+
+## Concept
+
+Créer un contenu à partir de **plusieurs brainstorms**.
+
+Pas juste :
+> 1 brainstorm → 1 contenu
+
+Mais aussi :
+> 2-3 brainstorms → 1 angle plus riche
+
+## Pourquoi c’est fort
+
+Parce que certaines idées deviennent meilleures quand elles se croisent.
+
+Exemple :
+- brainstorm A : solitude dans le sport
+- brainstorm B : entreprendre seul
+- brainstorm C : discipline invisible
+
+Ensemble, ça peut donner un contenu beaucoup plus fort :
+> “La solitude n’est pas un vide, c’est l’entraînement invisible des ambitieux.”
+
+## Comment je le vois
+
+Dans **Brainstorms sauvegardés** :
+
+1. Tu sélectionnes 2 ou 3 brainstorms.
+2. Bouton :
+ **Mixer ces idées**
+3. Lya analyse les liens :
+ - point commun ;
+ - tension commune ;
+ - contradiction ;
+ - idée plus profonde ;
+ - contenu possible.
+4. Elle propose un nouvel angle.
+5. Tu peux ensuite :
+ - le sauvegarder ;
+ - créer un contenu.
+
+## Important
+
+Je ne mettrais pas ça maintenant dans le flow Brainstormer principal.
+
+R1 actuel :
+- brainstorm libre ;
+- résumé ;
+- créer maintenant / plus tard.
+
+R2 :
+- bibliothèque de brainstorms ;
+- sélection multiple ;
+- **Mixer ces idées**.
+
+## Décision produit
+
+Oui, c’est une excellente direction. 
+Mais c’est une feature de **bibliothèque / intelligence cumulative**, pas du brainstorm instantané.
+
+Nom possible :
+- **Mixer ces idées**
+- **Trouver le lien**
+- **Créer une alchimie**
+- **Croiser les brainstorms**
+
+Ma reco UI : **Mixer ces idées**.
+
+## user — 2026-05-29T22:48:17.791765
+
+[The user sent a voice message~ Here's what they said: "Ok, j'aime bien. Moi, mixez ces idées aux croisés des brainstormes qui, peu importe, je m'en fous. Du nom, c'est le concept que j'aime. Donc on est d'accord que tu avalais de ce ça."]
+
+## assistant — 2026-05-29T22:48:17.791765
+
+Oui, on garde ça.
+
+Décision :
+
+## Feature à prévoir
+
+**Mixer plusieurs brainstorms pour créer un angle plus fort.**
+
+## Principe
+
+Depuis **Brainstorms sauvegardés** :
+
+1. sélectionner 2-3 brainstorms ;
+2. demander à Lya de trouver :
+ - le lien ;
+ - la tension commune ;
+ - la contradiction ;
+ - l’idée plus profonde ;
+3. générer un nouvel angle ;
+4. ensuite :
+ - créer un contenu ;
+ - ou sauvegarder ce nouvel angle.
+
+## Statut
+
+Pas à coder maintenant dans le flow principal. 
+Mais à garder comme **R2 très intéressante** pour rendre la mémoire vraiment cumulative.
+
+Je le note comme décision produit.
+
+## user — 2026-05-29T23:36:05.641213
+
+Ok trop bien on creusera sur ça dans le prochain prompt. Mais je vais maintenant, comme je suis revenu, je vais t'envoyer juste la réponse de Claude Code et puis on va essayer de checker tout ça
+
+## assistant — 2026-05-29T23:36:05.641213
+
+Parfait. Envoie la réponse de Claude Code.
+
+Je vais checker surtout :
+
+1. s’il n’a pas retouché au prompt Brainstormer ;
+2. si le H1 utilise bien l’angle/résumé fort ;
+3. si TOFU/MOFU/BOFU est masqué ;
+4. si l’audience est masquée ou très discrète ;
+5. si rien n’a bougé côté flow.
+
+## user — 2026-05-29T23:36:19.652660
+
+Live (commit 9c40fac, Vercel ready in 42s). Aucune régression.
+
+Récap exact des 3 changements UI
+Prompt conversationnel : PAS TOUCHÉ. Le ton restauré dans 93b2544 reste tel quel.
+
+1. Titre dynamique avec eyebrow
+Avant :
+
+
+<h1>On tient quelque chose.</h1>
+Après :
+
+
+<div className="text-[10px] font-extrabold text-[#f97316] uppercase tracking-[0.18em] mb-3">
+ On tient quelque chose
+</div>
+<h1>{result.angle result.central "On tient quelque chose."}</h1>
+→ L'angle (ou central en fallback) remonte en gros. "On tient quelque chose" devient un petit eyebrow orange au-dessus.
+
+Bonus : la card "L'angle" est retirée du bloc summary (devenue redondante avec le H1).
+
+2. Funnel TOFU/MOFU/BOFU retiré de l'UI
+Explore page (saved) : tout le bloc footer "métadonnées discrètes" (qui contenait le pill funnel) → supprimé
+/angles/[id] : cellule funnel retirée du trio metadata (format/structure conservés pour legacy). Variable funnelColor supprimée (plus de référent).
+Champ funnel reste optionnel en base — invisible côté user
+3. Audience drop dans l'UI
+Explore page : "Pour : …" italic retiré (était dans le footer supprimé)
+/angles/[id] : card entière "À qui ça parle" retirée
+Audience reste en base si le modèle la fournit, mais ne pollue plus le résumé (déjà dans Brand OS)
+Diff total
+2 files changed, +5 / -38 — net -33 lignes, suppression franche.
+
+Conservé intact
+Prompt conversationnel (route.ts) : rien touché
+Flow chat : 5 accroches random, Brand DNA + Journal silencieux, pas de limite tours, [CLARITY:N], [BRAINSTORM_COMPLETE], JSON enrichi
+Auto-save Angles + bouton "Voir le résumé" + 2 CTAs finales
+Schéma Convex angles (rétro-compat préservée)
+Sidebar Brainstorms, layout toggles, routes QA/caméra/Pipeline, /admin/costs
+11 stubs IA → tous 501
+Tests prod live
+/api/brainstorm-explore → 401 (auth gate intact)
+/api/content/question-audience → 401 (Haiku intact)
+11 stubs IA → tous 501
+Pages /content, /content/new/idea/explore, /angles → servies
+TS check sur 2 fichiers → clean, baseline 52 préservée
+L'écran résumé montre maintenant l'angle trouvé en titre principal. Plus de pollution funnel/audience dans l'UI — l'attention reste sur ce qui compte : ce qu'on tient, la tension, pourquoi ça touche, et ce qu'on peut en faire.
+
+## assistant — 2026-05-29T23:36:19.652660
+
+Ça a l’air propre.
+
+## Validé
+
+- Prompt Brainstormer pas touché ✅
+- Titre principal = angle / idée forte ✅
+- “On tient quelque chose” passe en petit eyebrow ✅
+- TOFU/MOFU/BOFU retiré de l’UI ✅
+- Audience retirée de l’UI ✅
+- Card “L’angle” supprimée car redondante ✅
+- Flow chat + auto-save + “Voir le résumé” conservés ✅
+
+## Ce que tu dois vérifier visuellement
+
+Sur le résumé :
+
+1. En haut petit orange :
+ **ON TIENT QUELQUE CHOSE**
+
+2. Gros titre :
+ l’angle fort généré par Lya.
+
+3. Ensuite seulement :
+ - **Ce qu’on tient**
+ - **La tension**
+ - **Pourquoi ça touche**
+ - **Ce qu’on peut en faire**
+
+4. Aucun :
+ - TOFU
+ - MOFU
+ - BOFU
+ - “Pour : …”
+ - format recommandé
+
+Si tu vois ça, on verrouille cette partie.
+
+## user — 2026-05-29T23:38:06.036567
+
+S'il n'y a aucun tofu, mofu, bofu, pourquoi, quand j'arrive sur Brainstorm sauvegarder, je peux voir les autres où c'est écrit : encore trop fou, short form, etc. Tous ces trucs passés là. Pourquoi ça ne fait pas la mise à jour sur eux aussi ?
+
+## assistant — 2026-05-29T23:38:06.036567
+
+Parce qu’il a retiré TOFU/MOFU/BOFU de **l’écran résumé après brainstorm** et en partie du **détail**, mais pas de la **liste Brainstorms sauvegardés**.
+
+Je viens de vérifier le code : dans `/angles/page.tsx`, il affiche encore :
+
+- `a.funnel`
+- `a.format`
+
+Donc les anciens brainstorms montrent encore :
+- TOFU / MOFU / BOFU
+- Short / Long format
+- autres métadonnées legacy
+
+Ce n’est pas une donnée “nouvelle”. C’est de l’ancien affichage qui traîne.
+
+## Décision simple
+
+On masque tout ça aussi dans la liste.
+
+La liste **Brainstorms sauvegardés** doit montrer seulement :
+- titre / angle
+- résumé court
+- date
+- statut éventuellement
+
+Pas :
+- TOFU
+- MOFU
+- BOFU
+- Short form
+- Long form
+- structure legacy
+
+## Message à Claude
+
+```text
+Claude, il reste du legacy visible dans /angles.
+
+Problème :
+Même si TOFU/MOFU/BOFU a été retiré du résumé et du détail, la liste /angles affiche encore les anciennes métadonnées :
+- a.funnel
+- a.format
+Donc Jonathan voit encore TOFU / MOFU / BOFU / Short format sur les brainstorms sauvegardés.
+
+Décision produit :
+Dans “Brainstorms sauvegardés”, on ne doit plus afficher :
+- TOFU
+- MOFU
+- BOFU
+- Short format
+- Long format
+- structure legacy
+- formats recommandés
+
+À faire :
+1. Patch src/app/(app)/angles/page.tsx
+2. Retirer l’affichage de a.funnel et a.format dans les cards.
+3. Garder uniquement :
+ - titre / angle
+ - résumé court si présent
+ - date
+ - statut si existant
+4. Vérifier aussi src/app/(app)/angles/[id]/page.tsx :
+ - ne pas afficher angle.format / angle.structure legacy
+ - ne pas afficher angle.formats
+ - garder seulement les sections utiles du résumé.
+
+Important :
+Ne supprime aucune donnée en base.
+Masquer seulement côté UI.
+Ne touche pas au prompt Brainstormer.
+Ne touche pas au flow.
+TS check + deploy.
+```
+
+## user — 2026-05-29T23:43:39.171589
+
+Live (commit 59f4f65, Vercel ready in 41s). Aucune régression.
+
+Récap exact
+Diff : 2 files changed, +1 / -45 — purge UI uniquement, aucune donnée en base touchée.
+
+/angles (liste Brainstorms sauvegardés)
+Retiré : pills a.funnel (TOFU/MOFU/BOFU) + a.format (Short/Long format) du footer de chaque card
+Conservé : titre / résumé / date / delete
+justify-between → justify-end sur la ligne footer (delete tout seul à droite après suppression)
+/angles/[id] (détail Brainstorm)
+Retiré : bloc Metadata trio entier (Format + Structure) — rendait "Format · Short/Long" et "Structure · classique"
+Retiré : bloc "Formats recommandés" entier (badges Vidéo courte, Carrousel, etc.)
+Conservé : H1 = angle.title, sections enrichies (central / why / audience / tension / uses), transcript collapsible, boutons transformation "Bientôt", delete
+Sanity grep
+
+grep -nE "angle\.format|angle\.structure|angle\.funnel|angle\.formats|a\.funnel|a\.format"
+→ ✓ zero legacy display
+Pas touché
+Prompt conversationnel : INCHANGÉ (Jonathan a validé le ton, on n'y revient pas)
+Flow chat : INCHANGÉ
+Auto-save Angles + bouton "Voir le résumé" + 2 CTAs : INCHANGÉS
+Schéma Convex angles : aucun champ supprimé en base. funnel, format, structure, formats restent stockés (rétro-compat + usage interne futur possible — la donnée existe, juste pas affichée)
+Sidebar, layout, routes QA/caméra/Pipeline, /admin/costs : intacts
+11 stubs IA → tous 501
+Tests prod live :
+
+/api/brainstorm-explore → 401 (auth gate)
+/api/content/question-audience → 401 (Haiku intact)
+11 stubs IA → tous 501
+/angles → 200
+TS check sur 2 fichiers → clean, baseline 52 préservée
+Les "Brainstorms sauvegardés" sont maintenant 100% épurés de tout vocabulaire ancien (TOFU/MOFU/BOFU, Short/Long format, structure, formats recommandés). Seule l'idée et le résumé qualitatif restent visibles.
+
+## assistant — 2026-05-29T23:43:39.171589
+
+Parfait. Là c’est propre.
+
+## Validé
+
+Dans **Brainstorms sauvegardés** :
+
+- plus de TOFU/MOFU/BOFU ✅
+- plus de Short/Long format ✅
+- plus de structure legacy ✅
+- plus de formats recommandés ✅
+- données gardées en base, mais invisibles ✅
+- prompt non touché ✅
+- flow non touché ✅
+
+## Ce que tu dois voir maintenant
+
+Sur `/angles` :
+- titre / angle
+- résumé court
+- date
+- bouton delete
+
+Sur `/angles/[id]` :
+- résumé qualitatif
+- transcript si besoin
+- pas de métadonnées anciennes
+
+Si visuellement c’est le cas, on verrouille la partie **Brainstorms sauvegardés**.
+
+## user — 2026-05-29T23:47:02.608070
+
+je dois faire quoi maintenant
+
+## assistant — 2026-05-29T23:47:02.608070
+
+Maintenant : **test réel de validation**, pas nouveau dev.
+
+Fais ça :
+
+1. Va sur `/content`
+2. Clique **Je veux brainstormer**
+3. Lance un vrai brainstorm de 5-10 min
+4. Termine quand Lya conclut
+5. Clique **Voir le résumé**
+6. Vérifie :
+ - le titre est l’angle fort
+ - pas de TOFU/MOFU/BOFU
+ - pas de format
+ - résumé clair
+7. Va sur **Brainstorms**
+8. Vérifie que le brainstorm apparaît proprement
+
+Si tout est bon : on verrouille **Brainstormer R1**.
+
+Ensuite seulement, on cadrera :
+**J’ai déjà une direction**.

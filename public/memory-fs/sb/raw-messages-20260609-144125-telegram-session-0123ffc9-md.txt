@@ -1,0 +1,14 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260609_134315_42897a66.jsonl
+captured_at: 2026-06-09T14:41:25.415165
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-06-09T14:39:03.081620
+
+qu'est ce qu'il se passe [Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_965e00c79650.jpg]
+
+## assistant — 2026-06-09T14:39:03.081620
+
+Tu as saturé la fenêtre de contexte du modèle. Sur la capture : - Modèle : **gpt-5.5** - Limite : **128k tokens** - Entrée envoyée : environ **288k tokens** - Résultat : l’API refuse → `Your input exceeds the context window` - Ensuite Hermes essaie de compresser / réduire, mais tu étais encore à **252k/128k**, donc trop lourd. - Le `New message detected, interrupting...` veut dire qu’un nouveau message a interrompu le run. Pourquoi c’est arrivé : tu as demandé un audit UX/UI avec beaucoup trop de contenu aspiré depuis plusieurs pages (`équipe`, `tâches`, `logs`, `knowledge`) + probablement logs/HTML/texte brut. Correction simple : - Ne pas tout envoyer d’un coup. - Auditer **une page à la fois**. - Résumer/extraire seulement : structure, problèmes, composants, actions prioritaires. - Ou utiliser un script qui compacte avant d’envoyer au modèle. Prompt plus safe : ```txt Audite uniquement la page /equipe. Ne lis pas tout le HTML. Donne : 5 problèmes UX, 5 améliorations IA, priorité 1-2-3. Réponse courte. ``` Là, ce n’est pas un bug produit : c’est un dépassement de contexte.

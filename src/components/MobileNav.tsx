@@ -37,7 +37,7 @@ export default function MobileNav() {
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-safe pointer-events-none">
-      <div className="pointer-events-auto mb-3 px-1.5 py-1.5 rounded-full flex items-center gap-0.5 nav-island">
+      <div className="pointer-events-auto mb-3 px-2.5 py-2 rounded-full flex items-center gap-1.5 nav-island">
         {tabs.map(({ href, icon: Icon, label }) => {
           const active = !onModules && (pathname === href || pathname.startsWith(href + '/'))
           return (
@@ -45,11 +45,11 @@ export default function MobileNav() {
               key={href}
               href={href}
               aria-label={label}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
                 active ? 'bg-[#FF4D00] shadow-sm' : 'active:scale-90'
               }`}
             >
-              <Icon size={18} strokeWidth={active ? 2.3 : 1.8} className={active ? 'text-[#111111]' : 'text-soren-subtle'} />
+              <Icon size={21} strokeWidth={active ? 2.3 : 1.8} className={active ? 'text-[#111111]' : 'text-soren-subtle'} />
             </Link>
           )
         })}
@@ -57,11 +57,11 @@ export default function MobileNav() {
         <Link
           href="/modules"
           aria-label="Tout"
-          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
+          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
             onModules ? 'bg-white shadow-sm' : 'active:scale-90'
           }`}
         >
-          <LayoutGrid size={18} strokeWidth={onModules ? 2.3 : 1.8} className={onModules ? 'text-[#111111]' : 'text-soren-subtle'} />
+          <LayoutGrid size={21} strokeWidth={onModules ? 2.3 : 1.8} className={onModules ? 'text-[#111111]' : 'text-soren-subtle'} />
         </Link>
       </div>
     </nav>

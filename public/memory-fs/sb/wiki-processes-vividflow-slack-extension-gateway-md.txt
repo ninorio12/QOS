@@ -1,0 +1,34 @@
+---
+type: process
+status: active
+updated: 2026-06-15
+sources:
+  - raw/messages/20260615-014944_telegram-session_ad4d2730.md
+  - raw/messages/20260615-021959_telegram-session_d083cb3a.md
+---
+# VividFlow Slack extension gateway
+
+## Signal validé — 2026-06-15
+
+Le profil Hermes `vividflow-slack-extension` a été validé comme extension Slack du Coordinateur : gateway Slack actif, service systemd installé en 24/24, linger activé, DM Slack fonctionnel et provider corrigé vers `openai-codex` / `gpt-5.5`.
+
+Méthode durable :
+1. Créer ou réparer un profil Hermes séparé pour Slack, sans mélanger Telegram/WhatsApp.
+2. Neutraliser les variables Telegram/WhatsApp du profil Slack si elles polluent le gateway.
+3. Configurer Slack Events/Socket Mode, `message.im`, `app_mention`, scopes nécessaires, puis réinstaller l’app.
+4. Mettre à jour l’allowlist Slack si le user de test est rejeté.
+5. Corriger le provider/modèle avant validation : éviter OpenRouter si crédits insuffisants; cible validée ici = `openai-codex` + `gpt-5.5`.
+6. Tester DM + mention channel avant installation 24/24.
+7. Installer le gateway en service user systemd et vérifier `running` + linger.
+
+Garde-fous :
+- ne jamais recopier les tokens `xapp-*` / `xoxb-*` dans le wiki;
+- ne pas exposer logs techniques sensibles;
+- Telegram reste cockpit humain, Slack reste extension/exécution interne;
+- si Data OS refuse l’écriture avec `Unauthorized: token agent requis`, le skill local peut être sauvegardé mais n’est pas encore poussé dans Data OS Knowledge.
+
+## Création des autres bots Slack
+
+Correction validée : pour les spécialistes, l’intention n’est pas de réactiver les anciens bots neutralisés, mais de créer de nouveaux bots Slack propres avec nouvelles apps/tokens/profils pour Agent KB, Agent CSM, Agent Operations et Data Analyst.
+
+Blocage opérationnel connu : l’accès Slack App Management via navigateur VPS doit être authentifié par le compte admin/ops avant création des nouvelles apps. Playwright/noVNC peut servir au handoff sécurisé.

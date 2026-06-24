@@ -1,0 +1,42 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260615_161246_8be0e4.jsonl
+captured_at: 2026-06-15T16:34:04.618115
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-06-15T16:12:51.630756
+
+ok et le data os ils ont accès les bots c'est bon ?
+
+## assistant — 2026-06-15T16:12:51.630756
+
+Je vérifie réellement agent par agent, pas juste la présence des tokens.
+
+## assistant — 2026-06-15T16:12:51.630756
+
+Je vérifie les configs MCP + un test direct `dataos_state` par bot.
+
+## assistant — 2026-06-15T16:12:51.630756
+
+Non, pas encore. Résultat réel : 2 bots OK, 5 KO. Je corrige maintenant l’exposition MCP au lieu de toucher aux tokens.
+
+## assistant — 2026-06-15T16:12:51.630756
+
+Je vérifie le patch avant exécution : il est non sensible, mais je contrôle qu’il ne casse pas le YAML.
+
+## assistant — 2026-06-15T16:12:51.630756
+
+Le patch préparé était trop brutal sur `platform_toolsets`; je le remplace par un patch propre : ajouter Data OS sans écraser le reste.
+
+## assistant — 2026-06-15T16:12:51.630756
+
+Patch appliqué proprement, YAML OK. Je recharge les gateways puis je reteste.
+
+## assistant — 2026-06-15T16:12:51.630756
+
+Gateways rechargées, un seul process par bot. Je lance le test Data OS final.
+
+## assistant — 2026-06-15T16:12:51.630756
+
+Oui, maintenant c’est bon. Test direct Hermes après patch + reload : - Coordinateur : DATAOS_OK - Agent KB : DATAOS_OK - Agent CSM : DATAOS_OK - Agent Operations : DATAOS_OK - Data Analyst : DATAOS_OK - Media Buyer : DATAOS_OK - Agent Debug : DATAOS_OK Cause : les tokens étaient là, mais Data OS n’était pas exposé comme toolset/MCP dans les profils. J’ai ajouté l’exposition `dataos / mcp-dataos`, rechargé les gateways, nettoyé les doublons de process, puis retesté agent par agent.

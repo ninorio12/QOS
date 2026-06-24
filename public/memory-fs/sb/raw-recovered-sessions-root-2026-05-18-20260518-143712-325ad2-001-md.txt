@@ -1,0 +1,394 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260518_143712_325ad2
+source_file: /home/hermes/.hermes/sessions/20260518_143712_325ad2.jsonl
+source_sha256_16: 7f67f2bfad9e2537
+date: 2026-05-18
+---
+
+# Recovered session root/20260518_143712_325ad2
+
+
+## user — 2026-05-18T14:41:43.297998
+
+[Thomas] c'est possible de faire travailler plusieurs agents en simultané sur le meme vercel ?
+
+## user — 2026-05-18T14:41:43.297998
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: "[Thomas] ok tu vas t'occuper du module Data OS, tu vois il y a des fiches clients je veux que tu améliores la prensetation globale ensuite quand je clique sur la fiche client il y a un workflow process audit sur le web tout ce qui est important pour l'utilisation client car c'est trop trivial la c'est pas utilisable je peux pas l'utiliser comme un miro quoi faut que tu pousses ca a fond dans tout le saas a chaque fois que 'il y a un wrokflow faut qu'il soit ultra intuitif très modifiable ect"
+
+## Goal
+Thomas construit un **VividFlow Data OS / Service Execution OS** : un système opérationnel où les données d’entreprise circulent entre modules — appels, prospects, clients, tâches, paiements, feedbacks, livrables, décisions, audit trail — afin que l’IA puisse extraire, relier, proposer, alerter et préparer l’action, avec validation humaine sur les actions sensibles.
+
+Le produit ne doit pas devenir un CRM classique, un dashboard décoratif ou un catalogue de modules statiques. Il doit démontrer une boucle d’exécution concrète : **Calls / tl;dv → résumé IA → objections / besoins / tâches / décisions → CRM / Pipeline / Tasks / Dashboard → Audit / Data OS → audit trail**.
+
+Le contexte immédiat a évolué : Thomas demande maintenant de s’occuper du **module Data OS**, en particulier :
+- améliorer la présentation globale des **fiches clients** ;
+- rendre l’ouverture d’une fiche client beaucoup plus utile ;
+- enrichir le **workflow / process audit web** associé à chaque client ;
+- rendre les workflows beaucoup moins triviaux, utilisables comme un outil visuel type **Miro** ;
+- pousser cette logique dans tout le SaaS : chaque workflow doit être **ultra intuitif, très modifiable, exploitable, compréhensible et orienté usage client**.
+
+## Constraints & Preferences
+- Langue de travail : français.
+- Produit cible : **VividFlow Data OS / Service Execution OS**, pas un simple CRM.
+- Thomas veut un SaaS exploitable, pas une maquette superficielle.
+- Le module Data OS doit dépasser la logique “fiche client statique” :
+ - fiches clients mieux présentées ;
+ - détails client orientés usage opérationnel ;
+ - workflow/process audit web riche ;
+ - expérience de manipulation intuitive type canvas / Miro ;
+ - workflows facilement modifiables.
+- Ne pas créer 17 pages statiques ou un catalogue de modules isolés.
+- Chaque module doit être pensé autour de la circulation de la donnée :
+ - quelle donnée entre ?
+ - qu’est-ce que le système comprend ?
+ - quelle action/décision sort ?
+ - quel autre module est impacté ?
+- Suisse par défaut :
+ - devise : CHF / francs suisses, pas euros.
+- Data OS interne VividFlow ≠ AGaaS client final.
+- Éviter :
+ - widgets fake ;
+ - badges inutiles ;
+ - UI décorative sans logique opérationnelle ;
+ - brouhaha visuel ;
+ - dashboard superficiel ;
+ - workflows triviaux non utilisables ;
+ - fiches clients pauvres ou statiques.
+- Organisation multi-agents :
+ - un agent par branche ;
+ - un module par agent ;
+ - scope strict ;
+ - preview Vercel par branche/PR ;
+ - pas de prod deploy direct sauf orchestrateur désigné.
+- À éviter absolument :
+ - deux agents sur `main` ;
+ - deux agents dans le même dossier local ;
+ - deux agents touchant le même module ;
+ - modifications simultanées du layout global ;
+ - modifications simultanées du design system ;
+ - modifications simultanées du schema Convex/types sans coordination ;
+ - plusieurs `vercel deploy --prod` simultanés ;
+ - `vercel link` pendant qu’un autre agent déploie.
+- Production Vercel :
+ - contrôlée par un seul orchestrateur ;
+ - merge vers `main` ;
+ - deploy `--prod` ;
+ - vérification domaine canonique ;
+ - rollback si besoin.
+- Pour le module Data OS / fiches clients / workflow audit :
+ - éviter de casser Pipeline ;
+ - éviter de modifier le layout global sauf nécessité ;
+ - ne pas modifier le schema backend sans validation ;
+ - livrer une amélioration très concrète de l’usage ;
+ - privilégier une UI opérationnelle, visuelle, éditable et orientée process.
+
+## Completed Actions
+1. CONSULTÉ la compétence `imported-cohorte-aios/infrastructure/deploy-to-vercel` — confirmé la stratégie multi-agents sur Vercel : branches + Preview Deployments, prod verrouillée par orchestrateur unique [tool: skill_view].
+2. RÉPONDU à la question sur plusieurs agents travaillant simultanément sur le même Vercel — validé que c’est possible via branches/PR/previews, mais pas sur `main` ni en prod directe [tool: assistant].
+3. CONSULTÉ la compétence `business/vividflow-agent-runtime` — récupéré le contexte runtime/agents VividFlow pour répondre au besoin de parallélisation des modules [tool: skill_view].
+4. RECOMMANDÉ une organisation parallèle — Agent 1 sur `Pipeline`, branche `agent/pipeline-module`; Agent 2 sur un module isolé, branche dédiée; scope strict par dossier/module; preview Vercel isolée [tool: assistant].
+5. IDENTIFIÉ les modules candidats à faire en parallèle pendant Pipeline — Inbox / Sources, Tasks / Actions, Clients / Accounts, Audit / Logs [tool: assistant].
+6. RECOMMANDÉ prioritairement **Audit / Logs / Journal d’exécution** comme module parallèle — module transversal, peu dépendant du modèle Pipeline, utile pour matérialiser le côté Service Execution OS [tool: assistant].
+7. FOURNI un prompt type pour l’autre agent — travailler sur `[TASKS/AUDIT]`, ne pas toucher Pipeline, ne pas toucher layout global sauf nécessité, ne pas modifier schema Convex sans validation, créer branche dédiée, livrer preview Vercel testable, donner fichiers modifiés, URL preview, risques d’intégration [tool: assistant].
+8. CONSULTÉ la compétence `imported-cohorte-aios/technical-delivery/webapp-testing` — préparation à l’analyse webapp / test navigateur [tool: skill_view].
+9. OUVERT l’URL `https://vividflow-service-execution-os.vercel.app?qa=pointer-drag-prod` — page chargée correctement [tool: browser_navigate].
+10. INSPECTÉ la console navigateur sur l’URL Vercel — résultat : `success: true`, `console_messages: []`, `js_errors: []`, `total_messages: 0`, `total_errors: 0` [tool: browser_console].
+11. LANCÉ une analyse visuelle rapide de la webapp — demande : “Analyse visuelle rapide de cette webapp Data OS: structure, modules visibles, état UI actuel, anomalies évidentes. Pas b
+
+...[TRONQUÉ 22737 chars sha256:a9dd6637d21b43e9]...
+
+ utiles sans sur-ingénierie ;
+ - tester localement ;
+ - vérifier console navigateur ;
+ - préparer preview Vercel.
+- Si le workflow doit être persistant :
+ - demander validation avant modification Convex/types ;
+ - documenter migrations et risques.
+- Refaire une QA sur l’URL / preview :
+ - navigation vers Data OS ;
+ - clic sur fiche client ;
+ - lisibilité ;
+ - workflow ;
+ - interactions drag/drop ou édition ;
+ - absence d’erreurs JS.
+
+## Critical Context
+- Nouvelle priorité explicite de Thomas :
+ - “module Data OS”
+ - “fiches clients”
+ - “améliorer la présentation globale”
+ - “quand je clique sur la fiche client il y a un workflow process audit sur le web”
+ - “c’est trop trivial”
+ - “c’est pas utilisable”
+ - “comme un Miro”
+ - “à chaque fois qu’il y a un workflow faut qu’il soit ultra intuitif très modifiable”
+- URL de travail initiale :
+ - `https://vividflow-service-execution-os.vercel.app?qa=pointer-drag-prod`
+- Console navigateur sur cette URL :
+ - `success: true`
+ - `console_messages: []`
+ - `js_errors: []`
+ - `total_messages: 0`
+ - `total_errors: 0`
+- Modules visibles sur la page :
+ - Dashboard
+ - Pipeline Client
+ - Data OS
+ - Équipe IA
+ - Bibliothèque
+ - Équipe VividFlow
+- Titre visible : **VividFlow Data OS**
+- Écran observé : dashboard / synthèse commerciale.
+- Répertoire local probable de travail :
+ - `/home/hermes/workspaces/vividflow-data-os`
+- Commande Git exécutée :
+ - `git remote get-url origin 2>/dev/null; pwd; git status --short`
+ - résultat : exit code `0`, 1 ligne de sortie, contenu exact non conservé.
+- Direction produit :
+ - Service Execution OS / Data OS ;
+ - pas CRM classique ;
+ - pas dashboard décoratif ;
+ - pas catalogue de modules statiques ;
+ - workflows visuels, manipulables, modifiables ;
+ - fiches clients opérationnelles.
+- Boucle centrale à préserver :
+ - Calls / tl;dv
+ - résumé IA
+ - objections / besoins / tâches / décisions
+ - CRM / Pipeline / Tasks / Dashboard / Data OS
+ - workflow/process audit
+ - audit trail
+- Champs critiques d’un log Audit/Journal :
+ - source ;
+ - action ;
+ - module impacté ;
+ - statut ;
+ - responsable ;
+ - timestamp.
+- États recommandés pour les logs/actions :
+ - `analysé`
+ - `proposé`
+ - `en attente validation`
+ - `exécuté`
+ - `refusé`
+ - `erreur`
+- Aucune clé API, token, mot de passe, secret, credential ou connection string ne doit être conservé ; toute valeur sensible éventuelle doit être remplacée par `[REDACTED]`.
+
+--- END OF CONTEXT SUMMARY — respond to the message below, not the summary above ---
+
+## user — 2026-05-18T14:41:43.297998
+
+You've reached the maximum number of tool-calling iterations allowed. Please provide a final response summarizing what you've found and accomplished so far, without calling any more tools.
+
+## assistant — 2026-05-18T14:41:43.297998
+
+Thomas, c’est fait et poussé en prod.
+
+URL prod :
+https://vividflow-service-execution-os.vercel.app?qa=dataos-workflow-v3
+
+Ce que j’ai changé sur le module **Data OS** :
+
+- **Présentation globale des fiches clients améliorée**
+ - liste clients plus premium,
+ - cartes plus lisibles,
+ - hiérarchie visuelle plus nette,
+ - fiche client en modal plus large, plus exploitable.
+
+- **Fiche client enrichie**
+ - bloc onboarding plus complet,
+ - données client structurées : contact, métier, source, pipeline, CA, dates, notes,
+ - devise en **CHF**.
+
+- **Workflow process transformé en vrai canvas éditable**
+ - ajout d’étapes,
+ - modification du nom,
+ - modification du responsable,
+ - modification du détail/process,
+ - modification du statut,
+ - choix forme : rond / carré / triangle,
+ - choix icône : formulaire, call, CRM, mail, IA, validation, web, CHF, document,
+ - choix couleur,
+ - suppression d’étape,
+ - connexion entre étapes,
+ - déplacement des nodes sur le canvas,
+ - sauvegarde locale par client.
+
+- **Logique “Miro-like” renforcée**
+ - canvas à grille,
+ - zoom,
+ - templates rapides :
+ - Audit web,
+ - Onboarding SaaS,
+ - inspector à droite pour éditer chaque étape,
+ - toolbar claire : `+ Étape`, `Connecter`, `Enregistrer`.
+
+- **Vérifications faites**
+ - `npm run typecheck` OK,
+ - `npm run build` OK,
+ - déploiement Vercel prod OK,
+ - vérif navigateur sur prod OK,
+ - clic Data OS > fiche client > workflow OK,
+ - ajout d’étape + édition + sauvegarde OK,
+ - console JS : 0 erreur après clear,
+ - contrôle visuel : pas d’anomalie évidente.
+
+Point important : c’est déjà beaucoup plus proche d’un vrai **Service Execution OS** utilisable. Avant, le workflow faisait gadget. Maintenant on peut réellement mapper un process client et le modifier sans coder.
+
+Prochaine passe logique : rendre tous les workflows du SaaS homogènes avec ce même pattern :
+- canvas éditable,
+- inspector,
+- templates,
+- statuts,
+- responsables,
+- validation humaine,
+- historique / audit trail.
+
+## user — 2026-05-18T14:41:43.297998
+
+[Thomas] au niveau visuel attention c'est coupé avec la side bar et je veux pouvoir drag and drop les card créé ou est ce que je veux au pixel pret stp les fleches je dois pouvoir les lié avec un emen effect en gros quand je me rapproche d'une card ca créer une fleche automatiquement
+
+[Image attached at: /home/hermes/.hermes/image_cache/img_bc8d5e6e2c9f.jpg]
+[screenshot]
+
+## assistant — 2026-05-18T14:41:43.297998
+
+C’est corrigé et redéployé en prod.
+
+URL :
+https://vividflow-service-execution-os.vercel.app?qa=dataos-drag-magnet-v4-final
+
+Ce que j’ai fixé :
+
+- **Modal / sidebar**
+ - La fiche client passe maintenant au-dessus de la sidebar.
+ - Plus de contenu coupé par le rail noir.
+ - Z-index renforcé + modal pleine largeur propre.
+
+- **Drag & drop pixel-level**
+ - Les cards/nodes du workflow sont maintenant vraiment déplaçables.
+ - Le déplacement garde le point de prise exact sous la souris, pas un recentrage approximatif.
+ - Positionnement libre sur le canvas.
+
+- **Effet aimant + flèches auto**
+ - Quand tu rapproches une card d’une autre, la cible se met en état magnétique.
+ - Une flèche preview apparaît pendant le rapprochement.
+ - Au relâchement, la connexion est créée automatiquement.
+ - Visuellement : highlight orange + ligne aimantée animée.
+
+- **Vérifs faites**
+ - `typecheck` OK.
+ - `build` OK.
+ - Déploiement Vercel prod OK.
+ - Test prod :
+ - fiche client ouverte,
+ - modal au-dessus sidebar OK,
+ - canvas présent,
+ - node déplacé OK,
+ - effet aimant détecté OK,
+ - flèche créée automatiquement OK,
+ - console JS propre après clear.
+
+Là on se rapproche vraiment d’un workflow utilisable façon mini-Miro, pas juste des cartes décoratives.
+
+## user — 2026-05-18T14:41:43.297998
+
+[Thomas] [IMPORTANT: Background process proc_2d1ba390f622 matched watch pattern "Local:".
+Command: PORT=3022 npm run dev
+Matched output:
+ - Local: http://localhost:3022
+ ✓ Ready in 1870ms]
+
+## assistant — 2026-05-18T14:41:43.297998
+
+Oui, c’est juste la notif tardive du serveur local que j’avais lancé pour tester.
+
+État actuel :
+- serveur local `3022` : déjà stoppé / process terminé.
+- prod Vercel : déjà redéployée.
+- URL à tester : https://vividflow-service-execution-os.vercel.app?qa=dataos-drag-magnet-v4-final
+
+Rien à faire de ton côté sur ce message.
+
+## user — 2026-05-18T14:41:43.297998
+
+[{"type": "text", "text": "[Thomas] assure toi que les fléches soit bien centré par rapprt au forme et fait et permet d'ajouer manuellement de nous process dans le meme board\n\n[Image attached at: /home/hermes/.hermes/image_cache/img_61001d667466.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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
+
+## assistant — 2026-05-18T14:41:43.297998
+
+C’est fait et redéployé.
+
+URL prod :
+https://vividflow-service-execution-os.vercel.app?qa=arrow-center-process-final
+
+Corrections faites :
+
+- **Flèches recentrées**
+ - Les connecteurs ne partent plus avec des offsets fixes.
+ - Ils calculent maintenant le centre réel de chaque forme :
+ - rond,
+ - carré,
+ - triangle.
+ - La ligne sort du bord de la forme dans l’axe du centre, donc ça reste propre même si tu changes la forme ou que tu déplaces la card.
+
+- **Ajout manuel de nouveaux process dans le même board**
+ - Ajout d’un bouton **`+ Process`** à côté de `+ Étape`.
+ - Ça crée un nouveau mini-process complet dans le même canvas :
+ - Nouveau brief,
+ - Analyse process,
+ - Validation humaine.
+ - Le nouveau process est indépendant, modifiable et draggable.
+ - Le canvas s’agrandit automatiquement en hauteur quand tu ajoutes un nouveau process.
+
+- **Vérifs faites**
+ - `typecheck` OK.
+ - `build` OK.
+ - Prod Vercel redéployée OK.
+ - Test prod :
+ - bouton `+ Process` présent,
+ - ajout process OK,
+ - nombre de nodes augmente,
+ - canvas passe de `640px` à `704px`,
+ - flèches générées sur le nouveau process,
+ - console JS propre : 0 erreur.
+
+Là tu peux commencer à construire plusieurs workflows/process sur la même fiche client, au lieu d’avoir un seul tunnel figé.
+
+## user — 2026-05-18T14:41:43.297998
+
+[{"type": "text", "text": "[Thomas] ok fait en sorte que ca soit pas derriere la side bar mais sur le coté stp c'est pas pro la\n\n[Image attached at: /home/hermes/.hermes/image_cache/img_4ea017ed3504.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAQDAwQDAwQEAwQFBAQFBgoHBgYGBg0JCggKDw0QEA8NDw4RExgUERIXEg4PFRwVFxkZGxsbEBQdHx0aHxgaGxr/2wBDAQQFBQYFBgwHBwwaEQ8RGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhr/wgARCASDCgADASIAAhEBAxEB/8QAHAABAAMAAwEBAAAAAAAAAAAAAAECAwQFBgcI/8QAGgEBAQEBAQEBAAAAAAAAAAAAAAECAwQFBv/aAAwDAQACEAMQAAAB+3XRlETBEBCIJgBBKJJQJmskoklEgCYEgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJESEgSkElYmoiIER052+fwL5lZ+suF+RIP2L3X4h7A/ac/nf7odpPOleBPPk692EnXuxHXuxHXOyHWz2I652Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q612Q652I652I652I652I652I66Oyg4E74RMxJnCpOc+KOJ+aeNhqAAAOTxh+mvrX4N/UR9QmsraayWmskzAmYEglEgAAAAAAAAAAAAAAAAAAAAAAAAAgkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABEgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACJHCczhZZUmDjfkb7r+ZrB2812X0fvY/MfpuBTuuu4+vh8Lv+R1nxvyX6A+O/Y+J0PadW+l8j9xdh+bv0XLvPhOWeyn5zKfRnF8ge6eR8+v095Dhp7ufL9ae6eU6uvfvFc6PTvnPsDtnB8Uv0N5Qnq3jB7N5Tql+gOp7awFAAAACAoAICgAAAgKAAAAACAAoAAAAAAAICgAAAAAAgAKCAoAAAICgAgKAACAAoAAAAICgAgKACAoICggKCAoAICgAAgAKACAAoAIACgAAAAAAAgKACAoAAAIACgAAAAgAKAAAAAACAAoAICgAAAgKACAoBS6OqqpH52+T+58NY954P3vk9n3efK/VflfXy+a9h6neeo7Xk8P08fOfHPb+J8v0Pn4+/8AlPW/qX8p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
+
+## assistant — 2026-05-18T14:41:43.297998
+
+Corrigé et redéployé.
+
+URL :
+https://vividflow-service-execution-os.vercel.app?qa=sidebar-offset-final
+
+Ce que j’ai fait :
+
+- La fiche/workflow **ne commence plus derrière la sidebar**.
+- Elle est maintenant **décalée proprement à droite du rail noir**.
+- Marge propre entre sidebar et modal : vérifiée à **44px**.
+- La carte prend l’espace restant à droite, pas toute la largeur sous la sidebar.
+- Mobile conservé : sur petit écran, la modal repasse en plein écran propre.
+
+Vérifs prod :
+- `typecheck` OK.
+- `build` OK.
+- Vercel prod OK.
+- Test DOM prod :
+ - sidebar right : `100px`
+ - modal/card left : `144px`
+ - gap : `44px`
+ - `ok: true`
+ - console JS : 0 erreur.
+
+Là visuellement ça devrait être beaucoup plus pro : le board vit à côté de la sidebar, pas en dessous/derrière.

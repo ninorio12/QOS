@@ -1,0 +1,22 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260615_191036_dacf24.jsonl
+captured_at: 2026-06-15T19:37:11.934202
+platform: telegram
+type: conversation_delta
+---
+
+## assistant — 2026-06-15T19:13:26.778525
+
+Oui, c’est compris et je l’ai mis en place. - Le Sheet marque maintenant automatiquement en rouge les lignes suspectes. - J’ai ajouté la règle dans l’onglet “Règles filtre CSM”. - Nouveau cron QA Coordinateur : tous les jours ouvrés à 08:30. - Nouveau cron import Data OS : tous les jours ouvrés à 08:50. - Règle durable ajoutée dans le Second Brain. Flux final : 1. 08:05 Agent Operations scrape/remplit/scrore. 2. 08:30 je fais la revue qualité, je comprends les mauvais scores, je mets en rouge les lignes douteuses. 3. 08:50 Agent Operations importe seulement les contacts validés dans Data OS Contacts. 4. Source obligatoire dans Data OS : `leads outbound`. 5. Les lignes rouges / Qualité C / contact perso / source absente ne passent pas.
+
+## assistant — 2026-06-15T19:13:26.778525
+
+Oui. J’ai lancé le test de la QA Coordinateur maintenant. Je te laisse recevoir le compte-rendu automatique ici. Si le Sheet n’a pas encore de lignes du jour, le test dira simplement “rien à valider”, et on lancera ensuite le test d’import Data OS avec une ligne propre.
+
+## user — 2026-06-15T19:13:26.778525
+
+ok je t'ai pas vu créer l'ordre sur knowledge base dans slack ? et le ffichier n'est pas remplis
+
+## assistant — 2026-06-15T19:13:26.778525
+
+Tu as raison. Il y avait deux problèmes : 1. L’ordre Slack quotidien était prévu sur `#recherche-developpement`, pas sur `#knowledge-base`. 2. Le fichier était vide parce que le job de scraping n’avait pas encore réellement rempli le Sheet. J’ai corrigé/testé maintenant : - Ordre posté dans Slack `#knowledge-base` pour Agent KB. - Ordre posté dans Slack `#recherche-developpement` pour Data Analyst. - Sheet rempli avec 6 lignes de test. - Ces lignes sont volontairement en Qualité C / à vérifier, donc elles ne doivent pas partir dans Data OS. - QA Coordinateur relancée pour vérifier que le rouge/suspect fonctionne. Important : j’ai aussi vu que le delivery Slack du cron Hermes renvoie `platform 'slack' not configured/enabled`. Donc je suis passé par l’API Slack du VPS pour poster réellement. Prochaine correction à faire : remplacer le cron Slack par un script VPS fiable, sinon demain il postera sur Telegram mais pas Slack.

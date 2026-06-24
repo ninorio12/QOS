@@ -1,0 +1,22 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260615_095428_a5e053.jsonl
+captured_at: 2026-06-15T10:27:09.900116
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-06-15T09:57:41.218911
+
+ok le kb a bien répondu mais il me dit qu'il est chief of staff va falloir les configurer après
+
+## assistant — 2026-06-15T09:57:41.218911
+
+Oui, normal : il a été cloné depuis `vividflow-slack-extension`, donc il a hérité de la personnalité Chief/Coordinateur. On fera après le vrai réglage via : ```bash nano /root/.hermes/profiles/agent-kb-slack/SOUL.md ``` Là, priorité : **mettre tous les bots en ligne d’abord**, puis on corrige les rôles/profiles un par un. Passe au suivant : ```bash /home/hermes/.local/bin/hermes profile create agent-csm-slack --clone-from vividflow-slack-extension nano /root/.hermes/profiles/agent-csm-slack/.env ``` Même logique : ```bash SLACK_BOT_TOKEN=xoxb-... SLACK_APP_TOKEN=xapp-... SLACK_ALLOWED_USERS=U0BA8LKAH5H,U0BALTG244U TELEGRAM_BOT_TOKEN= WHATSAPP_ENABLED=false ``` Puis : ```bash chmod 600 /root/.hermes/profiles/agent-csm-slack/.env /home/hermes/.local/bin/hermes --profile agent-csm-slack gateway run ``` Tu testes qu’il répond dans Slack, puis on enchaîne.
+
+## user — 2026-06-15T09:58:30.241527
+
+ok attend je dois ctrl + c ? je veux qu'il tourne 24h24
+
+## assistant — 2026-06-15T09:58:30.241527
+
+Oui : **si tu es encore dans `gateway run` manuel**, fais `Ctrl+C` maintenant. Ensuite installe-le en service 24/24 : ```bash /home/hermes/.local/bin/hermes --profile agent-kb-slack gateway install /home/hermes/.local/bin/hermes --profile agent-kb-slack gateway start /home/hermes/.local/bin/hermes --profile agent-kb-slack gateway status ``` Tu dois voir : ```text User gateway service is running Systemd linger is enabled Active: active (running) ``` Puis vérifie les logs : ```bash journalctl --user -u hermes-gateway-agent-kb-slack -n 80 --no-pager ``` Si c’est `active (running)`, Agent KB tourne même après fermeture SSH.

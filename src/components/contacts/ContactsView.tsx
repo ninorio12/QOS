@@ -16,8 +16,8 @@ import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 
 const NewLeadWidget   = dynamic(() => import('@/components/shared/NewLeadWidget'), { ssr: false })
-const ImportModal     = dynamic(() => import('./ImportModal'),     { ssr: false })
 const NewContactModal = dynamic(() => import('./NewContactModal'), { ssr: false })
+const ImportModal     = dynamic(() => import('./ImportModal'),     { ssr: false })
 
 const COL_HEADER = 'px-3 py-2 text-left text-[11px] font-semibold text-soren-muted uppercase tracking-wide whitespace-nowrap'
 
@@ -163,7 +163,9 @@ function ColFilterDropdown({ values, active, onSelect, onClose }: {
   )
 }
 
-const ALL_COLS = ['Téléphone', 'E-mail', "Nom de l'entreprise", 'Métier', 'Niche', 'Source', 'Statut', 'Étape', 'Objections', 'Canton', 'Créé'] as const
+const ALL_COLS = ['Téléphone', 'E-mail', "Nom de l'entreprise", 'Rôle', 'Métier', 'Niche', 'Source', 'Statut', 'Étape', 'Objections', 'Canton', 'Créé'] as const
+// Libellé d'affichage des colonnes (la clé interne reste 'Canton' pour ne rien casser).
+const COL_LABELS: Record<string, string> = { Canton: 'Canton / Région' }
 type ColName = typeof ALL_COLS[number]
 
 type ColFilter = Partial<Record<ColName | 'Nom de Contact', string>>
@@ -211,6 +213,9 @@ function ContactRow({
       </td>}
       {v("Nom de l'entreprise") && <td className="px-3 py-2 min-w-[160px]">
         {contact.companyName ? <span className="text-[12px] text-[#374151] truncate">{contact.companyName}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
+      </td>}
+      {v('Rôle') && <td className="px-3 py-2 min-w-[130px]">
+        {contact.role ? <span className="text-[12px] text-[#374151] truncate">{contact.role}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
       </td>}
       {v('Métier') && <td className="px-3 py-2 min-w-[140px]">
         {contact.metier ? <span className="text-[12px] text-[#374151] truncate">{contact.metier}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
@@ -289,7 +294,7 @@ function ColHeader({
           className={sortable ? 'cursor-pointer select-none flex items-center gap-1' : 'flex items-center gap-1'}
           onClick={() => sortable && onSort(col)}
         >
-          {col}
+          {COL_LABELS[col] ?? col}
           {sortable && (active
             ? <ChevronDown size={10} className={`text-soren-text transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} />
             : <ArrowUpDown size={10} className="text-[#D1D5DB]" />
@@ -367,6 +372,7 @@ export default function ContactsView({
       wonObjection:  c.wonObjection  || null,
       dealDate:      c.dealDate      || null,
       canton:        c.canton        || null,
+      role:        c.role        || null,
       metier:      c.metier      || null,
       niche:       c.niche       || null,
       tags:        c.tags        ?? [],
@@ -599,7 +605,8 @@ export default function ContactsView({
 
   const [deleting,         setDeleting]         = useState(false)
   const [refreshing,       setRefreshing]       = useState(false)
-  const [selectedContact,  setSelectedContact]  = useState<GHLContact | null>(null)
+
+  const [selectedContact, setSelectedContact] = useState<GHLContact | null>(null)
 
   // Ouverture directe d'une fiche via ?c=<id> (depuis la recherche globale).
   const searchParams = useSearchParams()
@@ -609,6 +616,11 @@ export default function ContactsView({
     const found = contacts.find(c => c.id === cid)
     if (found) setSelectedContact(found)
   }, [searchParams, contacts])
+  // Pré-filtre par statut depuis l'URL (ex. dashboard « Leads » → /contacts?statut=lead).
+  useEffect(() => {
+    const st = searchParams.get('statut')
+    if (st === 'lead' || st === 'client' || st === 'perdu') setColFilters(prev => ({ ...prev, Statut: st }))
+  }, [searchParams])
 
   async function refreshContacts() {
     setRefreshing(true)
@@ -733,7 +745,7 @@ export default function ContactsView({
                 <p className="text-[10px] font-bold text-soren-subtle uppercase tracking-wide px-3 pb-1">Colonnes visibles</p>
                 {ALL_COLS.map(col => (
                   <button key={col} onClick={() => toggleCol(col)} className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-soren-text hover:bg-soren-elevated">
-                    <span>{col}</span>
+                    <span>{COL_LABELS[col] ?? col}</span>
                     <span className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${visibleCols.has(col) ? 'bg-soren-sidebar border-[#111111]' : 'border-[#D1D5DB]'}`}>
                       {visibleCols.has(col) && <Check size={10} className="text-white" />}
                     </span>
@@ -898,6 +910,7 @@ export default function ContactsView({
           }}
         />
       )}
+
     </MotionStagger>
   )
 }

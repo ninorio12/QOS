@@ -9,7 +9,7 @@ import { Bold, List, Heading, Table as TableIcon, Workflow as WorkflowIcon } fro
  * dashes). The whole document is serialised to HTML and persisted by the
  * parent — tables and workflow boxes survive as inline-styled HTML.
  */
-export default function DocEditor({ html, onChange, readOnly = false }: { html: string; onChange: (html: string) => void; readOnly?: boolean }) {
+export default function DocEditor({ html, onChange, readOnly = false, paper = false }: { html: string; onChange: (html: string) => void; readOnly?: boolean; paper?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -70,7 +70,7 @@ export default function DocEditor({ html, onChange, readOnly = false }: { html: 
     <div className="flex flex-col gap-2">
       {/* Toolbar — masquée en lecture seule */}
       {!readOnly && (
-      <div className="flex items-center gap-1.5 flex-wrap sticky top-0 z-10 bg-white/90 backdrop-blur py-1.5">
+      <div className={`flex items-center gap-1.5 flex-wrap sticky top-0 z-10 py-1.5 ${paper ? 'bg-[#FCFBF9]' : 'bg-white'}`}>
         <button type="button" onClick={() => exec('bold')} className={btn} title="Gras"><Bold size={13} /></button>
         <button type="button" onClick={() => exec('formatBlock', 'h2')} className={btn} title="Titre"><Heading size={13} /> Titre</button>
         <button type="button" onClick={() => exec('insertUnorderedList')} className={btn} title="Liste"><List size={13} /> Liste</button>
@@ -88,7 +88,9 @@ export default function DocEditor({ html, onChange, readOnly = false }: { html: 
         onInput={readOnly ? undefined : save}
         onBlur={readOnly ? undefined : save}
         data-placeholder={readOnly ? 'Aucun contenu.' : 'Écris ton process ici…'}
-        className="doc-page bg-white text-[#1f2937] rounded-xl border border-[#e5e7eb] shadow-sm px-8 py-7 min-h-[420px] outline-none text-[14px] leading-relaxed"
+        className={paper
+          ? 'doc-page doc-paper bg-[#FCFBF9] text-[#37352F] rounded-xl border border-[#E8E5DC] px-6 py-5 min-h-[420px] outline-none text-[13px] leading-normal'
+          : 'doc-page bg-white text-[#1f2937] rounded-xl border border-[#e5e7eb] shadow-sm px-8 py-7 min-h-[420px] outline-none text-[14px] leading-relaxed'}
       />
 
       <style jsx global>{`
@@ -99,6 +101,22 @@ export default function DocEditor({ html, onChange, readOnly = false }: { html: 
         .doc-page li { margin: 0.1em 0; }
         .doc-page table td:focus { outline: 2px solid #FF4D0055; outline-offset: -2px; }
         .doc-page:focus { outline: none; }
+        /* Variante papier clair (SOPs/Playbooks) — police MONOSPACE façon document Notion (mode Mono) */
+        .doc-paper { color: #37352F; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", "Courier New", monospace; }
+        .doc-paper h1 { font-size: 1.2rem; font-weight: 700; margin: 0.6em 0 0.25em; color: #37352F; }
+        .doc-paper h2 { font-size: 1.05rem; font-weight: 700; margin: 0.6em 0 0.2em; color: #37352F; }
+        .doc-paper h3 { font-size: 0.95rem; font-weight: 700; margin: 0.5em 0 0.2em; color: #37352F; }
+        .doc-paper p { margin: 0.2em 0; min-height: 1.1em; }
+        .doc-paper ul { list-style: disc; padding-left: 1.3em; margin: 0.25em 0; }
+        .doc-paper ol { list-style: decimal; padding-left: 1.3em; margin: 0.25em 0; }
+        .doc-paper li { margin: 0.08em 0; }
+        .doc-paper a { color: #2563EB; text-decoration: underline; }
+        .doc-paper strong, .doc-paper b { color: #37352F; font-weight: 700; }
+        .doc-paper code { background: #F5F3EC; color: #37352F; padding: 1px 5px; border-radius: 4px; font-size: 0.9em; }
+        .doc-paper pre { background: #F5F3EC; border: 1px solid #E8E5DC; border-radius: 8px; padding: 10px 14px; overflow-x: auto; font-size: 11px; }
+        .doc-paper pre code { background: transparent; padding: 0; }
+        .doc-paper hr { border: 0; border-top: 1px solid #EAE8E3; margin: 0.8em 0; }
+        .doc-paper blockquote { border-left: 3px solid #EAE8E3; padding-left: 0.8em; color: #5C594F; margin: 0.4em 0; }
       `}</style>
     </div>
   )

@@ -1,0 +1,2092 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260520_102031_c2e3cc
+source_file: /home/hermes/.hermes/sessions/20260520_102031_c2e3cc.jsonl
+source_sha256_16: 187b74d52e557e1e
+date: 2026-05-20
+---
+
+# Recovered session root/20260520_102031_c2e3cc
+
+
+## user — 2026-05-20T10:22:33.197116
+
+ok ca marche et concernant les CPU ca permet quoi d'augmenter les CPU ?
+
+## assistant — 2026-05-20T10:22:33.197116
+
+Augmenter les CPU, ça sert surtout à **faire plus de choses en parallèle** et à réduire les ralentissements quand plusieurs processus tournent.
+
+Concrètement pour notre setup Hermes / agents / SaaS :
+
+- **Plus d’agents en parallèle** 
+ Plusieurs bots, cron jobs, sous-agents, scripts, tâches de veille, etc. peuvent tourner sans se bloquer.
+
+- **Moins de latence sur les actions locales** 
+ Parsing de fichiers, génération de rapports, traitement de données, indexation mémoire, exécution de scripts → plus fluide.
+
+- **Meilleure stabilité quand il y a plusieurs users / conversations** 
+ Si Jonathan + toi + des sous-agents utilisent le système en même temps, plus de CPU évite que tout se mette à ramer.
+
+- **Builds / installs / tests plus rapides** 
+ Next.js, npm install, pnpm build, tests, lint, Playwright, etc. profitent souvent de plusieurs cœurs.
+
+- **Moins de risque de saturation** 
+ Si le CPU est à 100%, les bots répondent lentement, les cron peuvent prendre du retard, et certains processus peuvent timeout.
+
+Par contre, important :
+
+- **Ça n’augmente pas directement la “mémoire” de l’IA** → ça c’est RAM / stockage / contexte modèle.
+- **Ça ne rend pas le modèle LLM plus intelligent** → l’intelligence vient du modèle utilisé.
+- **Ça ne booste pas forcément les réponses API OpenAI/Claude** → là, le temps dépend surtout du provider externe.
+- **Ça aide surtout tout ce qui tourne sur le serveur localement** : Hermes, gateway Telegram, scripts, agents, navigateur, builds, traitements.
+
+En résumé : 
+**RAM = tenir plus de choses ouvertes.** 
+**CPU = faire plus de choses plus vite / en parallèle.** 
+**Stockage = garder plus de données.**
+
+Pour un système multi-agents VividFlow, augmenter les CPU devient utile dès qu’on veut faire tourner plusieurs agents autonomes, heartbeats, crawlers, tâches de dev et automatisations sans que le serveur rame.
+
+## user — 2026-05-20T10:22:33.197116
+
+j'ai ca ca vaut le coup ?
+
+[Image attached at: /home/hermes/.hermes/image_cache/img_1e0f74a27f10.jpg]
+[screenshot]
+
+## assistant — 2026-05-20T10:22:33.197116
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+None.
+
+## Goal
+Mettre en place et stabiliser un environnement de travail rapide pour VividFlow / Brvndlab / Hermes : VPS Hostinger suffisamment puissant, agents/bots Telegram organisés par topics, et un topic dédié aux réponses rapides pour le dev SaaS.
+
+## Constraints & Preferences
+- Langue de travail : français.
+- Ton préféré : direct, opérationnel, sans blabla.
+- Le user veut travailler vite et être débloqué rapidement, surtout pendant le dev SaaS.
+- Pour les topics Telegram, chaque bot/profil peut être présent dans plusieurs topics, mais avec un mode par topic :
+ - `active`
+ - `passive` / silencieux
+ - `absent`
+- Règle anti-chaos souhaitée :
+ - mention directe `@bot` → seul ce bot répond ;
+ - pas de mention → seul le bot actif principal du topic répond ;
+ - bot passif → répond seulement si mentionné ;
+ - bot absent → ignore le topic ;
+ - éviter que plusieurs agents répondent en même temps.
+- Pour le topic rapide, préférence claire :
+ - réponses courtes ;
+ - décisions immédiates ;
+ - commandes exactes ;
+ - patch minimal ;
+ - pas d’audits longs ni builds lourds sauf demande explicite.
+- Ne jamais conserver de secrets, tokens, mots de passe, clés API, credentials ou connection strings. Remplacer toute valeur sensible par `[REDACTED]`.
+
+## Completed Actions
+1. ANALYSE screenshot VPS Hostinger — constaté CPU à 100%, limitation CPU active, RAM à environ 27%, disque environ 57/100 GB, bande passante faible ; conclusion : goulot d’étranglement CPU, pas RAM/réseau/disque [tool: vision_analyze].
+2. CONSEIL upgrade VPS — recommandé upgrade CPU pour setup Hermes/agents ; minimum correct : 4 vCPU, confort multi-agents : 6–8 vCPU / KVM 8 [tool: assistant].
+3. CONSULTATION skill Hermes agent — chargé le contexte/skill `hermes-agent` pour répondre sur l’architecture agents/topics [tool: skill_view].
+4. VALIDATION architecture bots/topics — confirmé que chaque bot peut être dans chaque topic mais configuré par mode `active`, `passive/silencieux`, ou `absent` selon topic [tool: assistant].
+5. PROPOSITION matrice topics — exemples :
+ - Strategy : Strategy actif, COO/Dev/Ops passifs ;
+ - Dev/SaaS : Dev actif, COO/Strategy/Ops passifs ;
+ - Ops/Clients : COO et Ops actifs, Strategy/Dev passifs ;
+ - R&D : Strategy + Dev actifs, COO passif, Ops absent/passif ;
+ - Général : Cockpit/COO actif léger, autres passifs ou mention-only [tool: assistant].
+6. TENTATIVE accès doc Hostinger via navigateur — timeout sur page support Hostinger [tool: browser_navigate].
+7. TENTATIVE récupération doc Hostinger via `python` — échec car `python` absent : `/usr/bin/bash: line 10: python: command not found` [tool: terminal].
+8. TENTATIVE récupération doc Hostinger via `python3` — échec HTTP 403 Forbidden [tool: terminal].
+9. EXPLICATION upgrade Hostinger — indiqué que l’upgrade se fait généralement via changement de plan VPS dans hPanel : VPS → sélectionner VPS → Upgrade/Changer de plan/Ressources → KVM 4 ou KVM 8 → paiement → redémarrage possible [tool: assistant].
+10. ANALYSE message Hostinger limitations CPU — identifié que les gros consommateurs étaient :
+ - deux `next-server (v16.2.6)` à ~47.1% chacun ;
+ - Chrome headless / Playwright GPU process à ~30.3% et ~30.2% ;
+ - Chrome renderer à ~3.2% ;
+ - RAM non problématique.
+ Conclusion : process de dev SaaS + Playwright consomment légitimement beaucoup sur 2 vCPU [tool: assistant].
+11. COMMANDES diagnostic serveur tentées — lancé :
+ ```bash
+ ps -eo pid,ppid,user,pcpu,pmem,etimes,cmd --sort=-pcpu | head -30 && echo '---' && nproc && uptime && free -h
+ ```
+ Résultat outil tronqué : une seule ligne affichée côté outil, mais assistant a retenu/conclu 2 vCPU, load average élevé autour de 9.48, RAM environ 4.8 GB disponibles [tool: terminal].
+12. COMMANDES inspection PIDs tentées — lancé une boucle `ps`, `readlink`, `environ` sur plusieurs PIDs supposés ; sortie outil tronquée à une ligne [tool: terminal].
+13. COMMANDES PM2/pstree tentées — lancé :
+ ```bash
+ pm2 list || true; echo '--- root child tree'; pstree -ps 3739945 || true; echo '--- root command parents'; ps -fp 3739944,3739945,3996391,3996393 2>/dev/null || true
+ ```
+ Commande timeout exit 124, sortie tronquée [tool: terminal].
+14. CONSEIL limitations Hostinger — recommandé de ne pas cliquer directement sur “Supprimer les limitations” tant que CPU haut ; ordre conseillé : nettoyer/stopper process inutiles si possible → attendre baisse CPU → supprimer limitations → upgrade si besoin [tool: assistant].
+15. CLARIFICATION dev SaaS — user a précisé être en train de dev le SaaS ; conclusion actualisée : `next-server`, builds/watchers, Convex dev, Playwright/Hermes peuvent être légitimes ; KVM 2 trop juste pour dev SaaS + agents [tool: assistant].
+16. RECOMMANDATION finale upgrade — conseillé KVM 4 minimum, KVM 8 pour confort avec dev SaaS + Hermes + Playwright + bots + crons [tool: assistant].
+17. INSTRUCTIONS upgrade Hostinger répétées simplement — hPanel → VPS → VPS actuel → Upgrade/Améliorer/Changer de plan/Ressources → KVM 4 ou KVM 8 → paiement → redémarrage → vérifier `nproc`, `free -h`, `uptime` [tool: assistant].
+18. NOTIFICATION présence Jonathan — indiqué que Jonathan était connecté en ligne [tool: assistant/system context].
+19. ENVOI compte rendu Jonathan — envoyé un message Telegram à Jonathan résumant : VPS 2 vCPU, limitation CPU active, RAM OK, gros consommateurs `next-server` + Chrome/Playwright, KVM 2 trop juste, recommander KVM 4 minimum ou KVM 8 confort, ne pas supprimer limitations avant stabilisation/upgrade [tool: send_message]. Identifiants Telegram / chat_id non conservés : `[REDACTED]`.
+20. PROPOSITION topic rapide — recommandé de créer un topic Telegram `⚡ Fast Lane` ou `⚡ Dev Fast`, avec un seul agent actif principal, réponses courtes, pas d’audit long, pas de build/Playwright par défaut, priorité aux commandes exactes et patchs minimaux [tool: assistant].
+21. CRÉATION prompt système — fourni un prompt complet pour le topic `⚡ Dev Fast`, profil “Dev Fast VividFlow”, agent d’exécution rapide pour Thomas et Jonathan sur VividFlow / Brvndlab / Hermes [tool: assistant].
+
+## Active State
+- Working directory : non applicable / non déterminé.
+- Branche Git : non applicable / non déterminée.
+- Fichiers modifiés/créés :
+
+...[TRONQUÉ 17693 chars sha256:2627218afdb87304]...
+
+une commande serveur : donne la commande exacte.
+- Si c’est une décision produit/dev : donne ton avis net.
+- Si c’est risqué/destructif : demande confirmation.
+- Si c’est ambigu mais non critique : choisis l’option la plus probable et avance.
+
+## Règles anti-lenteur
+
+Par défaut, évite :
+
+- gros audits
+- longues explications
+- plans en 12 étapes
+- Playwright
+- builds complets
+- tests lourds
+- refactors larges
+- recherches web longues
+- délégation à plusieurs agents
+- analyses produit profondes
+
+Sauf si l’utilisateur le demande explicitement.
+
+## Actions longues
+
+Si une tâche longue est nécessaire :
+
+1. Réponds d’abord avec le résumé court.
+2. Lance en background si possible.
+3. Donne un statut clair.
+4. Ne bloque pas Thomas/Jonathan inutilement.
+
+Exemple :
+
+> “Je lance le build en background. Continue à bosser, je te ping si ça casse.”
+
+## Développement SaaS
+
+Pour VividFlow / Brvndlab / SaaS :
+
+- Patch minimal avant refactor.
+- Vérification légère avant build lourd.
+- Priorité à débloquer l’usage.
+- Ne casse pas l’existant.
+- Respecte l’architecture existante.
+- Ne crée pas de nouvelle abstraction sauf nécessité.
+- UI : propre, sobre, premium, mais pas de redesign massif sans demande.
+
+## Serveur / VPS
+
+Quand on parle VPS / Hostinger / CPU / process :
+
+- Va droit au diagnostic.
+- Donne les commandes utiles.
+- Distingue dev normal vs process bloqué.
+- Ne recommande pas de tuer un process sans préciser l’impact.
+- Si Thomas est en train de dev, considère `next-server`, `next build`, `convex dev`, Chrome/Playwright comme possiblement légitimes.
+
+## Multi-agents / Topics Telegram
+
+Dans le topic **⚡ Dev Fast** :
+
+- Tu es l’agent actif principal.
+- Les autres agents doivent rester passifs sauf mention explicite.
+- Si un autre agent est plus adapté, propose le routage mais ne ralentis pas.
+- Si Thomas/Jonathan mentionne directement un autre agent, laisse ce bot répondre.
+
+## Format préféré
+
+Utilise souvent ce format :
+
+Diagnostic :
+- ...
+
+Action :
+```bash
+commande
+```
+
+Si ça échoue :
+- ...
+
+Ou encore plus court :
+
+Fais ça :
+
+```bash
+commande
+```
+
+Si ça ne suffit pas, on regarde le process exact.
+
+## Ce que tu dois éviter
+
+- “Voici une analyse complète…”
+- “Il serait pertinent de…”
+- “En tant qu’assistant…”
+- “Je comprends votre besoin…”
+- Répéter le contexte évident.
+- Donner 5 options quand une option est clairement meilleure.
+
+## Règle finale
+
+Tu es là pour accélérer Thomas/Jonathan.
+
+Chaque réponse doit réduire la friction, pas ajouter de la charge mentale.
+```
+
+## user — 2026-05-20T10:22:33.197116
+
+comment upgarde sur hostinger
+
+## assistant — 2026-05-20T10:22:33.197116
+
+Pour upgrade sur Hostinger :
+
+1. Va sur **hPanel Hostinger**
+2. Menu gauche : **VPS**
+3. Clique sur ton VPS actuel
+4. Va dans **Plan** / **Ressources** / **Upgrade** 
+ Le bouton peut s’appeler :
+ - **Améliorer**
+ - **Upgrade**
+ - **Changer de plan**
+ - **Mettre à niveau**
+5. Choisis un plan supérieur :
+ - **KVM 4** = minimum correct
+ - **KVM 8** = mieux pour dev SaaS + Hermes + agents
+6. Valide le paiement
+7. Hostinger peut redémarrer le VPS automatiquement ou te demander de le faire
+
+Après upgrade, connecte-toi en SSH et vérifie :
+
+```bash
+nproc
+free -h
+uptime
+```
+
+Si `nproc` affiche `4`, tu es en KVM 4. 
+Si ça affiche `8`, tu es en KVM 8.
+
+Ordre conseillé :
+
+1. **Upgrade d’abord**
+2. **Redémarrage si demandé**
+3. **Vérification SSH**
+4. Puis clique sur **Supprimer les limitations** dans Hostinger si l’alerte CPU est encore là.
+
+## user — 2026-05-20T10:22:33.197116
+
+What do you see in this image?
+
+[Image attached at: /home/hermes/.hermes/image_cache/img_621546657d41.jpg]
+[screenshot]
+
+## assistant — 2026-05-20T10:22:33.197116
+
+Je vois le dashboard Hostinger **Utilisation du serveur**.
+
+Ce que ça montre :
+
+- Vue sélectionnée : **Dernières 24 heures**
+- Graph CPU :
+ - CPU très bas pendant longtemps
+ - puis gros pics récents
+ - maintenant CPU collé autour de **100%**
+- Alerte Hostinger :
+ - **“Supprimez les limitations de ressources après avoir résolu la cause”**
+ - bouton **“Supprimer les limitations”**
+- Tableau en bas :
+ - `next-server (v16.2.6)` consomme environ **47.1% CPU**
+ - donc ton dev Next.js est clairement un gros consommateur
+
+Interprétation rapide :
+
+Le VPS est actuellement **CPU-limité** parce que le dev SaaS / Next.js pousse le serveur à fond. 
+Ce n’est pas un problème de stockage ou réseau visible ici : c’est bien **CPU**.
+
+Si tu bosses vite sur le SaaS, la bonne action reste :
+
+1. **Upgrade VPS vers KVM 4 minimum**
+2. Idéalement **KVM 8** si tu veux dev + Hermes + Playwright sans friction
+3. Ensuite seulement cliquer **Supprimer les limitations** dans Hostinger
+
+Là, si tu supprimes juste les limitations sans upgrade, ça risque de revenir.
+
+## user — 2026-05-20T10:22:33.197116
+
+c'est possible d'uprgade le vps sans prendre un nouveau ?
+
+## assistant — 2026-05-20T10:22:33.197116
+
+Oui, normalement **oui** : sur Hostinger tu peux **upgrader le VPS existant** sans en créer un nouveau.
+
+Tu gardes en principe :
+
+- la même machine
+- les mêmes fichiers
+- la même config
+- la même IP, sauf cas particulier
+- les services installés
+- Hermes / Next / PM2 / tunnels, etc.
+
+Hostinger augmente juste les ressources du plan : CPU, RAM, stockage selon l’offre.
+
+## Ce que tu dois chercher
+
+Dans hPanel :
+
+1. **VPS**
+2. Ton VPS actuel
+3. **Plan** / **Ressources**
+4. Bouton :
+ - **Upgrade**
+ - **Mettre à niveau**
+ - **Améliorer**
+ - **Changer de plan**
+
+S’il te propose “KVM 4 / KVM 8” sur le même VPS, c’est bien ça.
+
+## Attention
+
+Il peut y avoir :
+
+- un **redémarrage**
+- quelques minutes de downtime
+- un délai d’application
+- parfois une demande de paiement proratisé
+
+Mais tu ne repars pas de zéro.
+
+## À faire avant
+
+Par sécurité :
+
+- fais un **snapshot / backup**
+- évite de lancer un gros build pendant l’upgrade
+- note l’IP actuelle au cas où
+
+Mais oui : **tu peux upgrade l’existant, pas besoin de reprendre un VPS neuf.**
+
+## user — 2026-05-20T10:22:33.197116
+
+What do you see in this image?
+
+[Image attached at: /home/hermes/.hermes/image_cache/img_3b972bfc01ec.jpg]
+[screenshot]
+
+## assistant — 2026-05-20T10:22:33.197116
+
+Je vois ton dashboard Hostinger du VPS.
+
+Points importants :
+
+- Plan actuel : **KVM 2**
+- Statut : **Running**
+- OS : **Ubuntu 24.04 LTS**
+- CPU : **100%**
+- RAM : **33%** → OK
+- Disque : **57 GB / 100 GB** → OK
+- Bande passante : **0.026 TB / 8 TB** → OK
+- Alerte rouge en haut : **“Your VPS couldn’t be renewed”**
+ - Hostinger te demande de **renouveler KVM 2**
+ - bouton **Renew**
+
+## Interprétation
+
+Là, tu as deux sujets séparés :
+
+### 1. Le VPS doit être renouvelé
+Le bandeau rouge dit que ton VPS n’a pas pu être renouvelé. 
+Donc avant même l’upgrade, il faut vérifier la facturation / renouvellement.
+
+Clique probablement sur **Renew** pour garder le VPS actif.
+
+### 2. Le VPS est saturé CPU
+Le CPU est toujours à **100%**. 
+RAM/disque/réseau ne sont pas le problème.
+
+## Ce que je ferais
+
+1. Clique sur **Renew** pour éviter coupure/suspension.
+2. Ensuite cherche l’option **Upgrade / Change plan / Plan / Resources**.
+3. Passe de **KVM 2** à :
+ - **KVM 4 minimum**
+ - **KVM 8 idéal** pour dev SaaS + Hermes + agents
+4. Après upgrade/redémarrage, vérifie que ça tourne.
+
+Ne clique pas juste “Reboot VPS” maintenant comme solution principale. 
+Le reboot peut soulager temporairement, mais si tu relances Next + Hermes + Playwright sur KVM 2, le CPU remontera à 100%.
+
+## user — 2026-05-20T10:22:33.197116
+
+ok une fois que j'ai reniew
+
+## assistant — 2026-05-20T10:22:33.197116
+
+Une fois que tu as **renew**, fais ça :
+
+## 1. Attends que le VPS soit bien actif
+
+Sur Hostinger, vérifie :
+
+- statut : **Running**
+- plus de bandeau rouge “couldn’t be renewed”
+- pas d’alerte de paiement en attente
+
+## 2. Va chercher l’upgrade
+
+Dans la page du VPS :
+
+- clique sur **Manage**
+- puis cherche :
+ - **Plan**
+ - **Billing**
+ - **Resources**
+ - **Upgrade**
+ - **Change plan**
+ - **Améliorer**
+
+Souvent c’est dans les menus latéraux du VPS, pas forcément sur la carte principale.
+
+## 3. Choisis le plan
+
+Vu ton usage :
+
+- **KVM 4** = minimum
+- **KVM 8** = recommandé si tu veux dev vite avec Hermes + Next + Playwright
+
+Ne reprends pas un nouveau VPS. 
+Il faut bien choisir **upgrade du VPS actuel**.
+
+## 4. Valide l’upgrade
+
+Hostinger va probablement :
+
+- te facturer la différence
+- appliquer le nouveau plan
+- redémarrer le VPS ou te demander de le faire
+
+## 5. Vérifie côté serveur
+
+Après l’upgrade, en SSH :
+
+```bash
+nproc
+free -h
+uptime
+```
+
+Résultat attendu :
+
+- KVM 4 → `nproc` doit afficher `4`
+- KVM 8 → `nproc` doit afficher `8`
+
+## 6. Ensuite seulement
+
+Retourne dans l’alerte CPU Hostinger et clique :
+
+**Supprimer les limitations**
+
+Si le VPS tourne toujours sur KVM 2 à 100%, ça ne sert presque à rien. 
+Mais après upgrade, ça a du sens.
+
+## user — 2026-05-20T10:22:33.197116
+
+ok maintenant pour le Saas et l'utilisation optimal stp faut qu'on trouve la solution
+
+## assistant — 2026-05-20T10:22:33.197116
+
+Oui. Là la solution optimale, c’est **séparer les usages** et arrêter de faire tourner trop de choses lourdes sur le même 2 vCPU.
+
+J’ai checké le VPS actuel :
+
+- **CPU : 2 vCPU**
+- **Load actuel : ~1.10** → mieux qu’avant, pas en panique à l’instant
+- **RAM : OK, ~5.6 GB dispo**
+- **Gros process actif :**
+ - `next-server (v16.2.6)` lancé en root depuis le **14 mai**
+ - commande : `next start -p 3001`
+ - il consomme encore environ **59% CPU**
+- PM2 côté `hermes` :
+ - `vividflow-dev` sur port **3000**
+ - proxy **3003**
+- Hermes gateway + MCP + Playwright tournent aussi
+
+## Diagnostic clair
+
+Le problème n’est pas la RAM. 
+Le problème, c’est que le VPS sert à tout :
+
+1. dev SaaS Next.js
+2. serveur live/preview
+3. Hermes gateway
+4. MCP tools
+5. Playwright / Chrome
+6. tunnels / proxy
+7. agents
+
+Sur **2 vCPU**, c’est trop.
+
+## La solution propre
+
+### Niveau 1 — immédiat : nettoyer ce qui ne sert pas
+
+Le process suspect principal :
+
+```bash
+next start -p 3001
+```
+
+Il tourne depuis plusieurs jours en root et consomme beaucoup.
+
+Si le port **3001** ne sert pas à une app active, il faut le stopper. 
+Commande possible :
+
+```bash
+sudo kill 3739945
+```
+
+ou plus propre si c’est un service :
+
+```bash
+ps -fp 3739917,3739944,3739945
+```
+
+Puis on identifie d’où il vient avant kill définitif.
+
+**Important :** je ne le tuerais pas sans confirmer qu’aucune URL utile ne dépend du port 3001.
+
+---
+
+### Niveau 2 — court terme : upgrade VPS
+
+Pour travailler vite :
+
+- **KVM 4 minimum**
+- **KVM 8 recommandé**
+
+Mon avis : **KVM 8** si tu devs le SaaS + Hermes + agents sur le même serveur.
+
+KVM 4 va aider. 
+KVM 8 va vraiment enlever la friction.
+
+---
+
+### Niveau 3 — organisation optimale
+
+Je ferais cette architecture :
+
+## VPS principal — “Hermes / Agents”
+
+Rôle :
+
+- gateway Telegram
+- bots/profils
+- crons
+- MCP
+- memory
+- automation légère
+- monitoring
+
+À éviter dessus :
+
+- gros builds Next
+- Playwright permanent
+- `next dev` en continu si ça chauffe
+- plusieurs apps SaaS en dev
+
+## SaaS — Preview / Prod sur Vercel
+
+Pour le SaaS, le mieux reste :
+
+- dev local ou VPS temporaire
+- push GitHub
+- preview Vercel
+- prod Vercel
+
+Ça évite que le VPS Hermes soit tué par Next.
+
+## Si tu veux dev directement sur VPS
+
+Alors il faut un VPS plus costaud :
+
+- **KVM 8**
+- PM2 propre
+- un seul `next dev`
+- pas deux versions Next qui tournent en parallèle
+- Playwright uniquement quand nécessaire
+- pas de Chrome headless laissé ouvert
+
+---
+
+## Ma recommandation concrète
+
+Fais ça dans cet ordre :
+
+### 1. Renew Hostinger
+Déjà fait ou à faire en premier.
+
+### 2. Upgrade en KVM 8 si possible
+Si budget serré : KVM 4. 
+Mais pour bosser vite : **KVM 8**.
+
+### 3. Après upgrade, vérifier :
+
+```bash
+nproc
+free -h
+uptime
+pm2 list
+```
+
+### 4. Identifier / couper le vieux Next root sur 3001 si inutile
+
+À vérifier :
+
+```bash
+ps -fp 3739917,3739944,3739945
+ss -ltnp | grep 3001
+```
+
+Si aucun usage réel :
+
+```bash
+sudo kill 3739945
+```
+
+### 5. Garder un seul serveur dev actif
+
+Actuellement tu as déjà :
+
+```bash
+vividflow-dev
+```
+
+Donc il faut éviter un deuxième `next start` root en parallèle.
+
+---
+
+## Décision
+
+Pour utilisation optimale :
+
+- **Maintenant : upgrade KVM 8**
+- **Ensuite : nettoyage process 3001**
+- **Puis : topic ⚡ Dev Fast pour les réponses rapides**
+- **Ensuite : SaaS sur Vercel preview/prod, VPS pour Hermes/agents**
+
+C’est la config la plus saine pour aller vite sans casser l’infra.
+
+## user — 2026-05-20T10:22:33.197116
+
+non j'ai pris KVM 4
+
+## assistant — 2026-05-20T10:22:33.197116
+
+Parfait, **KVM 4 c’est le bon minimum**. Ça devrait déjà changer beaucoup.
+
+Par contre, je viens de vérifier le serveur : pour l’instant il affiche encore :
+
+```bash
+CPU: 2
+```
+
+Donc soit :
+
+1. l’upgrade n’est pas encore appliqué,
+2. Hostinger demande un **reboot VPS**,
+3. ou l’upgrade est en cours de provisioning.
+
+## Action maintenant
+
+Dans Hostinger, fais :
+
+1. Vérifie que le plan affiche bien **KVM 4**
+2. Si oui, clique **Reboot VPS**
+3. Attends 1–3 minutes
+4. Puis on revérifie :
+
+```bash
+nproc
+```
+
+Résultat attendu :
+
+```bash
+4
+```
+
+## Ensuite
+
+Quand `nproc = 4`, on fait :
+
+1. vérifier CPU/load
+2. supprimer les limitations Hostinger
+3. nettoyer le vieux process `next start -p 3001` si inutile
+4. garder uniquement le serveur dev principal
+
+## Important
+
+KVM 4 suffit pour :
+
+- Hermes
+- gateway Telegram
+- dev SaaS Next
+- un peu de Playwright
+- agents légers
+
+Mais il faudra rester discipliné :
+
+- pas 2–3 `next-server` en parallèle
+- pas Chrome headless laissé ouvert
+- builds lourds plutôt ponctuels
+- PM2 propre
+
+Donc oui : **KVM 4 est OK pour travailler maintenant**, mais il faut reboot pour que les 4 CPU apparaissent.
+
+## user — 2026-05-20T10:22:33.197116
+
+[System note: Your previous turn in this session was interrupted by a gateway interruption. The conversation history below is intact. If it contains unfinished tool result(s), process them first and summarize what was accomplished, then address the user's new message below.]
+
+## assistant — 2026-05-20T10:22:33.197116
+
+Oui, on est à jour.
+
+Dernier état vérifié :
+
+- Tu as pris **KVM 4**
+- Mais le serveur affichait encore :
+ ```bash
+ nproc = 2
+ ```
+- Donc l’upgrade n’était pas encore appliqué côté OS, ou il faut un **reboot VPS**.
+
+Action à faire maintenant dans Hostinger :
+
+1. Vérifie que le plan affiche bien **KVM 4**
+2. Clique **Reboot VPS**
+3. Attends 1–3 minutes
+4. Après redémarrage, on vérifie :
+ ```bash
+ nproc
+ ```
+
+Résultat attendu :
+
+```bash
+4
+```
+
+Ensuite on pourra :
+
+- retirer la limitation Hostinger,
+- vérifier la charge CPU,
+- nettoyer le vieux `next start -p 3001` si inutile,
+- garder une config SaaS/dev plus propre.
+
+## user — 2026-05-20T10:22:33.197116
+
+[System note: Your previous turn in this session was interrupted by a gateway interruption. The conversation history below is intact. If it contains unfinished tool result(s), process them first and summarize what was accomplished, then address the user's new message below.]
+
+[Image attached at: /home/hermes/.hermes/image_cache/img_9c84e655a134.jpg]
+[screenshot]
+
+## assistant — 2026-05-20T10:22:33.197116
+
+Parfait. Là c’est bon : **KVM 4 est bien appliqué**.
+
+J’ai vérifié côté serveur :
+
+```bash
+CPU: 4
+RAM: 15 GB
+uptime: 0 min
+load: 0.40
+```
+
+Donc l’upgrade a fonctionné + le VPS a reboot.
+
+Sur ton screenshot Hostinger :
+
+- Plan : **KVM 4**
+- Statut : **Running**
+- CPU affiché : **98%** mais probablement encore l’ancien pic / refresh dashboard
+- RAM : **33%**
+- Disque : **57 / 100 GB**
+- Bande passante : **0.027 TB / 16 TB**
+
+## Très bonne nouvelle
+
+Le vieux process lourd :
+
+```bash
+next start -p 3001
+```
+
+n’est plus visible après reboot. 
+Donc le reboot a nettoyé le process root qui consommait ~60% CPU.
+
+## Maintenant
+
+Attends 2–5 minutes que Hostinger rafraîchisse les métriques.
+
+Puis :
+
+1. Si l’alerte limitation CPU est encore affichée :
+ - clique **Supprimer les limitations**
+2. Continue le dev SaaS normalement
+3. Si CPU remonte à 90–100%, là on regarde quel process exact le cause
+
+## État optimal actuel
+
+KVM 4 est suffisant pour bosser maintenant :
+
+- Hermes gateway OK
+- MCP OK
+- SaaS dev OK
+- RAM largement OK
+- CPU 4 cœurs OK
+
+Prochaine règle : éviter de relancer plusieurs `next-server` en parallèle.
+
+## user — 2026-05-20T10:22:33.197116
+
+[System note: Your previous turn in this session was interrupted by a gateway interruption. The conversation history below is intact. If it contains unfinished tool result(s), process them first and summarize what was accomplished, then address the user's new message below.]
+
+## assistant — 2026-05-20T10:22:33.197116
+
+État actuel confirmé :
+
+- Upgrade **KVM 4 appliqué**
+- Le VPS voit bien **4 CPU**
+- RAM montée à **15 GB**
+- Le reboot a nettoyé le vieux process lourd `next start -p 3001`
+- Load serveur très bas juste après reboot
+- Hostinger peut encore afficher un CPU haut quelques minutes à cause du délai de rafraîchissement
+
+Action maintenant :
+
+1. Attends 2–5 minutes.
+2. Si l’alerte est encore là, clique **Supprimer les limitations**.
+3. Reprends le dev SaaS.
+4. Si ça remonte à 90–100%, on identifie le process exact avant de toucher quoi que ce soit.
+
+KVM 4 est maintenant OK pour avancer vite, tant qu’on évite plusieurs `next-server` / Playwright / builds en parallèle.
+
+## user — 2026-05-20T10:22:33.197116
+
+[System note: Your previous turn in this session was interrupted by a gateway interruption. The conversation history below is intact. If it contains unfinished tool result(s), process them first and summarize what was accomplished, then address the user's new message below.]
+
+ca a rien chnagé
+
+## assistant — 2026-05-20T10:22:33.197116
+
+Non, côté serveur **ça a bien changé**. C’est Hostinger qui affiche sûrement encore l’ancien graphe / l’ancienne alerte.
+
+Je viens de vérifier en live :
+
+```bash
+CPU=4
+RAM=15 GB
+load average=0.29
+```
+
+Donc :
+
+- **KVM 4 appliqué**
+- **RAM doublée**
+- **le VPS vient de reboot**
+- **plus de Next.js lourd lancé**
+- **plus de port 3000/3001/3003 actif pour l’instant**
+- charge CPU réelle basse
+
+Le seul truc actif maintenant :
+- Hermes gateway
+- MCP tools
+- wrapper VividFlow
+- Playwright MCP en attente, mais pas en train de cramer le CPU
+
+## Pourquoi Hostinger dit encore 98–100% ?
+
+Probablement parce que :
+
+- leur dashboard met quelques minutes à se mettre à jour
+- le graphe affiche les pics des dernières 24h
+- l’alerte CPU reste jusqu’à clic manuel sur **Supprimer les limitations**
+- ils calculent sur une fenêtre glissante, pas en temps réel pur
+
+## Action maintenant
+
+Fais ça dans Hostinger :
+
+1. Attends encore 2–5 min
+2. Clique **Supprimer les limitations**
+3. Si Hostinger dit que la cause n’est pas résolue, attends 10–15 min puis réessaie
+
+## Important
+
+Le SaaS n’est pas relancé actuellement. PM2 est vide après reboot.
+
+Donc pour reprendre le dev, il faudra relancer le bon process, probablement :
+
+```bash
+cd /opt/vividflow
+pm2 start "npm run dev -H 0.0.0.0 -p 3000" --name vividflow-dev
+pm2 save
+```
+
+Mais ne le fais qu’une fois les limitations retirées si possible.
+
+## Résumé
+
+Le serveur est maintenant sain. 
+Ce qui n’a pas changé, c’est probablement **l’affichage Hostinger / limitation pas encore retirée**.
+
+## user — 2026-05-20T10:22:33.197116
+
+pour le saas brainlab comme géréer les clés API comment ca se fait que je consomme 200 euros par mois de clé Open Router
+
+## assistant — 2026-05-20T10:22:33.197116
+
+Oui, là il faut traiter ça comme un sujet **coût + sécurité + architecture API keys**.
+
+J’ai vérifié rapidement côté VPS/Hermes/Brvndlab :
+
+## Ce qui est confirmé
+
+### 1. Le Cockpit Hermes actuel n’utilise pas OpenRouter en provider principal
+
+Actuellement, la config principale est :
+
+```txt
+provider: openai-codex
+model: gpt-5.5
+base_url: chatgpt.com/backend-api/codex
+```
+
+Donc **ce chat actuel n’est pas censé consommer OpenRouter en direct**.
+
+### 2. Par contre, OpenRouter existe encore dans l’écosystème Hermes
+
+J’ai trouvé :
+
+- anciens logs Hermes avec fallback vers OpenRouter
+- certains profils Hermes configurés en OpenRouter :
+ - `chief-of-staff`
+ - `coo-brvndlab`
+- des tâches auxiliaires Hermes en `auto` qui peuvent fallback sur OpenRouter :
+ - compression
+ - session search
+ - vision
+ - skills hub
+ - etc.
+
+Donc une partie de la conso peut venir de **Hermes / agents / anciens profils / tâches auxiliaires**, pas forcément du SaaS.
+
+### 3. Dans le code Brvndlab local, je n’ai pas trouvé OpenRouter
+
+J’ai scanné Brvndlab : les routes IA utilisent surtout :
+
+```txt
+ANTHROPIC_API_KEY
+```
+
+Exemples :
+- generate-script
+- brainstorm
+- analyze-video
+- generate-carousel
+- content-recommendations
+- radar actions Convex
+
+Donc si OpenRouter facture 200€/mois, **ce n’est pas clairement Brvndlab app qui appelle OpenRouter**, d’après le code local actuel.
+
+## Hypothèse la plus probable
+
+Les 200€/mois viennent probablement d’un mélange de :
+
+1. anciens profils Hermes encore en OpenRouter,
+2. sous-agents / crons / sessions passées,
+3. fallback automatique des tâches auxiliaires,
+4. clés OpenRouter utilisées ailleurs : Claude Code, tests locaux, scripts, ancien serveur, autre machine,
+5. auto top-up / budget OpenRouter trop permissif.
+
+## Action immédiate à faire côté OpenRouter
+
+Dans le dashboard OpenRouter :
+
+1. Va dans **Keys**
+2. Vérifie les clés actives
+3. Regarde les stats par clé si disponible
+4. Mets un **spend limit par clé**
+5. Désactive **auto top-up** si activé
+6. Crée des clés séparées :
+ - `hermes-main`
+ - `hermes-agents`
+ - `brvndlab-prod`
+ - `brvndlab-dev`
+ - `experiments`
+7. Supprime/rotate toute clé inconnue ou ancienne
+
+Le but : ne plus avoir une seule clé OpenRouter qui peut être cramée par tout le système.
+
+## Architecture propre pour les clés API du SaaS
+
+Pour Brvndlab, je recommande :
+
+### Clés séparées par environnement
+
+- `ANTHROPIC_API_KEY_DEV`
+- `ANTHROPIC_API_KEY_PREVIEW`
+- `ANTHROPIC_API_KEY_PROD`
+
+Ou côté Vercel/Convex :
+
+- Development
+- Preview
+- Production
+
+Jamais la même clé partout.
+
+### Clés jamais exposées frontend
+
+Interdit :
+
+```txt
+NEXT_PUBLIC_OPENROUTER_API_KEY
+NEXT_PUBLIC_ANTHROPIC_API_KEY
+NEXT_PUBLIC_OPENAI_API_KEY
+```
+
+Les appels IA doivent passer par :
+
+```txt
+Next.js API route
+Convex action
+Backend server
+```
+
+Jamais directement depuis le navigateur.
+
+### Quotas internes Brvndlab
+
+Il faut ajouter une couche de contrôle :
+
+- limite par utilisateur
+- limite par workspace
+- limite par jour/mois
+- logs par feature
+- coût estimé par requête
+- blocage si dépassement
+
+Exemple :
+
+```txt
+User A — generate-script — 14 requêtes — coût estimé 1.20€
+Workspace X — radar enrichment — 400 requêtes — coût estimé 18€
+```
+
+Sinon un client ou un cron peut exploser les coûts sans visibilité.
+
+## Décision claire
+
+À court terme :
+
+1. **OpenRouter : mettre un budget cap maintenant**
+2. **Désactiver auto top-up**
+3. **Créer une clé par usage**
+4. **Rotate l’ancienne clé globale**
+5. **Passer les profils Hermes `chief-of-staff` et `coo-brvndlab` hors OpenRouter si pas nécessaire**
+6. **Désactiver le fallback auxiliaire OpenRouter si on veut zéro surprise**
+
+À moyen terme pour Brvndlab :
+
+- ajouter un système de metering IA
+- quotas par plan
+- logs de coût par feature
+- choix de modèles moins chers pour les tâches simples
+
+## Mon avis
+
+Les 200€/mois ne viennent probablement pas du SaaS Brvndlab directement, sauf si la prod utilise une config différente de ton repo local.
+
+Le suspect n°1 : **anciens profils/agents Hermes + fallback OpenRouter + clés partagées sans cap**.
+
+Si tu veux, prochaine étape je te fais un **audit propre des clés et providers** avec sortie :
+
+- utilisé maintenant
+- ancien/risqué
+- à couper
+- à garder
+- où mettre les budgets cap.
+
+## user — 2026-05-20T10:22:33.197116
+
+Open Router anthropic à 100% sur l'utilisation
+
+## assistant — 2026-05-20T10:22:33.197116
+
+Ok, alors c’est clair : **la facture OpenRouter vient d’appels Anthropic via OpenRouter**.
+
+Ça veut dire que quelqu’un / quelque chose appelle probablement des modèles du type :
+
+- `anthropic/claude-sonnet...`
+- `anthropic/claude-opus...`
+- `claude-3.5-sonnet`
+- `claude-4-sonnet`
+- etc.
+
+via **OpenRouter**, pas directement via Anthropic.
+
+## Ce que ça implique
+
+Ce n’est pas forcément “Anthropic direct”. 
+C’est :
+
+```txt
+App / agent / script → OpenRouter → modèle Anthropic
+```
+
+Donc OpenRouter facture, mais le modèle consommé est Anthropic.
+
+## Suspects principaux chez nous
+
+### 1. Anciens profils Hermes
+
+J’ai vu que certains profils étaient configurés en OpenRouter, notamment :
+
+- `chief-of-staff`
+- `coo-brvndlab`
+
+S’ils utilisent Claude via OpenRouter, ils peuvent consommer.
+
+### 2. Fallback automatique Hermes
+
+Hermes peut utiliser OpenRouter pour des tâches auxiliaires :
+
+- compression mémoire
+- session search
+- vision
+- title generation
+- skills hub
+- curator
+- etc.
+
+Si ces tâches utilisent Anthropic via OpenRouter, ça peut monter vite.
+
+### 3. Brvndlab / SaaS
+
+Dans le repo Brvndlab local, j’ai surtout vu :
+
+```txt
+ANTHROPIC_API_KEY
+```
+
+Pas OpenRouter directement.
+
+Mais attention : si en prod Vercel/Convex tu as mis une clé OpenRouter dans une variable utilisée comme Anthropic, ou une config différente, ça peut expliquer.
+
+### 4. Claude Code / agents dev
+
+Si Claude Code ou un agent utilise OpenRouter comme provider avec modèle Anthropic, ça peut cramer vite, surtout avec :
+
+- gros contexte
+- auto-agents
+- loops
+- codebase scans
+- session longue
+- sous-agents
+
+## Action immédiate
+
+Dans OpenRouter :
+
+1. Va dans **Activity / Usage**
+2. Filtre par :
+ - **Model provider : Anthropic**
+ - **API key**
+ - **App / site URL** si dispo
+3. Identifie quelle clé consomme.
+4. Mets un **spend limit** très bas sur cette clé.
+5. Coupe **auto top-up**.
+6. Crée des clés séparées par usage.
+
+## Structure propre des clés
+
+Je ferais ça :
+
+- `openrouter-hermes-main`
+- `openrouter-hermes-agents`
+- `openrouter-dev-experiments`
+- `openrouter-brvndlab-prod` seulement si le SaaS doit vraiment utiliser OpenRouter
+- `anthropic-brvndlab-prod` si on passe direct Anthropic
+
+Chaque clé avec son budget :
+
+- Dev/expérimentations : 10–20€/mois
+- Agents : 20–50€/mois
+- Prod SaaS : budget selon clients + quotas
+- Jamais de clé globale illimitée
+
+## Décision recommandée
+
+Court terme :
+
+- **Limiter ou désactiver la clé OpenRouter qui consomme Anthropic**
+- **Sortir Hermes principal d’OpenRouter** — déjà fait pour le cockpit actuel
+- **Vérifier les profils `chief-of-staff` et `coo-brvndlab`**
+- **Mettre les auxiliaires Hermes hors OpenRouter si possible**
+- **Séparer OpenRouter du SaaS Brvndlab**
+
+## Point important
+
+Si OpenRouter dit **Anthropic = 100%**, ça ne veut pas dire “Brvndlab consomme 100%”. 
+Ça veut dire : **100% de ta facture OpenRouter vient de modèles Anthropic**.
+
+La vraie question maintenant :
+
+> Quelle API key OpenRouter consomme ?
+
+C’est ça qui dira si c’est :
+- Hermes,
+- un profil agent,
+- Claude Code,
+- Brvndlab,
+- ou une vieille config oubliée.
+
+## user — 2026-05-20T10:22:33.197116
+
+[The user sent a voice message~ Here's what they said: "Ok, maintenant je veux une architecture à pays squelable pour mon sase où je peux gagner l'argent, tout en gardant la capacité optimale de ce que proposit l'Ir."]
+
+## assistant — 2026-05-20T10:22:33.197116
+
+Oui. Il te faut une architecture **scalable + rentable + contrôlée**, pas juste “brancher Claude partout”.
+
+Le principe : **l’IA doit créer de la valeur premium, mais ne jamais être un coût illimité.**
+
+## Architecture cible Brvndlab IA
+
+### 1. Séparer 3 couches IA
+
+#### Couche A — IA gratuite / incluse
+Pour les tâches fréquentes, rapides, peu coûteuses.
+
+Exemples :
+- reformulation courte
+- idées de posts simples
+- titres
+- hooks
+- amélioration de texte
+- résumé court
+- classification de contenus
+- scoring léger
+
+Modèles :
+- Haiku
+- Gemini Flash
+- GPT mini
+- petits modèles via OpenRouter ou direct provider
+
+Objectif : **coût très bas par action**.
+
+---
+
+#### Couche B — IA premium contrôlée
+Pour les tâches qui donnent une vraie valeur business.
+
+Exemples :
+- script YouTube complet
+- carrousel structuré
+- analyse de positionnement
+- analyse Brand OS
+- recommandations contenu personnalisées
+- stratégie éditoriale mensuelle
+- enrichissement de leads
+- radar marché
+
+Modèles :
+- Sonnet
+- GPT-4.1 / GPT-5 mini selon besoin
+- modèles bons mais pas ultra chers
+
+Objectif : **valeur perçue forte, coût borné**.
+
+---
+
+#### Couche C — IA elite / crédits payants
+Pour les tâches très lourdes.
+
+Exemples :
+- audit complet de personal brand
+- refonte stratégique complète
+- analyse longue de transcripts
+- génération de plan éditorial 30 jours
+- deep research concurrentielle
+- mémoire dorée / intelligence haut niveau
+- livrable client premium
+
+Modèles :
+- Opus
+- Sonnet high reasoning
+- modèles premium uniquement si justifié
+
+Objectif : **jamais inclus en illimité**. 
+Ça doit être limité par crédits, plan haut, ou achat additionnel.
+
+---
+
+## 2. Ne jamais utiliser Opus / Sonnet premium par défaut
+
+Règle stricte :
+
+```txt
+Default model = cheap/good enough
+Premium model = seulement si la tâche le justifie
+Elite model = crédits ou plan haut
+```
+
+Sinon tu vas cramer 200€/mois, puis 2’000€/mois dès que tu as des utilisateurs.
+
+## 3. Système de crédits IA par plan
+
+Tes plans Brvndlab doivent inclure des crédits IA.
+
+Exemple :
+
+### Starter — 149€/mois
+- 500 crédits IA / mois
+- modèles économiques
+- scripts courts
+- brainstorm limité
+- pas d’analyses lourdes illimitées
+
+### Pro — 349€/mois
+- 2’000 crédits IA / mois
+- génération avancée
+- Radar limité
+- analyses Brand OS
+- priorisation contenu
+
+### Scale — 749€/mois
+- 6’000 crédits IA / mois
+- Radar avancé
+- stratégie éditoriale complète
+- enrichissement leads
+- IA premium incluse mais bornée
+
+### Add-ons
+- Pack 1’000 crédits : 29–49€
+- Audit IA premium : 99–299€
+- Deep research marché : 149–499€
+
+Là tu peux gagner de l’argent avec l’IA au lieu de subir la facture.
+
+## 4. Chaque action IA doit avoir un coût interne
+
+Tu dois mapper chaque feature IA avec un prix en crédits.
+
+Exemple :
+
+```txt
+Reformuler un hook : 1 crédit
+Générer 10 idées : 5 crédits
+Générer un script court : 20 crédits
+Générer un script YouTube complet : 80 crédits
+Analyser une vidéo/transcript : 100 crédits
+Audit Brand OS complet : 250 crédits
+Radar concurrentiel profond : 300 crédits
+```
+
+Le client comprend la valeur, et toi tu contrôles les coûts.
+
+## 5. Architecture technique recommandée
+
+### Frontend
+Next.js / Vercel
+
+Le frontend ne doit jamais appeler OpenRouter / Anthropic directement.
+
+Interdit :
+
+```txt
+NEXT_PUBLIC_OPENROUTER_API_KEY
+NEXT_PUBLIC_ANTHROPIC_API_KEY
+```
+
+### Backend IA
+Toute IA passe par une couche serveur :
+
+```txt
+User action
+→ API route Next.js ou Convex action
+→ AI Gateway interne
+→ Model Router
+→ Provider
+→ Logs coût/tokens
+→ Réponse
+```
+
+### AI Gateway interne
+
+Créer une fonction centrale :
+
+```ts
+runAI({
+ workspaceId,
+ userId,
+ feature: "generate_script",
+ tier: "pro",
+ input,
+})
+```
+
+Elle décide :
+
+- quel modèle utiliser
+- combien de crédits consommer
+- si l’utilisateur a le droit
+- si le budget workspace est dépassé
+- si on utilise cache ou pas
+- si on log le coût
+- si on refuse l’appel
+
+## 6. Model router
+
+Au lieu d’appeler Anthropic directement partout, tu centralises.
+
+Exemple logique :
+
+```txt
+feature = "hook_generation"
+→ modèle cheap
+
+feature = "script_generation"
+→ modèle medium
+
+feature = "brand_os_audit"
+→ modèle premium
+
+feature = "deep_research"
+→ modèle elite + crédits élevés
+```
+
+Ça évite d’avoir 30 fichiers qui appellent chacun `ANTHROPIC_API_KEY` sans contrôle.
+
+## 7. Coût max par workspace
+
+Il faut une limite mensuelle interne.
+
+Exemple :
+
+```txt
+Starter : coût IA max cible = 10–20€/mois
+Pro : coût IA max cible = 30–60€/mois
+Scale : coût IA max cible = 80–150€/mois
+```
+
+Avec tes prix :
+
+- 149€ plan → tu ne peux pas laisser 100€ d’IA
+- 349€ plan → max 50–70€ IA
+- 749€ plan → max 150€ IA si usage très actif
+
+Sinon marge détruite.
+
+## 8. Marges à viser
+
+Objectif SaaS sain :
+
+```txt
+Marge brute cible : 75–85%
+Coût IA cible : 5–15% du prix mensuel
+Infrastructure : 2–5%
+Support/service : variable
+```
+
+Donc :
+
+### Plan 149€
+- Coût IA idéal : 5–15€
+- Max tolérable : 25€
+
+### Plan 349€
+- Coût IA idéal : 15–40€
+- Max tolérable : 70€
+
+### Plan 749€
+- Coût IA idéal : 50–100€
+- Max tolérable : 150€
+
+## 9. Logs obligatoires
+
+Tu dois stocker chaque appel IA :
+
+```txt
+workspaceId
+userId
+feature
+model
+provider
+inputTokens
+outputTokens
+estimatedCost
+creditsCharged
+success/error
+createdAt
+```
+
+Sinon tu ne sauras jamais qui te coûte combien.
+
+Pages admin nécessaires :
+
+- coût IA total mois
+- coût par workspace
+- coût par feature
+- coût par modèle
+- utilisateurs les plus coûteux
+- alertes dépassement
+
+## 10. Caching IA
+
+Indispensable.
+
+Si un utilisateur demande 5 fois la même analyse Brand OS, tu ne dois pas repayer 5 fois.
+
+Cache par :
+
+```txt
+feature + inputHash + workspaceId + modelVersion
+```
+
+Exemples à cacher :
+- analyse Brand OS
+- résumé transcript
+- scoring lead
+- recommandations contenu
+- analyse vidéo
+- radar signal
+
+## 11. Queue pour tâches lourdes
+
+Les tâches lourdes ne doivent pas bloquer l’interface.
+
+Architecture :
+
+```txt
+User clique “Analyser”
+→ création job Convex
+→ statut pending
+→ action serveur traite
+→ statut completed
+→ résultat stocké
+→ notification in-app
+```
+
+Pas de gros appels IA synchrones partout.
+
+## 12. Règle produit : IA visible seulement quand elle vend
+
+Il ne faut pas mettre de l’IA partout.
+
+Mettre l’IA là où le client se dit :
+
+> “Ok, ça me fait gagner du temps ou de l’argent.”
+
+Priorités Brvndlab :
+
+1. **Brand OS Intelligence**
+ - diagnostic positionnement
+ - trous dans l’identité
+ - angles différenciants
+
+2. **Content Engine**
+ - transformer Brand OS → idées/scripts/posts
+ - pas de contenu générique
+
+3. **Radar**
+ - trouver tendances, concurrents, angles
+ - mais limité par quotas
+
+4. **Leads / Heat Score**
+ - prioriser prospects
+ - recommandations d’action commerciale
+
+5. **Smart Links intelligence**
+ - quelles sources convertissent
+ - quel contenu attire les bons leads
+
+## 13. API keys proprement
+
+À mettre en place :
+
+### OpenRouter
+- désactiver auto top-up
+- une clé par usage
+- budget cap par clé
+
+Exemple :
+
+```txt
+openrouter-hermes-dev : 20€/mois
+openrouter-brvndlab-preview : 20€/mois
+openrouter-brvndlab-prod : 100€/mois au départ
+openrouter-experiments : 10€/mois
+```
+
+### Anthropic direct
+Idéalement pour Brvndlab prod :
+
+```txt
+ANTHROPIC_API_KEY_PROD
+ANTHROPIC_API_KEY_PREVIEW
+ANTHROPIC_API_KEY_DEV
+```
+
+Pas la même clé partout.
+
+## Architecture finale simple
+
+```txt
+Brvndlab SaaS
+│
+├── Frontend Next.js
+│ └── aucun secret IA
+│
+├── Convex / API routes
+│ └── auth + permissions
+│
+├── AI Gateway interne
+│ ├── quota check
+│ ├── credit check
+│ ├── model router
+│ ├── cache
+│ ├── logs coût
+│ └── fallback sécurisé
+│
+├── Providers IA
+│ ├── modèle cheap
+│ ├── modèle medium
+│ └── modèle premium
+│
+└── Admin Cost Dashboard
+ ├── coût par workspace
+ ├── coût par feature
+ ├── coût par modèle
+ └── alertes budget
+```
+
+## Décision que je recommande
+
+Pour Brvndlab :
+
+1. **Ne plus appeler Anthropic directement dans chaque route**
+2. Créer un **AI Gateway central**
+3. Ajouter **crédits IA**
+4. Ajouter **quotas par plan**
+5. Ajouter **logs coûts/tokens**
+6. Réserver Opus/Sonnet premium aux tâches hautes valeurs
+7. Mettre OpenRouter uniquement comme router contrôlé, pas clé globale illimitée
+
+## Le move maintenant
+
+On doit faire un chantier nommé :
+
+**“AI Cost Governance + Model Router Brvndlab”**
+
+Livrable :
+
+- `aiGateway.ts`
+- `modelRouter.ts`
+- `aiUsageLogs` dans Convex
+- `workspaceAiQuota`
+- quotas par plan
+- crédits par action
+- dashboard admin coût IA
+- migration des routes IA existantes vers cette gateway
+
+C’est ça qui transforme l’IA de Brvndlab en **moteur rentable**, pas en fuite de cash.
+
+## user — 2026-05-20T10:22:33.197116
+
+comment fait limova par exemple et scrap le web pour trouver la solution comme bine gérer les API et lesquels sont les plus rentable j'utilise par exemple scoot
+
+## assistant — 2026-05-20T10:22:33.197116
+
+Oui, j’ai regardé. La logique de Limova est intéressante : ils ne vendent pas “des appels API”. Ils vendent des **packs d’agents IA** avec des usages précis.
+
+Exemple Limova observé :
+- offre Essentiel annuelle autour de **699,90€ HT/an**
+- offre Pro autour de **119,90€ HT/mois**
+- agents inclus : marketing, posts réseaux sociaux, SEO, prospection LinkedIn, transcription, chatbot WhatsApp/site, etc.
+- téléphonie facturée à part : **0,20€/min d’appel**
+
+Leur logique business : 
+**packager la valeur**, pas exposer le coût technique.
+
+Pour Brvndlab, il faut faire pareil.
+
+---
+
+## 1. Ce qu’il ne faut PAS faire
+
+Ne pas vendre :
+
+> “Tu as accès à Claude / OpenRouter / Anthropic.”
+
+Ça détruit la marge.
+
+Il faut vendre :
+
+> “Tu peux générer ton contenu, analyser ton marché, prioriser tes leads, améliorer ton Brand OS.”
+
+L’utilisateur ne doit jamais penser aux API.
+
+---
+
+## 2. Architecture rentable pour Brvndlab
+
+Je ferais 4 couches :
+
+```txt
+Utilisateur
+→ Action Brvndlab
+→ AI Gateway interne
+→ Router modèle / scraper
+→ Provider externe
+→ Logs coûts + crédits
+```
+
+Chaque action Brvndlab doit être tarifée en crédits internes.
+
+Exemple :
+
+```txt
+Générer 10 idées : 5 crédits
+Hook / reformulation : 1 crédit
+Script court : 20 crédits
+Script YouTube : 80 crédits
+Analyse transcript : 100 crédits
+Radar concurrentiel : 150 crédits
+Audit Brand OS : 250 crédits
+```
+
+Comme ça, tu contrôles le coût.
+
+---
+
+## 3. Les APIs web/scraping les plus intéressantes
+
+### Pour Brvndlab Radar / veille marché
+
+Je recommande cette stack :
+
+## A. Search léger : Exa ou Tavily
+
+### Exa
+Très bon pour :
+- recherche web IA
+- contenus récents
+- liens pertinents
+- citations
+- recherche sémantique
+
+Prix observé :
+- Search : environ **$7 / 1k requests**
+- Contents : environ **$1 / 1k pages**
+- Deep Search : environ **$12–15 / 1k requests**
+
+Usage Brvndlab :
+- trouver tendances
+- détecter créateurs/concurrents
+- récupérer pages pertinentes
+- alimenter Radar
+
+Verdict : **très bon pour search IA propre**.
+
+---
+
+### Tavily
+Très bon pour :
+- agents IA
+- recherche rapide
+- réponses web structurées
+
+Prix observé :
+- Free : **1’000 crédits / mois**
+- Pay-as-you-go : **$0.008 / crédit**
+- Donc environ **$8 / 1k crédits**
+
+Usage Brvndlab :
+- recherche ponctuelle
+- veille simple
+- enrichissement léger
+
+Verdict : **simple, mais peut devenir cher si volume élevé**.
+
+---
+
+## B. Scraping propre de pages : Firecrawl
+
+Firecrawl est très adapté IA.
+
+Prix observé :
+- Free : **1’000 crédits/mois**
+- Standard : **100’000 crédits/mois pour ~$83/mois**
+- Growth : **500’000 crédits/mois pour ~$333/mois**
+- Scale : **1M crédits/mois pour ~$599/mois**
+
+Coût approximatif :
+- Standard : **~$0.83 / 1k pages**
+- Growth : **~$0.66 / 1k pages**
+- Scale : **~$0.60 / 1k pages**
+
+Usage Brvndlab :
+- scraper pages de concurrents
+- récupérer articles
+- extraire pages de vente
+- transformer HTML en markdown propre pour IA
+
+Verdict : **meilleur choix pour Brvndlab si on veut du contenu web propre pour LLM**.
+
+---
+
+## C. Scraping dur / anti-bot : ScrapingBee ou Bright Data
+
+### ScrapingBee
+Prix observé :
+- Freelance : **$49/mois**
+- Startup : **$99/mois**
+- Business : **$249/mois**
+- Business+ : **$599/mois**
+
+Usage :
+- pages plus difficiles
+- besoin proxy/render JS
+- Google Search API
+- anti-bot modéré
+
+Verdict : **utile en fallback**, pas en provider principal.
+
+---
+
+### Bright Data
+Très puissant, mais plus enterprise.
+
+Usage :
+- scraping lourd
+- anti-bot sérieux
+- gros volume
+- proxy / web unlocker
+
+Verdict : **trop lourd pour Brvndlab au départ**, sauf si Radar devient un vrai moteur data massif.
+
+---
+
+## 4. Mon choix pour Brvndlab
+
+Je ferais :
+
+### Stack scraping/search rentable
+
+```txt
+Search principal : Exa
+Scrape principal : Firecrawl
+Fallback anti-bot : ScrapingBee
+YouTube : YouTube Data API + kome.ai/SearchAPI.io pour transcripts
+LLM : Anthropic direct ou OpenRouter contrôlé
+```
+
+Et surtout :
+
+```txt
+Pas Apify
+```
+
+Pour Brvndlab, Apify est déjà interdit dans notre logique produit.
+
+---
+
+## 5. Architecture concrète
+
+### `webResearchGateway`
+
+Une seule porte d’entrée :
+
+```ts
+runWebResearch({
+ workspaceId,
+ userId,
+ feature: "radar_competitor_scan",
+ query,
+ depth: "light" | "standard" | "deep",
+})
+```
+
+Elle décide :
+
+```txt
+light → Exa search uniquement
+standard → Exa search + Firecrawl 3-5 pages
+deep → Exa + Firecrawl + LLM synthèse + cache
+fallback → ScrapingBee si page bloquée
+```
+
+---
+
+## 6. Règle de rentabilité
+
+Ne jamais faire :
+
+```txt
+1 recherche utilisateur = 20 pages scrapées + Sonnet long contexte
+```
+
+Sinon tu brûles la marge.
+
+Faire :
+
+```txt
+1. Search léger
+2. Sélection top 3–5 résultats
+3. Scrape seulement les pages utiles
+4. Résumé/cache
+5. LLM premium seulement sur synthèse finale
+```
+
+---
+
+## 7. Caching obligatoire
+
+Chaque résultat web doit être cache.
+
+Exemple :
+
+```txt
+queryHash + sourceUrl + feature + dateBucket
+```
+
+Durée cache :
+- tendance chaude : 24h
+- concurrent/page de vente : 7 jours
+- transcript vidéo : 30 jours
+- analyse Brand OS : jusqu’à changement du Brand OS
+
+Sans cache, tu repaies tout.
+
+---
+
+## 8. Comment packager ça dans Brvndlab
+
+Tu ne dis pas :
+
+> “On scrape avec Firecrawl.”
+
+Tu dis :
+
+### Starter — 149€
+- Radar léger
+- 20 recherches marché/mois
+- 100 pages analysées/mois
+- génération contenu limitée
+
+### Pro — 349€
+- Radar standard
+- 100 recherches/mois
+- 1’000 pages analysées/mois
+- scripts + carrousels + recommandations
+
+### Scale — 749€
+- Radar avancé
+- 300 recherches/mois
+- 5’000 pages analysées/mois
+- veille concurrentielle
+- enrichissement leads
+- analyses premium
+
+Et au-delà :
+
+```txt
+Pack Radar supplémentaire : 49€ / 1’000 pages
+Pack Deep Research : 99€ / 10 analyses
+```
+
+---
+
+## 9. Comparatif simple
+
+### Pour recherche web
+- **Exa** : meilleur équilibre qualité/prix pour IA
+- **Tavily** : simple, bon pour agents, mais attention au coût crédit
+- **SearchAPI.io** : utile pour Google/YouTube/transcripts selon cas
+- **SerpAPI** : bon mais souvent plus cher
+
+### Pour scraper pages propres
+- **Firecrawl** : mon choix principal
+- **ScrapingBee** : fallback anti-bot
+- **Bright Data** : enterprise / gros scraping
+
+### Pour LLM
+- **Anthropic direct** : meilleur contrôle si Brvndlab utilise Claude
+- **OpenRouter** : pratique pour router, mais dangereux sans caps
+- **Gemini Flash / Haiku** : idéal tâches low-cost
+- **Opus / Sonnet premium** : uniquement crédits premium
+
+---
+
+## 10. Ma recommandation nette
+
+Pour Brvndlab :
+
+```txt
+Exa + Firecrawl + Anthropic direct + AI Gateway interne
+```
+
+Avec :
+
+```txt
+ScrapingBee seulement en fallback
+OpenRouter seulement avec budget cap
+Aucun appel IA/scraping direct depuis une feature
+Tout passe par la gateway
+```
+
+---
+
+## 11. Prochain chantier à créer
+
+**Brvndlab Cost-Controlled Research Gateway**
+
+Livrables :
+
+- `aiGateway.ts`
+- `webResearchGateway.ts`
+- `modelRouter.ts`
+- `providerRouter.ts`
+- `usageLogs`
+- `workspaceQuotas`
+- `featureCredits`
+- `cachedResearchResults`
+- dashboard admin coûts
+- quotas par plan
+
+C’est ça qui permet :
+
+- de garder la puissance IA,
+- d’éviter les 200€/mois incontrôlés,
+- de scaler sans peur,
+- et de transformer chaque usage IA en marge SaaS.
+
+## user — 2026-05-20T10:22:33.197116
+
+regarde le compte rendu de Claude par rapport à Brandlab https://brvndlab-llm-deck.vercel.app/

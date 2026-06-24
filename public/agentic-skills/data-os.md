@@ -1015,6 +1015,20 @@ npx vercel alias set <deployment-url> <client-dashboard-url>
 - Quand `markSelfBookedFromCalendly` matche un lead existant, ne jamais patcher les champs UTM à `undefined/null`; préserver `lead.utmSource`, `lead.utmMedium`, etc. si Calendly ne fournit pas d'UTM, sinon le passage en RDV booké efface l'attribution Typeform.
 - Supprimer le lead de test via `setterPipe:remove`. Vérifier `remaining_after_cleanup = 0`.
 
+## Hermes / Slack agents — exposer Data OS via MCP
+
+Quand des profils Hermes Slack doivent utiliser Data OS via MCP et que l’outil attendu (`dataos_state` ou équivalent) est indisponible, diagnostiquer l’exposition MCP avant d’accuser les tokens.
+
+Pattern de diagnostic sûr:
+1. Vérifier que le serveur MCP global `dataos` existe dans `~/.hermes/config.yaml` / `/root/.hermes/config.yaml` avec l’URL Data OS et `Authorization: "Bearer ${DATAOS_TOKEN}"` — ne jamais afficher la valeur du token.
+2. Vérifier les `.env` de chaque profil: `DATAOS_TOKEN` présent/exportable, identité agent correcte, pas de placeholder/crochets autour du token.
+3. Inspecter chaque `profiles/<agent>/config.yaml`: un bloc local `mcp_servers:` vide/commenté peut masquer la config globale et empêcher l’enregistrement de `dataos`.
+4. Dans Hermes, le serveur MCP `dataos` doit exposer le toolset `mcp-dataos`, avec alias `dataos` quand l’enregistrement passe correctement.
+5. Si le profil Slack n’a que `platform_toolsets.slack: [hermes-slack]`, ajouter explicitement le toolset Data OS pertinent (`dataos` ou `mcp-dataos` selon la config Hermes réelle) ou injecter localement le serveur MCP `dataos` avec `Authorization: "Bearer ${DATAOS_TOKEN}"`.
+6. Redémarrer les gateways après patch config, puis tester en direct `hermes --profile <profile> -z ...` avant de tester via Slack.
+
+Pour VividFlow/Hermes Slack, utiliser des scripts streamés via SSH stdin (`ssh vividflow-vps 'python3 -' < /tmp/script.py`) et supprimer tout script temporaire qui a manipulé secrets ou tokens. Un résultat “outil indisponible” = problème d’exposition toolset/MCP; un `Unauthorized: token agent requis` = problème Bearer/token.
+
 ## Pitfalls
 - **Convex object keys from external forms**: ne jamais stocker les labels Typeform bruts comme clés d'objet Convex. Les accents et caractères non-ASCII cassent la mutation; normaliser en snake_case ASCII.
 - **Public webhook behind app middleware**: une route API webhook doit être whitelisted dans `PUBLIC_PATHS`, sinon Typeform/curl reçoit `401 unauthorized` et le handler n'est jamais appelé.
@@ -1097,3 +1111,5 @@ The previous Daisy, AIOS dashboard bootstrap, member-management, public form lin
 - `references/buffer-linkedin-scheduling.md` — Buffer GraphQL API recipe for scheduling AIOS/operator LinkedIn posts from Content OS/Vercel packs: auth probe, channel discovery, createPost mutation with PNG assets, verification query, Free-plan 10-post limit, and Content OS sync notes.
 - `references/outbound-instagram-prospect-list-scraping.md` — guardrails for turning an Outbound Instagram SOP/ICP into a strict setter-ready scraping brief and CSV prospect list; excludes broad agencies/SaaS and defines scoring, required signals, columns, and DM-readiness rule.
 - `references/vividflow-dataos-editor-mode-header-convex-audit.md` — VividFlow/Data OS pattern for auditing whether Convex is truly wired (not just schema present), plus Thomas-validated header/editor-mode rules: sticky simple page header, functional search, realtime-ish notification bell, compact profile photo upload, and normal-weight text inputs.
+- `references/dataos-mcp-skills-sop-upsert.md` — MCP/JSON-RPC pattern for creating/upserting Data OS SOPs/Skills via `skills_create`, including safe fallback when the Hermes MCP call returns `Unauthorized: token agent requis`, without exposing tokens.
+- `references/dataos-visible-process-sops.md` — difference between internal MCP Skills/SOPs and human-visible Data OS Process/SOP cards in `/bibliotheque/process`; includes Convex `api.processes.create/update` recipe and verification checklist.

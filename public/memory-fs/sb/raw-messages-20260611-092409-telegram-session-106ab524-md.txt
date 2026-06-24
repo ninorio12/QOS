@@ -1,0 +1,26 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260611_091537_feb36b8d.jsonl
+captured_at: 2026-06-11T09:24:09.674669
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-06-11T09:16:07.264700
+
+c'est bon le compte est plus restreint on peut le réutiliser ?
+
+## assistant — 2026-06-11T09:16:07.264700
+
+Oui, mais **prudemment**. Si le compte n’est plus restreint, on peut le réutiliser pour un **test contrôlé**, pas comme canal client sérieux tout de suite. Je ferais ça : - volume très bas pendant 24–48h ; - pas de boucles de test/reconnexion ; - messages humains, courts, espacés ; - pas d’automatisation agressive ; - garder le bot VividFlow sur le numéro dédié `+41 77 279 21 44`, jamais ton numéro perso. Mon avis : **OK pour relancer en pilote**, mais si on veut du fiable client, il faudra migrer ensuite vers WhatsApp Cloud API/Twilio. OpenWA reste fragile.
+
+## user — 2026-06-11T09:19:39.415156
+
+apparement quelqu'un aurait envoyé un message au téléphone perso de jonathan et le bot depuis ce numéro a répondu à cette meme personne avec ce numéro
+
+## user — 2026-06-11T09:19:39.415156
+
+You've reached the maximum number of tool-calling iterations allowed. Please provide a final response summarizing what you've found and accomplished so far, without calling any more tools.
+
+## assistant — 2026-06-11T09:19:39.415156
+
+Oui, c’est confirmé : **il y avait bien une session OpenWA connectée au numéro perso de Jonathan**. J’ai fait le nécessaire en urgence : - **Session perso Jonathan trouvée** : `jonathan-whatsapp-business` - **Numéro concerné** : `+41 79 309 53 58` - **Statut avant** : connecté / prêt à répondre - **Action faite** : session stoppée côté OpenWA - **Statut maintenant** : `disconnected` - **Bridge WhatsApp** : déjà inactif - **Kill-switch** : activé - **Opt-in explicite remis à ON** : le bot ne doit répondre que si quelqu’un demande clairement l’assistant/l’agent - **Règle Second Brain mise à jour** : le numéro perso de Jonathan doit rester exclu/déconnecté Cause probable : l’ancienne session `jonathan-whatsapp-business` était encore enregistrée dans OpenWA, et le webhook a reçu des messages entrants depuis ce compte. Le bot a répondu à au moins deux contacts hier soir. Prochaine action propre : **supprimer définitivement la session perso Jonathan d’OpenWA**, pas seulement la stopper. Je ne l’ai pas fait sans validation parce que c’est une action destructive.

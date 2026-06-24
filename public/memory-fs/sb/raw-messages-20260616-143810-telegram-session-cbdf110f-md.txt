@@ -1,0 +1,22 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260616_143458_a56a94.jsonl
+captured_at: 2026-06-16T14:38:10.228413
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-06-16T14:36:53.064685
+
+le scrapping est de très mauvaise qualité, tu sais pourquoi ?
+
+## user — 2026-06-16T14:36:53.064685
+
+c'est quoi ca serieux, regarde l'email, de 1 il a pas du tout suivit le script du mail selon le SOP, ensuite pourquoi Clara a plus sa photo profil ? ensuite pourquoi elle a pas sa signature officielle ? [Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/image_cache/img_05f6dfbcb4ff.jpg]
+
+## user — 2026-06-16T14:36:53.064685
+
+You've reached the maximum number of tool-calling iterations allowed. Please provide a final response summarizing what you've found and accomplished so far, without calling any more tools.
+
+## assistant — 2026-06-16T14:36:53.064685
+
+Oui, c’est mauvais. Là il y a **3 fautes opérationnelles nettes** : 1. **Le mail ne suit pas le SOP** - Le SOP dit : email Clara uniquement après validation lead + asset. - Là le contenu est ultra brut : “Voici la présentation…” - Aucun script outbound, aucun contexte, aucune personnalisation, aucun ton Clara propre. - Ça ressemble à un envoi manuel bâclé ou à un fallback agent, pas au template validé. 2. **La signature officielle Clara n’a pas été injectée** - Le mail finit par “Clara” en texte simple. - Normalement l’envoi Clara doit partir en HTML avec signature Gmail officielle `sendAs`. - Donc soit l’agent CSM n’a pas utilisé le bon wrapper/procédure Gmail Clara, soit il a envoyé avec un corps texte minimal sans signature. 3. **La photo profil Clara absente** - Visible sur Gmail : avatar bleu générique. - Causes probables : - photo Google Workspace Clara jamais configurée côté compte, - ou compte/alias Clara mal utilisé, - ou Gmail affiche l’avatar générique parce que le profil Google n’est pas complet. - Ce n’est pas corrigé par la signature : c’est un réglage profil Google/Workspace séparé. Cause racine probable : **l’agent CSM a exécuté l’envoi sans garde-fou qualité**. Il a respecté l’adresse `clara.bernasconi@vividflow.co`, mais pas le process réel : script, signature, QA, format HTML. Ce que j’ai vérifié : - SOP outbound : envoi Clara seulement après validation lead + asset. - R&R Agent CSM : ton naturel, court, pas support IA, pas d’envoi ambigu. - Capture : mail trop pauvre, signature absente, avatar générique. Décision immédiate : **stopper les envois outbound Clara tant que le garde-fou n’est pas réparé**. Ensuite il faut imposer : - template mail obligatoire, - HTML obligatoire, - signature officielle injectée, - preview/validation Coordinateur avant envoi, - vérification photo profil Clara côté Google Workspace.

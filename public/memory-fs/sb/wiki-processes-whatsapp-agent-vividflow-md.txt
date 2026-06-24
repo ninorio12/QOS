@@ -1,0 +1,269 @@
+---
+type: process
+status: active
+updated: 2026-06-14
+sources:
+  - raw/messages/20260610-161747_telegram-session_3f09d249.md
+  - raw/messages/20260610-164834_telegram-session_677c63c3.md
+  - raw/messages/20260610-171836_telegram-session_1bed109a.md
+  - raw/messages/20260610-181838_telegram-session_b17d9ecf.md
+  - raw/messages/20260610-195004_telegram-session_1b506fa5.md
+  - raw/messages/20260610-215126_telegram-session_45240d28.md
+  - raw/messages/20260610-222157_telegram-session_0a2e6257.md
+  - raw/messages/20260610-222157_telegram-session_c52af9ef.md
+  - raw/messages/20260610-232235_telegram-session_408008a2.md
+  - raw/messages/20260611-092409_telegram-session_106ab524.md
+  - raw/messages/20260611-095428_telegram-session_9efd3411.md
+  - raw/messages/20260611-102516_telegram-session_b3cad3bf.md
+  - raw/messages/20260611-105534_telegram-session_d74d9a15.md
+  - raw/messages/20260611-112535_telegram-session_0596063d.md
+  - raw/messages/20260611-112535_telegram-session_5934e20e.md
+  - raw/messages/20260611-115606_telegram-session_88d59d7c.md
+  - raw/messages/20260611-115606_telegram-session_5934e20e.md
+  - raw/messages/20260611-115606_telegram-session_0c0828b3.md
+  - raw/messages/20260611-122607_telegram-session_88d59d7c.md
+  - raw/messages/20260611-122607_telegram-session_ff641eb1.md
+  - raw/messages/20260611-135647_telegram-session_ff641eb1.md
+  - raw/messages/20260611-135647_telegram-session_6c5b332e.md
+  - raw/messages/20260611-135647_telegram-session_f353ab78.md
+  - raw/messages/20260611-165721_telegram-session_f353ab78.md
+  - raw/messages/20260611-172722_telegram-session_f353ab78.md
+  - raw/messages/20260611-185808_telegram-session_74a94bdf.md
+  - raw/messages/20260611-235917_telegram-session_74a94bdf.md
+  - raw/messages/20260612-082956_telegram-session_e4c5957a.md
+  - raw/messages/20260613-120837_telegram-session_aeb5ff17.md
+  - raw/messages/20260613-123921_telegram-session_8a9e47d4.md
+  - raw/messages/20260613-141040_telegram-session_30492f87.md
+  - raw/messages/20260613-141040_telegram-session_ca88784d.md
+  - raw/messages/20260613-144111_telegram-session_ca88784d.md
+  - raw/messages/20260613-144111_telegram-session_d473a888.md
+  - raw/messages/20260613-151241_telegram-session_a5dca5bb.md
+  - raw/messages/20260613-151241_telegram-session_1117929b.md
+  - raw/messages/20260613-164256_telegram-session_5489a82f.md
+  - raw/messages/20260614-231658_telegram-session_64e1737b.md
+  - raw/messages/20260614-231658_telegram-session_e75ecca4.md
+---
+# WhatsApp Agent VividFlow
+
+## Décision
+
+VividFlow utilise un canal WhatsApp agent séparé pour les démonstrations et échanges clients.
+
+Canaux opérationnels VividFlow :
+- WhatsApp agent : `+41 77 279 21 44`
+- Email agent : `hey@vividflow.co`
+
+Le numéro personnel de Jonathan est exclu des opérations VividFlow et ne doit pas être utilisé ni référencé comme canal agent.
+
+## Architecture actuelle
+
+- OpenWA self-hosted est le choix initial retenu pour les démos/pilotes, plutôt qu’un bridge Wasender fragile.
+- Bridge local historique : `/home/hermes/openwa-stack/whatsapp-hermes-bridge.py`
+- Service persistant historique : `whatsapp-hermes-bridge.service`
+- Profil Hermes dédié : `vividflow_whatsapp_bot`
+- Session dédiée : `vividflow-whatsapp-bot`
+- Health bridge local historique attendu : `http://127.0.0.1:8791/health`
+- Transition 2026-06-11 : Hermes dispose d’un bridge WhatsApp Baileys natif via `hermes whatsapp` + `hermes gateway`. Le spike/bridge maison ne doit pas tourner en parallèle du WhatsApp natif Hermes.
+
+## Règles de sécurité
+
+- Le bot WhatsApp client n’utilise pas le profil personnel `chief_of_staff`.
+- Mémoire isolée : aucune donnée privée Jonathan ni contexte interne sensible.
+- Toolsets sensibles désactivés par défaut.
+- Contexte autorisé : offres, FAQ, process client, qualification commerciale validée.
+- Escalade vers Jonathan/Thomas si le besoin sort du cadre.
+
+## Voix du bot
+
+- Identité : **VividFlow Assistant**.
+- Ne se fait jamais passer pour Jonathan.
+- Réponses très courtes : 1 à 3 phrases.
+- Pas de ton consultant, pas de blabla, pas de formules creuses.
+- Pas de tiret long IA.
+- Voix inspirée de Jonathan : mature, directe, concrète, précise, sans enthousiasme artificiel.
+- Une idée principale par message ; si c’est flou, poser une question précise.
+- Préférer “on” ou “nous” quand le bot porte VividFlow, jamais un “je” qui ferait croire qu’il est Jonathan.
+- Substance concrète + prochaine action ou question précise si besoin.
+- Brainstorming profond activé pour idée, offre, stratégie, contenu ou décision.
+
+## Exploitation
+
+OpenWA passe par WhatsApp Web : c’est acceptable pour démo/interne/pilotes, mais pas une garantie production blindée.
+
+Risques à superviser :
+- déconnexion WhatsApp Web ;
+- QR expiré ou à rescanner ;
+- limitation Meta en cas de volume/spam ;
+- session `qr_ready` nécessitant reconnexion.
+
+Si la session du numéro VividFlow se déconnecte, générer un QR frais et demander à Jonathan de reconnecter WhatsApp Business via Appareils connectés.
+## État transitoire — restriction WhatsApp
+
+Pendant une restriction ou une période de risque WhatsApp, le bridge reste **arrêté volontairement** jusqu’à reconnexion validée.
+
+Garde-fous préparés côté serveur :
+- kill-switch activé par défaut ;
+- OpenWA API maintenue healthy ;
+- profil utilisé : `vividflow_whatsapp_bot` ;
+- session personnelle Jonathan `jonathan-whatsapp-business` / `+41 79 309 53 58` : Hermes ne doit jamais répondre ni envoyer de message avec ce numéro ; usage autorisé uniquement pour récupérer/lister les contacts dans un espace sûr, sans action autonome ;
+- session bot VividFlow `+41 77 279 21 44` : Hermes peut répondre à chaque message entrant et lancer la conversation ;
+- agent externe uniquement : ne jamais divulguer d’informations sensibles, privées, internes, stratégiques, opérationnelles, techniques, credentials, contacts, clients ou backend ; répondre seulement avec des informations publiques/sûres VividFlow, sinon refuser ou escalader ;
+- contact Jonathan : si quelqu’un veut réellement contacter Jonathan, donner uniquement son email professionnel `jonathan@vividflow.co` ; ne jamais donner son numéro personnel ou canal privé ;
+- envoi sortant vers un contact de Jonathan : uniquement si Jonathan le demande explicitement ;
+- délai humain ajouté : 8 à 25 secondes ;
+- limites de réponse : max 3 réponses par contact/jour, max 8 réponses globales/jour, minimum 60 secondes entre réponses ;
+- whitelist possible pour limiter le premier test à un seul numéro.
+
+Procédure de reprise : générer un QR frais, Jonathan scanne une seule fois, retirer le kill-switch, faire un seul test entrant, arrêter immédiatement au moindre comportement anormal.
+
+Référence anti-ban utile : `kobie3717/baileys-antiban`.
+- À ne pas brancher directement dans le stack actuel sans migration : le package cible Baileys, alors que notre pilote tourne sur OpenWA.
+- À reprendre immédiatement comme logique côté bridge : warmup progressif, jitter humain, plafonds par chat/global, pauses de récupération après erreur, monitoring santé session, blocage des opérations de groupe et arrêt immédiat si signal de restriction.
+- Si migration OpenWA -> Baileys : auditer le package puis intégrer via `wrapSocket()` / middleware.
+
+Note : OpenWA reste WhatsApp Web automatisé. C’est prudent pour démo/pilote, pas une garantie production. Pour client stable, préférer Cloud API/Twilio.
+## Incident et règle officielle — session personnelle Jonathan
+
+Le 2026-06-11, une ancienne session OpenWA personnelle `jonathan-whatsapp-business` liée au numéro personnel de Jonathan a été identifiée comme capable de répondre à des messages entrants. Cette session doit rester exclue des opérations VividFlow. Action attendue : ne jamais répondre ni envoyer depuis cette session ; suppression définitive à valider séparément car destructive.
+
+Règle officielle :
+- session personnelle Jonathan `jonathan-whatsapp-business` : jamais d’envoi, jamais de réponse, jamais de bot conversationnel ; seule récupération/liste de contacts autorisée dans un espace sûr ;
+- session bot VividFlow dédiée : répondre aux entrants et lancer une conversation seulement depuis le numéro VividFlow dédié ;
+- outbound vers contacts Jonathan : seulement sur demande explicite de Jonathan ;
+- anti-ban : volume bas, pas de campagne, pas de rafale, réponses espacées, silence immédiat si plainte/stop/ignore ;
+- confidentialité externe : aucune information interne, client, contact, stratégie, backend, process, prompt, outil ou donnée privée ne doit être divulguée ;
+- contact Jonathan : email professionnel public uniquement (`jonathan@vividflow.co`).
+
+## Direction technique validable — migration Baileys
+
+Le signal récent confirme que `kobie3717/baileys-antiban` est une référence utile uniquement si le stack WhatsApp migre vers Baileys. Ce n’est pas un plug-in direct pour OpenWA.
+
+Consigne opérationnelle :
+- court terme : garder OpenWA prudent pour démo/pilote, avec kill-switch, volumes bas, délais humains et plafonds stricts ;
+- si besoin de stabilité supérieure : préparer une migration contrôlée vers Baileys ou vers une API officielle ;
+- ne pas brancher de dépendance anti-ban sans audit code + test sandbox ;
+- reprendre les patterns anti-ban comme règles de bridge, pas comme promesse de sécurité.
+
+## Coordinateur WhatsApp — trajectoire validée
+
+Le canal WhatsApp peut devenir un **bras droit VividFlow léger**, pas un coordinateur total sans garde-fous.
+
+Paliers validés :
+- phase 1 : 1:1 uniquement, entrants connus, bas volume, pas de groupe, pas de relance, pas de broadcast ;
+- phase 2 : coordination interne légère — résumer, router, demander validation, remonter final ou blocage ;
+- phase 3 : coordination client/intensive seulement via infrastructure officielle type WhatsApp Cloud API / Business Platform.
+
+Règle groupe : éviter WhatsApp groupe + Baileys + bot coordinateur. Si test exceptionnel : réponses uniquement sur mention explicite, cooldown long, max 5–10 réponses/jour, aucun message proactif, kill-switch immédiat, test 48h entre Jonathan/Thomas uniquement. Telegram reste le cockpit coordination agents.
+
+## Bridge natif Hermes — règle de bascule
+
+La documentation Hermes confirme un bridge WhatsApp Baileys natif : `hermes whatsapp`, `WHATSAPP_ENABLED=true`, `WHATSAPP_MODE=bot`, `WHATSAPP_ALLOWED_USERS`. Si aucun allowed user n’est défini, Hermes bloque les entrants par sécurité.
+
+Procédure de bascule propre :
+1. arrêter/neutraliser le spike maison `node bridge.mjs` ou tout bridge OpenWA actif ;
+2. activer WhatsApp uniquement sur le profil `vividflow_whatsapp_bot` ;
+3. configurer whitelist, 1:1, groupes désactivés, pas de broadcast, pas d’outbound froid ;
+4. pairer via `hermes whatsapp` ;
+5. relancer la gateway ;
+6. tester un message entrant et vérifier une seule réponse.
+
+## État bêta opérationnelle — 2026-06-11
+
+Le numéro officiel agent VividFlow/Hermes est `+41 77 279 21 44`. Le libellé cible côté bridge est **Bras droit VividFlow**. Réserve : le nom visible dans WhatsApp peut nécessiter propagation ou modification directe dans WhatsApp Business.
+
+État acceptable : bêta prudente / test contrôlé. Ne pas déclarer production solide sans validation réelle sur 2–3 messages naturels espacés : réponse unique, ton naturel, aucun détail technique exposé, délai fluide.
+
+
+## Cible long terme — API officielle Meta
+
+Pour un usage client, intensif ou vendable, la cible propre reste Meta WhatsApp Cloud API / Business Platform plutôt que Baileys/OpenWA.
+
+Lecture opérationnelle :
+- Baileys/OpenWA : acceptable pour sandbox, démo interne, bas volume et 1:1 contrôlé ;
+- Meta Cloud API : préférable pour stabilité, webhooks, conformité, monitoring et scalabilité ;
+- risque restant même en officiel : spam, signalements, absence de consentement ou templates refusés ;
+- ordre de grandeur coût : quelques euros/mois en petit test, 10–50 €/mois en volume client modéré, plus si marketing massif.
+
+## Reconnexion bridge Baileys — 2026-06-11
+
+Le spike Baileys maison a été reconnecté en réel sur le numéro agent `+41 77 279 21 44` avec le profil cible **Bras droit VividFlow**. État observé : `health_ready`, connexion WhatsApp active, `DRY_RUN=0`, `KILL_SWITCH=0`.
+
+Garde-fou : les logs techniques de connexion peuvent contenir des clés/identifiants éphémères Baileys. Ne jamais les repartager dans une réponse utilisateur, un wiki public ou un brief agent.
+
+Validation avant usage élargi : faire un test entrant simple depuis un contact autorisé et vérifier réponse unique, utile, sans détail technique ni mention anti-ban.
+
+
+## Surveillance reconnexion — 2026-06-12
+
+Le bridge Baileys agent a montré des reconnexions répétées tout en restant connecté au bon compte **Bras droit VividFlow** / `+41 77 279 21 44`. Ce n’est pas un incident bloquant tant qu’un test entrant confirme une seule réponse utile, mais c’est un signal de stabilité à surveiller.
+
+Règle opérationnelle : ne pas relancer le process en boucle, ne pas rescanner/pairer sans nécessité, faire un seul test entrant, puis laisser tourner. Si les reconnexions continuent ou créent des réponses multiples, couper le spike et basculer vers le bridge natif Hermes ou l’API officielle. Les champs éphémères/logs de connexion ne doivent jamais être recopiés dans le wiki ou les briefs.
+
+
+## Spike Baileys stoppé — 2026-06-12
+
+Le spike Baileys maison a été coupé après trop de reconnexions répétées. Décision opérationnelle : protéger le numéro agent `+41 77 279 21 44`, ne plus relancer/pairer en boucle, et ne plus pousser de tests tant que la trajectoire propre n’est pas choisie.
+
+Suite recommandée :
+- court terme : observation ou test entrant unique seulement si la session est stable ;
+- si besoin de WhatsApp dans Hermes : bascule vers bridge WhatsApp natif Hermes ;
+- si usage client/intensif/vendable : Meta WhatsApp Cloud API / Business Platform.
+
+Règle sécurité : les logs Baileys contenant des champs `ephemeral`, identifiants ou payloads de connexion doivent être considérés sensibles et remplacés par `[REDACTED]` avant tout partage.
+
+## Curation — 2026-06-12 — POC vs production WhatsApp
+Sources : `raw/messages/20260612-140134_telegram-session_263becf0.md`, `raw/messages/20260612-140134_telegram-session_87c6fa3c.md`.
+
+Lecture validée : OpenWA / Baileys / Waha / Evolution API sont utiles pour POC, sandbox et apprentissage UX, mais ne doivent pas être vendus comme fondation client long terme. La cible production client reste WhatsApp Cloud API / Business Platform.
+
+Règle opérationnelle :
+- Baileys = sandbox contrôlée, bas volume, zéro promesse client ;
+- Cloud API = production, consentement, templates, stabilité et conformité ;
+- sécurité obligatoire : webhook signé, auth, rate limit, firewall/IP filtering, logs, kill-switch, opt-out, pas d’outbound sauvage.
+
+
+## Persistance runtime — 2026-06-13
+Sources : `raw/messages/20260613-120837_telegram-session_aeb5ff17.md`, `raw/messages/20260613-123921_telegram-session_8a9e47d4.md`.
+
+Décision opérationnelle : le numéro agent VividFlow ne doit pas dépendre d’un démarrage manuel. Le service WhatsApp doit être traité comme runtime permanent.
+
+État validé à conserver comme standard :
+- OpenWA attaché à un service systemd persistant `openwa-stack.service`, enabled au boot ;
+- bridge `whatsapp-hermes-bridge.service` enabled, actif et avec restart automatique ;
+- watchdog local toutes les 2 minutes, silencieux si OK, redémarrage OpenWA/bridge si health KO ;
+- health OpenWA et bridge vérifiés OK ;
+- auto-restart du bridge testé par kill manuel.
+
+Point de vigilance : un service peut être online alors que WhatsApp Web/OpenWA échoue fonctionnellement avec `OpenWA send failed 500`. Pour usage client sérieux, garder Meta Cloud API / Business Platform comme cible plus solide.
+
+
+## Clara — Responsable Relation Client — 2026-06-13
+Sources : `raw/messages/20260613-141040_telegram-session_30492f87.md`, `raw/messages/20260613-141040_telegram-session_ca88784d.md`, `raw/messages/20260613-144111_telegram-session_ca88784d.md`, `raw/messages/20260613-144111_telegram-session_d473a888.md`.
+
+Décision validée : le bot WhatsApp client s'appelle **Clara** et porte le rôle de Responsable Relation Client VividFlow. Elle parle au féminin, avec une voix humaine, correcte, naturelle et directe.
+
+Règles de voix runtime :
+- miroir de politesse : si l'interlocuteur tutoie, Clara tutoie ; si l'interlocuteur vouvoie, Clara vouvoie ;
+- ne jamais parler comme un chatbot ni sortir une formule générique type “comment je peux vous aider avec VividFlow” ;
+- pas de tiret IA ni de tournure robotique ;
+- confidentialité et escalade vers Jonathan/Thomas si le sujet dépasse le cadre validé.
+
+État technique à conserver : OpenWA a été reconstruit, l'image Docker recréée, le conteneur vérifié `running healthy`, health OpenWA `200`. Un endpoint interne `POST /sessions/:sessionId/messages/typing` a été ajouté et appelé par le bridge pour afficher la bulle d'écriture. Le bridge a aussi été câblé pour détecter les vocaux/audio, convertir via `ffmpeg`, transcrire avec `faster_whisper`, puis transmettre le texte à Clara. Réserve : à considérer comme livré côté serveur, mais à valider par test WhatsApp réel sur vocal entrant et bulle typing visible.
+
+
+## Clara — correctifs runtime testés — 2026-06-13
+Sources : `raw/messages/20260613-151241_telegram-session_a5dca5bb.md`, `raw/messages/20260613-151241_telegram-session_1117929b.md`, `raw/messages/20260613-164256_telegram-session_5489a82f.md`.
+
+Signaux opérationnels validés :
+- si le watchdog remonte `session=unknown` ou `qr_ready/disconnected`, ne pas présumer un rescan : vérifier session OpenWA, locks Chromium, webhooks et reachability bridge ;
+- le webhook OpenWA doit pointer vers une URL joignable depuis le container, pas une adresse host non résolue ; la validation attendue est un test webhook → bridge `200/success`;
+- pour les vocaux, le bridge doit tourner avec le Python du venv qui contient `faster_whisper`, sinon la réception fonctionne mais la transcription plante ;
+- Clara doit adapter tutoiement/vouvoiement de manière déterministe selon le message entrant, et éviter les exemples/prompt qui forcent inconsciemment le vouvoiement.
+
+
+## Curation — 2026-06-14 — Reprise OpenWA / Clara
+Sources : `raw/messages/20260614-231658_telegram-session_64e1737b.md`, `raw/messages/20260614-231658_telegram-session_e75ecca4.md`.
+
+Incident validé : Clara/WhatsApp pouvait afficher un runtime healthy alors qu’aucune session OpenWA active n’existait. La correction opératoire a été : recréer la session `vividflow-whatsapp-bot`, corriger le webhook vers `/webhook/openwa`, redémarrer OpenWA après lock Chromium, vérifier `200/success`, puis confirmer session ready sur le numéro dédié `+41 77 279 21 44`.
+
+Règle de diagnostic : ne pas s’arrêter au healthcheck OpenWA/bridge. Vérifier aussi la présence d’une session active, le webhook exact appelé par OpenWA, l’arrivée réelle d’un message entrant dans les logs bridge, puis l’envoi effectif de la réponse.

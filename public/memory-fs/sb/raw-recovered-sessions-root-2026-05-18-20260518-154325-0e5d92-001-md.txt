@@ -1,0 +1,140 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260518_154325_0e5d92
+source_file: /home/hermes/.hermes/sessions/20260518_154325_0e5d92.jsonl
+source_sha256_16: 1d015095d2704c9b
+date: 2026-05-18
+---
+
+# Recovered session root/20260518_154325_0e5d92
+
+
+## user — 2026-05-18T15:49:29.849444
+
+[Thomas] c'est possible de faire travailler plusieurs agents en simultané sur le meme vercel ?
+
+## assistant — 2026-05-18T15:49:29.849444
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+None.
+
+## Goal
+Thomas construit un **VividFlow Data OS**. L'objectif est d'enrichir le workflow builder avec une navigation "Miro-like" (pan/grab, focus), une gestion multi-templates persistante par client, et une interaction précise pour la suppression des liens/flèches, tout en intégrant les points d'entrée **Process/Data** dans les fiches contacts du CRM. Le bouton **Data** servira plus tard de point d’entrée vers un formulaire.
+
+## Constraints & Preferences
+- **Langue** : Français.
+- **UI/UX** : Style Miro/Canvas, navigation fluide via `grab`, bouton `Focus` pour recentrer le workflow.
+- **Technique** : React / Next.js, Tailwind CSS, Lucide React, LocalStorage pour la persistance côté client.
+- **Sécurité** : Ne jamais conserver de secret, token, mot de passe, credential ou connection string ; remplacer par `[REDACTED]`.
+- **Hitbox flèches** : Utiliser un "ghost path" transparent plus large pour faciliter la sélection des flèches.
+- **Priorité interaction canvas** : Quand l’utilisateur attrape un nœud, priorité au drag du nœud ; quand il utilise l’outil Main hors nœud, pan du canvas.
+- **Templates** : Les templates doivent être isolés par client/contact pour éviter tout mélange entre fiches.
+- **CRM** : Dans les fiches contacts, exposer deux entrées distinctes : **Process** et **Data**.
+
+## Completed Actions
+1. ANALYSÉ le feedback visuel initial sur les ancres de flèches — identifié que les flèches devaient partir/arriver depuis le centre dynamique des formes plutôt que depuis des positions fixes [tool: execute_code].
+2. IMPLÉMENTÉ le calcul dynamique du centre des formes pour les ancres de flèches — amélioration du rendu des connexions entre blocs [tool: execute_code].
+3. AJOUTÉ la fonctionnalité `+ Process` et compressé l’UI — objectif : maximiser l’espace disponible pour le canvas [tool: terminal].
+4. PATCHÉ `src/app/data-os-client.tsx` — ajout des types `WorkflowTemplateDraft` et des boutons **Process** / **Data** dans les fiches contacts [tool: terminal].
+5. IMPLÉMENTÉ le mode **Main / Grab** dans le workflow builder — permet de se déplacer dans le tableau/canvas façon Miro [tool: terminal].
+6. AJOUTÉ le bouton **Focus** — reset/recentrage de la vue sur le workflow [tool: terminal].
+7. AJOUTÉ la gestion multi-templates par client — création, sélection/switch et suppression de templates avec persistance localStorage [tool: terminal].
+8. ACTIVÉ la sélection des flèches via `pointer-events: stroke` — première étape pour permettre la suppression des liens [tool: terminal].
+9. IDENTIFIÉ une difficulté de sélection des flèches via Playwright — hitbox initiale trop fine, environ 3px, rendant le clic peu fiable [tool: mcp_playwright_browser_run_code_unsafe].
+10. REFACTORISÉ le rendu SVG des flèches dans `src/app/data-os-client.tsx` — passage d’un simple `<path>` à un groupe `<g>` incluant une hitbox invisible `.workflow-edge-hit` [tool: patch].
+11. AJOUTÉ une hitbox invisible de 18px sur les flèches — clic beaucoup plus facile sur les liens pour les sélectionner [tool: patch].
+12. MIS À JOUR `src/app/globals.css` — configuration de `pointer-events: none` sur la flèche visuelle et `pointer-events: stroke` sur la hitbox invisible `.workflow-edge-hit` [tool: patch].
+13. VÉRIFIÉ via Playwright la sélection puis suppression d’une flèche — nombre de flèches passé de 3 à 2 après clic sur la nouvelle hitbox et suppression [tool: mcp_playwright_browser_run_code_unsafe].
+14. RÉSOLU les erreurs de build Next.js liées à des types orphelins dans `.next` — correction par clean build en supprimant les artefacts `.next` et `tsconfig.tsbuildinfo` [tool: terminal].
+15. DÉPLOYÉ en production via Vercel — commande `npx vercel deploy --prod --yes --force`, déploiement réussi [tool: terminal].
+16. VALIDÉ l’accessibilité de l’URL finale `https://vividflow-service-execution-os.vercel.app/` — vérification HTTP OK [tool: terminal].
+17. NAVIGUÉ sur la prod avec le paramètre QA `?qa=deploy-pan-template-edge` — ouverture de `https://vividflow-service-execution-os.vercel.app/?qa=deploy-pan-template-edge` pour contrôle post-déploiement [tool: browser_navigate].
+18. CONSTATÉ un clic navigateur invalide sur une ancienne référence DOM — erreur `Unknown ref: e10`, due à un ref obsolète après navigation/snapshot [tool: browser_click].
+19. PRIS un snapshot navigateur après l’erreur de ref — résultat : page vide dans cet outil navigateur spécifique, donc bascule vers Playwright MCP pour validation fiable [tool: browser_snapshot].
+20. CONSULTÉ la skill `imported-cohorte-aios/technical-delivery/webapp-testing` — rappel des pratiques de test webapp et validation navigateur [tool: skill_view].
+21. CONSULTÉ la skill `business/vividflow-saas-logic-mapper` — rappel du contexte métier VividFlow et de la logique SaaS/process [tool: skill_view].
+22. LANCÉ une vérification terminal de l’état repo et de l’URL prod — commande combinée `git status --short` + script Python `urllib.request.urlopen('https://vividflow-service-execution-os.vercel.app/')`, sortie exit 0 [tool: terminal].
+23. NAVIGUÉ via Playwright MCP vers `https://vividflow-service-execution-os.vercel.app/?qa=final-check` — page chargée pour contrôle final prod [tool: mcp_playwright_browser_navigate].
+24. PRIS un snapshot Playwright de la page prod — structure DOM disponible, permettant de continuer le test [tool: mcp_playwright_browser_snapshot].
+25. CLIQUÉ sur le bouton **Data OS** via Playwright — navigation vers la zone Data OS réussie [tool: mcp_playwright_browser_click].
+26. CLIQUÉ sur la première fiche contact via Playwright — ouverture/affichage du détail contact et du workflow associé [tool: mcp_playwright_browser_click].
+27. VÉRIFIÉ via script Playwright dans le DOM — présence des boutons **Main**, **Focus**, **Process**, **Data** et détection de 3 hitbox de flèches sur le workflow [tool: mcp_playwright_browser_run_code_unsafe].
+28. CONTRÔLÉ les erreurs console de la prod — `Total messages: 0 (Errors: 0, Warnings: 0)` [tool: mcp_playwright_browser_console_messages].
+29. CONFIRMÉ le serveur local Next.js prêt — process `proc_15c4c41c5866`, commande `PORT=3027 npm run dev`, sortie `✓ Ready in 1891ms` [tool: background process notification].
+30. RÉPONDU à Thomas avec le statut
+
+...[TRONQUÉ 14640 chars sha256:e061f8e4c19f2831]...
+
+ invisible.
+ - Sélection/suppression des flèches.
+ - Ajout des boutons **Process** et **Data** dans les fiches contacts.
+- `src/app/globals.css` :
+ - Styles des flèches workflow.
+ - `.workflow-edge-hit` avec pointer-events adaptés.
+ - Curseurs `grab` / `grabbing`.
+ - Gestion du clic via hitbox SVG transparente.
+- `vercel.json` :
+ - Mention critique : configuration `builds` personnalisée qui override les réglages dashboard Vercel.
+- `.next` / `tsconfig.tsbuildinfo` :
+ - Artefacts de build supprimés lors du clean build pour résoudre les erreurs de types orphelins.
+
+## Remaining Work
+- Construire plus tard le formulaire relié au bouton **Data**.
+- Éventuellement ajouter un état visuel/placeholder plus explicite pour **Data · formulaire bientôt** si Thomas veut guider davantage l’utilisateur.
+- Continuer la validation UX réelle avec Thomas sur le confort du mode Main/grab et du bouton Focus, même si les tests techniques sont OK.
+- Nettoyer les éventuels logs/debugs Playwright ou sessions terminal inutiles si nécessaire.
+- Si demandé ensuite : ajouter tests automatisés permanents pour vérifier Main, Focus, templates, flèches supprimables, boutons Process/Data.
+
+## Critical Context
+- La demande exacte de Thomas désormais réalisée était : 
+ `"permet 2 chose de grab avec le main de se balader dans le tableau et un bouton focus pour recentré sur le worflow. Ensuite permet de créer et supprimer autant de templates qu'on veut par client et ensuite la possibilité de selectionner une fleche et la supprimer. Enfin dernière chose dans les fiches contacts on doit avoir le bouton process et le bouton data data sera relié a un formulaire qu'on fera plus tard"`
+- URL prod actuelle : `https://vividflow-service-execution-os.vercel.app/`.
+- URL QA utilisée : `https://vividflow-service-execution-os.vercel.app/?qa=final-check`.
+- Serveur local récent : `PORT=3027 npm run dev`, process `proc_15c4c41c5866`, sortie `✓ Ready in 1891ms`.
+- Vérification console prod : `Total messages: 0 (Errors: 0, Warnings: 0)`.
+- Le déploiement Vercel utilise une configuration `builds` personnalisée dans `vercel.json` qui override les réglages du dashboard.
+- La hitbox des flèches utilise un path transparent large avec `stroke-width: 18`, `pointer-events: stroke` et `stroke-linecap: round`.
+- Les templates sont persistés et isolés par `contact.id` via localStorage.
+- Aucune clé API, aucun token, aucun mot de passe ni credential ne doit être conservé ; remplacer toute valeur sensible par `[REDACTED]`.
+
+## user — 2026-05-18T15:49:29.849444
+
+[{"type": "text", "text": "[Thomas] débug c'est pas beau et rend fluide l'utilisation stp\n\n[Image attached at: /home/hermes/.hermes/image_cache/img_8ea4b385a9d6.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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
+
+## assistant — 2026-05-18T15:49:29.849444
+
+C’est débuggé et déployé.
+
+Ce que j’ai corrigé :
+
+- Les énormes triangles noirs venaient des flèches : le marker SVG était aussi appliqué à la hitbox invisible. Corrigé.
+- Hitbox des flèches gardée large, mais invisible proprement.
+- Modal workflow plus compact, plus propre, moins “jouet”.
+- Onboarding masqué dans cette vue pour prioriser le canvas process.
+- Header réduit, canvas plus lisible, panneau droit compacté.
+- Zoom par défaut remonté à 82% pour éviter l’effet trop mini.
+- Main/grab rendu plus fluide avec `preventDefault` pendant le pan.
+- Panneau de config scrollable proprement, plus de contenu cassé en bas.
+- Boutons / templates / zoom nettoyés visuellement.
+
+Vérifs faites :
+
+- Build local OK.
+- Déploiement Vercel prod OK.
+- URL prod HTTP 200.
+- Test prod Playwright OK :
+ - Canvas visible.
+ - Main actif.
+ - Focus présent.
+ - Data présent.
+ - 3 flèches + 3 hitbox.
+ - Hitbox flèche cliquable.
+ - Plus de marker géant sur la hitbox.
+ - Console prod : 0 erreur, 0 warning.
+
+Prod :
+https://vividflow-service-execution-os.vercel.app/

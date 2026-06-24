@@ -1,0 +1,330 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260603_174650_2d9314
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260603_174650_2d9314.jsonl
+source_sha256_16: 133e03b578d4a930
+date: 2026-06-03
+---
+
+# Recovered session chief_of_staff/20260603_174650_2d9314
+
+
+## assistant — 2026-06-03T18:21:25.354441
+
+Oui. Là il faut arrêter d’empiler des modules.
+
+Le bon design, c’est **peu de modules, mais chacun relié au Data OS existant**.
+
+## Mon choix
+
+Je créerais seulement **2 modules nouveaux**, pas plus :
+
+## 1. Prospection
+
+C’est l’équivalent propre du Sheet LinkedIn / Cold Call / Cold Email.
+
+Il sert à suivre :
+- qui on contacte
+- par quel canal
+- à quelle phase
+- quand relancer
+- résultat obtenu
+
+Mais il ne remplace pas Contacts.
+
+### Logique
+```text
+Prospection crée ou enrichit un Contact.
+Si le contact répond/intéressé → il devient Lead dans Pipeline.
+Si relance nécessaire → crée une Tâche.
+Chaque mouvement → Activités.
+Les patterns → Base de connaissance.
+```
+
+### Vue simple
+Colonnes :
+- À contacter
+- Contacté
+- Relance 1
+- Relance 2
+- Réponse
+- À qualifier
+- Ignoré
+
+Chaque carte :
+- nom
+- entreprise
+- canal : LinkedIn / Call / Email
+- source/mot-clé
+- dernière action
+- prochaine relance
+- statut
+
+Pas besoin de 50 champs.
+
+---
+
+## 2. Appels
+
+C’est l’équivalent propre du Sheet “Tracker d’appel de vente”.
+
+Il sert à suivre :
+- appels R1/R2/discovery
+- résultat
+- replay
+- objections
+- conclusion
+- prochaine action
+
+### Logique
+```text
+Un Appel est lié à un Contact + opportunité Pipeline.
+Si résultat = à suivre → crée Tâche.
+Si résultat = perdu → met Pipeline en Perdu.
+Si résultat = closé → convertit Contact en Client.
+Objection → Base de connaissance.
+Tout → Activités.
+```
+
+### Vue simple
+- liste des appels
+- filtres : R1 / R2 / Closé / Perdu / À suivre
+- KPI :
+ - appels
+ - ventes
+ - perdus
+ - closing %
+ - attention : interprétation fiable après 30 appels
+
+Chaque appel :
+- contact
+- date
+- type
+- source
+- offre/montant
+- résultat
+- replay
+- conclusion
+
+---
+
+# Pour le “Plan d’attaque”
+
+Je ne créerais **pas** un nouveau module.
+
+Je l’intègre dans **Tâches**.
+
+Dans Tâches, ajouter une vue :
+- **Priorisation**
+
+Avec :
+- portée
+- impact
+- confiance
+- effort
+- score
+- ordre recommandé
+- mois
+- début/fin
+
+Ça évite un module de plus.
+
+---
+
+# Structure finale
+
+Dans la sidebar Acquisition :
+
+- Pipeline
+- Prospection
+- Appels
+- Contacts
+- Tâches
+
+Et les modules existants restent :
+- Activités
+- Équipe IA
+- Base de connaissance
+
+## Pourquoi c’est propre
+
+Les Sheets deviennent :
+
+```text
+Sheet outreach → Prospection
+Sheet calls → Appels
+Sheet plan attaque → Tâches / Priorisation
+```
+
+Et le Data OS reste simple.
+
+---
+
+# Synchronisation obligatoire
+
+## Prospection
+Crée/enrichit :
+- Contacts
+- Pipeline si intéressé
+- Tâches si relance
+- Activités à chaque action
+- Base de connaissance si pattern
+
+## Appels
+Crée/enrichit :
+- Contacts
+- Pipeline
+- Tâches
+- Activités
+- Base de connaissance
+
+## Tâches / Priorisation
+Crée/enrichit :
+- Activités
+- Équipe IA
+- Calendrier si besoin
+- Pipeline si tâche liée à un lead
+
+---
+
+# Prompt clair pour Claude Code
+
+```text
+We need to integrate the logic from the Google Sheets into the existing VividFlow Data OS without overloading the product.
+
+Do not recreate Excel.
+Do not add many modules.
+Preserve the existing Data OS structure and design.
+
+Create only 2 new acquisition modules:
+
+1. Prospection
+Equivalent of the LinkedIn / Cold Call / Cold Email tracker.
+
+Purpose:
+Track outbound/inbound prospecting actions before or around lead qualification.
+
+Fields:
+- contactId optional
+- fullName
+- companyName
+- channel: linkedin | cold_call | cold_email | inbound | referral
+- keyword
+- currentPhase
+- status
+- lastActionAt
+- nextFollowUpAt
+- outcome
+- notes
+
+Views:
+- board by status/phase
+- list view optional
+
+Statuses:
+- à contacter
+- contacté
+- relance 1
+- relance 2
+- réponse
+- à qualifier
+- ignoré
+
+Behavior:
+- Creating a prospect should create or link a Contact.
+- If prospect is interested/qualified, create or update Pipeline lead.
+- If nextFollowUpAt exists, create a Task.
+- Every change writes an Activity.
+- Patterns or objections can be proposed to Base de connaissance.
+
+2. Appels
+Equivalent of the sales call tracker.
+
+Purpose:
+Track discovery/R1/R2/follow-up calls linked to Contacts and Pipeline.
+
+Fields:
+- contactId
+- opportunityId optional
+- callDate
+- callType: discovery | r1 | r2 | follow_up
+- source
+- offer
+- amount
+- recordingUrl
+- result: closed | lost | follow_up | no_show
+- conclusion
+- notes
+- objections
+- nextActionTaskId
+
+Views:
+- list of calls
+- filters by type/result
+- KPI cards: total calls, closed, lost, closing %
+- warning: closing % is only reliable after 30 calls
+
+Behavior:
+- If result = follow_up, create follow-up Task.
+- If result = lost, move Pipeline/contact to lost.
+- If result = closed, convert contact/client if relevant.
+- Objections can be sent to Base de connaissance as memory candidates.
+- Every call creates Activity logs.
+
+Do not create a separate module for Plan d’attaque.
+Instead enhance existing Tâches with a Priorisation view.
+
+Tâches / Priorisation fields:
+- scope
+- impact
+- confidence
+- effort
+- score = scope * impact * confidence / effort
+- plannedMonth
+- startDate
+- endDate
+- category
+
+Integrations:
+- Contacts = source of truth.
+- Pipeline = commercial view.
+- Prospection and Appels must link to Contacts.
+- Prospection/Appels can create Tasks.
+- All movements must write Activités.
+- Base de connaissance stores objections, scripts, patterns, reasons won/lost.
+- Équipe IA/Hermes must be able to read/write these through MCP.
+
+MCP:
+Add tools for:
+- prospection_list/create/update
+- calls_list/create/update/summary
+- contacts_list/create/update
+- pipeline_list/move
+- dataos_state enriched with prospects, calls, stale leads, pending follow-ups
+
+Acceptance:
+- Existing Contacts and Pipeline still work.
+- Creating a Prospection record links or creates a Contact.
+- Qualified prospect appears in Pipeline.
+- Creating an Appel links to Contact/Pipeline.
+- Follow-up tasks are generated when needed.
+- Activity logs are automatic.
+- Base de connaissance receives objections/patterns to validate.
+- Tâches has Priorisation view with score calculation.
+- Build/typecheck pass.
+- Vercel works.
+```
+
+## Verdict
+
+Le setup idéal :
+
+- **Prospection** = avant le lead / acquisition terrain
+- **Appels** = moment commercial / R1/R2 / closing
+- **Tâches Priorisation** = plan d’attaque
+- **Contacts + Pipeline** = source commerciale centrale
+
+C’est simple, utile, proche d’Excel, mais beaucoup plus puissant.

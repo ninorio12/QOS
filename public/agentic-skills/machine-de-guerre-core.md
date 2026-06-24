@@ -1,0 +1,30 @@
+---
+name: machine-de-guerre-core
+description: |
+  Runtime core VividFlow chargé depuis le Second Brain. Utilise ce skill avant les demandes VividFlow non triviales selon le system prompt.
+---
+
+# machine-de-guerre-core
+
+Source canonique: `/home/hermes/vividflow-second-brain/wiki/runtime/machine-de-guerre-core.md`
+
+---
+type: process
+status: active
+updated: 2026-06-14
+sources: [raw/recovered-system/hermes-profiles-runtime-snapshot.md, raw/recovered-system/data-os-runtime-snapshot.md, raw/recovered-sessions/manifest.json]
+---
+# Machine De Guerre Core
+
+État récupéré couche par couche : sessions Hermes pertinentes, profils agents, Second Brain, GBrain, Data OS runtime.
+
+Boucle obligatoire :
+1. Demande VividFlow non triviale -> charger `context-loader-core`.
+2. Charger `source-of-truth-core` pour savoir où chercher/écrire.
+3. Charger `agent-roles-core` si agents/routage.
+4. Charger un core récupéré si contexte historique : `gbrain-secondbrain-core`, `data-os-core`, `agents-routing-core`, `product-dev-core`, `brand-content-core`, `ops-decisions-core`.
+5. Si encore insuffisant, chercher dans `recovered-sessions` par mot-clé puis lire seulement les shards utiles.
+6. Écrire les décisions/process dans Second Brain et l'état vivant dans Data OS.
+
+Règle anti-défaillance : raw Telegram = archive/fallback, jamais contexte principal.
+

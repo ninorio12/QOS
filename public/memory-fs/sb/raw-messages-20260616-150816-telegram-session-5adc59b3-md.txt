@@ -1,0 +1,38 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260616_144943_a0d3ef.jsonl
+captured_at: 2026-06-16T15:08:16.332622
+platform: telegram
+type: conversation_delta
+---
+
+## user — 2026-06-16T14:51:19.928908
+
+le scrapping est de très mauvaise qualité, tu sais pourquoi ?
+
+## user — 2026-06-16T14:51:19.928908
+
+You've reached the maximum number of tool-calling iterations allowed. Please provide a final response summarizing what you've found and accomplished so far, without calling any more tools.
+
+## assistant — 2026-06-16T14:51:19.928908
+
+Oui, c’est mauvais. Là il y a **3 fautes opérationnelles nettes** : 1. **Le mail ne suit pas le SOP** - Le SOP dit : email Clara uniquement après validation lead + asset. - Là le contenu est ultra brut : “Voici la présentation…” - Aucun script outbound, aucun contexte, aucune personnalisation, aucun ton Clara propre. - Ça ressemble à un envoi manuel bâclé ou à un fallback agent, pas au template validé. 2. **La signature officielle Clara n’a pas été injectée** - Le mail finit par “Clara” en texte simple. - Normalement l’envoi Clara doit partir en HTML avec signature Gmail officielle `sendAs`. - Donc soit l’agent CSM n’a pas utilisé le bon wrapper/procédure Gmail Clara, soit il a envoyé avec un corps texte minimal sans signature. 3. **La photo profil Clara absente** - Visible sur Gmail : avatar bleu générique. - Causes probables : - photo Google Workspace Clara jamais configurée côté compte, - ou compte/alias Clara mal utilisé, - ou Gmail affiche l’avatar générique parce que le profil Google n’est pas complet. - Ce n’est pas corrigé par la signature : c’est un réglage profil Google/Workspace séparé. Cause racine probable : **l’agent CSM a exécuté l’envoi sans garde-fou qualité**. Il a respecté l’adresse `clara.bernasconi@vividflow.co`, mais pas le process réel : script, signature, QA, format HTML. Ce que j’ai vérifié : - SOP outbound : envoi Clara seulement après validation lead + asset. - R&R Agent CSM : ton naturel, court, pas support IA, pas d’envoi ambigu. - Capture : mail trop pauvre, signature absente, avatar générique. Décision immédiate : **stopper les envois outbound Clara tant que le garde-fou n’est pas réparé**. Ensuite il faut imposer : - template mail obligatoire, - HTML obligatoire, - signature officielle injectée, - preview/validation Coordinateur avant envoi, - vérification photo profil Clara côté Google Workspace.
+
+## assistant — 2026-06-16T14:51:19.928908
+
+J’ai tenté de lui envoyer l’ordre sur Slack, mais le connecteur Slack de ce profil n’est pas configuré ici : `Platform 'slack' is not configured` Donc je n’ai pas pu le pousser directement à l’Agent CSM depuis ce canal. Message à lui transmettre tel quel : > Refais un test interne d’email Clara uniquement vers Thomas. > Conditions non négociables : SOP outbound, corps HTML, signature officielle Clara injectée, ton Clara propre. Vérifie aussi pourquoi l’avatar Clara apparaît générique. > Livrable : screenshot du mail reçu + confirmation de la méthode utilisée avant tout nouvel envoi prospect. Je te conseille de ne valider **aucun nouvel envoi prospect** tant qu’il n’a pas renvoyé ce test propre.
+
+## user — 2026-06-16T14:51:19.928908
+
+non mais quand je te dis ca c'est toujours en utilisant ton extension stp
+
+## assistant — 2026-06-16T14:51:19.928908
+
+Oui, tu as raison. J’ai corrigé le réflexe. J’ai envoyé via **mon extension Slack/VPS Coordinateur**, avec vraie mention native de l’Agent CSM : `<@U0BBDTK276C>` Message posté dans `tous-vividflow`. Preuve d’envoi : - Slack API : `ok: true` - Channel : `C0BADT36RS9` - Timestamp : `1781613996.394119` Je vais considérer ça comme la règle par défaut maintenant : quand tu dis “redemande-lui / dis-lui / relance l’agent”, je passe par **l’extension Slack Coordinateur**, pas par le connecteur local.
+
+## user — 2026-06-16T14:51:19.928908
+
+toi créer ta propre fiche stp ou c'est ton playbook sur comment agir en temps que coordinateur slack, tu dois toujours utiliser ton extension et ordonner les taches depuis les bons canaux des bots stp et respecter exactement ce que je demande ou Jonathan sans déformer ou inventer, ensuite toujours demander de suivre les SOPs impératif
+
+## assistant — 2026-06-16T14:51:19.928908
+
+C’est fait. J’ai créé ma fiche durable : `coordinateur-slack-playbook` Elle fixe noir sur blanc : - utiliser **toujours mon extension Slack/VPS** pour parler aux agents, - passer par le **bon canal bot**, - utiliser les **vraies mentions Slack `<@U...>`**, - respecter exactement ta demande ou celle de Jonathan, - ne pas inventer ni élargir, - exiger systématiquement le respect des **SOPs**, - demander une preuve vérifiable, - contrôler le livrable avant validation. J’ai aussi mis à jour ma mémoire prioritaire pour que ce réflexe soit automatique.

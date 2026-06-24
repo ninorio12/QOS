@@ -1,0 +1,146 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260610_163414_1982a19d
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260610_163414_1982a19d.jsonl
+source_sha256_16: 2775158fe8df54f9
+date: 2026-06-10
+---
+
+# Recovered session chief_of_staff/20260610_163414_1982a19d
+
+
+## user — 2026-06-10T16:34:41.668952
+
+comment on fait pour whatsapp alors ?
+
+## assistant — 2026-06-10T16:34:41.668952
+
+Pour WhatsApp, je ferais simple :
+
+**Pour une démo client rapide : Wasender.** 
+Pas l’API officielle Meta au début, c’est trop lourd pour juste prouver l’expérience.
+
+Le flow :
+
+1. Tu connectes ton **WhatsApp Business** à Wasender via QR code.
+2. Wasender reçoit les messages entrants.
+3. On crée un petit webhook qui envoie le message à Hermes.
+4. Hermes répond.
+5. Le webhook renvoie la réponse sur WhatsApp via Wasender.
+
+Donc :
+
+**WhatsApp Business → Wasender → Webhook Hermes → Réponse WhatsApp**
+
+Avantage : rapide, montrable, concret. 
+Limite : moins robuste/officiel qu’une vraie intégration Meta.
+
+Pour production client sérieuse plus tard :
+
+**WhatsApp Business Cloud API officielle Meta** 
+Mais là il faut Business Manager, numéro dédié, templates, webhooks, validations Meta.
+
+Mon avis : 
+**on démarre avec Wasender pour l’agent démo.** 
+Quand le cas d’usage est validé, on migre vers Meta Cloud API.
+
+## assistant — 2026-06-10T16:38:39.489486
+
+Tu n’as rien envoyé après “comment on fait pour whatsapp alors ?”.
+
+Réponse courte : **on part sur Wasender pour la démo WhatsApp**, pas Meta Cloud API tout de suite.
+
+Si tu veux, prochaine étape concrète :
+1. créer/ouvrir un compte Wasender,
+2. connecter ton WhatsApp Business par QR code,
+3. me donner l’API token,
+4. je monte le webhook Hermes ↔ WhatsApp.
+
+## user — 2026-06-10T16:40:03.478072
+
+ok explique comment on fait
+
+## assistant — 2026-06-10T16:40:03.478072
+
+Oui. Voilà le chemin simple.
+
+## Option recommandée : Wasender pour démo
+
+### 1. Créer le compte Wasender
+Va sur : `wasenderapi.com`
+
+Crée un compte, puis ajoute une session WhatsApp.
+
+### 2. Connecter WhatsApp Business
+Wasender va te donner un **QR code**.
+
+Sur ton téléphone :
+- ouvre **WhatsApp Business**
+- va dans **Appareils connectés**
+- scanne le QR code
+
+Ça connecte ton WhatsApp Business à Wasender.
+
+### 3. Récupérer l’API Token
+Dans Wasender :
+- va dans les réglages/API
+- copie le **Bearer token**
+
+C’est ce token qui permettra à Hermes d’envoyer/répondre.
+
+### 4. Tester l’envoi simple
+On vérifie que Wasender peut envoyer un message WhatsApp.
+
+Exemple technique :
+```bash
+curl -X POST "URL_WASENDER_SEND_MESSAGE" \
+ -H "Authorization: Bearer TON_TOKEN" \
+ -H "Content-Type: application/json" \
+ -d '{
+ "to": "+336XXXXXXXX",
+ "text": "Test VividFlow WhatsApp agent"
+ }'
+```
+
+Si ça répond `success: true`, la base est bonne.
+
+### 5. Créer le webhook entrant
+Ensuite on crée un petit service :
+
+```text
+Message WhatsApp reçu
+→ Wasender appelle notre webhook
+→ Hermes lit le message
+→ Hermes génère la réponse
+→ Wasender renvoie la réponse sur WhatsApp
+```
+
+### 6. Hébergement
+Pour la démo, je recommande :
+- soit sur notre VPS Hermes,
+- soit Railway si on veut une URL HTTPS propre rapidement.
+
+### 7. Agent démo
+On crée un profil Hermes dédié, par exemple :
+
+```text
+vividflow_whatsapp_demo
+```
+
+Rôle :
+- répondre comme agent VividFlow,
+- qualifier le besoin client,
+- expliquer l’AIOS,
+- proposer une suite logique,
+- ne pas inventer.
+
+## Ce dont j’ai besoin de toi
+
+Une seule chose pour avancer :
+
+**Crée le compte Wasender + connecte ton WhatsApp Business, puis envoie-moi l’API token.**
+
+Après ça, je peux monter la passerelle.

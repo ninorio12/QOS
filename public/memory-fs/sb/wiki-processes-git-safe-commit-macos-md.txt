@@ -1,0 +1,72 @@
+---
+title: Git safe commit — macOS / Claude harness
+type: process
+status: active
+updated: 2026-06-15
+sources:
+  - raw/messages/20260614-055515_telegram-session_0374dbb1.md
+  - raw/messages/20260614-052510_telegram-session_cbb3fd30.md
+  - raw/messages/20260614-052510_telegram-session_716b8a2b.md
+  - raw/messages/20260614-045355_telegram-session_d6e6a0bb.md
+  - raw/messages/20260614-045355_telegram-session_cf36adb7.md
+  - raw/messages/20260614-045355_telegram-session_873494c7.md
+  - raw/messages/20260614-045355_telegram-session_da596dfd.md
+  - raw/messages/20260614-042350_telegram-session_e0c988b4.md
+  - raw/messages/20260614-041617_telegram-session_3ff12fbd.md
+  - raw/messages/20260613-225058_telegram-session_caa3d795.md
+  - raw/messages/20260615-140157_telegram-session_1c36ed7e.md
+---
+
+# Git safe commit — macOS / Claude harness
+
+Process validé après panne sur le repo `brvndlab-app` : `git commit` peut se figer sur macOS quand un message multi-lignes avec apostrophe passe via un wrapper `zsh -c 'eval …'`.
+
+## Symptôme
+
+- `git commit` pend indéfiniment.
+- Ensuite `git status` ou accès `.git` peuvent aussi se figer.
+- Des process `git` s’empilent jusqu’au `pkill -9 git`.
+
+## Causes / facteurs à éviter
+
+- Ne pas passer de message de commit multi-lignes via `git commit -m` dans un wrapper `eval`.
+- Éviter les repos dans `~/Documents` quand iCloud Drive est actif, surtout avec `node_modules`.
+- Ne pas laisser un éditeur interactif s’ouvrir dans un harness non interactif.
+
+## Règle opérationnelle
+
+- Utiliser `git commit -F <fichier>` pour tout message non trivial.
+- Encadrer les commandes git avec un timeout disponible : `gtimeout 60 git …`.
+- Config globale recommandée sur machine Claude/macOS :
+  - `git config --global core.editor true`
+  - `git config --global core.pager cat`
+- Installer `coreutils` via Homebrew pour disposer de `gtimeout`.
+- Garder les repos de travail dans un chemin local pur, ex. `~/dev/...`, pas dans iCloud/Documents.
+
+## État Brvndlab connu
+
+Le repo exploitable mentionné est hors Documents : `~/dev/brvndlab-claude/brvndlab-app`. Après correctif, `git status` répond et un commit via `git commit -F` avec apostrophe + multi-lignes ne bloque pas.
+
+## Garde-fou mauvais repo — Brvndlab
+
+Le problème lent/bloquant n'était pas seulement git : Claude avait travaillé dans la mauvaise copie du projet.
+
+Règle durable :
+- vérifier `pwd`, branche et remote avant modification ;
+- ne jamais travailler dans `~/Documents/Claude AI/Brvndlab` ;
+- utiliser `~/dev/brvndlab-claude/brvndlab-app` comme repo canonique ;
+- si la copie iCloud est détectée, ne pas lancer de diagnostic git pas-à-pas : quitter ce repo et reprendre dans le canonique ;
+- écrire les garde-fous en fichiers simples plutôt qu'en gros scripts imbriqués quand le shell/Python échappe mal les chaînes.
+
+
+## Branche dark-mode / divergence
+
+Décision du 2026-06-14 pour Brvndlab : travailler sur `main`. La branche locale `feat/dark-mode` a été supprimée avec sauvegarde stash ; la branche distante `origin/feat/dark-mode` reste à supprimer après réparation de l’auth GitHub. Ne pas cherry-pick ni déployer cette branche sans revue explicite.
+
+Nettoyage sûr validé pour accélérer et réduire le bruit : supprimer les artefacts build `.next` et `.vercel/output`, ignorer `.vercel/output/`, `.turbo/`, `coverage/`, déplacer les mockups HTML de `public/` vers `_legacy/mockups/`. Ne pas supprimer `node_modules` par défaut.
+
+
+## Disque plein / iCloud / ETIMEDOUT — 2026-06-15
+
+Quand Claude macOS signale des `ETIMEDOUT` ou lenteurs sur des projets dans iCloud, vérifier d’abord l’espace disque local. Signal opérationnel : disque quasi plein autour de 228 Go utilisés → libérer plusieurs Go avant de relancer. Déplacer les projets actifs type `site-mockups` hors iCloud vers `~/dev` reste la règle anti-freeze prioritaire.
+

@@ -1,0 +1,308 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260613_185219_773c9f
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260613_185219_773c9f.jsonl
+source_sha256_16: 732b7a32290278e4
+date: 2026-06-13
+---
+
+# Recovered session chief_of_staff/20260613_185219_773c9f
+
+
+## user — 2026-06-13T18:52:29.909597
+
+Câblage final terminé et confirmation runtime Hermes réelle obtenue. Livrable complet.
+
+ Diagnostic exact du -32001 côté gateways
+
+ La vraie cause n'était pas les EnvironmentFile/tokens : les blocs data_os dans /home/hermes/.hermes/profiles/<profil>/config.yaml (sous
+ mcp_servers:) n'avaient aucun headers → les gateways se connectaient anonymement → -32001. Les anciens tokens dans les .env étaient en plus
+ révoqués. Il manquait donc deux choses : le header Authorization, et un token valide injecté dans l'env.
+
+ Ce que j'ai appliqué (côté user hermes, pas root)
+
+ 1. /home/hermes/.hermes/dataos/ créé (0700, hermes).
+ 2. 5 fichiers 0600 dataos/<profil>.env, chacun un seul DATAOS_TOKEN= (tokens rotés, copiés des fichiers root, jamais affichés).
+ 3. Header ajouté dans chaque profiles/<profil>/config.yaml :
+ data_os:
+ url: https://data-os.vividflow.co/api/mcp
+ headers:
+ Authorization: "Bearer ${DATAOS_TOKEN}"
+ 4. Drop-ins ~/.config/systemd/user/hermes-gateway-<profil>.service.d/30-dataos-env.conf :
+ [Service]
+ EnvironmentFile=/home/hermes/.hermes/profiles/<profil>/.env
+ EnvironmentFile=/home/hermes/.hermes/dataos/<profil>.env
+ 5. systemctl --user daemon-reload + restart des 5 gateways → tous active, EnvironmentFile Data OS chargé.
+
+ Confirmation runtime réelle (pas seulement la théorie)
+
+ Test 1 — token live de chaque process (extrait de /proc/<pid>/environ, jamais affiché) contre le MCP :
+ PASS chief_of_staff → dataos_state = execute
+ PASS cmo_executor (kb) → prospection_list = -32003
+ PASS csm_executor → clients_list = execute
+ PASS operations_executor → contacts_create = -32003
+ PASS rd_executor (analyst)→ contacts_create = -32003
+ ✅ plus aucun -32001, enforce par rôle correcte
+ Test 2 — résolveur Hermes réel (_interpolate_env_vars) sur le header de config, dans l'env du gateway : Bearer ${DATAOS_TOKEN} → vrai token → MCP
+ renvoie result, pas -32001. La chaîne config → expansion → env → token → auth est prouvée de bout en bout.
+ 
+ - ✅ Gateways Hermes ne renvoient plus -32001.
+ - ✅ Anonyme toujours -32001.
+ - ✅ HERMES_API_SECRET jamais utilisé pour les agents (break-glass humain uniquement).
+ - Rotation future : node scripts/rotate-agent-tokens.mjs (root) puis recopier vers /home/hermes/.hermes/dataos/ + restart. Je peux scripter cette
+ recopie si tu veux.
+
+ Wave 6 toujours non lancée. Le runtime Hermes réel est vert. Tu me donnes le go pour la wave 6 (dashboard permissions + écran d'approbations) ?
+
+## assistant — 2026-06-13T18:52:29.909597
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+None.
+
+## Goal
+Configurer et stabiliser l’écosystème VividFlow/Clara avec :
+- WhatsApp via OpenWA + bridge : textes, vocaux, typing, watchdog, webhook fiable ;
+- Clara avec ton adaptatif : tutoiement/vouvoiement dynamique ;
+- Google Workspace Clara : mail, Drive, Docs, Sheets, Calendar, Contacts selon scopes validés ;
+- emails Clara envoyés depuis `clara.bernasconi@vividflow.co` avec signature Gmail injectée manuellement ;
+- Data OS ouvert aux sous-agents/runtime ;
+- Slack comme cockpit multi-bots cohérent, avec noms affichés alignés sur les noms donnés par Jonathan ;
+- suppression complète des incohérences CMO côté Slack/bots/routing.
+
+## Constraints & Preferences
+- Ne jamais exposer de clés API, tokens, mots de passe, secrets, identifiants sensibles, codes OAuth ou chaînes de connexion ; remplacer par `[REDACTED]`.
+- Les credentials existent dans env/fichiers/OAuth, mais leurs valeurs ne doivent jamais être imprimées ni conservées.
+- Préférence pour vérification via `python` / `curl`.
+- Ne pas demander à rescanner WhatsApp si OpenWA est `ready`; rescanner seulement si `qr_ready` ou `disconnected`.
+- Si Clara ne répond pas malgré santé OK, vérifier : session WhatsApp, webhook OpenWA, réseau OpenWA → bridge, logs bridge, traitement média/audio.
+- Toujours vérifier les logs après restart.
+- Clara :
+ - si l’interlocuteur tutoie, Clara tutoie ;
+ - si l’interlocuteur vouvoie, Clara vouvoie ;
+ - si neutre, Clara évite si possible `tu`/`vous`.
+- Workspace :
+ - mail = boîte de réception / collecte ;
+ - Google Drive = dépôt, classement, pièces jointes, livrables ;
+ - pas d’envoi depuis la boîte sauf demande explicite.
+- Emails externes agent/Clara : utiliser `clara.bernasconi@vividflow.co`.
+- Gmail API n’ajoute pas automatiquement la signature Gmail configurée ; récupérer `sendAs.signature` et l’injecter soi-même en HTML.
+- `hey@vividflow.co` reste boîte agent/réception si utile.
+- Le numéro personnel de Jonathan ne doit jamais être utilisé/référencé pour VividFlow ; WhatsApp agent connu : `+41 77 279 21 44`.
+- CMO n’est plus actif et doit disparaître complètement côté naming/routing.
+- Slack : garder plusieurs bots, pas un seul COO.
+- Noms Slack exacts donnés par Jonathan à respecter :
+ - `Agent KB`
+ - `COO`
+ - `Agent CSM`
+ - `Agent Operations`
+ - `Data Analyst`
+- Éviter les anciens libellés :
+ - `CMO Executor`
+ - `CSM Executor`
+ - `Data Analyst Executor`
+ - tout libellé `CMO`
+ - incohérence type conversation `CMO Executor` mais fiche `Agent Operations`.
+
+## Completed Actions
+1. UPDATED task list — “Reconstruire OpenWA avec endpoint typing” terminé, restart/verify lancés [tool: todo].
+2. BUILT OpenWA — `npm install`, `npm run build`, image Docker `openwa-api` rebuild, container recréé/redémarré `running healthy`, health OpenWA `200` [tool: terminal/assistant].
+3. ADDED typing endpoint — endpoint OpenWA `POST /sessions/:sessionId/messages/typing`; bridge l’appelle avant génération/réponse [tool: code/assistant].
+4. ADDED voice pipeline in bridge — détection média audio/vocal, décodage, conversion `ffmpeg`, transcription `faster_whisper`, envoi à Clara sous `[Message vocal transcrit] ...`; Python compilé et bridge redémarré [tool: code/assistant].
+5. VERIFIED no rescan needed — OpenWA `200`, bridge `200`, container `running healthy`; pas besoin de rescan sauf `qr_ready`/`disconnected` [tool: terminal/assistant].
+6. FIXED watchdog/session issue — locks Chromium supprimés, session relancée proprement, env/watchdog mis à jour sans afficher secrets, watchdog manuel `exit 0`, session `ready` [tool: terminal/execute_code/assistant].
+7. IDENTIFIED missing webhook — session `vividflow-whatsapp-bot` avait `0 webhook configuré`; OpenWA recevait mais ne transmettait plus au bridge [tool: execute_code/assistant].
+8. UPDATED webhook reachable URL — webhook remplacé par `http://172.18.0.1:8791/webhook/openwa`; test OpenWA → bridge `success true / 200` [tool: execute_code].
+9. INSPECTED vocal failure — cause trouvée : service lançait `/usr/bin/python3` sans `faster_whisper` [tool: terminal].
+10. CREATED systemd drop-in — `/home/hermes/.config/systemd/user/whatsapp-hermes-bridge.service.d/50-python-venv.conf` force `/home/hermes/.hermes/hermes-agent/venv/bin/python /home/hermes/openwa-stack/whatsapp-hermes-bridge.py` [tool: write_file].
+11. RELOADED/restarted bridge — `systemctl --user daemon-reload`, restart `whatsapp-hermes-bridge.service`, health `http://127.0.0.1:8791/health` OK [tool: terminal].
+12. TESTED Whisper runtime — venv charge `WhisperModel('tiny', device='cpu', compute_type='int8')`; sortie `whisper_ok` avec warning HF Hub non authentifié [tool: terminal].
+13. PATCHED bridge tone adaptation — ajouté `import re` et logique `detect_address_mode(user_text)` dans `/home/hermes/openwa-stack/whatsapp-hermes-bridge.py`; ancien prompt forçant le vouvoiement remplacé [tool: patch].
+14. COMPILED bridge patch — `/home/hermes/.hermes/hermes-agent/venv/bin/python -m py_compile /home/hermes/openwa-stack/whatsapp-hermes-bridge.py`; exit `0` [tool: terminal].
+15. UPDATED memories/preferences — mail/Drive comme réception/dépôt, pas d’envoi sauf demande explicite ; expéditeur externe Clara `clara.bernasconi@vividflow.co`; `hey@vividflow.co` réception ; numéro personnel Jonathan exclu [tool: memory].
+16. CHECKED Google setup Thomas — `setup.py --check` a rafraîchi token existant ; `google_api.py gmail labels` a renvoyé `GMAIL_OK`; identité active initiale `thomas.alves@vividflow.co` [tool: terminal/execute_code].
+17. PREPARED Clara OAuth profile — créé profil séparé `/home/hermes/.hermes/profiles/chief_of_staff/google_clara`, permissions `700`, secrets non affichés [tool: terminal].
+18. GENERATED/exchanged Clara OAuth — URLs OAuth fournies, codes utilisateur échangés sous profil Clara sans conserver code/token [tool: terminal/execute_code].
+19. CREATED Clara wrapper — `/home/hermes/.hermes/profiles/chief_of_staff/scripts/gws_clara.sh` exporte `HERMES_HOME=/home/hermes/.hermes/profiles/chief_of_staff/google_clara` puis exécute `google_api.py`; `chmod 700` [tool: write_file/terminal].
+20. VERIFIED Clara Gmail — recherche `newer_than:30d` OK, 2 mails récents détectés ; expéditeur par défaut `clara.bernasconi@vividflow.co` [too
+
+...[TRONQUÉ 25419 chars sha256:e54857aa9a86daf3]...
+
+ara et boîte dédiée : `clara.bernasconi@vividflow.co`.
+ - Mail pro Thomas utilisé pour test : `thomas.alves@vividflow.co`.
+ - Le numéro personnel de Jonathan ne doit jamais être utilisé/référencé pour VividFlow.
+- Slack :
+ - Source de vérité actuelle des noms bots : `Agent KB`, `COO`, `Agent CSM`, `Agent Operations`, `Data Analyst`.
+ - `CMO` doit disparaître complètement.
+ - L’image initiale montrait une incohérence entre nom de DM/conversation, fiche bot et description.
+ - `send_message list` ne montre pas les profils/apps Slack complets ; cibles visibles côté gateway : `cmo-design`, `service-client`, `ops-systeme`, `data-analyst`, plus DMs IDs techniques.
+ - Les changements Slack faits dans l’UI peuvent ne pas être visibles via le gateway actuel.
+- Google Workspace :
+ - Thomas reste connecté via token historique ; ne pas écraser.
+ - Clara connectée via `/home/hermes/.hermes/profiles/chief_of_staff/google_clara`.
+ - Wrapper Clara : `/home/hermes/.hermes/profiles/chief_of_staff/scripts/gws_clara.sh`.
+ - Scopes Clara incluent Gmail readonly/send/modify, Calendar, Drive écriture, Contacts readonly, Sheets, Docs écriture.
+ - OAuth codes/tokens/client secrets : toujours `[REDACTED]`.
+- Emails Clara :
+ - Premier mail test sans signature : ID `19ec16400758fe06`, objet `Test Clara`.
+ - Second mail corrigé avec signature + “J’espère que tu vas bien,” : ID `19ec16e6159da7a1`, objet `Test Clara avec signature`.
+ - Gmail API ne rajoute pas automatiquement la signature Gmail.
+- OpenWA :
+ - Session : `vividflow-whatsapp-bot`.
+ - Profil annoncé : Clara Bernasconi.
+ - Webhook final : `http://172.18.0.1:8791/webhook/openwa`.
+ - Ancien webhook cassé : `http://host.docker.internal:8791/webhook/openwa`, erreur `fetch failed`.
+- Vocaux :
+ - Cause principale corrigée : mauvais interpréteur Python.
+ - Drop-in systemd force le venv.
+ - Whisper charge avec warning HF Hub non authentifié puis `whisper_ok`.
+- Data OS :
+ - Dernière tentative directe : `mcp_data_os_agents_list({})`.
+ - Résultat direct exact : `{"error": "MCP server 'data_os' is not connected"}`.
+ - Vérification runtime réussie via HTTP MCP/gateways avec auth `[REDACTED]`.
+ - Contrôle anonyme : `anonymous dataos_state -32001`.
+ - CMO était présent dans un test historique mais ne doit plus être utilisé.
+- Watchdog :
+ - Job : `Watchdog WhatsApp VividFlow`, job_id `715b2555dcfa`.
+ - Ancienne alerte session `unknown` résolue.
+- Credentials Gmail/OpenWA/OAuth/API/Data OS présents mais non conservés ; toujours `[REDACTED]`.
+
+## user — 2026-06-13T18:52:29.909597
+
+regle moi ca stp
+
+[Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_9d94bd0f86c4.jpg]
+[screenshot]
+
+## assistant — 2026-06-13T18:52:29.909597
+
+Je vais vérifier le mapping local Slack/gateway et corriger ce qui est modifiable côté runtime. Le renommage “App Name” Slack lui-même est déjà bon sur ton screenshot.
+
+## assistant — 2026-06-13T18:52:29.909597
+
+Je vois le vrai souci maintenant : les apps Slack sont bien renommées, mais nos fichiers Hermes/Second Brain gardent encore les anciens noms `CMO/CSM/Operations Executor`. Je vais nettoyer ces références actives.
+
+## assistant — 2026-06-13T18:52:29.909597
+
+Slack bloque la modification du profil par API avec les bot tokens (`not_allowed_token_type`). Je corrige donc tout le côté Hermes/Second Brain maintenant, et je te donne après le réglage exact à faire dans l’UI Slack si besoin.
+
+## user — 2026-06-13T18:52:29.909597
+
+You've reached the maximum number of tool-calling iterations allowed. Please provide a final response summarizing what you've found and accomplished so far, without calling any more tools.
+
+## assistant — 2026-06-13T18:52:29.909597
+
+Réglé côté Hermes/runtime.
+
+Ce que j’ai trouvé :
+- Sur ton screenshot, les **App Names Slack sont bons** :
+ - Agent Operations
+ - COO
+ - Data Analyst
+ - Agent KB
+ - Agent CSM
+- Le vrai problème restant venait de nos fichiers internes Hermes / Second Brain qui gardaient encore :
+ - `CMO Executor`
+ - `CSM Executor`
+ - `Operations Executor`
+ - `Data Analyst Executor`
+
+Ce que j’ai corrigé :
+- Annuaire Second Brain Slack mis à jour avec les noms officiels :
+ - `COO`
+ - `Agent KB`
+ - `Agent CSM`
+ - `Agent Operations`
+ - `Data Analyst`
+- Mapping Slack IDs conservé proprement.
+- Générateur d’ingest Second Brain corrigé pour ne plus régénérer les anciens noms.
+- Mémoire des profils agents mise à jour.
+- Ancien profil `cmo_executor` requalifié en **Agent KB** côté SOUL, pour qu’il ne se présente plus comme CMO.
+- Compilation du script OK.
+
+Limite côté Slack :
+- J’ai tenté de modifier les profils Slack via API, mais Slack bloque avec `not_allowed_token_type`.
+- Donc les changements de **profil visible Slack** doivent se faire dans l’UI Slack App Management si tu vois encore un ancien affichage dans une fiche bot.
+
+À faire dans Slack UI si nécessaire :
+- Pour chaque app → **Basic Information** / **Display Information** :
+ - App name
+ - Short description
+ - Bot user display name
+ - Default username
+- Supprimer toute mention `CMO`, `Executor`, `R&D`.
+
+Côté système, c’est propre maintenant.
+
+## user — 2026-06-13T18:52:29.909597
+
+[{"type": "text", "text": "c'est bien changé pour tous ici\n\n[Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_35a345c0117b.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQIASwBLAAD/2wBDAAQDAwQDAwQEAwQFBAQFBgoHBgYGBg0JCggKDw0QEA8NDw4RExgUERIXEg4PFRwVFxkZGxsbEBQdHx0aHxgaGxr/2wBDAQQFBQYFBgwHBwwaEQ8RGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhr/wgARCAUcBqYDASIAAhEBAxEB/8QAHAABAAIDAQEBAAAAAAAAAAAAAAMGBAUHAgEI/8QAGgEBAQEBAQEBAAAAAAAAAAAAAAECAwQFBv/aAAwDAQACEAMQAAAB2rsKuPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwjjzsI487COPOwj0IAAAAefmUY7IGOyBjsgY7IGOyBjsgY7IGOyBjsgY7IGOyBjsgY7IGOyBjsgY7IGOyBj/MkY/wB8+gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADxlYuUaPRbHn/wA76G42vErly9/TLVRrz7fjnzkPp4dfISZH9PaLQljfKKXtz7HjpLlHV7AUAAAAAADG9efQAAAx8jl+dcb/AEzxTb9Ofb2p5ljXY35/7BqWBx3TZ13tQ75rPPtRmaWXs3Iuu8Txq4XznOo68+uuB9fl3rkGjzrvbltSs7+1FFOouE9cs3QlAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA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
+
+## assistant — 2026-06-13T18:52:29.909597
+
+Oui, là c’est bon pour **Agent KB** :
+
+- **App Display Name** : Agent KB
+- **Display Name (Bot Name)** : Agent KB
+- **Default Name** : `kb_executor`
+
+Le `Default Name` en snake_case est normal et moins important : c’est l’identifiant technique/username. Tant qu’il est cohérent et sans `cmo`, c’est propre.
+
+À valider pareil pour les 4 autres :
+- `COO`
+- `Agent CSM`
+- `Agent Operations`
+- `Data Analyst`
+
+Si chacun a bien son **Display Name (Bot Name)** correct, c’est clean.
+
+## user — 2026-06-13T18:53:51.512952
+
+[{"type": "text", "text": "ici aussi c'est changé et pourtant c'est encore avec l'autre nom dans slack\n\n[Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_fad02bc8a8f9.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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
+
+## assistant — 2026-06-13T18:53:51.512952
+
+Oui, je vois. Là **App Home est bien changé**, donc si Slack affiche encore l’ancien nom ailleurs, ce n’est probablement pas ce champ.
+
+Il reste 3 causes fréquentes :
+
+1. **Le nom du DM / conversation est caché**
+ - Slack garde parfois l’ancien titre de conversation côté client.
+ - Solution : quitter/recharger Slack, ou ouvrir le profil du bot depuis le DM.
+
+2. **Le profil utilisateur bot n’est pas synchronisé**
+ - Va dans le DM du bot → clique sur son nom/avatar → regarde le nom affiché dans la fiche.
+ - Si la fiche affiche encore l’ancien nom, il faut aller dans **OAuth & Permissions** puis **Reinstall to Workspace**.
+ - Après reinstall, Slack propage le nouveau bot name.
+
+3. **Tu regardes un ancien bot différent**
+ - Possible si l’ancien `Operations Executor` existe encore comme app/bot séparé.
+ - Vérifie que le DM correspond bien au même bot ID / même app `Agent Operations`.
+
+Le plus probable : **il faut réinstaller l’app dans le workspace** après changement du Display Name.
+
+Fais ça :
+- Slack App → **OAuth & Permissions**
+- bouton **Reinstall to Workspace**
+- autorise
+- ferme/réouvre Slack ou `Cmd/Ctrl + R`
+
+Après ça, le nom devrait se mettre à jour partout.
+
+## user — 2026-06-13T19:00:16.472441
+
+tu fonctionnes
+
+## assistant — 2026-06-13T19:00:16.472441
+
+Oui, je fonctionne.
+
+Et pour ton souci Slack : le nom est changé dans l’app, mais Slack garde souvent l’ancien affichage tant que l’app n’est pas **réinstallée dans le workspace** ou que le client n’a pas refresh.
+
+Priorité :
+1. **OAuth & Permissions → Reinstall to Workspace**
+2. Puis dans Slack : `Cmd/Ctrl + R`
+3. Si le DM garde encore l’ancien nom, c’est probablement un **ancien bot/app distinct** encore installé.

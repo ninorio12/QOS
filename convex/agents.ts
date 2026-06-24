@@ -171,6 +171,32 @@ const EQUIPE_AGENT_SEEDS = [
       { scope: "source_of_truth", level: "write", requiresApproval: true },
     ],
   },
+  {
+    slug: "agent-media-buyer", displayName: "AGENT MEDIA BUYER", role: "Acquisition payante / media buying",
+    hermesProfile: "media-buyer", runtimeService: "hermes-gateway-media-buyer.service", status: "active",
+    description: "Pilote l'acquisition payante : campagnes, budgets, créas et reporting d'audience — décisions de dépense sous validation.",
+    channels: ["slack", "dataos"], capabilities: ["paid_acquisition", "ads", "budget", "reporting"],
+    requiredKnowledgeCores: ["context-loader-core", "source-of-truth-core", "agent-roles-core"],
+    forbiddenActions: ["augmenter un budget sans greenlight", "lancer une campagne sans greenlight", "external-send sans greenlight"],
+    permissions: [
+      { scope: "activities", level: "read", requiresApproval: false },
+      { scope: "content", level: "write", requiresApproval: false },
+      { scope: "client_send", level: "execute", requiresApproval: true },
+    ],
+  },
+  {
+    slug: "agent-debug", displayName: "AGENT DEBUG", role: "Debug / diagnostic technique",
+    hermesProfile: "debug", runtimeService: "hermes-gateway-debug.service", status: "active",
+    description: "Diagnostique les incidents et régressions : reproduit, isole la cause racine, propose un correctif prouvé — pas de fix destructif sans validation.",
+    channels: ["slack", "dataos"], capabilities: ["debugging", "diagnostics", "incident", "root_cause"],
+    requiredKnowledgeCores: ["context-loader-core", "source-of-truth-core", "agent-roles-core", "machine-de-guerre-core"],
+    forbiddenActions: ["destructif sans greenlight", "push sans greenlight", "merge sans greenlight"],
+    permissions: [
+      { scope: "activities", level: "read", requiresApproval: false },
+      { scope: "tasks", level: "write", requiresApproval: false },
+      { scope: "knowledge", level: "read", requiresApproval: false },
+    ],
+  },
 ]
 
 // Crée les comptes Data OS des 5 agents de l'organigramme front (EquipeView).

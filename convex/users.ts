@@ -1,8 +1,21 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
+import { requireAdmin } from "./osLib"
 
 // Liste canonique des modules de l'app (chemins de routes). Utilisée pour les droits d'accès.
 export const ALL_MODULES = ["/dashboard","/pipeline","/contacts","/prospection","/performance","/onboarding","/paiement","/calendrier","/bibliotheque/data","/bibliotheque/records","/bibliotheque/process","/equipe","/taches","/logs","/knowledge","/workflows","/budget","/integrations"]
+
+// Utilisateur courant (depuis l'identité Clerk) — sert à gater l'UI (ex. boutons admin).
+export const me = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
+    const user = await ctx.db.query("users").withIndex("by_clerk", q => q.eq("clerkUserId", identity.subject)).first()
+    if (!user) return null
+    return { id: user._id, role: user.role, name: user.name, email: user.email, isAdmin: user.role === "admin" }
+  },
+})
 
 // Profils VividFlow (membres de l'équipe humaine). Source des participants "Équipe" du calendrier.
 export const list = query({
@@ -18,6 +31,7 @@ export const list = query({
 export const create = mutation({
   args: { name: v.string(), email: v.string(), role: v.optional(v.string()), avatarUrl: v.optional(v.string()), workspaceId: v.optional(v.string()) },
   handler: async (ctx, a) => {
+    await requireAdmin(ctx)
     // Pas de doublon sur l'email
     const existing = (await ctx.db.query("users").collect()).find(u => u.email.toLowerCase() === a.email.toLowerCase())
     if (existing) {
@@ -30,7 +44,7 @@ export const create = mutation({
 
 export const remove = mutation({
   args: { id: v.id("users") },
-  handler: async (ctx, { id }) => { await ctx.db.delete(id) },
+  handler: async (ctx, { id }) => { await requireAdmin(ctx); await ctx.db.delete(id) },
 })
 
 // Utilisateur courant (mirror Clerk) par clerkUserId — renvoie la ligne complète ou null.
@@ -148,6 +162,7 @@ export const adminUpsertPending = mutation({
     status:         v.optional(v.string()),
   },
   handler: async (ctx, a) => {
+    await requireAdmin(ctx)
     const existing = (await ctx.db.query("users").collect())
       .find(u => u.email.toLowerCase() === a.email.toLowerCase())
 
@@ -178,23 +193,23 @@ export const adminUpsertPending = mutation({
 
 export const setRole = mutation({
   args: { id: v.id("users"), role: v.string() },
-  handler: async (ctx, { id, role }) => { await ctx.db.patch(id, { role }) },
+  handler: async (ctx, { id, role }) => { await requireAdmin(ctx); await ctx.db.patch(id, { role }) },
 })
 
 export const setStatus = mutation({
   args: { id: v.id("users"), status: v.string() },
-  handler: async (ctx, { id, status }) => { await ctx.db.patch(id, { status }) },
+  handler: async (ctx, { id, status }) => { await requireAdmin(ctx); await ctx.db.patch(id, { status }) },
 })
 
 export const setAllowedModules = mutation({
   args: { id: v.id("users"), allowedModules: v.array(v.string()) },
-  handler: async (ctx, { id, allowedModules }) => { await ctx.db.patch(id, { allowedModules }) },
+  handler: async (ctx, { id, allowedModules }) => { await requireAdmin(ctx); await ctx.db.patch(id, { allowedModules }) },
 })
 
-// Supprime la ligne Convex (ne supprime PAS le compte Clerk — OK pour Phase 1).
+// Supprime la ligne Convex (ne supprime PAS le compte Clerk : OK pour Phase 1).
 export const adminRemove = mutation({
   args: { id: v.id("users") },
-  handler: async (ctx, { id }) => { await ctx.db.delete(id) },
+  handler: async (ctx, { id }) => { await requireAdmin(ctx); await ctx.db.delete(id) },
 })
 
 // Édition de son propre profil. Patch seulement les champs fournis, recalcule name si first/last change.

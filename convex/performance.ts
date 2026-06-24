@@ -2,8 +2,21 @@ import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
 import { WORKSPACE, logActivity } from "./osLib"
 import { localDay } from "./timeLib"
+import { reconcileMoney } from "./moneyReconciliation"
+import { funnelCohort } from "./funnelCohort"
 
 const now = () => new Date().toISOString()
+
+// Bornes d'index pour charger les events d'une période SANS scan full-table (limite Convex 8192).
+// Élargi de 2 jours de chaque côté pour couvrir le décalage de fuseau (dayOf affine ensuite en JS).
+// Sentinelles ("0000-00-00"/"9999-99-99") laissées telles quelles = plage ouverte (fallback).
+function eventBounds(from: string, to: string) {
+  const shift = (d: string, days: number) => {
+    const t = Date.parse(d + "T00:00:00Z")
+    return Number.isNaN(t) ? d : new Date(t + days * 86400000).toISOString().slice(0, 10)
+  }
+  return { lo: shift(from, -2), hiExcl: shift(to, 3) }
+}
 
 // Familles d'événements (eventType des prospection_events)
 const CONTACT  = ["appele", "message_laisse", "pas_repondu", "repondu", "a_rappeler", "interesse"]
@@ -28,10 +41,13 @@ function metricMatch(metric: string | undefined, eventType: string): boolean {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function loadEvents(ctx: any, a: { setter?: string; from?: string; to?: string; channel?: string; tzOffset?: number }) {
-  const evs = await ctx.db.query("prospection_events").collect()
+  const from = a.from ?? "0000-00-00", to = a.to ?? "9999-99-99"
+  const { lo, hiExcl } = eventBounds(from, to)
+  const evs = await ctx.db.query("prospection_events")
+    .withIndex("by_workspace_created", (q: any) => q.eq("workspaceId", WORKSPACE).gte("createdAt", lo).lt("createdAt", hiExcl))
+    .collect()
   const recs = await ctx.db.query("prospection_records").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
   const chanOf = new Map<string, string>(recs.map((r: any) => [r._id, r.channel ?? "appel"]))
-  const from = a.from ?? "0000-00-00", to = a.to ?? "9999-99-99"
   const dayOf = (iso: string) => localDay(iso, a.tzOffset)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let list = evs.filter((e: any) => { const d = dayOf(e.createdAt); return d >= from && d <= to })
@@ -70,29 +86,62 @@ export const summary = query({
     // Commission setter = 2% des paiements ENCAISSÉS (échéances cochées payées) en onboarding,
     // UNIQUEMENT pour les clients issus de l'outbound. Respecte la période via paidDates.
     const COMMISSION_RATE = 0.02
+    // Base de commission = encaissé RÉEL (source unique reconcileMoney, Stripe-aware) des clients
+    // outbound sur la période. Aligne la commission sur l'encaissé canonique de Dashboard et Paiement.
     const onbs = await ctx.db.query("onboarding").collect()
     const contacts = await ctx.db.query("crm_contacts").collect()
+    const clients = await ctx.db.query("pipeline_clients").collect()
+    const stripePayments = await ctx.db.query("stripe_payments").withIndex("by_created").collect()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sourceById = new Map<string, string | undefined>(contacts.map((c: any) => [c._id.toString(), c.source]))
-    let paidOutbound = 0
-    for (const o of onbs as any[]) {
-      if (sourceById.get(o.contactId) !== "outbound") continue
-      const amounts: number[] = o.payment?.amounts ?? []
-      const paid: boolean[] = o.paidStatus ?? []
-      const dates: string[] = o.paidDates ?? []
-      for (let i = 0; i < amounts.length; i++) {
-        if (!paid[i]) continue
-        if (dates[i]) { const d = dayOf(dates[i]); if (d < from || d > to) continue }  // hors période
-        paidOutbound += amounts[i] ?? 0
-      }
-    }
+    const money = reconcileMoney({ obs: onbs, clients, contacts, stripePayments, from, to, tzOffset: a.tzOffset })
+    const paidOutbound = money.transactions
+      .filter(t => t.type === "payment" && t.status === "encaissé" && sourceById.get(t.contactId) === "outbound")
+      .reduce((s, t) => s + t.amount, 0)
     const commission = Math.round(paidOutbound * COMMISSION_RATE)
 
+    // Nouveaux clients obtenus via appel = leads passés par "RDV booké sur iClosed" (rdv_booke / handoff)
+    // dont le contact est désormais "client". Daté par la conversion du contact (contact.updatedAt).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contactById = new Map<string, any>(contacts.map((c: any) => [c._id.toString(), c]))
+    const nouveauxClients = new Set(
+      (recs as any[]).filter((r: any) => {
+        const c = contactById.get(r.contactId)
+        if (!c || c.statut !== "client") return false
+        if (!(r.boardColumn === "rdv_booke" || r.status === "handoff")) return false
+        const d = dayOf(c.updatedAt ?? r.updatedAt)
+        return d >= from && d <= to
+      }).map((r: any) => r.contactId)
+    ).size
+
     return {
-      contactes, reponses, aRappeler, r1Booked, perdus, objectifR1, commission,
+      contactes, reponses, aRappeler, r1Booked, perdus, objectifR1, commission, nouveauxClients,
       tauxReponse:   contactes ? Math.round((reponses / contactes) * 100) : 0,
       conversionR1:  contactes ? Math.round((r1Booked / contactes) * 100) : 0,
     }
+  },
+})
+
+// ── Funnel de conversion Prospection : Leads → R1 → Shows → Ventes ──────────
+// Source 100% réelle, period-scopée. Règle métier (validée Thomas) :
+//   shows   = R1 bookés − no-shows
+//   no-show = contact passé en "perdu" au stade R1/R2 avec motif `non_presentation`
+//             (cf. src/lib/lostReasons.ts > NONVENTE_REASONS)
+//   taux de show  = shows ÷ R1 bookés
+//   taux de close = ventes ÷ R1 bookés
+export const funnel = query({
+  args: { setter: v.optional(v.string()), from: v.optional(v.string()), to: v.optional(v.string()), channel: v.optional(v.string()), tzOffset: v.optional(v.number()) },
+  handler: async (ctx, a) => {
+    const from = a.from ?? "0000-00-00", to = a.to ?? "9999-99-99"
+    const dayOf = (iso: string) => localDay(iso, a.tzOffset)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contacts = await ctx.db.query("crm_contacts").collect()
+
+    // FUNNEL = cohorte (source UNIQUE partagée avec le cockpit, cf. funnelCohort.ts).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const allLeads = await ctx.db.query("crm_leads").collect()
+    const fc = funnelCohort(contacts as any[], allLeads as any[], from, to, dayOf)
+    return { leadsATraiter: fc.leadsTotal, ...fc }
   },
 })
 

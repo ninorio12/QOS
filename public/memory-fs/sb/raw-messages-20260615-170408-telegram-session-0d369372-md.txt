@@ -1,0 +1,18 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260615_165153_aece0b.jsonl
+captured_at: 2026-06-15T17:04:08.649510
+platform: telegram
+type: conversation_delta
+---
+
+## assistant — 2026-06-15T16:52:08.941614
+
+Ok, j’active le brainstorming profond. Je te challenge direct : appeler ça “CSM scraper de leads” est probablement le mauvais rôle. CSM peut enrichir, qualifier, nettoyer et pousser dans le Data OS, mais le scraping brut devrait être une fonction encadrée, avec règles anti-spam, sources autorisées, scoring et validation avant création contact. On va cadrer en 5 blocs : 1. source des leads 2. critères ICP 3. workflow CSM 4. écriture Data OS 5. garde-fous qualité / anti-pollution Première question : tu veux qu’il scrape quoi en priorité ? A. Instagram B. LinkedIn C. Google Maps / sites locaux D. listes déjà fournies en CSV / texte / captures
+
+## user — 2026-06-15T16:52:08.941614
+
+des noms de dirigeants avec leur nom prénom adresse mail et numéro de téléphone très important
+
+## assistant — 2026-06-15T16:52:08.941614
+
+Oui, mais on doit le cadrer proprement. Pour des dirigeants, le CSM doit viser **prospection B2B nominative**, pas “aspirer Internet”. Donc il peut chercher : - nom + prénom - entreprise - poste exact - email pro vérifié ou probable - téléphone pro uniquement - source de chaque donnée - niveau de confiance - statut consentement / base légitime - date de collecte Règle dure : pas de numéros perso, pas de scraping agressif LinkedIn, pas de données sensibles, pas d’import automatique sans preuve/source. Le bon workflow : 1. CSM trouve les dirigeants cibles selon ICP. 2. Il enrichit email/téléphone via sources publiques ou outils autorisés. 3. Il déduplique dans Data OS. 4. Il crée le contact en statut `lead`. 5. Il ajoute provenance + score + “à valider” si confiance moyenne. 6. Le setter ne contacte que les leads validés ou score élevé. Le champ critique dans le Data OS devrait être : ```txt firstName lastName company role email phone linkedinUrl website source sourceUrl niche canton/pays confidenceScore dataQuality: verified / probable / incomplete contactPermission: b2b_legitimate_interest / needs_review notes ``` Mon avis : MVP = 50 dirigeants max, sur une niche précise, avec validation humaine avant outreach. Sinon on va remplir le Data OS de déchets et cramer la réputation VividFlow.

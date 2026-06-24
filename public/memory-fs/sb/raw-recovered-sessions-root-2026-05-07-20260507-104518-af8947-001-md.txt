@@ -1,0 +1,1280 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260507_104518_af8947
+source_file: /home/hermes/.hermes/sessions/20260507_104518_af8947.jsonl
+source_sha256_16: e18d50fbcd8a38f9
+date: 2026-05-07
+---
+
+# Recovered session root/20260507_104518_af8947
+
+
+## user — 2026-05-07T10:48:16.209197
+
+[The user sent a text document: 'brvndlab-sauvegarde-topics _1_.md'. Its content has been included below. The file is also saved at: /Users/businessmanagement/.hermes/cache/documents/doc_8135d92f54e1_brvndlab-sauvegarde-topics (1).md]
+
+[Jonathan] [Content of brvndlab-sauvegarde-topics _1_.md]:
+# Sauvegarde Brvndlab - contexte des topics
+
+Date : 2026-05-06
+Objet : sauvegarde simple du contexte pour repartir proprement dans les prochains topics Telegram.
+
+## 1. Décision modèle et méthode de travail
+
+- Jonathan a fait la mise à jour et veut maintenant travailler sur **Codex avec GPT-5.5**.
+- On ne doit plus utiliser GLM pour le développement Brvndlab.
+- Hermes reste le cockpit / orchestrateur Telegram.
+- Pour le code, l'objectif est de passer par Codex / environnement dev connecté, pas par bricolage local.
+
+## 2. Ce qu'on a clarifié sur Brvndlab
+
+Brvndlab est le SaaS prioritaire de Jonathan.
+
+Stack cible :
+
+- Frontend : Next.js
+- Backend / database : Convex
+- Auth : Clerk
+- Paiement : Stripe, avec Whop prévu / présent dans la logique business
+- Déploiement : Vercel
+- Domaine production : `app.brvndlab.com`
+- Repo GitHub : `https://github.com/jonathanzekhe/brvndlab.git`
+
+Règle importante côté backend :
+
+- Ne jamais passer `clerkUserId` depuis le client vers Convex.
+- L'identité utilisateur doit être récupérée côté backend via l'auth, idéalement avec Clerk / `ctx.auth.getUserIdentity()` selon la stack finale.
+
+## 3. Organisation des topics / sous-agents Brvndlab
+
+Jonathan veut des topics Telegram séparés pour parler directement aux responsables.
+
+Le cockpit / COO reste l'assistant principal. Le COO n'est pas un topic séparé obligatoire.
+
+Structure validée côté Brvndlab :
+
+### CSM / Customer Success + Growth
+
+Responsabilités :
+
+- Onboarding clients
+- Satisfaction client
+- Support utilisateur
+- Analyse feedbacks
+- Détection churn
+- Améliorations produit basées sur les retours clients
+- Stratégie issue de la mémoire client / mémoire dorée
+
+### Content & Visual Marketing
+
+Responsabilités :
+
+- Stratégie contenu
+- Scripts YouTube
+- Idées de vidéos
+- Calendrier éditorial
+- Thumbnails
+- Ads / créas publicitaires
+- Landing pages côté communication
+- Lead magnets
+- Cohérence visuelle old money / Brvndlab
+
+### Market Intelligence
+
+Responsabilités :
+
+- Veille concurrents
+- Tendances SaaS personal branding
+- Marché FR et EN
+- Positionnement
+- Opportunités marché
+- Analyse d'acteurs similaires
+
+### Revenue Growth
+
+Responsabilités :
+
+- MRR
+- Churn
+- LTV
+- Pricing
+- Funnel
+- Conversion
+- Stripe / Whop
+- Opportunités croissance
+
+### Tech Excellence
+
+Responsabilités :
+
+- Développement front-end
+- Développement back-end
+- Bugs
+- UX/UI produit
+- Performance
+- Infrastructure
+- Déploiements Vercel
+- Convex / Clerk / Stripe côté technique
+
+## 4. Ce qui a été fait côté agents / cronjobs
+
+Des jobs ont été créés précédemment pour simuler les sous-agents avec heartbeat.
+
+Sous-agents créés / prévus :
+
+- CSM Brvndlab
+- Content Engine Brvndlab
+- Market Intelligence Brvndlab
+- Revenue Ops Brvndlab
+- Tech & Product Brvndlab
+- COO Dashboard Brvndlab
+
+Heartbeat demandé par Jonathan :
+
+- Préférence finale : toutes les 2 minutes
+- Possibilité future : 1 minute si la consommation de tokens reste acceptable
+
+Point important :
+
+- Les anciens jobs étaient configurés avec `glm-4.5-flash` via provider `zai`.
+- Comme Jonathan a basculé vers Codex GPT-5.5, il faudra revoir ces jobs pour éviter GLM si on les conserve.
+
+## 5. Groupe Telegram Brvndlab
+
+Groupe identifié :
+
+- Nom : Brvndlab
+- Chat ID observé : `-1003616611166`
+
+Jonathan veut des topics Telegram dans ce groupe pour les sous-agents.
+
+Attention : une tentative précédente a probablement envoyé un message dans le groupe, mais la vraie création technique des topics n'a pas été vérifiée de manière fiable.
+
+## 6. Accès aux stacks
+
+Jonathan a demandé comment donner les accès pour que l'assistant puisse travailler sur l'ensemble du business, surtout modifier le code front-end et back-end.
+
+Ordre prévu :
+
+1. Vercel
+2. Convex
+3. Clerk
+
+Clarification sécurité :
+
+- Accès par email collaborateur : plus simple pour dashboards et permissions complètes.
+- Accès par API keys : plus contrôlé, meilleur pour sécurité, suffisant pour beaucoup d'actions dev.
+- Pour modifier le code, le plus important reste l'accès GitHub / Codex, puis les tokens nécessaires à Vercel, Convex, Clerk.
+
+À retenir :
+
+- Jonathan préfère une approche sécurisée.
+- Il ne connaît pas l'email système Hermes et n'est pas à l'aise de donner un accès complet aveugle.
+- Les API keys / tokens à permissions limitées sont probablement l'approche à privilégier.
+
+## 7. Vercel observé dans les sessions précédentes
+
+Vercel CLI détecté :
+
+- Version : `50.41.0`
+- Scope valide observé : `jonathanzekhe-4288s-projects`
+
+Projets observés :
+
+- `brvndlab-app`
+- `brvndlab-mockups`
+
+Déploiement production observé pour Brvndlab :
+
+- URL de preview / déploiement : `https://brvndlab-nplrai7vh-jonathanzekhe-4288s-projects.vercel.app`
+- Statut observé : Ready
+- Environnement : Production
+
+Autre projet observé :
+
+- `brvndlab-mockups`
+- Exemple URL : `https://brvndlab-mockups-n2ro1k96b-jonathanzekhe-4288s-projects.vercel.app`
+
+Points à corriger / vérifier :
+
+- Le codebase local n'était pas correctement lié à Vercel.
+- Certaines commandes Vercel logs ont échoué à cause d'options incompatibles.
+- Il faudra relier proprement le projet ou travailler directement via GitHub + Vercel.
+
+## 8. Convex observé dans les sessions précédentes
+
+Convex CLI :
+
+- Version observée : `1.34.1`
+
+URL Convex observée :
+
+- `https://majestic-chameleon-876.eu-west-1.convex.cloud`
+
+Problème observé :
+
+- La variable `CONVEX_DEPLOYMENT` semblait contenir un format invalide avec un suffixe de type token après `|`.
+- Erreur Convex : `InvalidDeploymentName: Instance name must be no longer than 64 characters`
+
+Conclusion :
+
+- Le backend production n'a pas forcément été prouvé cassé.
+- Ce qui est sûr : la config locale Convex était incohérente pour le CLI.
+
+À faire :
+
+- Vérifier les variables d'environnement Convex dans Vercel.
+- Vérifier le dashboard Convex.
+- Nettoyer la config locale / Codex si nécessaire.
+
+## 9. Clerk observé / point de contradiction
+
+Stack cible annoncée : Clerk.
+
+Mais inspection précédente du repo local :
+
+- `package.json` ne montrait pas clairement `@clerk/nextjs` comme dépendance directe.
+- Le code semblait utiliser `@convex-dev/auth` et `useConvexAuth`.
+- La production exposait pourtant des éléments Clerk dans le HTML :
+ - domaine Clerk : `clerk.brvndlab.com`
+ - sign in : `/sign-in`
+ - fallback : `/dashboard`
+
+Conclusion :
+
+- Il y a probablement une divergence entre la stack cible, la prod et le repo local inspecté.
+- À vérifier proprement avec Codex sur le repo actuel.
+
+## 10. Repo local / problème précédent
+
+Une tentative locale a été faite sur `/Users/businessmanagement/brvndlab`.
+
+Ce qui s'est passé :
+
+- Le repo existait déjà, donc le clone GitHub a échoué car le dossier n'était pas vide.
+- Les dépendances étaient installées.
+- `npm run 
+
+...[TRONQUÉ 15809 chars sha256:c598b43adf8a8ec8]...
+
+er une branche, livrer une preview Vercel, puis faire valider avant merge.
+
+Sous-agents / topics Brvndlab :
+
+1. CSM / Customer Success + Growth
+2. Content & Visual Marketing
+3. Market Intelligence
+4. Revenue Growth
+5. Tech Excellence
+
+Règles de communication :
+
+- Toujours en français de France.
+- Tutoyer Jonathan.
+- Répondre court, direct, actionnable.
+- Utiliser `on` / `nous`, pas une posture solo.
+- Ne pas parler anglais.
+- Ne pas utiliser de mots vides.
+- Ne pas faire de suppositions temporelles.
+- Distinguer faits vérifiés, hypothèses et prochaines actions.
+
+Règles produit / tech :
+
+- Brand OS est la source de vérité centrale.
+- Boucle de valeur : Brand OS → Contenu → Smart Links → Leads → Mémoire dorée.
+- Règle auth importante : ne jamais passer `clerkUserId` en argument client vers Convex.
+- Vérifier la divergence actuelle possible entre Clerk et Convex Auth.
+- Vérifier la config Convex, Vercel, Clerk et ESLint avant gros développement.
+
+Priorités produit :
+
+- Publication native YouTube / Instagram / TikTok.
+- Intégrations Calendly, Whop, Systeme.io.
+- Analytics.
+- Smart Links.
+- Leads.
+- Mémoire dorée.
+- Messaging.
+- Calendrier avancé.
+- Radar IA.
+
+## 19. Résumé ultra-court pour nouveau topic
+
+Contexte à coller si besoin :
+
+Brvndlab est le SaaS prioritaire de Jonathan Zekhe, stack cible Next.js + Convex + Clerk + Stripe + Vercel, repo `https://github.com/jonathanzekhe/brvndlab.git`, prod `app.brvndlab.com`. Jonathan veut travailler avec Codex GPT-5.5, plus GLM, en mode GitHub + Vercel preview, pas local. Les sous-agents/topics Brvndlab sont : CSM, Content & Visual Marketing, Market Intelligence, Revenue Growth, Tech Excellence. Priorités produit : publication native YouTube/Instagram/TikTok, intégrations Calendly/Whop/Systeme.io, Analytics, Smart Links, Leads, Mémoire dorée. Points à vérifier : divergence Clerk vs Convex Auth, config Convex locale invalide, ESLint cassé, vraie création des topics Telegram.
+
+
+Tu es le développeur full stack de Brvndlab. Tu travailles sur la stack de Claude Code et tu utilises tous les outils disponibles aujourd'hui pour pouvoir développer la solution de Brvndlab en fonction des éléments qui vont être fournis 
+
+https://github.com/jonathanzekhe/brvndlab.git. Voici le repo GitHub. Connecte-toi dessus et envoie-moi le lien de prévisualisation du coup de la plateforme et on va commencer à développer un peu tout ça. On va reprendre de là où on s'est arrêté.
+
+
+Prenons aussi en considération tout ce qu'il y a dans ce topique
+
+## user — 2026-05-07T10:48:16.209197
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: “j'aimerais juste que tu puisses me refaire ça correctement, avec zéro data inscrite” puis a précisé que la version actuelle a “trop de trucs”, qu’il veut du “less is more”, une communication SaaS mature, et que Smart Links doit être réduit à une logique claire : page principale sobre, pas de mockup permanent, pas de destinations/domaines affichés comme sections actives, Smart Link = lien tracké créé depuis une destination réelle. 
+Travail restant non terminé : finaliser les checks complets, commit/push, déploiement production et smoke test live de la correction Smart Links “less is more”.
+
+## Goal
+Jonathan veut que l’agent soit le **Développeur Tech Brvndlab** : avancer vite et proprement sur Brvndlab, avec accès opérationnel GitHub/Vercel/Convex, jusqu’au live `https://app.brvndlab.com`.
+
+Objectif global :
+- développer et optimiser Brvndlab ;
+- corriger bugs, dette technique, UI/UX, perf, infra ;
+- gérer frontend, backend, Vercel, Convex, Clerk, Stripe ;
+- livrer en production avec tests, smoke tests et rollback possible ;
+- préserver les zones critiques : auth, paiement, données, secrets, coûts, actions client réelles.
+- Pour Smart Links spécifiquement : obtenir une page mature, minimaliste, cohérente avec les patterns visuels du SaaS existant, sans fausse donnée, sans communication trop explicative, avec une logique produit claire :
+ - destination = lien réel configuré par l’utilisateur ;
+ - Smart Link = lien tracké généré vers une destination ;
+ - géographie/statistiques détaillées = à afficher dans la fiche d’un lien uniquement quand des données réelles existent ;
+ - domaines/config avancée = secondaire/caché, pas affiché en permanence.
+
+## Constraints & Preferences
+- Jonathan veut des réponses simples, directes, opérationnelles, sans blabla.
+- Il préfère le tutoiement et le “on/nous”.
+- Posture attendue : **Développeur Tech / Tech Excellence Brvndlab**.
+- Utiliser **Codex GPT-5.5** pour le développement Brvndlab.
+- Ne plus utiliser **GLM** pour le code Brvndlab.
+- Base de vérité = **GitHub + Vercel + Convex + Clerk**, pas un ancien repo local isolé.
+- Repo GitHub : `https://github.com/jonathanzekhe/brvndlab.git`
+- Production : `https://app.brvndlab.com`
+- Stack : Next.js 16.2.2, React 19.2.4, Convex, Clerk, Stripe, Vercel, Tailwind CSS 4, Vitest.
+- Règles auth/Convex non négociables :
+ - ne jamais passer `clerkUserId` depuis le client vers Convex ;
+ - ne jamais passer email utilisateur depuis le client vers Convex pour identifier l’utilisateur ;
+ - utiliser `ctx.auth.getUserIdentity()` côté backend ;
+ - auth = Clerk, ne pas réinventer.
+- Mode de travail actuel :
+ - pour changements UI/produit à faible risque : code → tests/build → déploiement prod direct → smoke test live → rollback immédiat si problème ;
+ - ne pas bloquer sur preview/validation pour UI/layout/textes/pages produit/logique front non critique ;
+ - validation explicite obligatoire pour suppression de données, migrations, secrets/API keys, coûts nouveaux, messages client réels, auth critique, paiement/Stripe, données utilisateurs critiques, merge/déploiement risqué.
+- Déploiement prod Vercel :
+ - **ne pas utiliser** `vercel build --prod` + `vercel deploy --prebuilt --prod` local : a causé un incident Clerk `Publishable key not valid`.
+ - utiliser le build cloud :
+ ```bash
+ vercel --prod --token "$VERCEL_TOKEN" --scope jonathanzekhe-4288s-projects --yes
+ ```
+- `git push` ne veut pas dire déployé.
+- Confirmer `app.brvndlab.com` quand une feature est live.
+- Smoke test live obligatoire après prod.
+- Déploiement comportemental = double smoke test indépendant.
+- UI qui consomme une route = curl API live obligatoire.
+- Erreur backend = stop, fix, puis 3 tests obligatoires.
+- Ne jamais afficher/demander de secrets dans chat/Telegram.
+- Tokens/credentials dans `/Users/businessmanagement/.hermes/.env` uniquement, toujours remplacés par `[REDACTED]` dans les summaries/réponses.
+- Tout token collé dans Telegram/chat est compromis et doit être révoqué.
+- Claude Code : si `ANTHROPIC_API_KEY` local invalide est chargé, faire `unset ANTHROPIC_API_KEY` avant `claude`.
+- UI Brvndlab : esthétique noir pro / old money ; partir de l’existant ou mockup ; pixel-perfect ; pas de refacto non demandé.
+- Next.js : lire docs locales `node_modules/next/dist/docs/` avant code si breaking changes.
+- Multi-agents : ne pas travailler en silo si sujet produit/client/finance/contenu/marché.
+- Nouvelle préférence design exprimée par Jonathan :
+ - **less is more** ;
+ - communication SaaS mature, pas trop explicative ;
+ - éviter les phrases type onboarding/mode d’emploi visibles en permanence ;
+ - ne pas recopier un mockup comme si la donnée était active ;
+ - le mockup sert à comprendre l’intention produit, pas à inventer de la donnée réelle ;
+ - Jonathan a un background graphiste/designer et repère les mauvais patterns/micro-détails ;
+ - analyser les pages existantes du SaaS avant d’ajouter du design ;
+ - typographie/poids/espacements/codes visuels doivent suivre l’existant.
+
+## Completed Actions
+1. CHARGÉ skills initiaux Brvndlab — `github-repo-management`, `nextjs-development-setup`, `business/Brvndlab COO Orchestration` consultés [tool: skill_view]
+2. VÉRIFIÉ environnement local — `git`, `gh`, `node`, `npm`, `npx`, `vercel`, `claude` présents ; exit 0 [tool: terminal]
+3. CLONÉ/MIS À JOUR repo — `/Users/businessmanagement/dev/brvndlab-claude`, repo à jour sur `main/origin/main` [tool: terminal]
+4. LU contexte projet — `/Users/businessmanagement/dev/brvndlab-claude/CLAUDE.md`, 6 893 caractères [tool: read_file]
+5. INSTALLÉ dépendances — `npm ci` dans `/Users/businessmanagement/dev/brvndlab-claude/brvndlab-app`, succès [tool: terminal]
+6. LIÉ Vercel — `vercel link --yes --project brvndlab-app`, succès ; projet `brvndlab-app` [tool: terminal]
+7. TIRÉ env prod Vercel — `.vercel/.env.production.local` créé via `vercel pull --environment=production`; valeurs non affichées [tool: terminal]
+8. IDENTIFIÉ build sans env KO — erreur `Client created with undefined deployment address` sur routes OAuth Stripe/Calendly [tool: terminal]
+9. VALIDÉ build avec env prod locale — `set -a; . .vercel/.env.production.local; npm run build`, succès, 116 pages générées [tool: terminal]
+10. VALIDÉ tests initiaux — `npm test`, 3 fichiers / 36 tests passés [tool: terminal]
+11. IDENTIFIÉ lint global KO — `npm run lint`, 402 problèmes : 146 erreurs, 256 warning
+
+...[TRONQUÉ 39544 chars sha256:655b271a217d4c75]...
+
+après les derniers patches, sauf ESLint ciblé OK.
+- Repo GitHub : `jonathanzekhe/brvndlab`
+- Dossier app : `/Users/businessmanagement/dev/brvndlab-claude/brvndlab-app`
+- Vercel :
+ ```text
+ project: brvndlab-app
+ scope: jonathanzekhe-4288s-projects
+ production: https://app.brvndlab.com
+ ancien final deployment après incident Clerk: brvndlab-bu897wew3-jonathanzekhe-4288s-projects.vercel.app
+ deployment zéro-data aliasé: brvndlab-kxzxo39zw-jonathanzekhe-4288s-projects.vercel.app
+ rollback deployment used: brvndlab-3joo4fgnj-jonathanzekhe-4288s-projects.vercel.app
+ ```
+- Convex :
+ ```text
+ CONVEX_ACCESS_OK
+ production deployment mémorisé: accurate-cormorant-297
+ autre repère dashboard/dev: majestic-chameleon-876
+ ```
+- Commande prod recommandée :
+ ```bash
+ cd /Users/businessmanagement/dev/brvndlab-claude/brvndlab-app
+ set -a
+ . /Users/businessmanagement/.hermes/.env >/dev/null 2>&1
+ set +a
+ vercel --prod --token "$VERCEL_TOKEN" --scope jonathanzekhe-4288s-projects --yes
+ ```
+- Commande à éviter :
+ ```bash
+ vercel build --prod --token "$VERCEL_TOKEN"
+ vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --yes
+ ```
+ Raison : incident prod Clerk :
+ ```text
+ Publishable key not valid
+ ```
+- Build local OK seulement avec env prod :
+ ```bash
+ set -a
+ . .vercel/.env.production.local
+ set +a
+ npm run build
+ ```
+- Tests historiquement OK :
+ ```text
+ Test Files 3 passed (3)
+ Tests 36 passed (36)
+ ```
+- Dernier ESLint ciblé minimaliste OK :
+ ```bash
+ npx eslint 'src/app/(app)/smart-links/page.tsx' \
+ 'src/components/smart-links/DestinationsManager.tsx' \
+ 'src/components/smart-links/CustomDomainSection.tsx'
+ ```
+ sortie vide, exit 0.
+- Lint global KO :
+ ```text
+ ✖ 402 problems (146 errors, 256 warnings)
+ ```
+- TypeScript global KO :
+ ```bash
+ npx tsc --noEmit --pretty false
+ ```
+- Claude Code :
+ ```bash
+ unset ANTHROPIC_API_KEY
+ ```
+- Mockup Smart Links source :
+ ```text
+ https://brvndlab-mockups.vercel.app/brvndlab-smart-links-final
+ ```
+- Important : Jonathan a explicitement corrigé l’interprétation des mockups :
+ - ne pas transformer des mockups en données actives ;
+ - ne pas afficher pays/stats/sections analytiques si aucune vraie donnée backend ;
+ - ne pas surcharger la page avec communication explicative ;
+ - Smart Links doit être mature, minimal, aligné avec tout le SaaS.
+- Aucun secret/API key/token ne doit être inclus dans les prochaines réponses. Remplacer par `[REDACTED]`.
+
+--- END OF CONTEXT SUMMARY — respond to the message below, not the summary above ---
+
+## assistant — 2026-05-07T10:48:16.209197
+
+C’est corrigé et live.
+
+Lien :
+https://app.brvndlab.com/smart-links
+
+Ce que j’ai changé :
+
+- Page principale réduite au strict nécessaire :
+ - titre `Smart Links`
+ - bouton `Nouveau lien`
+ - liste des liens réels
+ - état vide si aucun lien
+
+- Supprimé :
+ - description marketing sous le titre
+ - gros bloc “Nouveau lien tracké”
+ - filtres `Call / Newsletter / Lead magnet`
+ - section domaine visible
+ - section destinations permanente
+ - guide visible
+ - toute logique “mockup présenté comme page finale”
+
+- Logique clarifiée :
+ - une **destination** = URL finale réelle : chaîne YouTube, page Calendly, newsletter, lead magnet, page de vente…
+ - un **Smart Link** = lien tracké généré depuis une destination, nommé selon le contexte de publication : vidéo YouTube, story, email, pub…
+ - les catégories ne doivent pas piloter la page principale.
+ - l’analyse détaillée viendra plus tard dans une fiche lien, quand il y aura de vraies données.
+
+- Destinations :
+ - plus affichées en permanence
+ - accessibles uniquement quand c’est nécessaire, notamment si tu veux créer un lien sans destination configurée
+
+Checks :
+- ESLint ciblé : OK
+- Tests : 36/36 OK
+- Build : OK
+- Déploiement prod : OK
+- Smoke test live :
+ - `/` OK
+ - `/sign-in` OK
+ - `/smart-links` OK
+ - `/dashboard` redirect auth OK
+- Vérification visuelle : conforme less is more
+- Console navigateur : aucune erreur
+
+Commit :
+`6e1ede5 fix(smart-links): simplify page hierarchy`
+
+Là, on est plus proche d’un SaaS mature : pas de blabla, pas de fausse pédagogie, pas de sections permanentes inutiles.
+
+## user — 2026-05-07T10:48:16.209197
+
+[Jonathan] sais tu que j'utilise dâutre server pour dev ? je pense notammenet a gemini design mcp ?
+
+## assistant — 2026-05-07T10:48:16.209197
+
+Pas encore de façon fiable dans **Hermes**.
+
+J’ai vérifié la config actuelle :
+
+- `~/.hermes/config.yaml` existe
+- aucun `mcp_servers` configuré côté Hermes
+- `hermes mcp list` → **No MCP servers configured**
+- `mcporter list` → **No MCP servers configured**
+- je ne vois pas actuellement `gemini design mcp` exposé dans cette session
+
+Donc réponse claire : **je sais maintenant que tu l’utilises / veux l’utiliser, mais il n’est pas connecté à moi ici pour l’instant.**
+
+Et oui, c’est important : si tu as un **Gemini Design MCP**, on doit l’intégrer dans le workflow design Brvndlab. Typiquement :
+
+- audit visuel des pages
+- cohérence typographique
+- critique UI/UX
+- comparaison mockup vs prod
+- patterns design system
+- détection des détails qui “font faux SaaS”
+- aide avant implémentation, pas après
+
+Ce que je retiens pour la suite : **avant de toucher à l’UI Brvndlab, je dois prendre en compte les serveurs/outils design externes que tu utilises, notamment Gemini Design MCP, si disponible.**
+
+Prochaine étape utile : tu me dis où il est configuré aujourd’hui — Claude Desktop, Cursor, Gemini CLI, autre — et je te le branche côté Hermes.
+
+## user — 2026-05-07T10:48:16.209197
+
+[Jonathan] En fait, je t'ai dit ça parce que tu n'as pas fait des choses bien au niveau du design, etc.
+
+Je vais aller juste de l'autre côté. Tu n'as même pas compris la logique de ce que j'ai fait, parce que la page n'a pas été bien faite.
+
+Attends, je reviens à toi dans quelques minutes. Je vais aller demander à Claude de me donner toutes les skills, ainsi que les stacks, la stack de solutions que j'utilise. Comme ça, je te donne les accès. Ça marche?
+
+## assistant — 2026-05-07T10:48:16.209197
+
+Oui, ça marche.
+
+Et je prends le point franchement : j’ai mal lu la logique produit/design. J’ai trop exécuté “page visible” au lieu de comprendre le système derrière :
+
+- ce qui est **Smart Link**
+- ce qui est **destination**
+- ce qui doit être **configuration**
+- ce qui doit être **fiche détail**
+- ce qui doit rester **invisible tant qu’il n’y a pas de donnée réelle**
+- et surtout le niveau de sobriété attendu sur Brvndlab
+
+Donc oui : va récupérer côté Claude la stack complète, les MCP, les skills, les serveurs design/dev, les conventions. Envoie-moi ça ici.
+
+Quand tu reviens, je vais faire 3 choses avant de retoucher au design :
+
+1. **Cartographier ta stack réelle**
+ - Claude Code
+ - Codex
+ - Gemini Design MCP
+ - autres MCP
+ - Vercel / Convex / Clerk / GitHub
+ - outils design / audit / screenshots
+
+2. **Créer une règle de workflow UI Brvndlab**
+ - aucun changement design sans audit des patterns existants
+ - aucun mockup copié comme page finale
+ - aucune fausse donnée
+ - less is more par défaut
+ - configuration cachée si secondaire
+ - page principale = usage réel, pas documentation produit
+
+3. **Réparer Smart Links proprement**
+ - pas juste “enlever des blocs”
+ - reprendre la logique produit depuis zéro
+ - aligner avec ce que tu avais brainstormé avec Claude
+ - utiliser les bons outils design si tu me les donnes
+
+Envoie-moi tout ce que Claude te sort. Je vais l’intégrer comme base de travail.
+
+## user — 2026-05-07T10:48:16.209197
+
+[Jonathan] Qu'est-ce que tu as besoin en fait pour bien travailler? Pour comprendre, parce que là j'ai l'impression en fait que tu ne comprends pas encore Brvndlab correctement.
+
+Est-ce que tu as besoin d'un résumé parce que je peux demander à Claude de le faire? Est-ce que tu as besoin d'un résumé de Claude qui te dise exactement tout ce qu'on a fait, tout ce qu'on fait, comment on l'utilise, sans exception, ainsi que la logique derrière chaque page? Je ne sais pas.
+
+Fais-moi une demande ultra ultra ultra ultra ultra ultra précise pour que tu comprennes tout le contexte, tout ce qu'on fait sans exception et que tu ne fasses aucune erreur. Joue aucune limite dans ta demande, puisque comme ça je te donne une demande à Claude et il le fait correctement.
+
+## assistant — 2026-05-07T10:48:16.209197
+
+Oui. Il me faut un **handoff complet de Claude**, pas juste un résumé général.
+
+Copie-colle exactement cette demande à Claude :
+
+```text
+Tu dois produire un handoff complet pour un autre agent développeur/design qui va reprendre Brvndlab sans contexte implicite.
+
+Objectif : lui transmettre 100% de la logique produit, design, technique, UX, data et workflow, pour éviter qu’il copie des mockups bêtement, invente de la donnée, casse les patterns ou comprenne mal les pages.
+
+Format demandé : document structuré, exhaustif, en français, sans blabla. Si une information est incertaine, écris “à vérifier” au lieu d’inventer.
+
+## 1. Vision Brvndlab
+
+Explique précisément :
+- ce qu’est Brvndlab
+- pour qui le SaaS est construit
+- ce que Brvndlab n’est PAS
+- le positionnement produit
+- la promesse
+- la maturité visuelle attendue
+- les erreurs de posture à éviter
+- le niveau “less is more” attendu
+- la différence entre SaaS mature et mockup trop démonstratif
+
+## 2. Boucle de valeur centrale
+
+Explique la boucle complète :
+Brand OS → Création de contenu → Distribution → Smart Links → Leads → Heat Score → Mémoire dorée → Décisions / contenu / ventes
+
+Pour chaque étape :
+- rôle exact
+- donnée consommée
+- donnée produite
+- lien avec les autres modules
+- ce qui doit être visible à l’utilisateur
+- ce qui doit rester invisible / en arrière-plan
+
+## 3. Architecture produit globale
+
+Liste toutes les pages/modules actuels et prévus :
+- Dashboard
+- Brand OS
+- Contenu
+- Calendrier
+- Journal
+- Analytics
+- Radar
+- Smart Links
+- Leads
+- Ventes / Transactions
+- Collaborateurs
+- Messagerie
+- Mémoire dorée
+- Client Intel
+- Intégrations
+- Settings
+- Onboarding
+- autres pages existantes
+
+Pour chaque page, donne :
+- objectif exact
+- utilisateur cible
+- job-to-be-done
+- logique métier
+- état vide attendu
+- état rempli attendu
+- données backend nécessaires
+- actions principales
+- actions secondaires
+- ce qui ne doit PAS être affiché
+- erreurs UI/UX à éviter
+- niveau de densité visuelle attendu
+- relation avec Brand OS et les autres modules
+
+## 4. Smart Links — explication ultra détaillée
+
+C’est prioritaire. Explique précisément :
+
+### Concept
+- qu’est-ce qu’un Smart Link
+- pourquoi on le crée
+- quand l’utilisateur le crée
+- dans quel contexte il l’utilise
+- différence entre lien tracké, destination, source, campagne, contenu, funnel, canal
+
+### Logique destination
+Explique :
+- ce qu’est une destination
+- exemples réels de destinations : chaîne YouTube, newsletter, Calendly/iClosed, lead magnet, page de vente, Whop, Systeme.io, etc.
+- qui choisit les destinations
+- où elles doivent être configurées
+- quand elles doivent apparaître
+- pourquoi elles ne doivent pas forcément être visibles en permanence sur la page principale
+
+### Logique Smart Link
+Explique :
+- comment un Smart Link est créé à partir d’une destination
+- ce que l’utilisateur doit choisir
+- ce que l’utilisateur doit nommer
+- ce qui doit être automatique
+- ce qui ne doit PAS être demandé
+- ce qui doit être tracké
+- quelle donnée est réelle vs future
+
+### Page principale Smart Links
+Décris exactement ce que la page principale doit afficher :
+- quand il n’y a aucun lien
+- quand il y a des liens
+- quand il y a des clics
+- quand il n’y a pas encore de clics
+- ce qui doit être caché dans modale / page secondaire / settings
+- ce qui ne doit jamais apparaître comme section permanente
+- quelles colonnes sont pertinentes
+- quels filtres sont pertinents ou non
+- si les catégories Call/Newsletter/Lead Magnet doivent être visibles ou non
+- comment gérer domaine personnalisé
+- comment gérer guide/aide
+- comment gérer géographie/pays/sources
+- où doivent vivre les détails d’un lien
+
+### Détail d’un Smart Link
+Décris la fiche détail idéale :
+- infos principales
+- destination
+- lien public
+- source/campagne
+- clics
+- pays
+- appareils
+- referrers
+- conversions
+- timeline
+- relation avec Leads
+- relation avec Mémoire dorée
+- quand afficher ces données
+- états vides
+
+### Data
+Explique :
+- quelles données existent déjà réellement
+- quelles données sont simulées dans les mockups
+- quelles données ne doivent jamais être affichées en prod sans backend réel
+- quelles tables Convex / fonctions sont concernées si tu les connais
+- quelles données doivent venir de Convex
+- quelles données peuvent être calculées côté frontend
+- quelles données ne doivent pas être inventées
+
+### Erreurs déjà faites à ne pas reproduire
+Liste explicitement :
+- ne pas copier les données du mockup comme data active
+- ne pas afficher pays/visiteurs globaux si ça appartient au détail d’un lien
+- ne pas afficher domaine personnalisé comme section permanente si secondaire
+- ne pas surcharger la page avec une communication marketing
+- ne pas mettre des filtres/catégories si la logique produit ne les justifie pas
+- ne pas transformer un mockup d’idée en page finale remplie
+- autres erreurs observées
+
+## 5. Design system Brvndlab
+
+Donne les règles précises :
+- typographie utilisée
+- poids typographiques préférés
+- tailles typiques de titres
+- tailles textes secondaires
+- couleurs principales
+- couleurs secondaires
+- fonds
+- bordures
+- radius
+- ombres
+- spacing
+- grilles
+- densité
+- style des cartes
+- style des boutons
+- style des modales
+- style des états vides
+- style des tableaux
+- style sidebar/nav
+- iconographie
+- animation/transitions
+- ce qui fait “cheap”
+- ce qui fait “SaaS mature”
+- ce qui fait “trop mockup”
+- ce qui fait “pas Brvndlab”
+
+## 6. Règles de communication in-app
+
+Explique :
+- ton de l’interface
+- niveau de texte acceptable
+- mots à éviter
+- formulations à éviter
+- longueur maximale typique
+- quand mettre une description
+- quand ne pas en mettre
+- différence entre page opérationnelle et page pédagogique
+- exemples de bons textes Brvndlab
+- exemples de mauvais textes Brvndlab
+- vocabulaire validé
+- vocabulaire interdit
+
+## 7. Mockups
+
+Explique comment interpréter les mockups Brvndlab :
+- à quoi ils servent
+- ce qu’il faut copier
+- ce qu’il ne faut pas copier
+- comment distinguer structure, intention, état futur et fausse donnée
+- comment traiter les données d’exemple
+- comment traiter les sections hypothétiques
+- comment demander clarification si le mockup contient plusieurs états
+- règles avant implémentation
+
+## 8. Stack technique
+
+Donne la stack exacte :
+- framework
+- version Next si connue
+- React
+- Convex
+- Clerk
+- Stripe
+- Whop
+- Vercel
+- Tailwind
+- tests
+- lint
+- CI/CD
+- repo GitHub
+- domaine prod
+- dashboard Vercel/projet
+- déploiements
+- variables importantes sans révéler les secrets
+- commandes build/test/lint
+- contraintes connues
+- problèmes connus
+- règles auth
+
+## 9. Backend/data/auth
+
+Explique :
+- architecture Convex
+- tables importantes
+- fonctions importantes
+- règles auth
+- Clerk vs Convex Auth : état actuel réel
+- ne jamais passer clerkUserId depuis le client
+- comment identifier user côté backend
+- tables liées à Smart Links, Leads, Mémoire dorée, Analytics, Calendar, Integrations
+- intégrations actuelles
+- webhooks
+- OAuth
+- ce qui est prod-ready
+- ce qui est à vérifier
+
+## 10. Intégrations et accès
+
+Liste les outils/services utilisés :
+- GitHub
+- Vercel
+- Convex
+- Clerk
+- Stripe
+- Whop
+- Calendly
+- iClosed
+- YouTube
+- Instagram
+- TikTok
+- Systeme.io
+- autres
+
+Pour chacun :
+- rôle dans Brvndlab
+- état actuel
+- accès requis pour développement
+- risques
+- limites
+- quoi ne pas toucher sans validation
+
+## 11. Outillage agent / dev / design
+
+Liste exactement tous les agents, serveurs, MCP, outils et workflows utilisés par Jonathan :
+- Claude Code
+- Codex GPT-5.5
+- Hermes
+- Gemini Design MCP
+- autres MCP
+- Cursor / Claude Desktop / Gemini CLI / autres si utilisés
+- outils de screenshot / audit visuel
+- outils de design
+- agents Telegram
+- topics Telegram
+- sous-agents prévus
+
+Pour chaque outil :
+- rôle exact
+- quand l’utiliser
+- comment il est configuré
+- ce que le nouvel agent doit savoir
+- comment l’intégrer dans le workflow
+- pièges / limites
+
+## 12. Workflow de développement attendu
+
+Explique le workflow exact :
+- brainstorm avant code
+- audit existant avant refonte
+- analyse design avant implémentation
+- quand créer mockup
+- quand coder
+- quand utiliser Claude/Gemini/Codex/Hermes
+- branche vs main
+- preview vs prod direct
+- tests obligatoires
+- smoke tests
+- rollback
+- validation Jonathan requise ou non
+- règles pour changements UI faibles risques
+- règles pour auth/paiement/données critiques
+
+## 13. Critères de qualité avant livraison
+
+Checklist obligatoire :
+- produit compris
+- design cohérent
+- pas de fausse donnée
+- pas de surcommunication
+- états vides corrects
+- responsive
+- accessibilité minimale
+- lint ciblé
+- tests
+- build
+- smoke test live
+- console navigateur
+- screenshot/vision si UI
+- comparaison avec pages voisines
+- conformité aux règles Brvndlab
+
+## 14. État actuel du repo et dette connue
+
+Liste :
+- ce qui est déjà en prod
+- ce qui marche
+- ce qui est fragile
+- bugs connus
+- lint global
+- TypeScript global
+- pages à revoir
+- Smart Links état actuel
+- prochains chantiers recommandés
+- priorités produit
+- chantiers à ne pas lancer sans validation
+
+## 15. Décisions déjà prises par Jonathan
+
+Liste toutes les décisions stables :
+- Brvndlab priorité #1
+- rôle Hermes = COO/Cockpit, pas CEO
+- Codex GPT-5.5 pour dev
+- plus GLM
+- design old money / noir profond / accents champagne-orangé
+- less is more
+- pas de fausse donnée
+- mockup = intention, pas source de vérité
+- prod direct possible pour UI faible risque
+- validation requise pour destructif/auth/paiement/données/secrets/coûts
+- autres décisions importantes
+
+## 16. Prompt opérationnel final pour le nouvel agent
+
+À la fin, écris un prompt complet que je pourrai coller dans Hermes.
+
+Ce prompt doit dire :
+- qui est l’agent
+- rôle exact
+- contexte Brvndlab
+- stack
+- workflow
+- règles design
+- règles produit
+- règles data
+- règles mockups
+- outils à utiliser
+- erreurs à éviter
+- comment travailler avec Jonathan
+- comment livrer
+
+Important :
+- sois exhaustif
+- ne suppose rien
+- ne masque pas les ambiguïtés
+- distingue “confirmé”, “probable”, “à vérifier”
+- donne assez de détails pour qu’un agent qui ne connaît pas Brvndlab puisse travailler sans casser la logique
+```
+
+Et si Claude peut, demande-lui aussi en bonus :
+
+```text
+Bonus : ajoute une section “Smart Links corrigé — version idéale” avec :
+- IA produit : logique exacte
+- UX flow
+- wireframe textuel
+- composants nécessaires
+- données backend nécessaires
+- états vides
+- états remplis
+- erreurs à éviter
+- ordre de priorité de dev
+```
+
+Ce handoff-là me permettra de travailler proprement. 
+Pas besoin d’être court : mieux vaut un document trop complet qu’un résumé qui laisse des trous.
+
+## user — 2026-05-07T10:48:16.209197
+
+[Jonathan] Je pense que le mieux à faire d'abord, c'est que je lui dise, parce que j'ai fait une demande qui donne vraiment :
+- toutes les stacks
+- toutes les règles
+- tout ce qu'on a pu faire
+- ce qu'on fait
+- comment et pourquoi on les utilise
+- et les skills
+Comme ça tu rajoutes aussi les skills toi-même.
+Et ensuite, quand tu auras ça, tu peux me poser encore en plus les questions comme tu viens de le faire maintenant.
+Mettre les éléments comme tu viens de le faire maintenant, que je lui envoie ça, fait plus de sens. Qu'est-ce que tu en penses? Au mieux, comme ça on a pas de doublons en fait.
+
+## assistant — 2026-05-07T10:48:16.209197
+
+Oui, c’est mieux.
+
+Fais d’abord produire par Claude le **socle complet** :
+
+- stacks
+- règles
+- décisions
+- logique produit
+- pages
+- workflow
+- outils
+- MCP
+- skills
+- ce qui existe
+- ce qui est prévu
+- pourquoi chaque outil/page/module existe
+
+Ensuite tu me l’envoies ici.
+
+Moi, je ferai ensuite :
+
+1. **Lecture critique**
+ - je repère les trous
+ - je repère les ambiguïtés
+ - je repère les contradictions
+ - je distingue confirmé / probable / à vérifier
+
+2. **Questions ultra ciblées**
+ - uniquement sur ce qui manque
+ - pas de doublon avec Claude
+ - pas de question générique
+
+3. **Transformation en mémoire opérationnelle**
+ - règles durables
+ - workflow Brvndlab
+ - logique design
+ - logique Smart Links
+ - usage des MCP / skills
+
+4. **Création ou mise à jour des skills Hermes**
+ - skill Brvndlab produit
+ - skill Brvndlab design/UI
+ - skill Brvndlab Smart Links
+ - skill Brvndlab dev workflow
+ - éventuellement skill MCP/Gemini Design si on a les infos
+
+Donc oui : **Claude fait le dump complet, moi je fais l’intégration, le tri, les questions et la mise en système.**
+
+Demande-lui juste un document brut, exhaustif, pas forcément parfaitement organisé. 
+Moi je m’occupe de le structurer ensuite.
+
+## assistant — 2026-05-07T10:48:16.209197
+
+**Directive COO Brvndlab — partage inter-agents**
+
+Nouvelle règle opérationnelle : aucun agent ne travaille en silo.
+
+- Toute information, décision ou skill pertinent pour un autre périmètre doit être partagé au bon agent.
+- Quand un nouveau sous-agent arrive, le COO/Cockpit annonce son existence aux autres : nom, rôle, responsabilités, dépendances, quand le solliciter.
+- Le nouveau sous-agent reçoit un onboarding : contexte Brvndlab, règles métier, décisions validées, skills utiles.
+- Les informations doivent rester à jour entre agents selon pertinence.
+
+Exemples :
+- Tech construit une feature qui impacte le contenu → CMO informé.
+- Tech construit une feature qui impacte clients/adoption → CSM informé.
+- Changement pricing/revenus/paiement → Finance informé.
+- Signal marché/concurrent utile produit/contenu → Market Radar partage aux agents concernés.
+
+Le COO/Cockpit arbitre les dépendances et évite les silos.
+
+## assistant — 2026-05-07T10:48:16.209197
+
+**Addendum directive inter-agents — clarification & brainstorming**
+
+Règle ajoutée : si un agent détecte un flou, un risque d’incompréhension ou un besoin d’aller plus en profondeur, il ne doit pas exécuter mécaniquement.
+
+Il doit :
+- poser des questions à l’agent concerné, au COO/Cockpit ou à Hermès ;
+- clarifier la logique avant d’avancer ;
+- brainstormer avec les autres agents si le sujet touche plusieurs périmètres ;
+- challenger proprement si une décision semble incohérente avec Brvndlab ;
+- vérifier que tout le monde est aligné avant exécution.
+
+Ce n’est pas juste : “je transmets, tu exécutes”.
+C’est : “je transmets, on clarifie si besoin, on s’aligne, puis on exécute.”
+
+## user — 2026-05-07T10:48:16.209197
+
+[Jonathan] Voilà le brief : https://brvndlab-mockups.vercel.app/hermes-brief
+
+## assistant — 2026-05-07T10:48:16.209197
+
+Je vais lire le brief, l’extraire, puis je te fais l’intégration propre : ce qui est confirmé, ce qui manque, et les questions ciblées avant prochaine exécution.
+
+## assistant — 2026-05-07T10:48:16.209197
+
+J’ai récupéré la source Markdown complète du brief : `223 651 caractères`, `4 392 lignes`. Je vais maintenant le découper par sections, extraire les règles opératoires et mettre à jour les skills Brvndlab au lieu de le garder comme simple lien.
+
+## assistant — 2026-05-07T10:48:16.209197
+
+Je vais créer 3 skills opérationnels à partir du brief : produit global, UI/design, Smart Links. Ensuite je patch le workflow dev existant pour intégrer Gemini Design MCP comme prérequis frontend.
+
+## assistant — 2026-05-07T10:48:16.209197
+
+J’ai lu et intégré le brief.
+
+Fait :
+- Brief complet récupéré : `223k caractères`, `4 392 lignes`
+- Source locale sauvegardée : `/Users/businessmanagement/.hermes/cache/HERMES-BRIEF.md`
+- Créé 3 skills Hermes :
+ - `brvndlab-product-brief`
+ - `brvndlab-ui-design`
+ - `brvndlab-smart-links`
+- Patché le skill existant :
+ - `brvndlab-autonomous-dev`
+- Mémoire mise à jour : ce brief devient source de vérité avant gros chantier produit/UI.
+
+Ce que j’ai compris maintenant :
+
+1. **Gemini Design MCP est obligatoire pour le frontend**
+ - Donc mon erreur Smart Links vient aussi de là : j’ai travaillé côté UI sans ton vrai pipeline design.
+ - Actuellement, côté Hermes, je ne le vois pas connecté.
+ - Tant que je ne l’ai pas, je ne dois pas faire de refonte UI sensible seul.
+
+2. **Brvndlab est beaucoup plus scellé que je ne l’avais traité**
+ - Les modules validés ne doivent pas être “réinterprétés”.
+ - Mockup = structure/intention, pas data active.
+ - Gemini/Claude gèrent la phase design profonde, Hermes doit respecter ça.
+
+3. **Règle UI plus stricte**
+ - Less is more.
+ - Pas de sous-texte sous titres.
+ - Typo légère.
+ - Zéro redondance.
+ - Un écran = une intention.
+ - Skeletons systématiques.
+ - Pas de spinner muet.
+ - Pas de frontend sans audit design.
+
+4. **Smart Links est un module critique**
+ - Différenciateur T2.
+ - 1 Smart Link = 1 source de publication.
+ - Ne jamais fusionner deux contenus.
+ - `/r/[slug]` est critique.
+ - Geo top 5 uniquement si data réelle.
+ - Cash attribué via Stripe/Whop only.
+
+5. **Mon rôle Hermes doit être clarifié**
+ - Le brief dit que Hermes n’a pas Gemini Design MCP et recommande de ne pas toucher au frontend sans lui.
+ - Donc il faut décider : Hermes fait backend/data/devops seulement, ou on connecte Gemini MCP pour que je puisse toucher UI proprement.
+
+Les 4 points à clarifier maintenant, sans doublon :
+
+1. **Gemini Design MCP**
+ - Tu veux me le connecter côté Hermes ?
+ - Si oui, il me faut sa config exacte : commande, args, env vars nécessaires, où il tourne aujourd’hui.
+
+2. **Périmètre Hermes**
+ - Est-ce que je suis autorisé à toucher le frontend Brvndlab une fois Gemini MCP connecté ?
+ - Ou est-ce que je reste backend, Convex, Vercel, QA, déploiement, intégrations ?
+
+3. **Repo canonique**
+ - Le brief mentionne `jonathanzekhe/brvndlab-app`.
+ - Nos accès actuels pointent sur `jonathanzekhe/brvndlab`.
+ - Je veux confirmer lequel est la vraie source GitHub actuelle.
+
+4. **Branche de vérité**
+ - Le brief mentionne `chantier-b-clerk` avec 16+ commits ahead.
+ - Nos derniers travaux étaient sur `main`.
+ - Je dois savoir si `chantier-b-clerk` est encore active ou si `main` est redevenue source de vérité.
+
+Point important sur Smart Links :
+- Le brief dit que Geo Insights est validé.
+- Ton feedback récent dit que la page principale devait être less is more, sans fausse data, sans surcharge, et que la geo doit vivre plutôt au niveau détail lien quand réelle.
+- Je considère **ton feedback récent comme plus prioritaire**, sauf si tu me dis que le brief est plus à jour sur ce point.
+
+Prochaine action recommandée :
+- Tu me donnes la config Gemini Design MCP + confirmation repo/branche.
+- Ensuite je fais un audit de mon setup Hermes vs stack Claude.
+- Puis je te rends une cartographie claire : ce que je peux faire seul, ce que je dois déléguer à Claude/Gemini, et le workflow propre pour éviter une nouvelle dérive design.
+
+## assistant — 2026-05-07T11:02:56.474108
+
+**Dispatch brief Claude Code — Brvndlab**
+
+Jonathan a fourni le brief de reprise : https://brvndlab-mockups.vercel.app/hermes-brief
+
+À intégrer comme contexte de travail. Ne pas traiter ça comme une simple info passive : si un point est flou ou impacte ton périmètre, tu dois questionner l’agent concerné, le COO/Cockpit ou Hermès, puis brainstormer avant exécution.
+
+**Infos transversales à retenir**
+- Brvndlab = OS premium pour infopreneurs/coachs/consultants high-ticket, pas créateurs lambda.
+- Brand OS = source de vérité centrale.
+- Boucle : Brand OS → Création → Distribution Smart Links → Leads/Heat Score → Mémoire dorée.
+- Accès fermé, pas de sign-up public.
+- Ton : français de France, on/nous, old money, minimal, zéro blabla.
+- Modules livrés : Brand OS, Dashboard, Content, Calendar, Analytics, Radar, Smart Links, Leads, Transactions, Messaging collaborateurs, Collaborateurs, Client/Coach, Settings, Journal, Mémoire dorée, Résiliation, Affiliation, Pricing, légal, onboarding, auth.
+
+**Répartition pertinente**
+- Tech : stack Next 16, Convex, Clerk, Stripe/Whop/Calendly/iClosed, Smart Links, Heat Score, crons, sécurité, deploy, tests.
+- CMO : Content, Radar, YouTube, mockups validés, DA old money, scripts, thumbnails, landing, lead magnets.
+- CSM : onboarding, Leads, Client Intel, Mémoire dorée, satisfaction/adoption/churn, support.
+- Finance : pricing 149/349/749, affiliation 25 %, Stripe/Whop, cash Stripe+Whop only, churn/LTV/MRR.
+- Market Radar : veille concurrents, signaux SaaS personal branding, transcripts pipeline, opportunités marché.
+
+Règle : tu prends ce qui touche ton périmètre et tu demandes clarification si besoin.
+
+## assistant — 2026-05-07T11:10:13.137928
+
+**Handshake COO**
+
+Je dois corriger le dispatch : avant d’envoyer un brief spécifique, j’ai besoin de confirmer quel agent vit dans ce topic.
+
+Réponds avec ton rôle exact parmi : Tech, CMO, CSM, Finance, Market Radar, COO/Cockpit.
+
+Si ce topic n’est pas encore relié à un agent actif, réponds : “non configuré”.
+
+## assistant — 2026-05-07T11:18:28.608088
+
+**Activation Développeur Tech**
+
+Ce topic est maintenant routé avec ton rôle Tech.
+
+Quand Jonathan écrit ici, tu dois répondre comme responsable technique Brvndlab : stack, bugs, UX/UI produit, Convex, Clerk, Vercel, Stripe/Whop/Calendly/iClosed côté technique.
+
+Tu ne dois pas répondre comme COO généraliste. Si un sujet touche contenu, clients, finance ou marché, tu poses les bonnes questions et tu sollicites l’agent concerné avant d’exécuter.

@@ -11,6 +11,7 @@ export type LibItem = {
   id: string
   kind: string
   category: string
+  folder: string
   name: string
   ext: string
   url: string | null
@@ -20,6 +21,7 @@ export type LibItem = {
   tags: string[]
   description: string
   assignedTo: string[]
+  status: string
 }
 
 interface Props {
@@ -174,6 +176,10 @@ export default function DataPreviewPanel({ item, allTags, onClose, onDelete }: P
 
   const suggestions = allTags.filter(t => !item.tags.includes(t) && t.includes(tagInput.toLowerCase()))
 
+  // Seuls ces types ont un vrai rendu de contenu. Les autres (doc, xlsx, zip, liens…) n'affichent
+  // PAS de grande zone de preview vide : panneau compact (métadonnées + bouton « Ouvrir »).
+  const previewable = ['image', 'svg', 'pdf', 'markdown'].includes(item.category)
+
   if (typeof document === 'undefined') return null
 
   return createPortal(
@@ -184,7 +190,7 @@ export default function DataPreviewPanel({ item, allTags, onClose, onDelete }: P
       {/* Modal */}
       <div
         className="relative w-full max-w-3xl bg-soren-card rounded-3xl shadow-2xl flex flex-col overflow-hidden"
-        style={{ height: 'min(90vh, 800px)', animation: 'scaleIn 180ms cubic-bezier(0.4,0,0.2,1) both' }}
+        style={{ height: previewable ? 'min(90vh, 800px)' : 'auto', maxHeight: '90vh', animation: 'scaleIn 180ms cubic-bezier(0.4,0,0.2,1) both' }}
       >
         {/* ── Header ── */}
         <div className="px-5 pt-4 pb-3 border-b border-soren-border flex-shrink-0">
@@ -233,6 +239,17 @@ export default function DataPreviewPanel({ item, allTags, onClose, onDelete }: P
             {item.category.toUpperCase()}{item.ext ? ` · .${item.ext}` : ''}{item.size ? ` · ${fmtSize(item.size)}` : ''} · {new Date(item.addedAt).toLocaleDateString('fr-FR')}
           </p>
 
+          {/* Dossier — déplacer l'item */}
+          <div className="flex items-center gap-1.5 flex-wrap mt-2">
+            <span className="text-[10px] font-semibold text-soren-subtle mr-0.5">Dossier</span>
+            {['Projets', 'Skills', 'Documentations', 'PDF', 'Images'].map(f => (
+              <button key={f} onClick={() => { if (f !== item.folder) void updateItem({ id: item.id as never, folder: f }) }}
+                className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${item.folder === f ? 'bg-[#FF4D00] text-white border-[#FF4D00]' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>
+                {f}
+              </button>
+            ))}
+          </div>
+
           {/* Tags */}
           <div className="flex items-center gap-1.5 flex-wrap mt-2">
             {item.tags.map(t => (
@@ -279,10 +296,20 @@ export default function DataPreviewPanel({ item, allTags, onClose, onDelete }: P
           </div>
         </div>
 
-        {/* ── Preview ── flex-1, fills all remaining space */}
-        <div className="flex-1 min-h-0 overflow-hidden">
-          <FilePreview item={item} />
-        </div>
+        {/* ── Preview ── grande zone uniquement pour les types prévisualisables.
+            Sinon : pas de zone vide — juste un bouton « Ouvrir » (si fichier/lien). */}
+        {previewable ? (
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <FilePreview item={item} />
+          </div>
+        ) : item.url ? (
+          <div className="px-5 py-4 border-t border-soren-border flex-shrink-0">
+            <a href={item.url} target="_blank" rel="noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#FF4D00] hover:bg-[#e64500] text-white text-[12px] font-semibold rounded-full transition-colors">
+              Ouvrir le fichier <ExternalLink size={12} />
+            </a>
+          </div>
+        ) : null}
 
         {/* ── Assignees ── chips row, same pattern as tags */}
         <div className="px-5 py-2.5 border-t border-soren-border flex-shrink-0 bg-soren-card">

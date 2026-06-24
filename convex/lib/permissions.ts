@@ -53,6 +53,10 @@ export const POLICY: Record<string, PolicyEntry> = {
   contacts_create: { module: "contacts", verb: "write" },
   contacts_update: { module: "contacts", verb: "write" },
   contacts_delete_or_archive: { module: "contacts", verb: "archive" },
+  // Outbound (loop email outbound — état) : réutilise le module contacts (les agents l'ont déjà)
+  outbound_list: { module: "contacts", verb: "read" },
+  outbound_create: { module: "contacts", verb: "write" },
+  outbound_set_stage: { module: "contacts", verb: "write" },
   // Pipeline / leads
   pipeline_list: { module: "pipeline", verb: "read" },
   pipeline_get: { module: "pipeline", verb: "read" },
@@ -72,6 +76,11 @@ export const POLICY: Record<string, PolicyEntry> = {
   sales_calls_create: { module: "sales_calls", verb: "write" },
   sales_calls_update: { module: "sales_calls", verb: "write" },
   sales_calls_summary: { module: "sales_calls", verb: "read" },
+  // Closing (cockpit closer) — réutilise le module sales_calls
+  closing_calls: { module: "sales_calls", verb: "read" },
+  closing_synced_ids: { module: "sales_calls", verb: "read" },
+  closing_save_bio: { module: "sales_calls", verb: "write" },
+  closing_schedule_call: { module: "sales_calls", verb: "write" },
   objections_extract_or_save: { module: "objections", verb: "write" },
   // Outreach
   outreach_list: { module: "outreach", verb: "read" },
@@ -133,6 +142,9 @@ export const POLICY: Record<string, PolicyEntry> = {
   media_buyer_board:  { module: "media_buyer", verb: "read" },
   media_buyer_upsert: { module: "media_buyer", verb: "write" },
   media_buyer_remove: { module: "media_buyer", verb: "delete" },
+  meta_creatives:        { module: "media_buyer", verb: "read" },
+  meta_creatives_stored: { module: "media_buyer", verb: "read" },
+  meta_creatives_sync:   { module: "media_buyer", verb: "write" },
   // Onboarding
   onboarding_list:               { module: "onboarding", verb: "read" },
   onboarding_get_by_contact:     { module: "onboarding", verb: "read" },
@@ -145,10 +157,12 @@ export const POLICY: Record<string, PolicyEntry> = {
   confirmation_create:           { module: "closing", verb: "write" },
   confirmation_link:             { module: "closing", verb: "write" },
   // Records (bibliothèque/records — méta des records)
-  records_list:   { module: "records", verb: "read" },
-  records_get:    { module: "records", verb: "read" },
-  records_patch:  { module: "records", verb: "write" },
-  records_remove: { module: "records", verb: "delete" },
+  records_list:     { module: "records", verb: "read" },
+  records_get:      { module: "records", verb: "read" },
+  records_meetings: { module: "records", verb: "read" },
+  record_transcript:{ module: "records", verb: "read" },
+  records_patch:    { module: "records", verb: "write" },
+  records_remove:   { module: "records", verb: "delete" },
   // Library (bibliothèque/data)
   library_list:          { module: "library", verb: "read" },
   library_folders_list:  { module: "library", verb: "read" },

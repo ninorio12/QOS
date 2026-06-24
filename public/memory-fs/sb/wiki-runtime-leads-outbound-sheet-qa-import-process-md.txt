@@ -1,0 +1,73 @@
+---
+type: runtime-process
+title: Leads outbound Sheet QA puis import Data OS
+status: active
+updated: 2026-06-15
+---
+
+# Leads outbound Sheet QA puis import Data OS
+
+Process validé pour la base Google Sheets de leads dirigeants B2B Suisse romande.
+
+Sheet source : https://docs.google.com/spreadsheets/d/1sbFU9uviMbQjcp4bJXTdS6Q5ocElf8ZH2U67tlQNidU/edit
+
+Chaîne obligatoire : Sheet → scoring → QA Coordinateur → lignes suspectes rouges → import Data OS Contacts avec source obligatoire `leads outbound`.
+
+## Séquence quotidienne
+
+1. 08:00 — ordre quotidien Telegram + Slack.
+2. 08:05 — scraping/remplissage du Sheet par Agent Operations.
+3. 08:30 — QA Coordinateur.
+4. 08:50 — import Data OS Contacts par Agent Operations.
+
+## Règle qualité ajoutée après test nul
+
+Le volume ne prime jamais sur la qualité. Le scraping quotidien doit d'abord produire un échantillon de 10 lignes maximum. Si l'échantillon est faible, générique, hors cible, non sourcé ou sans décisionnaire prouvé, le batch s'arrête et remonte un blocage au lieu de remplir 100 mauvaises lignes.
+
+Import Data OS désactivé tant que l'échantillon quotidien n'est pas validé A/B par le Coordinateur. Qualité C = à vérifier ou rejet, jamais import.
+
+## QA Coordinateur
+
+Le Coordinateur relit les lignes du jour après scoring.
+
+Il vérifie :
+- niche conforme ;
+- zone Suisse romande ;
+- source présente ;
+- CA mensuel estimé défendable ou clairement à vérifier ;
+- email/téléphone professionnels ;
+- doublons évidents ;
+- raison des scoring faibles.
+
+Les lignes suspectes doivent être marquées en rouge dans le Google Sheet, avec une note courte.
+
+Motifs rouges :
+- Qualité C ;
+- statut rejeté ;
+- source absente ;
+- email + téléphone absents ;
+- contact non fonctionnel ;
+- téléphone ou email personnel ;
+- doublon probable ;
+- CA non défendable ;
+- hors zone ou hors niche.
+
+## Import Data OS
+
+Importer seulement les lignes validées :
+- Qualité A/B ;
+- non rouges ;
+- Import Data OS = non ou vide ;
+- source présente ;
+- contact professionnel ;
+- pas de doublon probable.
+
+Créer les contacts dans le module Contacts Data OS avec les champs disponibles.
+
+Règle impérative : source = `leads outbound` et statut = `lead` quand le champ existe.
+
+Après import :
+- succès → `Import Data OS = oui` ;
+- erreur → `Import Data OS = erreur` + note courte.
+
+Ne jamais importer une ligne rouge/suspecte/Qualité C.

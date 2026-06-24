@@ -6,17 +6,19 @@
  * Tout élément important est cliquable ou mène à une vue utile.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import Link from 'next/link'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import {
   Wrench, Brain, Search, ArrowLeft, Library, ListChecks, Footprints,
   ExternalLink, CheckSquare, ShieldCheck, User, Clock, FileText, Save, Trash2, Check,
+  Star, Upload, Download, Workflow,
 } from 'lucide-react'
 import { Chip, Pill } from '@/components/agentic/ui'
 import MarkdownView from '@/components/agentic/MarkdownView'
 import MemorySection from './MemorySection'
+import LoopEngineeringSection from './LoopEngineeringSection'
 import { SOPS, PLAYBOOKS, DOC_STATUS, DOC_FILTERS, type SOP, type Playbook } from '@/components/agentic/sops'
 import DocEditor from './DocEditor'
 
@@ -47,14 +49,63 @@ function playbookToMarkdown(p: Playbook): string {
   return L.join('\n')
 }
 
-type TabId = 'skills' | 'memory' | 'sops' | 'playbooks'
-type SkillMeta = { id: string; name: string; description: string; family: string; category?: string; path?: string; sourcePath?: string; tags: string[] }
+type TabId = 'skills' | 'memory' | 'sops' | 'playbooks' | 'loop'
+type SkillMeta = { id: string; name: string; description: string; family: string; category?: string; path?: string; sourcePath?: string; tags: string[]; uploaded?: boolean; body?: string; uploadId?: string }
+type UploadedSkill = { id: string; skillId: string; name: string; description?: string; tags?: string[]; body: string }
+
+const FAV_KEY = 'vividflow.skills.favs'
+const slugify = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'skill'
+
+// Déclenche le téléchargement d'un .md côté navigateur.
+function downloadMd(filename: string, text: string) {
+  const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = filename.replace(/\.(md|markdown)$/i, '') + '.md'
+  document.body.appendChild(a); a.click(); a.remove()
+  URL.revokeObjectURL(url)
+}
+
+// Récupère le .md complet d'un skill : body uploadé direct, sinon fichier live (sourcePath) puis snapshot.
+async function fetchSkillMd(s: SkillMeta): Promise<string | null> {
+  if (s.uploaded) return s.body ?? null
+  if (s.sourcePath) {
+    try { const r = await fetch(`/api/skill?path=${encodeURIComponent(s.sourcePath)}`, { cache: 'no-store' }); if (r.ok) return await r.text() } catch { /* fallback */ }
+  }
+  try { const r = await fetch(`/agentic-skills/${s.id}.md`); if (r.ok) return await r.text() } catch { /* introuvable */ }
+  return null
+}
+
+// Parse le front-matter YAML (name/description/tags) d'un .md ; repli sur le nom de fichier.
+function parseSkillMd(text: string, filename: string): { name: string; description: string; tags: string[] } {
+  let name = filename.replace(/\.(md|markdown)$/i, '')
+  let description = ''
+  let tags: string[] = []
+  const m = text.match(/^---\s*\n([\s\S]*?)\n---/)
+  if (m) {
+    for (const line of m[1].split('\n')) {
+      const kv = line.match(/^([\w-]+):\s*(.*)$/)
+      if (!kv) continue
+      const k = kv[1].toLowerCase(), val = kv[2].trim().replace(/^["']|["']$/g, '')
+      if (k === 'name' && val) name = val
+      else if (k === 'description' && val) description = val
+      else if (k === 'tags' && val) tags = val.replace(/^\[|\]$/g, '').split(',').map(t => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean)
+    }
+  }
+  if (!description) {
+    const body = m ? text.slice(m[0].length) : text
+    const first = body.split('\n').map(l => l.trim()).find(l => l && !l.startsWith('#') && !l.startsWith('---'))
+    if (first) description = first.slice(0, 180)
+  }
+  return { name, description, tags }
+}
 
 const TAB_HINT: Record<TabId, string> = {
   skills: 'Méthodes agentiques. Voici ce que les agents savent utiliser.',
   memory: 'Mémoire opérationnelle : ce que le système capte, comprend, retient et charge avant d’agir.',
   sops: 'Procédures fixes. Voici exactement quoi faire.',
   playbooks: 'Guides de décision. Voici comment choisir quoi faire selon le contexte.',
+  loop: 'Loops déterministes : ce que le système sait faire tourner de bout en bout, sans échec.',
 }
 
 export default function KnowledgeView() {
@@ -66,18 +117,18 @@ export default function KnowledgeView() {
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
     const t = p.get('tab') as TabId | null
-    if (t && ['skills', 'memory', 'sops', 'playbooks'].includes(t)) setTab(t)
+    if (t && ['skills', 'memory', 'sops', 'playbooks', 'loop'].includes(t)) setTab(t)
     if (p.get('q')) { setSkillsQuery(p.get('q') || ''); setTab('skills') }
     if (p.get('skill')) { setOpenSkillId(p.get('skill')); setTab('skills') }
   }, [])
 
   const goTab = (t: string, q?: string) => { setTab(t as TabId); if (q !== undefined) { setSkillsQuery(q); setOpenSkillId(null) } }
 
+  // SOPs & Playbooks retirés ici — déjà couverts par le module Process.
   const TABS: { id: TabId; label: string; Icon: typeof Wrench }[] = [
     { id: 'skills', label: 'Skills', Icon: Wrench },
+    { id: 'loop', label: 'Loop engineering', Icon: Workflow },
     { id: 'memory', label: 'Mémoire', Icon: Brain },
-    { id: 'sops', label: 'SOPs', Icon: ListChecks },
-    { id: 'playbooks', label: 'Playbooks', Icon: Footprints },
   ]
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -95,9 +146,8 @@ export default function KnowledgeView() {
       <p className="px-6 pb-3 text-[11px] text-soren-subtle flex-shrink-0">{TAB_HINT[tab]}</p>
       <div className="flex-1 overflow-y-auto px-6 pb-6">
         {tab === 'skills' && <SkillsSection query={skillsQuery} setQuery={setSkillsQuery} openId={openSkillId} setOpenId={setOpenSkillId} />}
+        {tab === 'loop' && <LoopEngineeringSection />}
         {tab === 'memory' && <MemorySection goTab={goTab} />}
-        {tab === 'sops' && <SopsSection />}
-        {tab === 'playbooks' && <PlaybooksSection />}
       </div>
     </div>
   )
@@ -268,50 +318,135 @@ function SkillContent({ sourcePath, fallbackUrl }: { sourcePath?: string; fallba
 function SkillsSection({ query, setQuery, openId, setOpenId }: {
   query: string; setQuery: (v: string) => void; openId: string | null; setOpenId: (v: string | null) => void
 }) {
-  const [list, setList] = useState<SkillMeta[]>([])
+  const [staticList, setStaticList] = useState<SkillMeta[]>([])
   const [fam, setFam] = useState('Tous')
+  const [favs, setFavs] = useState<string[]>([])
+  const [importing, setImporting] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { fetch('/agentic-skills/index.json').then(r => r.json()).then(setList).catch(() => setList([])) }, [])
+  const uploaded = useQuery(api.osSkills.list, {}) as UploadedSkill[] | undefined
+  const createSkill = useMutation(api.osSkills.create)
+  const removeSkill = useMutation(api.osSkills.remove)
+
+  useEffect(() => { fetch('/agentic-skills/index.json').then(r => r.json()).then(setStaticList).catch(() => setStaticList([])) }, [])
+  useEffect(() => { try { setFavs(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')) } catch { /* ignore */ } }, [])
+
+  // Skills uploadés (Convex) fusionnés avec les natifs (fichiers statiques).
+  const list = useMemo<SkillMeta[]>(() => {
+    const up: SkillMeta[] = (uploaded ?? []).map(u => ({
+      id: 'upload:' + u.skillId, name: u.name, description: u.description ?? '', family: 'Skills importés',
+      tags: u.tags ?? [], uploaded: true, body: u.body, uploadId: u.id,
+    }))
+    return [...up, ...staticList]
+  }, [staticList, uploaded])
+
+  const isFav = (id: string) => favs.includes(id)
+  const toggleFav = (id: string) => setFavs(prev => {
+    const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    try { localStorage.setItem(FAV_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+    return next
+  })
 
   const shown = useMemo(() => list.filter(s =>
-    (fam === 'Tous' || s.family === fam) &&
+    (fam === 'Tous' ? true : fam === '__fav' ? isFav(s.id) : s.family === fam) &&
     (!query.trim() || (s.name + ' ' + s.id + ' ' + (s.path ?? '') + ' ' + s.description + ' ' + s.tags.join(' ')).toLowerCase().includes(query.toLowerCase()))
-  ).sort((a, b) => a.name.localeCompare(b.name)), [list, query, fam])
+  ).sort((a, b) => a.name.localeCompare(b.name)), [list, query, fam, favs]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Familles présentes seulement (masque les vides), ordre fixe, "Tous" en premier.
   const families = useMemo(() => ['Tous', ...FAMILY_ORDER.filter(f => list.some(s => s.family === f))], [list])
+
+  // Import .md (clic ou drag-and-drop). Upsert par skillId → réimporter un .md édité met à jour le skill.
+  async function onFiles(files: File[]) {
+    const mds = files.filter(f => /\.(md|markdown)$/i.test(f.name))
+    if (!mds.length) return
+    setImporting(true)
+    try {
+      for (const file of mds) {
+        const text = await file.text()
+        const meta = parseSkillMd(text, file.name)
+        await createSkill({ skillId: slugify(meta.name || file.name), name: meta.name || file.name, description: meta.description, tags: meta.tags, body: text })
+      }
+    } catch { /* ignore */ } finally { setImporting(false); if (fileRef.current) fileRef.current.value = '' }
+  }
+
+  async function exportSkill(s: SkillMeta) {
+    setExporting(true)
+    try {
+      const md = await fetchSkillMd(s)
+      if (md) downloadMd(slugify(s.name || s.id), md)
+    } finally { setExporting(false) }
+  }
 
   const open = openId ? list.find(s => s.id === openId) : null
 
   if (open) return (
     <div className="flex flex-col gap-3">
-      <BackBtn onClick={() => setOpenId(null)} label="Skills" />
-      <div className="flex items-center gap-2 flex-wrap"><h2 className="text-[15px] font-bold text-soren-text">{open.name}</h2><Chip>{open.family}</Chip>{open.category && <Chip>{open.category}</Chip>}</div>
+      <div className="flex items-center justify-between gap-2">
+        <BackBtn onClick={() => setOpenId(null)} label="Skills" />
+        <div className="flex items-center gap-3">
+          <button onClick={() => void exportSkill(open)} disabled={exporting}
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-soren-muted hover:text-soren-text transition-colors disabled:opacity-50"><Download size={12} /> {exporting ? 'Export…' : 'Exporter .md'}</button>
+          {open.uploaded && open.uploadId && (
+            <button onClick={() => { void removeSkill({ id: open.uploadId as never }); setOpenId(null) }}
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-soren-muted hover:text-[#DC2626] transition-colors"><Trash2 size={12} /> Supprimer</button>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <h2 className="text-[15px] font-bold text-soren-text">{open.name}</h2><Chip>{open.family}</Chip>{open.category && <Chip>{open.category}</Chip>}
+        <button onClick={() => toggleFav(open.id)} className={`inline-flex items-center gap-1 text-[11px] font-semibold transition-colors ${isFav(open.id) ? 'text-[#F59E0B]' : 'text-soren-subtle hover:text-soren-text'}`}>
+          <Star size={13} className={isFav(open.id) ? 'fill-[#F59E0B]' : ''} /> {isFav(open.id) ? 'Favori' : 'Favoris'}
+        </button>
+      </div>
       {open.path && <p className="text-[10px] text-soren-subtle font-mono -mt-1">{open.path}</p>}
-      <SkillSynthesis skillId={open.id} skillName={open.name} />
-      <SkillContent sourcePath={open.sourcePath} fallbackUrl={`/agentic-skills/${open.id}.md`} />
+      {open.uploaded
+        ? <div className="bg-soren-card border border-soren-border rounded-2xl p-5"><MarkdownView markdown={open.body} /></div>
+        : <><SkillSynthesis skillId={open.id} skillName={open.name} /><SkillContent sourcePath={open.sourcePath} fallbackUrl={`/agentic-skills/${open.id}.md`} /></>}
     </div>
   )
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2 bg-soren-card border border-soren-border rounded-full px-3.5 py-2 max-w-md">
-        <Search size={14} className="text-soren-subtle" />
-        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un skill…" className="flex-1 bg-transparent text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none" />
-        <span className="text-[10px] text-soren-subtle">{shown.length}</span>
+    <div className="relative flex flex-col gap-3"
+      onDragOver={e => { e.preventDefault(); if (!dragOver) setDragOver(true) }}
+      onDragLeave={e => { if (e.currentTarget === e.target) setDragOver(false) }}
+      onDrop={e => { e.preventDefault(); setDragOver(false); void onFiles(Array.from(e.dataTransfer.files)) }}>
+      {dragOver && (
+        <div className="absolute inset-0 z-20 rounded-2xl border-2 border-dashed border-[#FF4D00] bg-[#FF4D00]/5 flex items-center justify-center pointer-events-none">
+          <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#FF4D00]"><Upload size={16} /> Déposez vos .md pour les importer</span>
+        </div>
+      )}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 bg-soren-card border border-soren-border rounded-full px-3.5 py-2 flex-1 min-w-[200px] max-w-md">
+          <Search size={14} className="text-soren-subtle" />
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un skill…" className="flex-1 bg-transparent text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none" />
+          <span className="text-[10px] text-soren-subtle">{shown.length}</span>
+        </div>
+        <input ref={fileRef} type="file" accept=".md,.markdown,text/markdown" multiple className="hidden" onChange={e => { void onFiles(Array.from(e.target.files ?? [])) }} />
+        <button onClick={() => fileRef.current?.click()} disabled={importing}
+          className="inline-flex items-center gap-1.5 bg-[#FF4D00] text-white text-[11px] font-semibold px-3 py-2 rounded-full hover:bg-[#e64500] transition-colors disabled:opacity-60 flex-shrink-0">
+          <Upload size={13} /> {importing ? 'Import…' : 'Importer un skill'}
+        </button>
       </div>
       <div className="flex items-center gap-1.5 flex-wrap">
+        <button onClick={() => setFam('__fav')} className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${fam === '__fav' ? 'bg-[#F59E0B] text-white border-[#F59E0B]' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>
+          <Star size={11} className={fam === '__fav' ? 'fill-white' : ''} /> Favoris{favs.length > 0 && <span className="ml-0.5 opacity-80">{favs.length}</span>}
+        </button>
         {families.map(f => (
           <button key={f} onClick={() => setFam(f)} className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${fam === f ? 'bg-soren-sidebar text-white border-soren-sidebar' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>
             {f}{f !== 'Tous' && <span className="ml-1 opacity-70">{list.filter(s => s.family === f).length}</span>}
           </button>
         ))}
       </div>
-      {list.length === 0 ? <p className="text-[12px] text-soren-subtle py-16 text-center">Chargement de la bibliothèque…</p> : (
+      {staticList.length === 0 && (uploaded?.length ?? 0) === 0 ? <p className="text-[12px] text-soren-subtle py-16 text-center">Chargement de la bibliothèque…</p> : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5" data-stagger>
           {shown.map(s => (
-            <button key={s.id} onClick={() => setOpenId(s.id)} className="text-left bg-soren-card border border-soren-border rounded-2xl p-3.5 hover:border-[#C8CBD0] hover:shadow-sm transition-all flex flex-col gap-1.5">
-              <div className="flex items-start gap-2.5">
+            <div key={s.id} onClick={() => setOpenId(s.id)} className="relative cursor-pointer text-left bg-soren-card border border-soren-border rounded-2xl p-3.5 hover:border-[#C8CBD0] hover:shadow-sm transition-all flex flex-col gap-1.5">
+              <span role="button" tabIndex={0} onClick={e => { e.stopPropagation(); toggleFav(s.id) }}
+                className={`absolute top-2.5 right-2.5 p-1 rounded-lg transition-colors ${isFav(s.id) ? 'text-[#F59E0B]' : 'text-soren-subtle/50 hover:text-[#F59E0B]'}`} title={isFav(s.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}>
+                <Star size={15} className={isFav(s.id) ? 'fill-[#F59E0B]' : ''} />
+              </span>
+              <div className="flex items-start gap-2.5 pr-6">
                 <div className="w-8 h-8 rounded-xl bg-[#3462EE]/10 flex items-center justify-center flex-shrink-0"><Wrench size={14} className="text-[#3462EE]" /></div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[12px] font-normal text-soren-text truncate">{s.name}</p>
@@ -322,9 +457,9 @@ function SkillsSection({ query, setQuery, openId, setOpenId }: {
                 <Chip className="flex-shrink-0">{s.family}</Chip>
                 {s.path && <span className="text-[9px] text-soren-subtle font-mono truncate">{s.path}</span>}
               </div>
-            </button>
+            </div>
           ))}
-          {shown.length === 0 && <p className="text-[12px] text-soren-subtle py-10 text-center col-span-full">Aucun skill pour « {query} ».</p>}
+          {shown.length === 0 && <p className="text-[12px] text-soren-subtle py-10 text-center col-span-full">{fam === '__fav' ? 'Aucun favori pour l’instant — clique l’étoile sur un skill.' : `Aucun skill pour « ${query} ».`}</p>}
         </div>
       )}
     </div>

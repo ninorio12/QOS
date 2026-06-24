@@ -12,6 +12,14 @@ export const list = query({
   },
 })
 
+export const get = query({
+  args: { id: v.id("os_knowledge") },
+  handler: async (ctx, { id }) => {
+    const k = await ctx.db.get(id)
+    return k ? { ...k, id: k._id } : null
+  },
+})
+
 export const create = mutation({
   args: {
     kind: v.string(),

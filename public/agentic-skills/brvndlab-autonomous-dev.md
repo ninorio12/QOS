@@ -34,8 +34,9 @@ Règle scellée Jonathan : si doute, lire le brief avant code. Si le brief manqu
 Les accès GitHub, Vercel et Convex sont configurés dans l'environnement Hermes local. Ne jamais afficher les valeurs des secrets.
 
 - Repo : `https://github.com/jonathanzekhe/brvndlab.git`
-- App live principale chez Thomas/Jonathan : `/Users/businessmanagement/Documents/Claude AI/Brvndlab/brvndlab-app`
-- Ancien/alternate path observé : `/Users/businessmanagement/dev/brvndlab-claude/brvndlab-app`
+- Repo canonique chez Thomas/Jonathan : `/Users/businessmanagement/dev/brvndlab-claude/brvndlab-app` pour les commandes app (`npm`, Vercel, checks). Le root Git peut être le parent `/Users/businessmanagement/dev/brvndlab-claude` : ne pas confondre root Git et cwd applicatif.
+- Chemin déprécié à éviter : `/Users/businessmanagement/Documents/Claude AI/Brvndlab/brvndlab-app` / copie iCloud, où git peut geler. Dès qu’un repo Brvndlab est dans `Documents`, ne pas diagnostiquer git : basculer vers le repo canonique.
+- Si un fichier demandé existe seulement sur une branche distante/feature et pas sur la branche active, ne pas le recréer ni cherry-pick sans décision explicite : vérifier la lignée avant de réintroduire du code indésirable.
 - Production : `https://app.brvndlab.com`
 - Vercel project : `brvndlab-app`
 - Convex production deployment observé : `accurate-cormorant-297`
@@ -66,6 +67,30 @@ Référence session : `references/session-2026-05-07-nonblocking-mvp-mode.md`.
 ## Workflow autonome par défaut
 
 Jonathan préfère avancer vite, y compris directement dans l'application/prod pour les changements UI/produit à faible risque.
+
+### Mode Hermes sharp
+
+Quand Jonathan demande si “on” peut rendre Claude/Hermes plus performant, rapide, efficace ou sharp, interpréter d'abord “on” comme **Hermes doit agir et améliorer son propre workflow**, pas comme une liste de tâches à renvoyer à Jonathan.
+
+Par défaut, Hermes doit :
+- vérifier lui-même le repo canonique, la branche et la lignée prod avant d'agir ;
+- abandonner immédiatement tout repo Brvndlab sous `Documents/Claude AI` au lieu de diagnostiquer Git/iCloud ;
+- exécuter en bloc complet : comprendre → modifier → vérifier → livrer ;
+- privilégier checks ciblés, timeouts courts et grep précis avant les audits globaux lents ;
+- remonter seulement l'essentiel : statut, changement, vérification, blocage/décision.
+
+### Changements de branche et suppression de branches
+
+Quand Jonathan demande de supprimer une branche visible/trop présente (ex. branche feature indésirable), agir mais préserver l’état avant toute suppression :
+- vérifier repo canonique, branche active, `git status --short`, branches locales/distantes ;
+- si la branche active contient des modifications non commitées, sauvegarder avant de changer : `git diff > ~/backups/.../diff-$TS.patch` puis `git stash push -u -m "backup before deleting <branch> $TS"` ;
+- basculer sur `main` ou la branche par défaut avant `git branch -D <branch>` ;
+- tenter la suppression distante seulement si l’auth GitHub est valide ; si `gh auth status` ou `git push origin --delete` échoue par credential invalide, supprimer localement et remonter clairement le blocage sans répéter les tentatives ;
+- ne jamais promettre qu’une branche distante est supprimée si seule la branche locale a été effacée.
+
+Détail de référence : `references/branch-cleanup-and-repo-guards.md`.
+
+Voir aussi `references/repo-canonical-guardrails.md` pour le pattern vérifié : safety check, launcher `brvndlab-claude`, scripts npm rapides, deny Claude sur la copie iCloud, nettoyage des caches/mockups, et piège “fichier présent seulement sur une branche distante”.
 
 ### Répartition Claude Code ↔ Hermes sur Brvndlab
 

@@ -18,6 +18,33 @@ Delegate coding tasks to [Claude Code](https://code.claude.com/docs/en/cli-refer
 
 - **Install:** `npm install -g @anthropic-ai/claude-code`
 - **Auth:** run `claude` once to log in (browser OAuth for Pro/Max, or set `ANTHROPIC_API_KEY`)
+
+### VividFlow VPS: `claude-agent` wrapper (headless, bypassPermissions)
+
+On the VividFlow VPS, a wrapper script is pre-installed at `/usr/local/bin/claude-agent`. This is the **canonical way to delegate to Claude Code from Hermes agents** — use it instead of calling `claude` directly. See the Data OS SOP « Déléguer à Claude Code » (Process internes > SOPs > title: Déléguer à Claude Code) for the living workflow.
+
+The wrapper:
+- Calls `claude -p <prompt> --output-format json --permission-mode bypassPermissions`
+- Strips `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `CLAUDE_API_KEY` from environment (forces Claude Max OAuth subscription, never per-token API billing)
+- Sets `IS_SANDBOX=1` so bypassPermissions works under root
+- Returns JSON with session_id, cost, turns
+
+Flags supported:
+- `-C <cwd>` — set working directory (maps to `--add-dir`)
+- `-r <session_id>` — resume a prior session
+- `-m <model>` — override model (e.g. `sonnet`)
+- `-s <system>` — extra system prompt
+- `-t <max_turns>` — limit agentic loops
+- `--json` — return raw Claude Code JSON instead of parsed result
+
+**Usage examples:**
+```bash
+claude-agent -C /root/QOS "Add a dark-mode toggle to SettingsView"
+claude-agent --json "task"                              # raw JSON output
+claude-agent -r <session_id> "follow-up instruction"    # continue a prior delegation
+```
+
+**When to use `claude-agent` vs raw `claude`:** Always prefer `claude-agent` on the VPS when available — it handles auth routing, permission bypass, and output parsing automatically. Only use raw `claude` when you need flags not supported by the wrapper (e.g. `--bare`, `--mcp-config`, streaming).
 - **Console auth:** `claude auth login --console` for API key billing
 - **SSO auth:** `claude auth login --sso` for Enterprise
 - **Check status:** `claude auth status` (JSON) or `claude auth status --text` (human-readable)
@@ -717,22 +744,72 @@ Use `/context` in interactive mode to see a colored grid of context usage. Key t
 
 ## Jonathan handoff + audit pattern
 
-When Jonathan uses Claude Code directly for product/dev work and asks Hermes to coordinate or verify:
+When Jonathan uses Claude Code directly for product/dev work and asks Hermes to coordinate, improve the workflow, or verify:
 
+0. **Default to verbatim relay when sending Jonathan’s message to Claude Code.** If Jonathan asks to “déléguer à Claude Code”, “envoyer à Claude”, “faire travailler Claude”, or otherwise use this skill as a Claude handoff, Hermes must copy-paste Jonathan’s message exactly as the prompt. Do not reformulate, improve, add context, professionalize, translate, infer missing intent, or append extra instructions. The goal is to avoid the “téléphone arabe” between Jonathan → Hermes → Claude Code. Only add/rewrite content when Jonathan explicitly asks Hermes to create/cadrer a prompt; if Jonathan then says “envoie ce prompt”, send that prompt exactly.
+0a. **Interpret “we/on” as Hermes-owned execution first.** If Jonathan asks “can we make Claude/Hermes faster, sharper, more efficient,” do not answer only with tasks for Jonathan. Convert the lesson into Hermes-side guardrails where possible: repo-root checks, path blockers, shorter prompts, targeted verification, timeouts, and autonomous audit steps. Only ask Jonathan to do something when Hermes cannot access the environment or a human decision is genuinely required.
+0a. **Do not over-claim Claude usage.** If Thomas/Jonathan asks “donc tu es capable d’utiliser Claude désormais ?”, answer capability based on the actual available route, but separate it from what Hermes itself just executed. Say “oui, je peux l’orchestrer quand c’est pertinent” only if Claude Code is installed/authenticated or the route was loaded/verified; if the current deliverable was produced directly by Hermes without invoking Claude, state that plainly and point to the verified output instead of implying Claude did the work.
 1. **Give paste-ready messages, not strategy lectures.** If he needs to send something to Claude Code, provide the exact short message to paste. Do not ask Jonathan to perform checks that Hermes can run itself. If Jonathan says “envoie le brief à Claude”, first try the actual Claude Code route when available (local/SSH/tmux/print mode). Only say it was sent/executed after Claude Code accepts the prompt or returns output. If the Claude invocation fails for setup/OS/auth reasons, state clearly that it was **not executed** and give the ready-to-paste brief as the fallback.
 2. **For Jonathan’s Antigravity setup, assume he wants a local editor + integrated terminal running Claude Code, not Google/Antigravity agent onboarding.** Guide him to open the local project folder in Antigravity, open the integrated terminal, and run `claude` from the project root. Verify with `claude --version` and `claude auth status --text`. Do not push Gmail login unless he explicitly wants Google Antigravity agent features.
 3. **Independently audit Claude Code's claims.** After Claude reports completion, verify with repo-root discovery, `git log/show`, grep for forbidden residues, build/typecheck, and live prod `curl` where relevant. Treat Claude's summary as input, not proof.
 4. **Separate subscription auth from app architecture.** Claude Code/Claude Max OAuth can be verified through the local `claude` CLI, but a Vercel/Next.js production app cannot magically use that subscription unless a real, authenticated bridge is intentionally built. Never validate “Claude Max in prod” from hardcoded strings or mocks.
 5. **Auth sanity check before integration work:** run with stale API keys cleared, e.g. `unset ANTHROPIC_API_KEY; claude -p "Réponds uniquement: Tokyo" --max-turns 1 --output-format json`. If it returns `Not logged in`, start `claude auth login --claudeai --email <email>` and have Jonathan complete OAuth before any app wiring.
+5a. **Shared VPS Claude Max migration pattern:** when Jonathan wants his Claude Max to replace Thomas’s as the VPS point of contact, treat it as an auth/config migration, not a reinstall. Inventory each Unix account that may run Claude (`getent passwd`, `/home/*`, `/root`), check safe metadata with `HOME=<home> claude auth status --text`, back up existing `~/.claude` and `~/.claude.json` as `.backup-before-jonathan-<timestamp>`, copy the verified Jonathan-authenticated Claude config to the target homes, fix ownership/permissions, then run the live Tokyo probe per account. Never print or store token contents. Detailed recipe: `references/shared-vps-claude-max-migration.md`.
 6. **For Brvndlab-style AI cleanup audits:** forbidden residues include `@anthropic-ai/sdk`, `anthropic.messages.create`, `ANTHROPIC_API_KEY`, mock/fallback strings claiming cost-free AI, fake `hermes-proxy` wrappers, and wording that says an integration exists when it is intentionally `not_wired`.
 7. **Use the Brvndlab reference checklist when relevant:** see `references/brvndlab-ai-cleanup-audit.md` for the exact repo/prod probes, OAuth sanity check, and current UX simplification decisions.
+
+## Codebase exploration & UX design analysis pattern
+
+Claude Code can explore an **existing codebase you don't know yet** and answer strategic/design questions about it — not just write code. Use this when Jonathan/Thomas asks "what will I see visually?"
+
+### When to use
+- User asks "what does this project already have?", "where would X go?", "what will I see if we add Y?"
+- You need to understand a codebase's component structure, navigation, and visual patterns before building
+- The question is design/UX oriented but anchored in existing code
+
+### Pattern
+1. **Start broad:** `claude-agent -C /path/to/repo "Explique-moi où en est le module X, comment il s'affiche, et ce qui serait nécessaire pour ajouter Y. Donne un plan."` — Claude Code explores the codebase, reads components, asks clarifying questions.
+2. **Follow up visually:** `claude-agent -r <session_id> "Thomas veut savoir ce qu'on va voir visuellement concrètement. Où est-ce que ça apparaît dans l'app ? Donne un avant/après composant par composant."` — Claude Code reads actual component files and navigation to give a concrete, screen-by-screen breakdown.
+3. **Result:** Claude Code produces a detailed before/after per existing screen, with component names, state changes, and placement in the existing navigation — no mockup tool needed.
+
+### Example output shape
+Claude Code will tell you: "Existing module X has tabs A/B/C. We add a 4th tab 'Outbound'. The kanban component at `components/kanban.tsx` gets 2 new props: `agent-owner` badge and `handoff` button. The table at `components/contacts.tsx` gets +2 columns. No new top-level page needed."
+
+### When to offer a static mockup instead
+If the user still says "I can't picture it" after the textual breakdown, Claude Code can also generate a **static React mockup** with fake data — then use the "Rapid static mockup → Vercel pattern" below to deploy it.
+
+## Rapid static mockup → Vercel pattern
+
+Use Claude Code print mode for quick product/design prototypes when Jonathan/Thomas asks for a Vercel mockup or exploratory UI artifact.
+
+1. Create or identify a clean project folder first; set `workdir` explicitly in the terminal call.
+2. Prompt Claude Code with the exact deliverable: product intent, required interactions, brand/design constraints, file list, language, and “no API/secrets”.
+3. Prefer a static scaffold for pure mockups: `index.html`, `styles.css`, `package.json` with a deterministic `build` script copying to `dist/`, and `vercel.json` with `outputDirectory: dist`.
+4. After Claude Code returns, independently read key files and run `npm run build` before saying it is ready.
+5. Deploy only after verifying Vercel auth/scope with the relevant deploy workflow; if auth is missing, say the artifact is built and ready, but do not call it “deployed”.
+6. For VividFlow/Thank You Page DA work where Jonathan says “utilise Claude Code”, do **not** interpret it as Slack handoff. Use the local Claude Code CLI in print mode from a clean artifact folder, create the visual mockup files, then verify the locked copy with grep/search before reporting.
+7. When the work is explicitly DA-only, encode “copywriting strictement inchangé” in the Claude prompt with the exact text list, and verify every protected phrase after generation. Report any access issue (e.g. Data OS token) as secondary if Claude Code CLI succeeded.
+
+Reference: `references/static-mockup-vercel-handoff.md` captures the session pattern and a reusable prompt shape.
 
 ## Pitfalls & Gotchas
 
 1. **Claude Code skills/slash commands disappear after Antigravity or user-context changes** — first check `claude plugin list`, `claude plugin marketplace list`, and the active Unix user (`whoami`, `$HOME`). Superpowers skills may still exist in Hermes while missing from Claude Code’s `~/.claude` for the user running Antigravity/Claude. See `references/superpowers-plugin-recovery.md` for the recovery workflow, including marketplace install, full Hermes→Claude skill sync, `/goal` restoration, and slash-command aliases.
-2. **Antigravity 2.0 can force Google/Gemini onboarding instead of the old local editor + Claude Code terminal flow** — distinguish `/Applications/Antigravity.app` from `/Applications/Antigravity IDE.app`, try the IDE CLI, then fall back quickly to VS Code/Cursor/Terminal while preserving Claude Code skills in `~/.claude`. See `references/antigravity-2-workspace-fallback.md`.
+2. **Headless VPS OAuth login flow** — `claude auth login` opens a browser and prompts for a code. On a headless VPS:
+   - A regular `terminal(pty=true, timeout=...)` call will **time out** because it hangs at `Paste code here if prompted >`
+   - **Correct pattern:**
+     1. Remove expired credentials first: `cp ~/.claude/.credentials.json{,.bak} && rm ~/.claude/.credentials.json`
+     2. Start `HOME=/home/hermes env -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN -u ANTHROPIC_BASE_URL claude auth login` with `terminal(background=true, pty=true)`
+     3. Poll with `process(action='poll')` to extract the OAuth URL from `output_preview`
+     4. Give the URL to the user (it changes each invocation — new PKCE challenge/state)
+     5. User authorizes and pastes back the code
+     6. Submit with `process(action='submit', input='<code>')`
+   - **Do not** reuse a URL from a previous timed-out invocation — the code_challenge and state rotate.
+2. **VPS: always check for `claude-agent` wrapper and Data OS SOP before inventing workarounds** — on the VividFlow VPS, `/usr/local/bin/claude-agent` is the canonical headless delegation path. Before writing a Python fallback or alternative, check the Data OS SOP « Déléguer à Claude Code » (Process internes > SOPs) and try `which claude-agent && claude-agent -C . "probe"`. Thomas corrigera en pointant vers l'existant si tu inventes un contournement sans avoir vérifié.
 3. **Environment `ANTHROPIC_API_KEY` overrides Claude Max/OAuth**
 2. **Environment `ANTHROPIC_API_KEY` overrides Claude Max/OAuth** — if `claude auth status --text` says Claude Max/OAuth is active but `claude -p ...` returns `Invalid API key · Fix external API key`, check `env | cut -d= -f1 | grep -E 'ANTHROPIC|CLAUDE'`. Run the command with `unset ANTHROPIC_API_KEY` or fix the stale key before retrying. Do not assume OAuth is broken.
+2b. **VPS: Permission denied on `/root/` repos — Hermes runs as `hermes`, not root.** If `claude-agent -C /root/<repo>` returns `Permission denied`, the repo might be under `/root/` but the Hermes process runs as user `hermes`. Find the repo under `/home/hermes/workspaces/` instead (the common workspace on the VividFlow VPS). Always check `whoami` and fallback paths before reporting a tool failure.
+2a. **VPS multi-user OAuth: verify the Unix user and HOME, not just `whoami`** — when refreshing Claude Code for the `hermes` Unix account from Hermes/SSH, the runtime may set `HOME` to a profile home such as `/home/hermes/.hermes/profiles/chief_of_staff/home`. Force the credential store explicitly before login/probe: `HOME=/home/hermes env -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN -u ANTHROPIC_BASE_URL claude auth login`, then verify with `HOME=/home/hermes env -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN -u ANTHROPIC_BASE_URL claude auth status --text` and `HOME=/home/hermes env -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN -u ANTHROPIC_BASE_URL claude -p "dis OK" < /dev/null`. Never print tokens; OAuth URL/code exchange is the only user-facing step.
 3. **OAuth/Claude Max must be verified before claiming any app is using it** — `claude` being installed is not enough, and a local CLI login does not automatically mean a deployed web app calls Claude. Test with `unset ANTHROPIC_API_KEY; claude -p "Réponds uniquement: Tokyo" --max-turns 1 --output-format json` and require `is_error:false` plus result `Tokyo`. If it says `Not logged in · Please run /login`, run `claude auth login --claudeai --email <email>` and complete OAuth. Only after this CLI test passes should you design a real app → CLI/service bridge.
 2. **IDE banner “Subprocess initialization did not complete within 60000ms” is not proof of auth/network failure** — debug it by separating CLI startup, auth state, stale subprocesses, extension wrapper, and config/MCP JSON parsing. See `references/ide-subprocess-timeout.md` for the Antigravity/VS Code playbook, including version rollback and empty `mcp_config.json` handling.
 3. **Interactive mode REQUIRES tmux** — Claude Code is a full TUI app. Using `pty=true` alone in Hermes terminal works but tmux gives you `capture-pane` for monitoring and `send-keys` for input, which is essential for orchestration.
@@ -762,3 +839,4 @@ When Jonathan uses Claude Code directly for product/dev work and asks Hermes to 
 10. **Use `--allowedTools`** — restrict capabilities to what the task actually needs
 11. **For Jonathan's Claude Code delegation loop:** give him copy-paste prompts/messages for Claude Code, not long strategy. When Claude reports completion, independently verify via git diff/status, build, grep for forbidden regressions, and prod curl/browser checks before saying “validé”. Do not ask Jonathan to run checks you can run yourself; only give local steps when auth/permission is genuinely unavailable from Hermes.
 12. **Never claim a subscription-backed CLI is connected without a live probe.** After `claude auth login --claudeai`, run a minimal `unset ANTHROPIC_API_KEY; claude -p "Réponds uniquement: Tokyo" --max-turns 1 --output-format json` and verify a real answer before wiring apps to Claude Code/OAuth.
+13. **VividFlow agents default to Claude Code for design/dev/Vercel.** For VividFlow bots, any design asset, code change, code fix, mockup, or Vercel deployment should route through Claude Code when available, using a clear natural-language mission and no secrets. On the VPS, force `HOME=/home/hermes` and clear Anthropic env overrides. See `references/vividflow-agent-claude-default.md`.

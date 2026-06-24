@@ -28,6 +28,7 @@ Do not use this for destructive key rotation, revocation, or permission expansio
 ## Core Rules
 
 - **Never print secrets in chat.** Show key names, storage locations, scopes/status, and redacted fingerprints only when useful.
+- Treat screenshots, pasted chat messages, logs, and screen shares containing tokens as exposed secret-transfer channels: configure locally without echoing values, then recommend rotation/regeneration after verification.
 - Prefer least-privilege delegated scopes for user-workspace access.
 - Use read-only verification endpoints where possible.
 - Separate “present/configured” from “active verified.”
@@ -50,6 +51,31 @@ Use authorization-code + PKCE for CLI/agent/public-client flows:
 When a verification command returns `invalid_grant`, `REFRESH_FAILED`, “token expired or revoked,” or equivalent, assume the provider rejected the refresh token. Do not keep retrying API calls or report a service outage. Start a fresh authorization-code/PKCE flow immediately, send the auth URL, explain that a localhost redirect error is expected, exchange the full returned redirect URL/code, then verify with a small read operation before claiming the integration is fixed.
 
 Microsoft Graph specifics are preserved in `references/microsoft-graph-workspace.md`.
+
+## Domain/DNS Access Verification Pattern
+
+When asked whether the agent has DNS access for a brand/domain, do not infer from memory or from a deployed site. Verify where control actually lives:
+
+1. Check the deployment platform domain registry if relevant, e.g. Vercel:
+   ```bash
+   XDG_DATA_HOME=/home/hermes/.local/share npx vercel domains ls
+   ```
+2. Distinguish platform domain attachment from DNS authority:
+   - domain listed in Vercel = the platform account can attach/use the domain;
+   - Registrar/Nameservers shown as `Third Party` = DNS records must be changed at the external registrar/DNS provider;
+   - do not claim direct DNS control unless the provider/API/account for the authoritative nameservers is verified.
+3. Report only access level: “Vercel domain visible”, “DNS authority not verified”, “registrar/nameservers third-party”. Never expose tokens or provider secrets.
+
+## Screenshot / Chat-Provided Secret Pattern
+
+When the user provides credentials through a screenshot, chat, or image:
+
+1. Acknowledge that the values will not be repeated and should be considered exposed.
+2. If extraction is required, use local OCR/vision only for configuration; never transcribe values into the response, summary, skill, or memory.
+3. Write the credentials directly into the intended secret store or `.env` with an idempotent update script that preserves unrelated variables.
+4. Verify presence by key name only, e.g. `TOKEN present`, not by value.
+5. Run the smallest safe connectivity probe.
+6. Recommend rotating/regenerating the tokens after successful configuration.
 
 ## Secrets Inventory Pattern
 
@@ -134,6 +160,7 @@ When a user reports unexpected OpenRouter spend, do not assume the SaaS/product 
 - `references/microsoft-graph-workspace.md` — detailed Microsoft Entra app registration, delegated Graph scopes, PKCE authorization URL, and token exchange notes.
 - `references/secrets-inventory-audit.md` — detailed redacted inventory workflow and provider verification examples.
 - `references/framer-server-api.md` — Framer project-scoped API key location, official docs links, and known 404 token/CLI URLs.
+- `references/vividflow-subagent-workspace-access.md` — VividFlow pattern for rolling out Gmail/Drive/Data OS/Browser Use access to multiple Hermes sub-agents with centralized credentials, per-agent verification, and explicit Gmail-vs-Drive OAuth limits.
 
 ## Pitfalls
 

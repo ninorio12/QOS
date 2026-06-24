@@ -20,15 +20,25 @@ const PHASE_NEXT: Record<string, string> = { phase1: "phase2", phase2: "phase3",
 const ATTEMPT = ["pas_repondu", "message_laisse", "a_rappeler"]   // tentatives ratées → font progresser la phase
 const ALIAS: Record<string, string> = { non_qualifie: "non_qualifie", en_conversation: "repondu" }
 
-// Colonnes du nouveau board kanban : leads_a_traiter | nrp1..nrp4 | rdv_booke | perdu.
+// Colonnes du nouveau board kanban : leads_a_traiter | leads_interne | nrp1..nrp4 | rdv_booke | a_suivre | perdu.
 // boardColumn fait foi ; rétro-compat = dérivé du status pour les anciens enregistrements.
-const BOARD_COLUMNS = ["leads_a_traiter", "nrp1", "nrp2", "nrp3", "nrp4", "rdv_booke", "perdu"] as const
+const BOARD_COLUMNS = ["leads_a_traiter", "leads_interne", "nrp1", "nrp2", "nrp3", "nrp4", "rdv_booke", "a_suivre", "perdu"] as const
 type BoardColumn = (typeof BOARD_COLUMNS)[number]
 function boardColumnOf(r: { boardColumn?: string; status: string }): BoardColumn {
   if (r.boardColumn && (BOARD_COLUMNS as readonly string[]).includes(r.boardColumn)) return r.boardColumn as BoardColumn
   if (r.status === "handoff") return "rdv_booke"
   if (r.status === "lost" || r.status === "archived") return "perdu"
   return "leads_a_traiter"
+}
+// Alias de colonnes (anciens noms / variantes que les agents peuvent passer) → colonne board réelle.
+const COLUMN_ALIASES: Record<string, BoardColumn> = {
+  lead_a_traiter: "leads_a_traiter", a_traiter: "leads_a_traiter", nouveau_lead: "leads_a_traiter",
+  r1_booke: "rdv_booke", r1: "rdv_booke", rdv: "rdv_booke", booke: "rdv_booke",
+  leads_interne: "leads_interne", interne: "leads_interne", lost: "perdu", a_suivre: "a_suivre",
+}
+function normalizeColumn(col: string): string {
+  if ((BOARD_COLUMNS as readonly string[]).includes(col)) return col
+  return COLUMN_ALIASES[col] ?? col
 }
 // status synchronisé à la colonne (cohérence avec le reste du système).
 function statusForColumn(col: BoardColumn): string {
@@ -58,7 +68,7 @@ export const list = query({
   handler: async (ctx, f) => {
     let rows = await ctx.db.query("prospection_records").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
     if (f.status) rows = rows.filter(r => r.status === f.status)
-    if (f.column) rows = rows.filter(r => boardColumnOf(r) === f.column)
+    if (f.column) { const col = normalizeColumn(f.column); rows = rows.filter(r => boardColumnOf(r) === col) }
     if (f.phase) rows = rows.filter(r => r.phase === f.phase)
     if (f.temperature) rows = rows.filter(r => r.temperature === f.temperature)
     if (f.channel) rows = rows.filter(r => r.channel === f.channel)
@@ -80,17 +90,28 @@ export const get = query({
 
 // Déplace une carte vers une colonne du board (drag & drop kanban).
 // lostReason : renseigné quand on dépose dans "Perdu" (faux_numero | pas_interesse | jamais_repondu).
+// followUpReason : texte libre renseigné quand on dépose dans "À suivre" (devient un chip sur la carte).
 export const setColumn = mutation({
-  args: { id: v.id("prospection_records"), column: v.string(), lostReason: v.optional(v.string()) },
-  handler: async (ctx, { id, column, lostReason }) => {
+  args: { id: v.id("prospection_records"), column: v.string(), lostReason: v.optional(v.string()), followUpReason: v.optional(v.string()) },
+  handler: async (ctx, { id, column, lostReason, followUpReason }) => {
     if (!(BOARD_COLUMNS as readonly string[]).includes(column)) throw new Error(`colonne inconnue: ${column}`)
     const rec = await ctx.db.get(id)
     if (!rec) throw new Error("record introuvable")
+    // Règles métier de déplacement :
+    //  • un lead interne ne peut JAMAIS (re)tomber dans "Leads à traiter" (entrée réservée aux leads bruts) ;
+    //  • "Leads interne" est réservé aux contacts envoyés depuis leur fiche → on n'y glisse pas un lead normal.
+    if (rec.internalLead && column === "leads_a_traiter") throw new Error("Un lead interne ne peut pas être remis dans « Leads à traiter »")
+    if (!rec.internalLead && column === "leads_interne") throw new Error("« Leads interne » est réservé aux contacts envoyés depuis leur fiche")
     const col = column as BoardColumn
     const wasLost = rec.status === "lost"
     const recPatch: Record<string, unknown> = { boardColumn: col, status: statusForColumn(col), updatedAt: now() }
     if (col === "perdu") { if (lostReason) recPatch.lostReason = lostReason }
     else recPatch.lostReason = undefined   // sort de "Perdu" → on efface la raison
+    if (col === "a_suivre") {
+      if (followUpReason) recPatch.followUpReason = followUpReason
+      // date d'entrée dans "À suivre" : posée à l'entrée, conservée si déjà dedans
+      recPatch.followUpAt = (boardColumnOf(rec) === "a_suivre" && rec.followUpAt) ? rec.followUpAt : now()
+    } else { recPatch.followUpReason = undefined; recPatch.followUpAt = undefined }   // sort de "À suivre"
     await ctx.db.patch(id, recPatch)
 
     // Synchro du lead Pipeline lié + du contact (la raison vit aussi sur le contact pour la fiche).
@@ -157,8 +178,10 @@ export const linkContact = mutation({
 })
 
 // Helper partagé : crée/réutilise le lead Pipeline + le prospection_record (phase1/a_appeler).
+// Exporté car la création d'un lead outbound depuis le module Contacts (crm_contacts.create)
+// DOIT impérativement matérialiser les 2 cards (Nouveau lead + Prospection) via ce même chemin.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function linkInternal(ctx: any, contactId: string, o: { channel?: string; temperature: string; ownerUserId?: string; by: string; isDemo?: boolean }) {
+export async function linkInternal(ctx: any, contactId: string, o: { channel?: string; temperature: string; ownerUserId?: string; by: string; isDemo?: boolean }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const contact = await ctx.db.get(contactId as Id<"crm_contacts">) as any
   const cName = `${contact?.firstName ?? ""} ${contact?.lastName ?? ""}`.trim() || "Lead"
@@ -188,6 +211,33 @@ async function linkInternal(ctx: any, contactId: string, o: { channel?: string; 
   await logActivity(ctx, { actorType: o.by.startsWith("agent") ? "agent" : "human", actorId: o.by, eventType: "lead.created", summary: `Lead créé : ${cName}`, entityType: "prospection", entityId: recordId, source: "prospection" })
   return { recordId, contactId, leadId, created: true }
 }
+
+// Envoie un contact EXISTANT dans le board Prospection, directement en colonne "Leads interne".
+// Déclenché par le bouton "Envoyer en prospection" de la fiche contact (n'importe quelle fiche).
+// Idempotent : réutilise le lead + le prospection_record via linkInternal (jamais de doublon).
+export const sendToInternalLeads = mutation({
+  args: { contactId: v.id("crm_contacts"), createdBy: v.optional(v.string()) },
+  handler: async (ctx, { contactId, createdBy }) => {
+    const by = createdBy ?? "human:thomas"
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contact = await ctx.db.get(contactId) as any
+    if (!contact) throw new Error("Contact introuvable")
+    // Garde-fou : on ne rétrograde jamais un client en prospection.
+    if (contact.statut === "client") throw new Error("Un client ne peut pas être envoyé en prospection")
+    const cName = `${contact.firstName ?? ""} ${contact.lastName ?? ""}`.trim() || "Lead"
+    // Le contact doit être visible sur le board → statut lead actif (réactive un "perdu" au passage).
+    await ctx.db.patch(contactId, { statut: "lead", leadStatus: "active", lostStage: undefined, lostReason: undefined, lostObjection: undefined, updatedAt: now() })
+    // Crée/réutilise lead Pipeline + prospection_record (chemin canonique).
+    const res = await linkInternal(ctx, contactId, { temperature: contact.temperature ?? "froid", by })
+    // Force la colonne "Leads interne" (entrée du board) + marque le lead comme interne
+    // (flag persistant : la card garde sa couleur teal et reste interdite de retour en "Leads à traiter"
+    //  même après s'être baladée dans les NRP / RDV booké). phase/tracker inchangés.
+    await ctx.db.patch(res.recordId as Id<"prospection_records">, { boardColumn: "leads_interne", internalLead: true, status: "active", updatedAt: now() })
+    await ctx.db.insert("prospection_events", { workspaceId: WORKSPACE, prospectionRecordId: res.recordId, contactId, eventType: "leads_interne", createdBy: by, createdAt: now() })
+    await logActivity(ctx, { actorType: by.startsWith("agent") ? "agent" : "human", actorId: by, eventType: "prospection.leads_interne", summary: `Envoyé en prospection (Leads interne) — ${cName}`, entityType: "prospection", entityId: res.recordId, source: "prospection" })
+    return { ...res, column: "leads_interne" }
+  },
+})
 
 export const quickAction = mutation({
   args: { id: v.id("prospection_records"), action: v.string(), note: v.optional(v.string()), nextFollowUpAt: v.optional(v.string()), r1At: v.optional(v.string()), lostReason: v.optional(v.string()), createdBy: v.optional(v.string()) },
@@ -378,11 +428,14 @@ export const summary = query({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if ((c as any)?.statut !== "client") recs.push(r)
     }
-    const evs = await ctx.db.query("prospection_events").collect()
     const td = today()
+    const tomorrow = new Date(Date.parse(td + "T00:00:00Z") + 86400000).toISOString().slice(0, 10)
+    const evs = await ctx.db.query("prospection_events")
+      .withIndex("by_workspace_created", q => q.eq("workspaceId", WORKSPACE).gte("createdAt", td).lt("createdAt", tomorrow))
+      .collect()
     const evToday = evs.filter(e => e.createdAt.startsWith(td))
     const goal = (await ctx.db.query("prospection_goals").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()).find(g => g.date === td)
-    const WORKING_COLS = ["leads_a_traiter", "nrp1", "nrp2", "nrp3", "nrp4"]
+    const WORKING_COLS = ["leads_a_traiter", "leads_interne", "nrp1", "nrp2", "nrp3", "nrp4"]
     const working  = recs.filter(r => WORKING_COLS.includes(boardColumnOf(r)))   // leads encore à travailler (1ʳᵉ colonne + relances)
     const aTraiter = recs.filter(r => boardColumnOf(r) === "leads_a_traiter")    // strictement la colonne "Leads à traiter"
     const callsMessagesDone = evToday.filter(e => ["appele", "message_laisse", "pas_repondu"].includes(e.eventType)).length

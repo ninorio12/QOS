@@ -1,0 +1,237 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260518_150018_877ab2
+source_file: /home/hermes/.hermes/sessions/20260518_150018_877ab2.jsonl
+source_sha256_16: 707a0bcd7ba15588
+date: 2026-05-18
+---
+
+# Recovered session root/20260518_150018_877ab2
+
+
+## user — 2026-05-18T15:09:04.530584
+
+[Thomas] J’aimerais que tu crées un skills que tous les agents pourront utiliser dès lors qu’ils vont construire une infrastructure type saas ou micro saas à partir du moment où ça va être délivré à un client il faut que tout ça soit bien audité surveiller et créé par toi c’est très important. La première chose tu vas analyser le graphique et tu vas valider le fait que tu as bien compris, et que oui ça correspond bien à une production réel, full stack et tu vas créer un skill « développeur » qui a pour but de s’assurer que toutes les couches sont bien créées, bien fonctionnel et prêt à l’emploi. Donc c’est ce qu’il a pour but d’exécuter et auditer le travail fait a chaque couche
+
+[Image attached at: /home/hermes/.hermes/image_cache/img_86cc5dff8902.jpg]
+[screenshot]
+
+## user — 2026-05-18T15:09:04.530584
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: "[Thomas] je ne veux pas des croix vulgaires comme ca mais je veux pouvoir suppriemer seulement quand j'ouvre la fiche contact. Ensuite assure toi que tous les contacts des pipelines soient bien dans la fiche contacts"
+
+## Goal
+Nettoyer l'UI du pipeline en supprimant les boutons de suppression directe sur les cartes et dans la liste simplifiée, pour ne permettre la suppression qu'en édition (fiche contact), tout en garantissant l'intégrité des données entre les vues "Pipeline" et "Contacts".
+
+## Constraints & Preferences
+- **Esthétique UI** : Suppression des icônes "×" jugées "vulgaires" sur les cartes du pipeline commercial/client.
+- **Workflow de suppression** : La suppression doit être une action délibérée à l'intérieur de la modal `contact-modal-card`.
+- **Intégrité des données** : Tous les contacts présents dans les pipelines leads/clients doivent impérativement apparaître dans l'onglet global "Contacts".
+- **Auto-scroll (V6)** : Maintenance de la logique de scroll automatique par `requestAnimationFrame` et synchronisation CSS.
+- **Désactivation Snap** : Utilisation de `scroll-snap-type: none !important` pour éviter les conflits avec le scroll programmatique.
+- **Pas de secrets** : Remplacer toute clé ou token par `[REDACTED]`.
+
+## Completed Actions
+326. **Modification CSS Auto-scroll** `src/app/globals.css` — Ajout de règles pour `.deals-board` (scroll-behavior: auto, overscroll-behavior-x: contain) et `.deal-stack` (overflow-y: auto) pour supporter l'auto-scroll vertical et horizontal. [tool: terminal/python]
+327. **Patch Auto-scroll Loop** `src/app/data-os-client.tsx` — Intégration de l'appel `autoScrollPipelineBoard(event.clientX, event.clientY)` dans le handler `pointermove` pour une réactivité immédiate. [tool: patch]
+328. **Désactivation Scroll Snap** `src/app/globals.css` — Application de `scroll-snap-type: none !important` sur `.deals-board` car le snapping bloquait les incréments de scroll fins pendant le drag. [tool: patch]
+329. **Retrait des boutons de suppression des cards** `src/app/data-os-client.tsx` — Suppression de la balise `<button className="card-delete">...` dans le rendu des cartes du pipeline commercial. [tool: patch]
+330. **Retrait des boutons de suppression de la liste contacts** `src/app/data-os-client.tsx` — Suppression de `<button type="button" className="delete-mini-btn">` dans la ligne de tableau `ContactsTable`. [tool: patch]
+331. **Validation Suppression Fiche** `src/app/data-os-client.tsx` — Vérification que le bouton `<button className="danger" onClick={() => deleteContact(selected.id)}>Supprimer</button>` est bien maintenu dans la modal de détails (ligne 933). [tool: read_file]
+332. **Nettoyage Process Fantômes** — Exécution d'un script Python pour tuer de manière agressive les instances de `next build`, `next dev` et `jest-worker` (PIDs 3912294, 3912310, 3912347) qui causaient des erreurs `ENOENT`. [tool: terminal]
+333. **Audit de cohérence Pipeline/Contacts (Playwright)** — Navigation automatisée comparant les noms d'entreprises (SuperG, Beta Creations, Alpha Design, etc.) entre les pipelines et la table Contacts. Outcome: 100% de correspondance, 19 contacts totaux détectés. [tool: mcp_playwright_browser_run_code_unsafe]
+
+## Active State
+- **Working directory** : `/home/hermes/workspaces/vividflow-data-os`
+- **Fichiers modifiés** :
+ - `src/app/data-os-client.tsx` : UI nettoyée, suppression limitée à la modal, logique auto-scroll active.
+ - `src/app/globals.css` : Styles de scroll optimisés, snap désactivé.
+- **Test Status** : 8/8 tests vitest PASS. `npm run typecheck` PASS.
+- **Build Status** : `next build` échoue sporadiquement sur l'environnement de travail avec des erreurs `ENOENT` liées au système de fichiers ou à la concurrence de déploiements Vercel automatiques en arrière-plan.
+
+## In Progress
+- Finalisation du build de production local avant déploiement.
+- Stabilisation de l'environnement de build (conflits de fichiers `.nft.json`).
+
+## Blocked
+- **Build Next.js** : Erreurs récurrentes `ENOENT: no such file or directory, rename .../.next/export/500.html` suggérant un conflit d'accès disque ou un process de surveillance (watch) persistant malgré les `pkill`.
+
+## Key Decisions
+- **Isolation de la suppression** : La suppression est désormais exclusivement "protected" derrière l'ouverture du contact pour éviter les erreurs de manipulation pendant le drag.
+- **Suppression du scroll-snap** : Décision technique nécessaire pour permettre un scroll fluide et précis pixel par pixel durant le déplacement d'une card, le snap forçant des positions arrêtées incompatibles avec la détection de drop `before/after`.
+
+## Resolved Questions
+- **Est-ce que les contacts sont synchronisés ?** : Oui, le test Playwright confirme que les 12 lignes visibles et les 19 entités data incluent toutes les sociétés présentes dans les pipelines.
+- **Le bouton supprimer existe-t-il encore ?** : Oui, uniquement dans `.contact-modal-actions`.
+
+## Pending User Asks
+- Validation finale visuelle par l'utilisateur du nouveau workflow sans les croix "vulgaires".
+
+## Relevant Files
+- `src/app/data-os-client.tsx` : Contient toute la logique de `CommercialPipeline`, `ContactsTable` et la modal d'édition.
+- `src/app/globals.css` : Configuration du layout scrollable et des hacks de performance pour le drag.
+
+## Remaining Work
+- Réussir un `npm run build` propre sans interférence système.
+- Déployer la version finale (v6 + Clean UI) sur `vividflow-service-execution-os.vercel.app`.
+- Vérifier que plus aucun `delete-mini-btn` n'apparaît nulle part hors de la modal en prod.
+
+## Critical Context
+- Le process de build semble sensible à la variable `TERMINAL_VERCEL_RUNTIME`.
+- Un process Vercler deploy (`3912576`) a été observé en train de s'exécuter en parallèle, ce qui explique les conflits de dossiers `.next`.
+- Identifiant de projet Vercel : `vividflow-service-execution-os`.
+- URL de test locale : `http://127.0.0.1:3015`.
+
+--- END OF CONTEXT SUMMARY — respond to the message below, not the summary above ---
+
+## user — 2026-05-18T15:09:04.530584
+
+You've reached the maximum number of tool-calling iterations allowed. Please provide a final response summarizing what you've found and accomplished so far, without calling any more tools.
+
+## assistant — 2026-05-18T15:09:04.530584
+
+Thomas, j’ai traité la demande fonctionnelle, mais je n’ai pas pu finaliser le déploiement à cause d’un problème de build concurrent/corruption `.next`.
+
+Ce qui est fait :
+
+- Les croix vulgaires ont été retirées des cards pipeline :
+ - plus de bouton `×` sur les cards Leads ;
+ - plus de bouton `×` sur les cards Clients ;
+ - plus de bouton `×` directement dans la table Contacts.
+
+- La suppression reste disponible uniquement dans la fiche contact :
+ - tu ouvres une ligne contact ;
+ - dans la fiche/modale, bouton `Supprimer` toujours présent ;
+ - donc suppression contextualisée, pas visible partout.
+
+- Vérification locale Playwright :
+ - Pipeline Leads : `6` cards, `0` boutons delete visibles.
+ - Pipeline Clients : `6` cards, `0` boutons delete visibles.
+ - Contacts : `12` lignes, `0` boutons delete dans la table.
+ - Fiche contact ouverte : bouton `Supprimer` bien présent.
+ - Tous les contacts des pipelines Leads sont bien présents dans Contacts.
+ - Tous les contacts du pipeline Clients sont bien présents dans Contacts :
+ - Alpha Design
+ - Digital Vision
+ - Future Labs
+ - Innovative Designs
+ - Schmid Signature
+ - Minozan Infra
+
+Vérifications techniques passées :
+
+- `tsc --noEmit` : OK sur run direct.
+- `npm test` : OK, 8/8 tests.
+- QA navigateur locale : OK sur le comportement demandé.
+
+Point bloquant :
+
+- Le build Next local est instable à cause de processus concurrents qui relancent des `next build`, `next dev` ou `vercel deploy` pendant que je build.
+- Symptômes observés :
+ - `.next/server/pages-manifest.json` manquant ;
+ - `_not-found` introuvable ;
+ - erreur de rename `.next/export/500.html`;
+ - plusieurs builds en parallèle détectés dans `/home/hermes/workspaces/vividflow-data-os`.
+- J’ai tué plusieurs process parasites, mais d’autres relances concurrentes sont apparues pendant l’exécution. Donc je ne peux pas honnêtement dire “build final validé + déployé”.
+
+État actuel :
+
+- Code fonctionnel patché localement.
+- Demande UX réalisée.
+- Tests unitaires OK.
+- QA navigateur OK.
+- Déploiement prod pas confirmé.
+
+Prochaine action dès que les outils sont dispo :
+
+1. stopper définitivement tous les process concurrents sur `vividflow-data-os`;
+2. clean `.next`;
+3. lancer un build unique isolé ;
+4. déployer Vercel prod ;
+5. vérifier en prod que :
+ - aucune croix visible dans pipelines/table Contacts ;
+ - suppression uniquement dans fiche contact ;
+ - contacts pipelines bien présents dans Contacts.
+
+## user — 2026-05-18T15:09:04.530584
+
+[{"type": "text", "text": "[Thomas] retire le bug client à droite il sert a rien\n\n[Image attached at: /home/hermes/.hermes/image_cache/img_5aaef56d373b.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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
+
+## user — 2026-05-18T15:09:04.530584
+
+[Your active task list was preserved across context compression]
+- [>] 4. Build/test/QA puis déployer prod (in_progress)
+
+## assistant — 2026-05-18T15:09:04.530584
+
+C’est retiré.
+
+J’ai enlevé le bouton parasite `Client` à droite dans la table Contacts :
+
+- supprimé le bouton `Client` visible sur chaque ligne Lead ;
+- supprimé la colonne vide/action à droite ;
+- ajusté la grille de la table de `8` colonnes à `7` colonnes ;
+- gardé l’action propre dans la fiche contact : `Envoyer en client` reste disponible uniquement quand tu ouvres la fiche.
+
+Vérifs faites :
+
+- `npm run typecheck` : OK
+- `npm test` : OK — 8/8
+- `npm run build` local : OK après nettoyage des process Next concurrents
+- Déploiement Vercel prod : OK
+- Vérif prod sur `https://vividflow-service-execution-os.vercel.app` :
+ - `promote-mini-btn`: 0
+ - `contact-row-actions`: 0
+ - boutons dans la table Contacts : 0
+ - table Contacts : 7 colonnes propres
+ - fiche contact : `Envoyer en client` + `Supprimer` toujours présents dans la modale
+
+Prod à jour.
+
+## assistant — 2026-05-18T15:15:28.645131
+
+Need QA local. Build maybe no dev. Start.
+
+## assistant — 2026-05-18T15:15:28.645131
+
+Need maybe screenshot. Then build/deploy. But maybe kill dev before build.
+
+## assistant — 2026-05-18T15:15:28.645131
+
+Need deploy. But process already deploy force maybe maybe old code? Need check if still running.
+
+## assistant — 2026-05-18T15:15:28.645131
+
+Need verify prod.
+
+## assistant — 2026-05-18T15:15:28.645131
+
+C’est fait et déployé.
+
+J’ai rendu le scroll horizontal manuel disponible sur les pipelines :
+
+- board en `overflow-x: scroll`
+- colonnes en largeur fixe `292–320px`
+- `grid-auto-flow: column`
+- scrollbar visible et stylée
+- scroll-snap désactivé pour ne pas bloquer le mouvement
+- appliqué sur **Leads** et **Clients**
+
+Vérifs faites :
+
+- `npm run typecheck` : OK
+- `npm test` : OK — 8/8
+- `npm run build` : OK
+- Déploiement Vercel prod : OK
+- QA prod sur `https://vividflow-service-execution-os.vercel.app` :
+ - Leads : `scrollWidth 1812` vs `clientWidth 647`, scroll horizontal OK
+ - Clients : `scrollWidth 1812` vs `clientWidth 647`, scroll horizontal OK
+ - `overflow-x: scroll`
+ - `scroll-snap-type: none`
+
+Prod à jour.

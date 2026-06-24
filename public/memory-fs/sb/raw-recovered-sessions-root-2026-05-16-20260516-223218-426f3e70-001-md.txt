@@ -1,0 +1,213 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260516_223218_426f3e70
+source_file: /home/hermes/.hermes/sessions/20260516_223218_426f3e70.jsonl
+source_sha256_16: 5213a608648d3f1a
+date: 2026-05-16
+---
+
+# Recovered session root/20260516_223218_426f3e70
+
+
+## user — 2026-05-16T22:32:23.074138
+
+[The user sent a document: 'vividflow-cdc-00-socle-technique-simple-2026-05-16.pdf'. The file is saved at: /home/hermes/.hermes/cache/documents/doc_af7760a1829c_vividflow-cdc-00-socle-technique-simple-2026-05-16.pdf. Ask the user what they'd like you to do with it.]
+
+[Jonathan]
+
+## assistant — 2026-05-16T22:32:23.074138
+
+Reçu : `vividflow-cdc-00-socle-technique-simple-2026-05-16.pdf`.
+
+Tu veux que je fasse quoi avec ?
+- résumé rapide
+- audit / critique du CDC
+- extraction des décisions techniques
+- transformation en brief dev Claude Code
+- vérification cohérence avec VividFlow / Hermes
+- autre action précise
+
+## user — 2026-05-16T22:52:16.269056
+
+[Jonathan] On entre dans la phase build du VividFlow Service Execution OS.
+
+Je t’envoie :
+1. le mockup Vercel validé :
+https://vividflow-service-execution-os.vercel.app
+
+2. le CDC #0 — Socle technique Data OS en PDF.
+
+Objectif :
+Construire uniquement le socle technique du Service Execution OS, pas encore les 17 modules complets.
+
+Le but n’est pas de refaire une maquette statique.
+Le but est de construire les fondations backend qui permettront ensuite aux modules Tasks, Decisions, CRM et Calls + tl;dv de fonctionner correctement.
+
+Priorité du CDC #0 :
+- Convex comme backend / source de vérité ;
+- Clerk pour auth, users et organisations ;
+- rôles et permissions ;
+- audit logs ;
+- action queue ;
+- approvals human-in-the-loop ;
+- base agents ;
+- base automations ;
+- base webhooks / intégrations ;
+- idempotence webhook, notamment pour préparer tl;dv.
+
+Livrable attendu :
+Une première boucle fonctionnelle :
+
+agent stub → action proposée → approval humaine → audit log → webhook tl;dv fictif idempotent.
+
+Important :
+- ne pas construire les 17 modules maintenant ;
+- ne pas inventer la doctrine produit ;
+- ne pas transformer ça en dashboard décoratif ;
+- suivre le CDC ;
+- livrer avec tests, preuves et explication claire de ce qui a été fait.
+
+Le lien Vercel sert de référence UX / structure produit.
+Le PDF sert de référence fonctionnelle pour le socle technique.
+
+Thomas / CTO devra review l’architecture avant merge ou mise en prod.
+
+
+—— 
+
+https://vividflow-service-execution-os.vercel.app
+
+Important : Commence par le CDC #0 uniquement.
+
+## assistant — 2026-05-16T22:52:16.269056
+
+C’est fait. J’ai construit **le socle CDC #0 uniquement**, sans toucher aux 17 modules complets ni refaire une maquette décorative.
+
+## Livré localement
+
+Repo : `ninorio12/QOS` 
+Branche locale : `feat/service-execution-os-socle-cdc0` 
+Commit : `dddff7b feat: add service execution OS foundation`
+
+Patch exporté pour Thomas / review :
+
+MEDIA:/home/hermes/.hermes/cache/patches/vividflow-service-execution-os-cdc0-foundation.patch
+
+## Ce qui a été ajouté
+
+- **Convex foundation**
+ - `convex/schema.ts`
+ - `convex/serviceExecutionOS.ts`
+ - `convex/http.ts`
+ - `convex/auth.config.ts`
+
+- **Clerk foundation**
+ - provider Next.js transitoire dans `src/components/Providers.tsx`
+ - middleware Clerk activable seulement si les envs Clerk sont présentes
+
+- **Tables socle CDC #0**
+ - `workspaces`
+ - `workspaceMembers`
+ - `moduleRegistry`
+ - `actionQueue`
+ - `approvals`
+ - `auditLogs`
+ - `timelineEvents`
+ - `agents`
+ - `agentPrompts`
+ - `agentTools`
+ - `agentRuns`
+ - `agentRunSteps`
+ - `automationRules`
+ - `automationRuns`
+ - `integrationAccounts`
+ - `webhookEvents`
+
+- **Boucle fonctionnelle**
+ - agent stub
+ - action proposée
+ - approval humaine
+ - audit log
+ - webhook tl;dv fictif idempotent
+
+- **Tests**
+ - règles approval / action queue
+ - idempotence webhook tl;dv
+ - permissions agent limitées
+
+- **Doc technique**
+ - `docs/service-execution-os-cdc0-foundation.md`
+
+## Preuves
+
+Passé :
+
+```bash
+npm run typecheck
+```
+
+```bash
+npm test
+```
+
+Résultat test :
+
+```text
+1 file passed
+4 tests passed
+```
+
+Build passé avec env placeholders + mémoire Node augmentée :
+
+```bash
+NODE_OPTIONS=--max-old-space-size=4096 npm run build
+```
+
+Résultat :
+
+```text
+✓ Compiled successfully
+✓ Generating static pages (73/73)
+```
+
+## Points bloquants / à savoir
+
+- Je n’ai pas pu pousser la branche ni créer la PR : le token GitHub disponible n’a pas accès en écriture à `ninorio12/QOS`.
+
+Erreur :
+
+```text
+Permission to ninorio12/QOS.git denied to jonathanzekhe.
+```
+
+- `npx convex codegen` génère les fichiers, mais l’upload Convex échoue tant que cette env n’est pas configurée dans Convex :
+
+```text
+CLERK_JWT_ISSUER_DOMAIN
+```
+
+Lien indiqué par Convex :
+
+```text
+https://dashboard.convex.dev/d/accurate-cormorant-297/settings/environment-variables?var=CLERK_JWT_ISSUER_DOMAIN
+```
+
+- `npm run lint` est bloqué par la configuration ESLint absente / interactive du repo existant. Je n’ai pas créé de config ESLint pour éviter un changement hors scope.
+
+## Pour Thomas
+
+À reviewer avant merge/prod :
+
+1. appliquer le patch ou me donner un token GitHub avec accès write ;
+2. vérifier le modèle Convex ;
+3. configurer `CLERK_JWT_ISSUER_DOMAIN` côté Convex ;
+4. lancer la boucle manuelle :
+ - `proposeAgentStubAction`
+ - `reviewApproval`
+ - `receiveTldvWebhook` deux fois avec le même `eventId`
+5. seulement ensuite brancher CDC #1 Tasks / CDC #2 Decisions / CDC #3 CRM / CDC #4 Calls + tl;dv.
+
+On est resté strictement sur le CDC #0.

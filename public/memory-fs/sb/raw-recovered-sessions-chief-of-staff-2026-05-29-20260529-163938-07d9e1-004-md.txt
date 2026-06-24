@@ -1,0 +1,182 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260529_163938_07d9e1
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260529_163938_07d9e1.jsonl
+source_sha256_16: 292d0e3be9d46e13
+date: 2026-05-29
+---
+
+# Recovered session chief_of_staff/20260529_163938_07d9e1
+
+
+## assistant — 2026-05-29T18:32:43.040770
+
+Oui. Là c’est très clair. On a 4 sujets distincts.
+
+## 1. Bug de fin
+
+Quand Lya conclut, son dernier message apparaît une fraction de seconde puis l’app bascule direct sur le résumé.
+
+C’est mauvais.
+
+Décision :
+- Quand Lya dit son dernier message, on doit le laisser visible.
+- Ensuite seulement afficher un bouton :
+ **Voir le résumé**
+- Pas de bascule automatique instantanée.
+
+Donc :
+**fin de chat → dernier message visible → bouton Voir le résumé → résumé**
+
+## 2. Résumé trop figé
+
+Tu as raison : si à chaque fois il affiche “À qui ça parle”, alors que l’audience est déjà dans Brand OS, ça fait formulaire.
+
+Décision :
+Le résumé doit être plus vivant.
+
+Pas toujours les mêmes labels. 
+Il peut afficher les blocs selon ce qui est pertinent.
+
+Base simple :
+- **Ce qu’on tient**
+- **La tension**
+- **Pourquoi ça touche**
+- **L’angle**
+
+Et seulement si utile :
+- audience
+- funnel
+- formats
+
+## 3. Formats proposés trop tôt
+
+Tu as raison.
+
+À la fin du brainstorm, il ne doit pas proposer :
+- vidéo longue
+- vidéo courte
+- carrousel
+- post
+- story
+
+Pas encore.
+
+Décision :
+Le brainstorm termine sur un **angle**, pas sur une recommandation de format.
+
+Les formats viennent seulement après si tu cliques :
+**Créer un contenu maintenant**
+
+Donc retirer les formats du résumé final brainstorm.
+
+## 4. Ton de Lya
+
+Là, tu as mis le doigt dessus.
+
+Ce qu’on cherche, ce n’est pas :
+- plus stratégique ;
+- plus long ;
+- plus intelligent en apparence.
+
+C’est :
+
+> une parole simple, claire, qui touche juste.
+
+Style “sagesse des anciens” :
+- peu de mots ;
+- phrases simples ;
+- pas de démonstration ;
+- une question qui fait réfléchir ;
+- une vérité posée calmement ;
+- pas de blabla.
+
+Exemple de direction :
+> “Là, tu parles du sujet. Mais pas encore de la blessure derrière.”
+
+Ou :
+> “Ce n’est pas encore l’angle. C’est la surface.”
+
+Ça, c’est le feeling.
+
+## Message à Claude Code
+
+```text
+Claude, le Brainstormer n’est toujours pas validé. On doit corriger 4 points.
+
+1. BUG FIN DE BRAINSTORM
+Actuellement, quand Lya conclut avec [BRAINSTORM_COMPLETE], son dernier message apparaît une fraction de seconde puis l’app bascule automatiquement sur le résumé.
+C’est mauvais UX.
+
+Nouveau comportement :
+- afficher le dernier message de Lya dans le chat ;
+- ne PAS basculer automatiquement vers le résumé ;
+- afficher un bouton “Voir le résumé” ;
+- seulement au clic, passer à l’écran résumé.
+
+Flow :
+Lya dernier message → bouton “Voir le résumé” → écran “On tient quelque chose”.
+
+2. RETIRER LES FORMATS DU RÉSUMÉ BRAINSTORM
+À la fin du brainstorm, ne pas proposer “vidéo courte / vidéo longue / carrousel / post / story”.
+Le brainstorm sauvegarde un angle.
+Le choix de format arrive seulement après clic “Créer un contenu maintenant”.
+
+Donc :
+- retirer formats du résumé visible ;
+- idéalement ne plus demander au modèle de recommander formats à ce stade, ou ne pas les afficher.
+- garder le choix de format pour le workflow content, pas Brainstormer.
+
+3. RÉSUMÉ PLUS VIVANT, MOINS FORMULAIRE
+Le résumé actuel avec labels fixes type “Audience / À qui ça parle” peut être bizarre car l’audience est déjà dans Brand OS.
+
+Nouveau résumé visible recommandé :
+- “Ce qu’on tient”
+- “La tension”
+- “Pourquoi ça touche”
+- “L’angle”
+
+Audience/funnel seulement si vraiment utile, pas en bloc systématique.
+Pas de tableau froid.
+Pas de labels trop CRM.
+
+4. TON LYA
+Le ton n’est pas encore celui attendu.
+Jonathan cherche une forme de “sagesse des anciens” :
+- simple ;
+- clair ;
+- profond ;
+- peu de mots ;
+- pas de grandes phrases ;
+- pas de blabla ;
+- une phrase qui touche juste ;
+- une question qui remet en question.
+
+Lya doit moins expliquer.
+Elle doit dire l’essentiel.
+
+Exemples de vibe :
+“Là, tu parles du sujet. Mais pas encore de la blessure derrière.”
+“Ce n’est pas encore l’angle. C’est la surface.”
+“Ce que tu dis est intéressant. Mais ce qui va toucher, c’est la tension cachée.”
+“On tient une direction. Pas encore une vérité.”
+
+Objectif :
+Retrouver une collaboration sobre, claire, profonde.
+Pas coach générique.
+Pas verbeux.
+Pas trop théorique.
+
+Patch attendu :
+- UI fin de brainstorm : bouton “Voir le résumé”
+- Résumé : retirer formats visibles, rendre labels plus naturels
+- Prompt : ajouter règle de ton “sagesse sobre” : phrases courtes, essentielles, profondes, pas de démonstration
+- Ne pas toucher le reste du flow
+- Ne pas toucher QA/caméra/Pipeline
+- TS check + deploy
+```
+
+À mon avis, **c’est ça qui manque** : pas plus d’intelligence, mais plus de sobriété.

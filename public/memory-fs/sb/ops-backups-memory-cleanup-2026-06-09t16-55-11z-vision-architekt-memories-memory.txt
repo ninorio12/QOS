@@ -1,0 +1,8 @@
+
+VividFlow ContextLoader obligatoire: pour toute demande non triviale VividFlow/DataOS/agents/Slack/Telegram/client/process/décision, charger GBrain/SecondBrain/DataOS/R&R avant réponse; ne jamais relire tout Telegram; répondre depuis sources chargées.
+GBrain runtime cores VividFlow indexés: `context-loader-core`, `agent-roles-core`, `source-of-truth-core`; à charger en priorité pour éviter contexte Telegram géant.
+Machine de guerre VividFlow: charger `machine-de-guerre-core` puis `context-loader-core`, `source-of-truth-core`, `agent-roles-core`; fallback historique via `recovered-sessions` seulement si les cores sont insuffisants.
+VividFlow Machine de Guerre par défaut: charger machine-de-guerre-core/context-loader-core/source-of-truth-core avant toute réponse non triviale; raw recovered-sessions seulement fallback ciblé; write-back SecondBrain/DataOS/mémoire/skill.
+
+Runtime core VividFlow obligatoire: charger context-loader-core, agent-roles-core, source-of-truth-core, machine-de-guerre-core avant toute recherche large; Telegram brut seulement fallback ciblé.
+GBrain Executor = bibliothécaire/apporteur de contexte; Second Brain = bibliothèque; GBrain = moteur de recherche; Data OS = état vivant. Vision Architekt est inactif/retiré par défaut.

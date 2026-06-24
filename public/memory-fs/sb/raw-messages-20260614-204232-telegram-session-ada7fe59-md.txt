@@ -1,0 +1,26 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260614_201100_ff69e8.jsonl
+captured_at: 2026-06-14T20:42:32.084462
+platform: telegram
+type: conversation_delta
+---
+
+## assistant — 2026-06-14T20:13:16.153937
+
+On continue côté VPS. Lance maintenant : ```bash cd /home/hermes hermes --profile agent_kb_executor gateway status hermes --profile csm_executor gateway status hermes --profile operations_executor gateway status hermes --profile data_analyst_executor gateway status ``` Puis redémarre ceux qui doivent répondre : ```bash hermes --profile agent_kb_executor gateway restart hermes --profile csm_executor gateway restart hermes --profile operations_executor gateway restart hermes --profile data_analyst_executor gateway restart ``` Ensuite dans Slack, ping court : ```text Agent KB, Agent CSM, Agent Operations, Data Analyst — répondez chacun en 3 lignes max : état, blocage, prochaine action. ``` Si un agent ne répond pas, envoie-moi son log : ```bash tail -80 /home/hermes/.hermes/profiles/agent_kb_executor/logs/gateway.log ```
+
+## user — 2026-06-14T20:14:20.429053
+
+oublie pas il y a le nouveau debug enginier
+
+## assistant — 2026-06-14T20:14:20.429053
+
+Oui, retenu : **Debug Engineer** fait partie des agents actifs à connecter aussi. Ajoute-le dans les commandes : ```bash hermes --profile agent_debug gateway status hermes --profile agent_debug gateway restart ``` Donc la liste complète à réveiller : ```bash hermes --profile agent_kb_executor gateway restart hermes --profile csm_executor gateway restart hermes --profile operations_executor gateway restart hermes --profile data_analyst_executor gateway restart hermes --profile agent_debug gateway restart ``` Et message Slack : ```text Agent KB, Agent CSM, Agent Operations, Data Analyst, Debug Engineer — répondez chacun en 3 lignes max : état, blocage, prochaine action. ```
+
+## user — 2026-06-14T20:15:05.318497
+
+non mais faut que je mette les tokens aussi
+
+## assistant — 2026-06-14T20:15:05.318497
+
+Oui. Il faut mettre les tokens **dans chaque profil agent**, pas juste global. Depuis le VPS en user `hermes` : ```bash cd /home/hermes ``` Pour chaque agent : ```bash nano /home/hermes/.hermes/profiles/agent_kb_executor/.env nano /home/hermes/.hermes/profiles/csm_executor/.env nano /home/hermes/.hermes/profiles/operations_executor/.env nano /home/hermes/.hermes/profiles/data_analyst_executor/.env nano /home/hermes/.hermes/profiles/agent_debug/.env ``` Dans chaque `.env`, ajoute les tokens Slack de **l’app Slack correspondant à cet agent** : ```bash SLACK_BOT_TOKEN=xoxb-... SLACK_APP_TOKEN=xapp-... ``` Puis redémarre : ```bash hermes --profile agent_kb_executor gateway restart hermes --profile csm_executor gateway restart hermes --profile operations_executor gateway restart hermes --profile data_analyst_executor gateway restart hermes --profile agent_debug gateway restart ``` Vérifie : ```bash hermes --profile agent_kb_executor gateway status hermes --profile csm_executor gateway status hermes --profile operations_executor gateway status hermes --profile data_analyst_executor gateway status hermes --profile agent_debug gateway status ``` Si un agent ne répond pas, check son log : ```bash tail -80 /home/hermes/.hermes/profiles/agent_debug/logs/gateway.log ``` Point important : **ne mets pas les mêmes tokens partout** si chaque agent a sa propre Slack App visible. Chaque agent visible = son `xoxb` + son `xapp`.

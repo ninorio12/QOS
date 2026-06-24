@@ -1,0 +1,223 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260519_000415_b1060d
+source_file: /home/hermes/.hermes/sessions/20260519_000415_b1060d.jsonl
+source_sha256_16: 5708537476228add
+date: 2026-05-19
+---
+
+# Recovered session root/20260519_000415_b1060d
+
+
+## user — 2026-05-19T00:33:41.881782
+
+j'ai changé du coup PS C:\Users\thoma> ssh -i "C:\Users\thoma\.ssh\vividflow_infomaniak_rsa.txt" ubuntu@179.237.65.107
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@ WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED! @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!
+Someone could be eavesdropping on you right now (man-in-the-middle attack)!
+It is also possible that a host key has just been changed.
+The fingerprint for the ED25519 key sent by the remote host is
+SHA256:zZDIgLCwzNhHDBG9MkiovoCYzATYrDZ5e4GsM9qyizw.
+Please contact your system administrator.
+Add correct host key in C:\\Users\\thoma/.ssh/known_hosts to get rid of this message.
+Offending ED25519 key in C:\\Users\\thoma/.ssh/known_hosts:10
+Host key for 179.237.65.107 has changed and you have requested strict checking.
+Host key verification failed.
+PS C:\Users\thoma>
+
+## assistant — 2026-05-19T00:33:41.881782
+
+Oui, c’est normal si tu as **réinitialisé / changé l’OS du VPS**.
+
+Ton PC avait enregistré l’ancienne identité SSH du serveur dans `known_hosts`. Maintenant Ubuntu a généré une nouvelle identité, donc Windows dit :
+
+```text
+REMOTE HOST IDENTIFICATION HAS CHANGED
+```
+
+Comme c’est toi qui viens de réinstaller le VPS, c’est cohérent.
+
+## Fais ça dans PowerShell
+
+Supprime l’ancienne empreinte SSH pour cette IP :
+
+```powershell
+ssh-keygen -R 179.237.65.107
+```
+
+Puis reconnecte-toi :
+
+```powershell
+ssh -i "C:\Users\thoma\.ssh\vividflow_infomaniak_rsa.txt" ubuntu@179.237.65.107
+```
+
+Il va redemander :
+
+```text
+Are you sure you want to continue connecting?
+```
+
+Tu tapes :
+
+```text
+yes
+```
+
+## Si ça marche
+
+Tu devrais entrer sur le VPS.
+
+Ensuite tape :
+
+```bash
+whoami
+```
+
+Résultat attendu :
+
+```text
+ubuntu
+```
+
+Puis :
+
+```bash
+sudo -i
+```
+
+Et :
+
+```bash
+whoami
+```
+
+Résultat attendu :
+
+```text
+root
+```
+
+## Si après ça tu as encore `Permission denied (publickey)`
+
+Alors le problème restant est la clé SSH, pas l’empreinte serveur.
+
+Dans ce cas, utilise la **nouvelle clé privée** qui correspond à la clé publique que tu as sélectionnée pendant la réinstallation Ubuntu.
+
+## user — 2026-05-19T00:34:24.381319
+
+The programs included with the Ubuntu system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Ubuntu comes with ABSOLUTELY NO WARRANTY, to the extent permitted by
+applicable law.
+
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+ubuntu@ov-0d363a:~$
+
+## assistant — 2026-05-19T00:34:24.381319
+
+Parfait. Tu es connecté au VPS Ubuntu. ✅
+
+Tu es ici :
+
+```text
+ubuntu@ov-0d363a:~$
+```
+
+Donc :
+- user actuel : `ubuntu`
+- serveur : `ov-0d363a`
+- connexion SSH OK
+
+## Maintenant passe admin/root
+
+Tape :
+
+```bash
+sudo -i
+```
+
+Tu dois voir le prompt changer en quelque chose comme :
+
+```text
+root@ov-0d363a:~#
+```
+
+## Ensuite fais le check serveur
+
+Copie-colle :
+
+```bash
+whoami
+hostname
+lsb_release -a
+uname -a
+df -h
+free -h
+```
+
+Ça va confirmer :
+- que tu es bien root,
+- le nom du serveur,
+- la version Ubuntu,
+- l’espace disque,
+- la RAM.
+
+## Pour VS Code
+
+Maintenant tu peux configurer Remote SSH.
+
+Dans VS Code :
+
+```text
+Ctrl + Shift + P
+Remote-SSH: Open SSH Configuration File
+```
+
+Choisis :
+
+```text
+C:\Users\thoma\.ssh\config
+```
+
+Mets :
+
+```sshconfig
+Host vividflow-vps-test
+ HostName 179.237.65.107
+ User ubuntu
+ IdentityFile C:\Users\thoma\.ssh\vividflow_infomaniak_rsa.txt
+ IdentitiesOnly yes
+```
+
+Puis :
+
+```text
+Ctrl + Shift + P
+Remote-SSH: Connect to Host
+vividflow-vps-test
+```
+
+Choisis :
+
+```text
+Linux
+```
+
+## Commande utile
+
+Quand tu es connecté en `ubuntu`, pour travailler en admin :
+
+```bash
+sudo -i
+```
+
+On a validé la partie la plus importante : **ton accès SSH fonctionne.**

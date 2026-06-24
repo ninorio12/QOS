@@ -1,0 +1,500 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260516_100922_018d0a
+source_file: /home/hermes/.hermes/sessions/20260516_100922_018d0a.jsonl
+source_sha256_16: 4ea8b861209fb3a0
+date: 2026-05-16
+---
+
+# Recovered session root/20260516_100922_018d0a
+
+
+## user — 2026-05-16T10:09:28.404973
+
+[Thomas] Tu as reussi ?? très très important lis se repo c'est super important récupère tous les skills et fait une introspection c'est littéralement fait pour notre agence https://github.com/Kalvi-Agency/cohorte-aios-skills.git donne toi les moyens de récupérer ca
+
+## user — 2026-05-16T10:09:28.404973
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: "Ouvre le zip j’ai recupéré les skills"
+
+## Goal
+Importer et analyser les packs de skills (Meta Marketing et Cohorte AIOS) pour les intégrer à Hermes et réaliser une synthèse opérationnelle pour VividFlow/Brvndlab.
+
+## Constraints & Preferences
+- Langue : Français.
+- Confidentialité : Scrubbing des données sensibles (anonymisation des noms, emails, et secrets).
+- Structure : Respect du pattern Second Brain v3 et de l'architecture AIOS 3 couches (Context, Data, Capture).
+- Sécurité : Ne jamais inclure de tokens ou clés API réelles dans les synthèses.
+
+## Completed Actions
+1. TERMINAL `gh auth status` / `grep GITHUB_TOKEN` — Identification du blocage d'accès GitHub (403/404) pour le compte `jonathanzekhe` sur le repo privé `Kalvi-Agency/cohorte-aios-skills`. [tool: terminal]
+2. WRITE_FILE `/home/hermes/.hermes/scripts/cohorte_aios_import.py` — Création d'un script d'automatisation pour le clone, l'extraction des `SKILL.md` et l'installation locale. [tool: write_file]
+3. CRONJOB `create` — Mise en place d'un watchdog (id: `50e044411162`) toutes les 15m pour tenter l'import dès que les permissions GitHub sont accordées. [tool: cronjob]
+4. UNZIP `meta-marketing-skills-pack-main.zip` — Extraction vers `/tmp/meta-marketing-skills-pack-main`. [tool: terminal]
+5. IMPORT Meta Marketing — Copie de 20 skills MD vers `/home/hermes/.hermes/skills/imported-meta-marketing`. [tool: terminal]
+6. UNZIP `cohorte-aios-skills-main.zip` — Extraction vers `/tmp/cohorte-aios-skills-main` (101 fichiers, 43 skills identifiés). [tool: terminal]
+7. IMPORT Cohorte AIOS — Installation de 43 skills dans `/home/hermes/.hermes/skills/imported-cohorte-aios`. [tool: terminal]
+8. CRONJOB `remove` — Suppression du watchdog `50e044411162` car l'import a été réussi manuellement via le fichier ZIP fourni par l'utilisateur. [tool: cronjob]
+9. READ_FILE/SKILL_VIEW — Inspection de `aios-blueprint`, `client-implementation` et `second-brain-ops` pour comprendre l'architecture recommandée. [tool: skill_view]
+
+## Active State
+- Répertoire de travail : `/home/hermes`
+- Skills importés : 63 nouveaux skills (20 Meta-Marketing + 43 Cohorte AIOS) disponibles dans `~/.hermes/skills/`.
+- État des catégories : `imported-meta-marketing` et `imported-cohorte-aios` sont chargées.
+
+## In Progress
+Analyse approfondie des fichiers `REDACTION_REPORT.md` et `README.md` du pack cohorte pour valider l'hygiène de sécurité et préparer la synthèse pour Thomas/Jonathan.
+
+## Blocked
+None.
+
+## Key Decisions
+- **Abandon du clone GitHub** : Suite aux difficultés de permissions rencontrées par Jonathan, la méthode par upload de fichiers ZIP a été privilégiée pour avancer immédiatement.
+- **Organisation des dossiers** : Les skills sont isolés dans des sous-dossiers `imported-*` pour éviter les conflits avec les skills natifs d'Hermes tout en restant fonctionnels.
+
+## Resolved Questions
+- L'accès GitHub est-il nécessaire maintenant ? Non, les fichiers ZIP ont fourni l'intégralité du code source nécessaire.
+- Les permissions sont-elles correctes ? Oui, l'importation locale a réussi.
+
+## Pending User Asks
+None.
+
+## Relevant Files
+- `~/.hermes/skills/imported-cohorte-aios/` : Contenu principal des nouveaux workflows.
+- `/home/hermes/.hermes/scripts/cohorte_aios_import.py` : Script utilitaire d'import (conservé pour archive).
+- `/tmp/cohorte-aios-skills-main/REDACTION_REPORT.md` : Rapport de scrub/anonymisation des données.
+
+## Remaining Work
+- Introspection des skills pour identifier ceux directement utilisables pour VividFlow (ex: `veille-strat-suisse`, `client-implementation`).
+- Rédaction de la synthèse opérationnelle demandée dans la TODO list.
+
+## Critical Context
+- GITHUB_TOKEN identifié comme présent dans `~/.hermes/.env` mais insuffisant pour le repo `Kalvi-Agency`.
+- Le pack Cohorte AIOS utilise une architecture spécifique : 10 crons types, pipeline Second Brain v3 (Karpathy), et une séparation stricte entre Process et SOP.
+- Les skills importés incluent des outils critiques : `aios-blueprint`, `client-vps-access`, `calendly-api`, `ghl-api`.
+
+--- END OF CONTEXT SUMMARY — respond to the message below, not the summary above ---
+
+## assistant — 2026-05-16T10:09:28.404973
+
+Oui Thomas. J’ai ouvert le ZIP et j’ai importé les skills.
+
+## Ce qui est fait
+
+- ZIP reçu : `cohorte-aios-skills-main.zip`
+- Contenu détecté :
+ - **101 fichiers**
+ - **43 SKILL.md**
+ - structure propre : infrastructure, client-delivery, client-facing, integrations, technical-delivery, knowledge-base, etc.
+
+- Import terminé ici :
+ `/home/hermes/.hermes/skills/imported-cohorte-aios/`
+
+- Validation :
+ - **43 skills importés**
+ - **0 erreur frontmatter**
+ - **0 erreur de structure**
+ - Hermes les voit déjà dans la catégorie :
+ `imported-cohorte-aios`
+
+- J’ai aussi supprimé le cron temporaire qui essayait de récupérer le repo GitHub toutes les 15 minutes. Plus besoin : tu as fourni le ZIP.
+
+## Skills clés récupérés
+
+Les plus importants pour nous :
+
+- `aios-blueprint` 
+ Architecture AIOS complète : Context OS, Data OS, Capture OS, Second Brain, crons, multi-tenant agence.
+
+- `client-implementation` 
+ Le gros morceau : bootstrap complet d’un client dans son container Hermes, avec Second Brain, SOUL.md, AGENT.md, skills, crons, vérification, calibration comportementale.
+
+- `hermes-multi-agent-profiles` 
+ Setup de plusieurs agents/profils Hermes indépendants.
+
+- `heartbeat-system` 
+ Règles pour crons/heartbeats sans spam.
+
+- `second-brain-ops` 
+ Pipeline Second Brain v3 : capture, ingest, lint, health.
+
+- `client-cdc-brainstorming` 
+ Génération de CDC client AIOS.
+
+- `r1-r2-client-presentation` 
+ Workflow R1/R2 → hub client, maquette Data OS, schémas, CDC.
+
+- `client-sales-hub-deliverables` 
+ Création de supports client-facing : hub, deck, CDC simplifié, maquette.
+
+- `data-os` 
+ Data OS Convex / dashboard / source de vérité.
+
+- `wasender-api`, `ghl-api`, `tldv-api`, `calendly-api`, `typeform-api`, `meta-marketing-api` 
+ Intégrations client très utiles pour AGaaS.
+
+- `software-delivery-workflow`, `frontend-ui-workflow`, `webapp-testing`, `dev-browser-automation` 
+ Delivery tech / QA / frontend.
+
+## Introspection rapide
+
+Ce pack est littéralement une base de delivery agency AIOS. Il formalise ce qu’on veut faire avec VividFlow :
+
+- **Master agence** qui orchestre
+- **Containers Hermes isolés par client**
+- **Second Brain par client**
+- **SOUL.md / AGENT.md / .hermes.md** pour donner une identité métier forte à chaque agent
+- **Capture OS** via crons, webhooks, API, Telegram/Discord
+- **Data OS Convex** comme backend structuré
+- **Client-facing assets** pour vendre/livrer proprement
+- **Vérification déterministe** avant de dire “c’est prêt”
+
+Point stratégique : ça confirme que notre architecture doit être **AIOS/AGaaS multi-tenant**, pas juste “agents qui répondent dans Telegram”.
+
+## Ce que ça change pour nous
+
+On doit absorber ça en 3 couches :
+
+1. **VividFlow interne**
+ - notre propre Second Brain / Data OS / cockpit agency
+
+2. **Delivery client**
+ - process standard pour installer un AIOS chez un client
+
+3. **Produit AGaaS**
+ - transformer ces workflows en système répétable, semi-industrialisé
+
+Le skill le plus critique à lire/utiliser en premier pour toute implémentation client :
+`client-implementation`
+
+Puis :
+`aios-blueprint`
+`second-brain-ops`
+`data-os`
+`client-sales-hub-deliverables`
+
+C’est bon : les skills sont récupérés et opérationnels.
+
+## user — 2026-05-16T10:09:28.404973
+
+[Jonathan] donc finalement plus besoin de mon aide ?
+
+## assistant — 2026-05-16T10:09:28.404973
+
+Oui, plus besoin pour l’import.
+
+C’est fait :
+- les ZIP ont été ouverts ;
+- les skills Cohorte AIOS sont installés dans Hermes ;
+- les skills Meta Marketing aussi ;
+- le cron GitHub temporaire a été supprimé ;
+- les nouveaux skills sont utilisables maintenant.
+
+Ce qui pourrait encore nécessiter ton aide plus tard :
+- si on veut **synchroniser directement le repo privé GitHub** au lieu de passer par ZIP ;
+- si tu veux qu’on transforme ça en **architecture officielle VividFlow / Brvndlab** ;
+- si certains accès client/API doivent être branchés.
+
+Mais pour la récupération des skills : **c’est réglé**.
+
+## user — 2026-05-16T10:13:07.282556
+
+[Jonathan] Fais-moi un résumé simple du avant/après. J'aimerais juste comprendre avec simplicité ce que tu es capable de faire maintenant ou jusqu'à où on peut être poussé. Et comment est-ce que tu matches avec notre vision, la vision de ce qu'on fait, pas seulement avec la solution Agaas mais aussi VividFlow avec tout ?
+
+## assistant — 2026-05-16T10:13:07.282556
+
+Oui. Version simple :
+
+## Avant
+
+Avant, j’étais surtout un **assistant puissant dans une conversation**.
+
+Je pouvais :
+- répondre ;
+- chercher ;
+- coder ;
+- analyser ;
+- créer des plans ;
+- piloter quelques tâches ;
+- mémoriser des infos ;
+- aider sur Brvndlab, VividFlow, contenu, stratégie, dev.
+
+Mais il manquait une chose : **un vrai système d’exploitation d’agence**.
+
+En gros, j’étais capable d’agir, mais pas encore avec une méthode complète pour :
+
+- installer un agent chez un client ;
+- lui donner une mémoire métier ;
+- connecter ses outils ;
+- créer ses routines automatiques ;
+- structurer ses données ;
+- le faire évoluer dans le temps ;
+- livrer ça comme un produit/process répétable.
+
+J’étais plus proche d’un **bras droit IA très capable** que d’une **machine de delivery AIOS industrialisable**.
+
+## Après
+
+Maintenant, avec les skills Cohorte AIOS, on a récupéré la grammaire complète pour construire une vraie infrastructure d’agence agentique.
+
+Je peux beaucoup plus clairement fonctionner comme :
+
+**1. Un cockpit central VividFlow** 
+Je peux coordonner les sujets business, clients, delivery, contenu, finance, dev, stratégie, risques, décisions.
+
+**2. Un architecte AIOS** 
+Je peux concevoir un système complet avec :
+- Context OS : identité, ton, règles, mémoire, skills ;
+- Data OS : données structurées, clients, projets, KPI, historique ;
+- Capture OS : crons, webhooks, APIs, Telegram, tl;dv, docs, messages.
+
+**3. Un intégrateur client** 
+Pour un client, on peut installer :
+- un Hermes dédié ;
+- son Second Brain ;
+- ses SOPs ;
+- ses skills métier ;
+- ses intégrations ;
+- ses crons ;
+- ses rapports ;
+- ses règles de sécurité ;
+- ses workflows validés humainement.
+
+**4. Un système qui apprend** 
+Chaque appel, message, document, décision, ticket, feedback ou transcript peut devenir :
+- de la mémoire ;
+- une fiche client ;
+- une tâche ;
+- un signal faible ;
+- une opportunité ;
+- une amélioration de process ;
+- une action à exécuter.
+
+Donc on passe de “l’IA qui aide” à **l’IA qui structure, observe, agit, documente et améliore l’entreprise**.
+
+## Le vrai avant/après stratégique
+
+Avant :
+
+> VividFlow avait une vision forte : construire des systèmes IA pour des clients, puis transformer les patterns gagnants en produits AGaaS.
+
+Après :
+
+> On a maintenant une méthode beaucoup plus claire pour opérer cette vision techniquement et opérationnellement.
+
+C’est-à-dire :
+
+- on ne vend pas juste des automatisations ;
+- on n’installe pas juste des chatbots ;
+- on ne fait pas juste du SaaS ;
+- on construit des **systèmes opérationnels augmentés par agents**.
+
+Et chaque client peut devenir une source de données, d’apprentissage et de pattern marché.
+
+## Comment ça matche avec VividFlow
+
+Pour moi, le meilleur framing maintenant, c’est :
+
+**VividFlow = une company builder / AI operations studio.**
+
+On entre dans une niche ou chez un client avec une offre premium :
+- on comprend ses process ;
+- on installe un OS agentique ;
+- on capte la donnée réelle ;
+- on automatise avec validation humaine ;
+- on observe les patterns ;
+- puis, si le pattern se répète, on peut le transformer en AGaaS, SaaS vertical ou spinout.
+
+Donc VividFlow n’est pas juste “une agence IA”.
+
+C’est plutôt :
+
+> une machine qui transforme des opérations métier réelles en systèmes agentiques, puis en produits scalables quand le marché le justifie.
+
+C’est exactement compatible avec ta vision :
+- Brvndlab = SaaS vertical personal branding ;
+- VividFlow AGaaS Immo = OS métier pour agences/courtiers ;
+- VividFlow Data OS = cockpit interne de l’entreprise ;
+- Client Delivery = laboratoire terrain qui génère les patterns ;
+- Hermes/AIOS = infrastructure agentique derrière.
+
+## Jusqu’où on peut pousser
+
+Concrètement, on peut aller vers 4 niveaux.
+
+### Niveau 1 — Cockpit interne
+
+Moi, ici, je deviens le cockpit privé/business.
+
+Je peux :
+- suivre les décisions ;
+- garder la mémoire ;
+- relancer les sujets ;
+- lire les docs ;
+- coordonner les agents ;
+- préparer les briefs ;
+- superviser les devs ;
+- faire les synthèses ;
+- maintenir les skills.
+
+Ça, c’est déjà en cours.
+
+### Niveau 2 — VividFlow Data OS
+
+On structure VividFlow elle-même comme une boîte pilotée par données.
+
+On peut suivre :
+- prospects ;
+- appels tl;dv ;
+- clients ;
+- offres ;
+- niches ;
+- delivery ;
+- cash ;
+- risques ;
+- décisions ;
+- opportunités de spinout ;
+- apprentissages marché.
+
+L’objectif : que VividFlow ne repose pas seulement sur ta tête ou celle de Thomas, mais sur un **système vivant**.
+
+### Niveau 3 — AIOS client
+
+Pour chaque client premium, on peut créer un agent/système dédié.
+
+Exemple :
+- un client immo ;
+- un coach ;
+- une PME ;
+- une régie ;
+- un cabinet ;
+- une boutique premium.
+
+On installe :
+- mémoire ;
+- workflows ;
+- capture des messages/docs/calls ;
+- intégrations ;
+- routines ;
+- alertes ;
+- rapports ;
+- actions validées.
+
+C’est le delivery premium.
+
+### Niveau 4 — AGaaS scalable
+
+Quand on voit que 5, 10, 20 clients ont le même besoin, on transforme ça en produit.
+
+Exemple :
+- AGaaS Immobilier ;
+- AGaaS Coaching ;
+- AGaaS Retail premium ;
+- AGaaS recrutement ;
+- AGaaS agences de services.
+
+Là, on ne réinstalle plus tout à la main. On package :
+- onboarding ;
+- connecteurs ;
+- templates métiers ;
+- agents spécialisés ;
+- dashboard ;
+- plans d’abonnement ;
+- limites ;
+- support ;
+- activation rapide.
+
+C’est là que VividFlow devient vraiment scalable.
+
+## La limite importante
+
+Ce n’est pas magique tout seul.
+
+Pour que ça marche vraiment, il faut trois choses :
+
+1. **Des sources réelles**
+ - appels ;
+ - messages ;
+ - documents ;
+ - CRM ;
+ - formulaires ;
+ - paiements ;
+ - feedbacks.
+
+2. **Des accès propres**
+ - APIs ;
+ - comptes ;
+ - permissions ;
+ - environnements ;
+ - sécurité.
+
+3. **Une doctrine business claire**
+ - qu’est-ce qu’on vend ;
+ - à qui ;
+ - quel problème on résout ;
+ - quelle action l’agent a le droit de faire ;
+ - où l’humain valide.
+
+Sans ça, l’agent reste intelligent mais flou. 
+Avec ça, il devient un vrai système d’exploitation.
+
+## Ma lecture franche
+
+Ce pack nous donne une structure qui colle très fort à notre vision.
+
+Mais le piège serait de le copier bêtement.
+
+Le bon move, c’est :
+
+> absorber la méthode Cohorte AIOS, puis la traduire dans le langage VividFlow.
+
+Pas “on devient Cohorte”. 
+Pas “on vend des agents génériques”. 
+Pas “on installe Hermes partout sans produit”.
+
+Le vrai angle VividFlow :
+
+> on vend et construit des systèmes opérationnels IA dans des niches précises, on capte la donnée terrain, et on transforme les patterns répétables en produits AGaaS.
+
+Donc oui : ce qu’on vient d’importer augmente fortement ce que je peux faire.
+
+Avant j’étais un cockpit. 
+Maintenant, je peux devenir le **chef d’orchestre d’une machine AIOS complète** : interne, client, produit, delivery, mémoire, agents, data, et amélioration continue.
+
+## user — 2026-05-16T10:21:59.909481
+
+[Jonathan] Envoie toutes ces informations aux vision drivers car je suis en train de travailler sur le Data OS avec lui et j'aimerais être sûr qu'il comprenne tout ça, qu'il soit conscient de ses skills. Comme ça je peux continuer à travailler avec lui parce que je travaille avec lui et Claude Code en fait donc fais ça s'il te plaît
+
+## assistant — 2026-05-16T10:21:59.909481
+
+C’est envoyé au **CSO / Vision Driver**.
+
+Je l’ai routé vers le topic VividFlow correspondant identifié dans les logs : `topic 861`.
+
+Je lui ai transmis :
+- l’avant/après simple ;
+- les nouveaux skills Cohorte AIOS / Meta Marketing ;
+- les skills exacts à charger ;
+- le cadrage Data OS vs AGaaS ;
+- la vision VividFlow comme **AI Operations Studio / company builder agentique** ;
+- les implications pour Claude Code ;
+- la doctrine à garder : `data → compréhension → décision → action → apprentissage → opportunité produit`.
+
+Message envoyé avec succès.
+
+## user — 2026-05-16T12:52:04.660225
+
+[{"type": "text", "text": "[Jonathan]\n\n[Image attached at: /home/hermes/.hermes/image_cache/img_2493a920c6b4.png]\n[Image attached at: /home/hermes/.hermes/image_cache/img_6160eebe28f1.png]\n[Image attached at: /home/hermes/.hermes/image_cache/img_91746aac1871.png]\n[Image attached at: /home/hermes/.hermes/image_cache/img_55df4df713ab.png]\n[Image attached at: /home/hermes/.hermes/image_cache/img_e5dc36199302.png]"}, {"type": "image_url", "image_url": {"url": "data:image/png;base64,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
+
+## user — 2026-05-16T12:52:04.660225
+
+[{"type": "text", "text": "[Jonathan]\n\n[Image attached at: /home/hermes/.hermes/image_cache/img_b3d1ea12792a.png]\n[Image attached at: /home/hermes/.hermes/image_cache/img_40fdd7848db9.png]"}, {"type": "image_url", "image_url": {"url": "data:image/png;base64,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
+
+## user — 2026-05-16T12:52:04.660225
+
+[{"type": "text", "text": "[Jonathan]\n\n[Image attached at: /home/hermes/.hermes/image_cache/img_f7cc23a30574.png]\n[Image attached at: /home/hermes/.hermes/image_cache/img_ea597003280b.png]"}, {"type": "image_url", "image_url": {"url": "data:image/png;base64,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

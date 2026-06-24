@@ -1,0 +1,1310 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: chief_of_staff
+session_id: 20260601_221026_e9e958
+source_file: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260601_221026_e9e958.jsonl
+source_sha256_16: 056a6bf61029e190
+date: 2026-06-01
+---
+
+# Recovered session chief_of_staff/20260601_221026_e9e958
+
+
+## assistant — 2026-06-01T23:21:24.672952
+
+Oui. On fait maintenant **CSM Executor** puis **Operations Executor**.
+
+Même procédure que CMO.
+
+---
+
+# 1. Créer CSM Executor
+
+Va ici :
+
+```text
+https://api.slack.com/apps
+```
+
+Clique :
+
+```text
+Create New App
+```
+
+Puis :
+
+```text
+From scratch
+```
+
+Remplis :
+
+```text
+App Name: CSM Executor
+Workspace: VividFlow
+```
+
+Clique :
+
+```text
+Create App
+```
+
+---
+
+## CSM — Socket Mode
+
+Menu gauche :
+
+```text
+Socket Mode
+```
+
+Active :
+
+```text
+Enable Socket Mode
+```
+
+Token name :
+
+```text
+csm-socket
+```
+
+Scope :
+
+```text
+connections:write
+```
+
+Clique :
+
+```text
+Generate
+```
+
+Copie le token :
+
+```text
+xapp-...
+```
+
+---
+
+## CSM — Permissions
+
+Menu gauche :
+
+```text
+OAuth & Permissions
+```
+
+Dans :
+
+```text
+Bot Token Scopes
+```
+
+Ajoute :
+
+```text
+app_mentions:read
+channels:history
+channels:read
+chat:write
+im:history
+im:read
+im:write
+reactions:read
+reactions:write
+files:read
+groups:read
+groups:history
+```
+
+Puis clique :
+
+```text
+Install to Workspace
+Allow
+```
+
+Copie :
+
+```text
+Bot User OAuth Token = xoxb-...
+```
+
+---
+
+## CSM — Events
+
+Menu gauche :
+
+```text
+Event Subscriptions
+```
+
+Active :
+
+```text
+Enable Events
+```
+
+Dans :
+
+```text
+Subscribe to bot events
+```
+
+Ajoute :
+
+```text
+app_mention
+message.im
+message.channels
+message.groups
+```
+
+Clique :
+
+```text
+Save Changes
+```
+
+Puis si demandé :
+
+```text
+Reinstall to Workspace
+```
+
+---
+
+# 2. Créer Operations Executor
+
+Même chose.
+
+```text
+Create New App
+From scratch
+```
+
+Remplis :
+
+```text
+App Name: Operations Executor
+Workspace: VividFlow
+```
+
+---
+
+## Operations — Socket Mode
+
+```text
+Socket Mode
+Enable Socket Mode
+Generate Token and Scopes
+```
+
+Token name :
+
+```text
+ops-socket
+```
+
+Scope :
+
+```text
+connections:write
+```
+
+Copie :
+
+```text
+xapp-...
+```
+
+---
+
+## Operations — Permissions
+
+Dans :
+
+```text
+OAuth & Permissions
+Bot Token Scopes
+```
+
+Ajoute :
+
+```text
+app_mentions:read
+channels:history
+channels:read
+chat:write
+im:history
+im:read
+im:write
+reactions:read
+reactions:write
+files:read
+groups:read
+groups:history
+```
+
+Puis :
+
+```text
+Install to Workspace
+Allow
+```
+
+Copie :
+
+```text
+xoxb-...
+```
+
+---
+
+## Operations — Events
+
+```text
+Event Subscriptions
+Enable Events
+Subscribe to bot events
+```
+
+Ajoute :
+
+```text
+app_mention
+message.im
+message.channels
+message.groups
+```
+
+Puis :
+
+```text
+Save Changes
+Reinstall to Workspace
+```
+
+---
+
+Quand tu as les tokens, dis-moi :
+
+```text
+CSM tokens prêts
+Operations tokens prêts
+```
+
+Ensuite je te donne exactement les 2 fichiers `.env` à modifier.
+
+## user — 2026-06-01T23:24:42.050132
+
+j'ai pas reussi a copier le xapp
+
+## assistant — 2026-06-01T23:24:42.050132
+
+Pas grave. Tu peux le retrouver.
+
+## Retrouver le `xapp-`
+
+Dans Slack API :
+
+```text
+https://api.slack.com/apps
+```
+
+1. Clique sur l’app concernée :
+ - `CSM Executor`
+ ou
+ - `Operations Executor`
+
+2. Menu gauche :
+
+```text
+Basic Information
+```
+
+3. Descends à :
+
+```text
+App-Level Tokens
+```
+
+4. Tu dois voir ton token, par exemple :
+
+```text
+csm-socket
+```
+
+ou
+
+```text
+ops-socket
+```
+
+5. Clique dessus / ouvre la ligne.
+
+Tu devrais voir le token `xapp-...`.
+
+## Si Slack ne l’affiche plus
+
+Certaines fois Slack ne ré-affiche pas le token complet.
+
+Dans ce cas, fais simple :
+
+1. Clique :
+
+```text
+Generate Token and Scopes
+```
+
+2. Nom :
+
+```text
+csm-socket-2
+```
+
+3. Scope :
+
+```text
+connections:write
+```
+
+4. Clique :
+
+```text
+Generate
+```
+
+5. Copie immédiatement le nouveau `xapp-...`
+
+Tu peux laisser l’ancien ou le révoquer après. Pas grave.
+
+## user — 2026-06-01T23:33:18.287455
+
+CSM tokens prêts
+Operations tokens prêts
+
+## assistant — 2026-06-01T23:33:18.287455
+
+Parfait.
+
+Maintenant il faut les mettre dans les bons fichiers.
+
+## 1. CSM Executor
+
+Ouvre :
+
+```bash
+nano /home/hermes/.hermes/profiles/csm_executor/.env
+```
+
+Va tout en bas.
+
+Remplace les lignes Slack par les tokens **CSM** :
+
+```bash
+SLACK_BOT_TOKEN=xoxb-token-CSM
+SLACK_APP_TOKEN=xapp-token-CSM
+SLACK_ALLOWED_USERS=U0B7FK89Z5G
+```
+
+Sauvegarde :
+- `Ctrl + O`
+- Entrée
+- `Ctrl + X`
+
+---
+
+## 2. Operations Executor
+
+Ouvre :
+
+```bash
+nano /home/hermes/.hermes/profiles/operations_executor/.env
+```
+
+Va tout en bas.
+
+Remplace les lignes Slack par les tokens **Operations** :
+
+```bash
+SLACK_BOT_TOKEN=xoxb-token-Operations
+SLACK_APP_TOKEN=xapp-token-Operations
+SLACK_ALLOWED_USERS=U0B7FK89Z5G
+```
+
+Sauvegarde :
+- `Ctrl + O`
+- Entrée
+- `Ctrl + X`
+
+---
+
+## Important
+
+Ne mets pas les tokens CSM dans Operations, et inversement.
+
+Règle :
+
+```text
+csm_executor/.env = tokens Slack CSM
+operations_executor/.env = tokens Slack Operations
+```
+
+Quand c’est fait, dis-moi :
+
+```text
+tokens CSM et Operations mis
+```
+
+## user — 2026-06-01T23:36:43.129107
+
+tokens CSM et Operations mis
+
+## assistant — 2026-06-01T23:36:43.129107
+
+Parfait. Les 2 bots sont branchés et connectés ✅
+
+## CSM Executor
+
+Connecté :
+
+```text
+Authenticated as @csm_executor
+Socket Mode connected
+✓ slack connected
+```
+
+## Operations Executor
+
+Connecté :
+
+```text
+Authenticated as @operations_executor
+Socket Mode connected
+✓ slack connected
+```
+
+## À tester dans Slack
+
+En DM :
+
+```text
+test
+```
+
+à :
+- `CSM Executor`
+- `Operations Executor`
+
+Dans un channel/groupe, il faut les inviter puis les mentionner :
+
+```text
+/invite @csm_executor
+/invite @operations_executor
+```
+
+Puis :
+
+```text
+@csm_executor test
+@operations_executor test
+```
+
+## Petit warning non bloquant
+
+Ils essaient encore de se connecter aussi à Telegram, car ils ont été clonés depuis COO.
+
+Erreur vue :
+
+```text
+Telegram bot token already in use
+```
+
+Ce n’est pas bloquant pour Slack.
+
+Mais après validation Slack, je nettoie :
+- CMO
+- CSM
+- Operations
+- R&D
+
+pour qu’ils soient **Slack-only** et ne touchent pas Telegram.
+
+## user — 2026-06-01T23:38:39.398131
+
+pour les 2 L’envoi de messages vers cette application a été désactivé.
+
+## assistant — 2026-06-01T23:38:39.398131
+
+Ça veut dire que **le DM avec l’app n’est pas activé côté Slack**.
+
+À faire pour **CSM Executor** puis **Operations Executor**.
+
+## Pour chaque app
+
+Va sur :
+
+```text
+https://api.slack.com/apps
+```
+
+Ouvre l’app concernée.
+
+---
+
+## 1. Activer App Home messages
+
+Menu gauche :
+
+```text
+App Home
+```
+
+Descends à :
+
+```text
+Messages Tab
+```
+
+Active :
+
+```text
+Allow users to send Slash commands and messages from the messages tab
+```
+
+Si tu vois :
+
+```text
+Show Tabs
+Messages Tab
+```
+
+mets **Messages Tab = ON**.
+
+---
+
+## 2. Vérifier Bot User
+
+Toujours dans :
+
+```text
+App Home
+```
+
+Vérifie que tu as bien un bot user.
+
+Si tu vois un bouton du type :
+
+```text
+Edit Bot User
+```
+
+ou :
+
+```text
+Review Scopes to Add
+```
+
+il faut accepter.
+
+---
+
+## 3. Réinstaller l’app
+
+Ensuite va dans :
+
+```text
+OAuth & Permissions
+```
+
+Clique :
+
+```text
+Reinstall to Workspace
+```
+
+Puis :
+
+```text
+Allow
+```
+
+---
+
+## 4. Test
+
+Retourne dans Slack.
+
+Cherche :
+```text
+CSM Executor
+```
+
+ou :
+```text
+Operations Executor
+```
+
+Envoie :
+```text
+test
+```
+
+## Si DM encore désactivé
+
+Pas grave, teste en channel :
+
+```text
+/invite @csm_executor
+@csm_executor test
+```
+
+et :
+
+```text
+/invite @operations_executor
+@operations_executor test
+```
+
+Mais pour DM, c’est vraiment **App Home → Messages Tab**.
+
+## user — 2026-06-01T23:45:22.947801
+
+aide moi etape par etapge
+
+## assistant — 2026-06-01T23:45:22.947801
+
+Ok. On fait **CSM Executor d’abord**, pas les deux en même temps.
+
+## Étape 1
+
+Va ici :
+
+```text
+https://api.slack.com/apps
+```
+
+Clique sur l’app :
+
+```text
+CSM Executor
+```
+
+Quand tu es dedans, dis-moi juste :
+
+```text
+je suis dans CSM
+```
+
+Et je te donne l’étape suivante.
+
+## user — 2026-06-01T23:48:34.619986
+
+Agent or Assistant Overview
+
+## assistant — 2026-06-01T23:48:34.619986
+
+Tu es sur la bonne page.
+
+Maintenant regarde le menu à gauche.
+
+## Étape 2
+
+Clique sur :
+
+```text
+App Home
+```
+
+C’est dans le menu latéral gauche.
+
+Quand tu es sur **App Home**, dis-moi :
+
+```text
+je suis dans App Home
+```
+
+## user — 2026-06-01T23:49:00.344834
+
+il me demande une description de l'agent
+
+## assistant — 2026-06-01T23:49:00.344834
+
+Mets ça pour **CSM Executor** :
+
+```text
+Agent Slack VividFlow dédié au suivi client, aux leads, aux contacts, aux relances, aux paiements et au pipeline Data OS.
+```
+
+Si Slack demande une version plus courte :
+
+```text
+Suivi client, leads, contacts, relances et pipeline Data OS.
+```
+
+Puis valide / sauvegarde.
+
+Ensuite cherche **App Home** ou **Messages Tab**.
+
+## user — 2026-06-01T23:49:37.642069
+
+description pour CMO maintenant
+
+## assistant — 2026-06-01T23:49:37.642069
+
+Pour **CMO Executor**, mets :
+
+```text
+Agent Slack VividFlow dédié à la création de contenus, hooks, carousels, scripts, campagnes, briefs visuels et prompts image.
+```
+
+Version courte si besoin :
+
+```text
+Création de contenus, carousels, scripts, campagnes et prompts image.
+```
+
+## user — 2026-06-01T23:50:06.692666
+
+Operations maintenant
+
+## assistant — 2026-06-01T23:50:06.692666
+
+Pour **Operations Executor**, mets :
+
+```text
+Agent Slack VividFlow dédié aux tâches, SOP, delivery, QA, audits, comptes rendus, gestion mails et process opérationnels.
+```
+
+Version courte :
+
+```text
+Tâches, SOP, delivery, QA, audits, comptes rendus et process.
+```
+
+## user — 2026-06-01T23:52:29.640126
+
+je veux changer le nom de du bot pour COO
+
+## assistant — 2026-06-01T23:52:29.640126
+
+Oui.
+
+Pour le bot COO, le nom propre est :
+
+```text
+COO / Chief of Staff
+```
+
+Si Slack n’accepte pas le `/`, mets :
+
+```text
+COO Chief of Staff
+```
+
+## Description
+
+```text
+Super agent VividFlow présent sur Telegram et Slack. Il pilote la stratégie, l’arbitrage, les priorités, la délégation, les synthèses, la validation et le contrôle du flux Slack.
+```
+
+Version courte :
+
+```text
+Super agent VividFlow pour stratégie, arbitrage, délégation, synthèses et pilotage des executors.
+```
+
+## Nom d’affichage recommandé
+
+```text
+COO
+```
+
+Simple, visible, clair.
+
+## Nom complet
+
+```text
+COO / Chief of Staff
+```
+
+## user — 2026-06-01T23:56:16.389160
+
+[{"type": "text", "text": "j'ai encore vividflow ici\n\n[Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_4854b28bf158.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP//EADoQAAIBBAECAwcCBAQGAwAAAAQFAwABAgYVFCMSFjUHEBETIDZwMDMiMTRgFyEyQCQlQ4CQoCZQwP/aAAgBAQABBQL3455YV8b3vMVlPH7rPZPkkPCZoAj5l8kznLOIRxINBdzN1Wc+UhBx0jAgtsQaMCzmAohvnNFLsMk1ETfPlBZzAWLaZk4c/JnYkjMucBnKvoNj1S4NvILAS5nKGgdSRwGnSHZ45XwyYs52eYriUeA5nMdaz6X5UromaeR1neKjWEh1CuJR4C2cpdeYJcqxaz2iEPkDjDbShxGM8y4zz5GM0LuTCDB2RgYEXmCSK0nEnncZSw3fyZRlE9VJ/ZE37tT/AMh7/GDHK+GSs2xoE015pKmztKxkv8ZP7BnoO9riYW+NfxZXKhvKMqEyGjJv8SP7/vf4VnfxZ1h3Yxysh65KKlmyjhD+aBKY7FkRHhb5WP8AYX7sQTLIW2DsbG2L8e2NthGopx48fdY7CutjrrY662OutjrrY662OutjrrY666Ouujrro666OutjrrY662OutjrrY662OutjrrY663CutwrrY662OutjrrY666Ouujrro666Ouujrro666Ouujrro666OutjrrY662Ouujrro666Ouujrro666Ouujrro666Ouujrro666Ouujrro666Ouujrro666Ouujrro666Ouujrro666Ouujrro666Ouujrro666Ouujrro666Ouujrro666Ouujrro666Ouujrro666Ouujrro666Ouujrro666Ouujrro666Ouujrro666Ouujrro666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
+
+## assistant — 2026-06-01T23:56:16.389160
+
+Oui, là tu es dans le **nom d’affichage Slack**, pas encore le nom interne complet.
+
+Il faut changer le **Display Name** du bot.
+
+## Étapes
+
+Dans Slack API, pour l’app COO :
+
+1. Menu gauche :
+
+```text
+App Home
+```
+
+2. Cherche la section :
+
+```text
+Your App’s Presence in Slack
+```
+
+ou :
+
+```text
+App Display Name
+```
+
+3. Clique :
+
+```text
+Edit
+```
+
+4. Mets :
+
+```text
+COO
+```
+
+5. Si Slack demande un default username / bot username, mets :
+
+```text
+coo
+```
+
+6. Clique :
+
+```text
+Save
+```
+
+## Ensuite
+
+Va dans :
+
+```text
+Basic Information
+```
+
+Et change aussi :
+
+```text
+App Name
+```
+
+en :
+
+```text
+COO
+```
+
+## Important
+
+Après changement, fais :
+
+```text
+OAuth & Permissions
+→ Reinstall to Workspace
+```
+
+Puis dans Slack, ferme/réouvre l’app si l’ancien nom reste affiché. 
+Slack peut mettre 1–2 minutes à rafraîchir.
+
+## user — 2026-06-02T00:05:19.604295
+
+c'est encore vividflow je compreds pas
+
+## assistant — 2026-06-02T00:05:19.604295
+
+Tu es **dans Slack**, pas dans Slack API.
+
+Là tu vois l’ancien nom affiché dans l’interface Slack : **VividFlow**. 
+Ce n’est pas ici qu’on le modifie.
+
+## Va au bon endroit
+
+Ouvre :
+
+```text
+https://api.slack.com/apps
+```
+
+Puis clique sur l’app du COO.
+
+Ensuite :
+
+## 1. Changer le nom affiché
+
+Menu gauche :
+
+```text
+App Home
+```
+
+Cherche :
+
+```text
+App Display Name
+```
+
+ou :
+
+```text
+Your App’s Presence in Slack
+```
+
+Clique :
+
+```text
+Edit
+```
+
+Mets :
+
+```text
+COO
+```
+
+Sauvegarde.
+
+## 2. Changer aussi le nom de l’app
+
+Menu gauche :
+
+```text
+Basic Information
+```
+
+Cherche :
+
+```text
+Display Information
+```
+
+ou :
+
+```text
+App name
+```
+
+Mets :
+
+```text
+COO
+```
+
+Sauvegarde.
+
+## 3. Réinstaller
+
+Menu gauche :
+
+```text
+OAuth & Permissions
+```
+
+Clique :
+
+```text
+Reinstall to Workspace
+```
+
+Puis :
+
+```text
+Allow
+```
+
+Ensuite retourne dans Slack et recharge. 
+Si ça affiche encore VividFlow, attends 1–2 minutes ou ferme/réouvre Slack.
+
+## user — 2026-06-02T00:05:57.966986
+
+j'ai fait tout ca
+
+## assistant — 2026-06-02T00:05:57.966986
+
+Ok. Alors c’est sûrement le **Bot User Display Name** qui est encore `VividFlow`, ou Slack a gardé le cache.
+
+Fais cette vérif précise :
+
+## Étape 1 — Slack API
+
+Va dans :
+
+```text
+https://api.slack.com/apps
+→ ton app COO
+→ App Home
+```
+
+Cherche la section :
+
+```text
+Your App’s Presence in Slack
+```
+
+Dedans, il y a souvent 2 noms :
+
+```text
+Display Name
+Default username
+```
+
+Il faut mettre :
+
+```text
+Display Name: COO
+Default username: coo
+```
+
+Puis :
+
+```text
+Save
+```
+
+## Étape 2 — Réinstaller
+
+Va dans :
+
+```text
+OAuth & Permissions
+```
+
+Clique :
+
+```text
+Reinstall to Workspace
+```
+
+Puis :
+
+```text
+Allow
+```
+
+## Étape 3 — Forcer Slack à rafraîchir
+
+Dans Slack Desktop :
+
+```text
+Cmd + R
+```
+
+ou ferme/réouvre Slack.
+
+## Étape 4 — Si c’est encore VividFlow
+
+Alors tu regardes probablement **l’ancienne conversation DM** qui garde l’ancien titre en cache.
+
+Fais :
+
+1. Barre de recherche Slack
+2. Tape :
+
+```text
+COO
+```
+
+3. Ouvre la nouvelle entrée du bot
+
+Si tu vois toujours `VividFlow`, envoie-moi une capture de la page **App Home** dans Slack API, pas Slack.
+
+## user — 2026-06-02T00:08:08.916085
+
+[{"type": "text", "text": "je comprends pas\n\n[Image attached at: /home/hermes/.hermes/profiles/chief_of_staff/cache/images/img_34933ddef10e.jpg]"}, {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,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
+
+## assistant — 2026-06-02T00:08:08.916085
+
+Là je comprends.
+
+Tu regardes **le workspace qui s’appelle VividFlow** en haut à gauche. 
+Ça, ce n’est **pas le nom du bot**.
+
+Dans ta capture :
+
+- **VividFlow** en haut à gauche = nom du workspace Slack ✅ normal
+- **VividFlow** dans la liste d’apps en bas = ancien nom de l’app COO ❌
+- Mais dans la page ouverte, on voit bien :
+ ```text
+ COO
+ ```
+ donc le bot est presque renommé.
+
+## Ce qui reste à corriger
+
+Dans la barre latérale, l’app est encore listée comme :
+
+```text
+VividFlow
+```
+
+Ça vient souvent du **nom de l’app**, pas du display name.
+
+## Va ici dans Slack API
+
+```text
+https://api.slack.com/apps
+→ app du COO
+→ Basic Information
+```
+
+Puis cherche :
+
+```text
+Display Information
+```
+
+ou :
+
+```text
+App name
+```
+
+Il faut mettre :
+
+```text
+COO
+```
+
+Sauvegarde.
+
+Ensuite :
+
+```text
+OAuth & Permissions
+→ Reinstall to Workspace
+→ Allow
+```
+
+Puis dans Slack :
+- `Ctrl + R` pour recharger
+- ou ferme/réouvre Slack
+
+## Si ça reste encore VividFlow
+
+C’est juste le cache de la conversation/app dans la sidebar. 
+Le bot lui-même est déjà nommé **COO** dans la page principale.
+
+Donc ce n’est pas bloquant.
+
+## user — 2026-06-02T00:19:16.192647
+
+le COO ne repond pas
+
+## assistant — 2026-06-02T00:19:16.192647
+
+Oui, j’ai trouvé le problème.
+
+## Ce que disent les logs
+
+Le gateway COO tourne, mais Slack renvoie :
+
+```text
+account_inactive
+```
+
+Donc le bot COO / ancien VividFlow est probablement **désactivé côté Slack** ou l’app a été modifiée/réinstallée d’une manière qui a invalidé le bot.
+
+## À faire côté Slack API
+
+Va sur :
+
+```text
+https://api.slack.com/apps
+```
+
+Ouvre l’app du COO.
+
+### 1. Vérifie App Home
+
+Menu gauche :
+
+```text
+App Home
+```
+
+Vérifie :
+- Display name : `COO`
+- Bot user actif
+- Messages tab activé
+
+### 2. Réinstalle l’app
+
+Menu gauche :
+
+```text
+OAuth & Permissions
+```
+
+Clique :
+
+```text
+Reinstall to Workspace
+```
+
+Puis :
+
+```text
+Allow
+```
+
+### 3. Vérifie le token
+
+Toujours dans :
+
+```text
+OAuth & Permissions
+```
+
+Regarde si le :
+
+```text
+Bot User OAuth Token
+```
+
+commence toujours par :
+
+```text
+xoxb-
+```
+
+Si Slack a régénéré un nouveau token, il faudra le remettre dans :
+
+```text
+/home/hermes/.hermes/profiles/chief_of_staff/.env
+```
+
+## Important
+
+Ne teste pas dans l’ancien DM “VividFlow” si Slack le considère inactif.
+
+Après réinstallation :
+1. recharge Slack
+2. cherche `COO`
+3. ouvre le DM du bot
+4. envoie :
+
+```text
+test
+```
+
+Si ça ne répond toujours pas, on remplace les tokens COO proprement comme on a fait pour CMO.

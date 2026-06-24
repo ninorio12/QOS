@@ -1,8 +1,10 @@
 import Stripe from 'stripe'
 import { Logger } from './logger'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-04-10',
+// apiVersion omis → suit la version par défaut du SDK installé (évite le mismatch de types).
+// Placeholder non-vide pour que `new Stripe()` ne lève pas au build (env absent) ;
+// la vraie clé est injectée au runtime (Vercel). Les routes vérifient l'env avant tout appel.
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_placeholder_build_only', {
   typescript: true,
 })
 

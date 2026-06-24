@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { ChevronDown, X, BadgeCheck, LayoutGrid, List, Link2, Eye, EyeOff } from 'lucide-react'
+import { Portal } from '@/components/ui/Portal'
 
 type Integration = {
   key: string; name: string; domain: string; description: string; category: string
@@ -144,7 +145,8 @@ export default function IntegrationsView() {
 
       {/* Connect modal — fond flouté (screen 2) */}
       {connecting && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <Portal>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-md" onClick={() => setConnectKey(null)} />
           <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden" style={{ animation: 'fadeSlideUp 200ms ease-out both' }}>
             <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-[#F0F0F0]">
@@ -176,11 +178,12 @@ export default function IntegrationsView() {
               </div>
             </div>
             <div className="px-6 pt-3 pb-5 text-center">
-              <p className="text-[11px] text-[#9CA3AF] leading-snug">Tes clés sont stockées de façon centralisée et masquées. Déconnecte une intégration à tout moment.</p>
+              <p className="text-[11px] text-[#9CA3AF] leading-snug">Ta clé n'est jamais conservée en clair : les clés réelles sont configurées en variables d'environnement sécurisées. Déconnecte une intégration à tout moment.</p>
               {connecting.domain && <a href={`https://${connecting.domain}`} target="_blank" rel="noreferrer" className="text-[11px] text-[#6B7280] underline hover:text-[#374151] mt-1 inline-block">En savoir plus sur la sécurité</a>}
             </div>
           </div>
         </div>
+        </Portal>
       )}
     </div>
   )

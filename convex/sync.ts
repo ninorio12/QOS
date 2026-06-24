@@ -1,5 +1,16 @@
 import { v } from "convex/values"
 import { mutation } from "./_generated/server"
+import { LEAD_STAGE_FOR_COLUMN } from "./leadSync"
+
+// Colonne réelle d'un record prospection (boardColumn fait foi ; dérivé du status sinon).
+const BOARD_COLUMNS = ["leads_a_traiter", "nrp1", "nrp2", "nrp3", "nrp4", "rdv_booke", "perdu"]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function boardColumnOf(r: any): string {
+  if (r.boardColumn && BOARD_COLUMNS.includes(r.boardColumn)) return r.boardColumn
+  if (r.status === "handoff") return "rdv_booke"
+  if (r.status === "lost" || r.status === "archived") return "perdu"
+  return "leads_a_traiter"
+}
 
 // Enforce single-pipeline membership for ONE contact based on its statut.
 // statut 'lead'   → 1 open lead in Leads pipeline, NO client row
@@ -23,6 +34,14 @@ async function reconcileProspection(ctx: any, cid: string, finalLeadId: any, sta
 export async function enforce(ctx: any, contactId: any, opts?: { dealValue?: number }) {
   const contact = await ctx.db.get(contactId)
   if (!contact) return { ok: false, reason: 'contact not found' }
+
+  // Objection cohérente avec l'issue COURANTE du deal :
+  //  - rouge (lostObjection) seulement si statut=perdu ; vert (wonObjection) seulement si statut=client.
+  //  Sinon on efface l'objection devenue obsolète (ex. deal perdu ré-ouvert → plus de rouge).
+  const objPatch: Record<string, unknown> = {}
+  if (contact.statut !== 'perdu' && contact.lostObjection) objPatch.lostObjection = undefined
+  if (contact.statut !== 'client' && contact.wonObjection) objPatch.wonObjection = undefined
+  if (Object.keys(objPatch).length) { await ctx.db.patch(contactId, objPatch); Object.assign(contact, objPatch) }
 
   const name = `${contact.firstName} ${contact.lastName ?? ''}`.trim()
   const initials = name.split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase() || '?'
@@ -106,5 +125,33 @@ export const syncAllContacts = mutation({
     let processed = 0
     for (const c of contacts) { await enforce(ctx, c._id); processed++ }
     return { processed }
+  },
+})
+
+// Repair one-shot : rend les 3 pipelines + fiches cohérents.
+//  1) enforce() sur chaque contact → 1 seule représentation active (lead XOR client), prospection réconciliée.
+//  2) Aligne le stage du Pipeline Leads sur la COLONNE Prospection (prospection = source de vérité outbound) :
+//     leads_a_traiter→nouveau-lead | NRP 1-4→conversation | rdv_booke→r1.
+export const reconcileAll = mutation({
+  handler: async (ctx) => {
+    const contacts = await ctx.db.query("crm_contacts").collect()
+    let enforced = 0
+    for (const c of contacts) { await enforce(ctx, c._id); enforced++ }
+
+    const recs = await ctx.db.query("prospection_records").collect()
+    let aligned = 0
+    for (const r of recs) {
+      if (r.status === "lost" || r.status === "archived" || !r.leadId) continue
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lead = await ctx.db.get(r.leadId as any) as any
+      if (!lead || lead.status !== "open") continue
+      const want = LEAD_STAGE_FOR_COLUMN[boardColumnOf(r)]
+      if (want && lead.stageId !== want) {
+        await ctx.db.patch(lead._id, { stageId: want })
+        await ctx.db.insert("lead_stage_history", { leadId: lead._id, stageId: want, stageName: want, enteredAt: new Date().toISOString().split("T")[0] })
+        aligned++
+      }
+    }
+    return { contacts: contacts.length, enforced, aligned }
   },
 })

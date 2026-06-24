@@ -206,15 +206,31 @@ Immobilier/BTP examples can appear as examples, not the default structure.
 
 ### Post-R2 client tone
 
-Do not use school/test/friction language like “si vous bloquez”, “bloqué”, “erreur”, “obligatoire” unless it is a technical status only visible internally. For the client UI, prefer soft operational wording:
+Do not use school/test/friction language like “si vous bloquez”, “bloqué”, “erreur”, “obligatoire”, “je ne sais pas le faire”, “je n’arrive pas” unless it is a technical status only visible internally. For the client UI, prefer soft operational wording:
 - “Remplissez simplement ce que vous avez sous la main.”
 - “Le reste sera vu ensemble pendant le rendez-vous avec Thomas.”
 - “À voir ensemble avec Thomas.”
 - “Je ne sais pas encore.”
 - “Pas concerné.”
 - “J’ai ajouté ce que j’avais.”
+- “C’est prêt.” instead of “Valider” when confirming access/setup.
 
 Avoid making the client feel they can fail the form. They should feel accompanied. The form prepares installation; it does not evaluate technical competence.
+
+### Jonathan calibration — onboarding wording
+
+When Jonathan asks to improve onboarding wording, work at microcopy level and avoid generic quiz/form language.
+
+Preferred direction:
+- Header should avoid “Process d’onboarding”; use dossier/preparation language such as “Dossier de mise en route”, “Dossier de préparation”, or “Préparation de votre espace”.
+- For company context, avoid “bon contexte” and vague setup phrases. Use simple understanding language: “On rassemble l’essentiel pour comprendre votre activité.”
+- For priority/problem screens, avoid “Quels problèmes voulez-vous résoudre ?” if the cards are not all problems. Frame as friction/slowdown: “Où est-ce que ça coince le plus aujourd’hui ?”, “Qu’est-ce qui ralentit le plus votre équipe ?”, or “Où perdez-vous le plus de temps au quotidien ?”
+- If options include sources like email/documents, name the friction explicitly: “Emails dispersés”, “Documents dispersés”, not “Emails” or “Documents” alone.
+- Replace “Sélectionnez ce qui vous parle…” with direct operational copy such as “Choisissez les sujets qui correspondent le mieux à votre situation.”
+- Security copy should be short and reassuring: “Privilégiez les invitations à hey@vividflow.co. Aucun mot de passe n’est demandé ici.”
+- Avoid “Place à la préparation technique” when client-facing; prefer “Derniers éléments à rassembler” or “On prépare les derniers accès.”
+
+Reference: `references/session-onboarding-wording-calibration-2026-06.md`.
 
 ## Briefing Claude / Another AI
 
@@ -228,6 +244,35 @@ When briefing Claude, use a detailed prompt. Jonathan prefers detailed AI briefs
 - implementation constraints
 
 Do not over-compress. A long structured prompt is acceptable when the recipient is an AI/dev agent.
+
+## Fast Retrieval Rule
+
+When Jonathan asks to “find the onboarding dossier/link quickly”, do **not** assume the old public form is the answer. The old client form exists, but Jonathan may be looking for a newer Data OS route, a Vercel preview, or Thomas’s work-in-progress.
+
+Known old public form:
+
+- `https://vividflow-onboarding.vercel.app` — legacy 9-step client form (`VividFlow Onboarding`, step 1/9, kick-off with Thomas).
+
+Known Data OS onboarding surfaces:
+
+- `https://vividflow-service-execution-os.vercel.app/onboarding` — sidebar module, may be too generic.
+- `https://vividflow-service-execution-os.vercel.app/bibliotheque/onboarding` — client onboarding cockpit with contract/payment/form reception blocks.
+
+Retrieval sequence:
+
+1. First clarify implicitly by checking whether Jonathan said “ancien”, “nouvelle version”, “Thomas”, “hier”, “Vercel”, “VPS”, or “questions”. If yes, do **not** answer with the legacy form until verified.
+2. Query recent Vercel deployments with pagination, especially projects `site-mockups` and `vividflow-service-execution-os`:
+   ```bash
+   XDG_DATA_HOME=/home/hermes/.local/share npx vercel ls --yes
+   XDG_DATA_HOME=/home/hermes/.local/share npx vercel ls --yes --next <cursor>
+   ```
+3. For any likely deployment, use `vercel inspect <url>` to discover hidden routes/build outputs. This can reveal routes not obvious from the sidebar, e.g. `bibliotheque/onboarding`.
+4. Test both aliases and route variants (`/onboarding`, `/bibliotheque/onboarding`, `/devis`, `/formulaire`, `/questions`, `/diagnostic`) before concluding.
+5. If a preview returns `401 Unauthorized`, do not call it absent/broken. Say it exists but is protected, then inspect the production alias or build metadata.
+6. Keep Brvndlab strictly out of the answer unless the repository/project name proves it is Brvndlab. If Jonathan says “c’est VividFlow”, immediately drop Brvndlab leads.
+7. If a Data OS page says “le client le remplit via le lien public” but the DOM has no visible URL, state that the cockpit was found but the public generated form link is not exposed yet; do not invent one.
+
+Do not send local HTML/mockups as the answer unless Jonathan explicitly asks for drafts.
 
 ## Implementation / Deployment Workflow
 
@@ -246,6 +291,10 @@ Reference: see `references/onboarding-vercel-deployment-qa.md` for the tested QA
 For Thomas/Jonathan’s post-R2 installation onboarding calibration — client tone, access blocks, videos/links, V1 hardcoded front, and Data OS mapping — see `references/post-r2-installation-onboarding-calibration.md`.
 
 For the current public 9-step onboarding form and Jonathan’s validated micro-screen approach for dense steps, see `references/current-9-step-form-and-micro-screen-pattern.md`. Important: step 1 “On y va ?” is validated; do not reopen it by default. Dense steps should be split into internal micro-screens with a short title, one helpful sentence, then the choice/field.
+
+For June 2026 wording calibration on the public onboarding/mise-en-route tunnel — avoiding “problem” language for neutral categories, using friction wording, short security copy, and softer technical-access labels — see `references/onboarding-wording-calibration-2026-06.md`.
+
+For fast retrieval of the correct onboarding URL/dossier across legacy form, Data OS routes, Vercel previews, and protected deployments, see `references/onboarding-retrieval-vercel-dataos.md`.
 
 ## Validation Criteria
 

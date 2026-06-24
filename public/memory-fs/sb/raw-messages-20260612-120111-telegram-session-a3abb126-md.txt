@@ -1,0 +1,18 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260612_115711_0eb905.jsonl
+captured_at: 2026-06-12T12:01:11.319635
+platform: telegram
+type: conversation_delta
+---
+
+## assistant — 2026-06-12T11:57:52.755264
+
+Je suis d’accord avec les retours. Ils confirment exactement la bonne lecture : **OpenWA / Baileys / Waha / Evolution API = très utiles pour POC, mais pas une fondation client long terme.** Ce que je retiens : - Le risque de ban est réel, même avec simulation humaine. - Le fait que le client écrive en premier réduit le risque, mais ne l’annule pas. - OpenWA est pratique, mais fragile : session, QR, WhatsApp Web, changements Meta. - Baileys est plus propre techniquement, mais reste non officiel. - Pour des clients VividFlow, promettre ça comme infrastructure stable serait risqué. - La sécurité serveur/webhooks est un vrai sujet : IP filtering, rate limit, reverse proxy, auth, logs, firewall. Donc ma position nette : **Baileys oui pour tester vite et apprendre. Cloud API oui pour vendre sérieusement. OpenWA non pour le long terme.** Pour VividFlow, je ferais ça : 1. **Baileys sandbox** - tester expérience agent ; - mesurer qualité/réactivité ; - valider UX WhatsApp ; - zéro promesse client. 2. **Cloud API production** - offres clients ; - numéro propre ; - consentement ; - templates ; - conformité ; - meilleure stabilité. 3. **Sécurité obligatoire** - webhook signé ; - rate limit ; - firewall/ipset ou équivalent ; - logs ; - kill-switch ; - opt-out ; - pas d’outbound sauvage. Le commentaire le plus juste est celui-là : **“POC ou transition avant API Business pour prod.”** Donc oui, ton intuition est bonne : testons Baileys, mais si on construit une vraie solution client, la cible doit être officielle.
+
+## user — 2026-06-12T11:57:52.755264
+
+tiens pour le MCP à enregistrer du Data OS : https://data-os.vividflow.co/api/mcp
+
+## assistant — 2026-06-12T11:57:52.755264
+
+C’est fait. J’ai enregistré le MCP Data OS sur les 5 profils Hermes : - COO / `chief_of_staff` - KB Executor / `cmo_executor` - CSM / `csm_executor` - Ops Executor / `operations_executor` - Data Analyst / `rd_executor` Endpoint configuré : `https://data-os.vividflow.co/api/mcp` Vérification OK : - connexion MCP OK sur les 5 profils ; - 56 tools détectés ; - `data_os` apparaît bien comme MCP actif. Point important : actuellement le MCP répond en **Auth: none**. Donc techniquement ça marche, mais pour une vraie prod il faut vite ajouter une couche auth/scopes côté Data OS, sinon les outils Data OS sont trop ouverts.

@@ -1,0 +1,87 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260515_205728_da74e7bf
+source_file: /home/hermes/.hermes/sessions/20260515_205728_da74e7bf.jsonl
+source_sha256_16: 8a437bcfdaa1d67d
+date: 2026-05-15
+---
+
+# Recovered session root/20260515_205728_da74e7bf
+
+
+## user — 2026-05-15T20:59:58.410247
+
+[Thomas] fait des recherche pour réparer et débuger pour éviter que ⚠️ Gateway shutting down — Your current task will be interrupted survienne encore et créer le skill
+
+## assistant — 2026-05-15T20:59:58.410247
+
+Thomas, j’ai investigué et corrigé le point critique.
+
+**Cause confirmée**
+- Le message `⚠️ Gateway shutting down — Your current task will be interrupted` venait d’un redémarrage forcé du gateway.
+- Root cause dans les logs : `oom-kill`.
+- Le service `hermes-gateway.service` a atteint un pic mémoire d’environ **5.9G** sur un VPS 8G **sans swap**.
+- Des gros processus tournaient dans le cgroup du gateway : MCP, Playwright/Chrome, Next, tracker proxy, builds.
+
+**Réparation faite**
+- J’ai ajouté un swap persistant de **4G** :
+ - `/swapfile`
+ - ajouté dans `/etc/fstab`
+ - `vm.swappiness=20`
+- Vérifié :
+ - Gateway actif
+ - Linger systemd actif
+ - Swap actif : **4G**
+ - Gateway actuellement running
+
+**Risque restant**
+- Il y a encore des processus lourds/orphelins visibles, notamment un `next-server` à ~2.4G RSS.
+- Je ne les ai pas killés à l’aveugle, parce que certains peuvent être des services live/proxy utiles.
+
+**Prévention à appliquer**
+- Ne plus lancer de gros builds / Playwright / Next dev directement sous le gateway.
+- Pour les builds lourds : utiliser un scope séparé :
+```bash
+systemd-run --user --scope -p MemoryMax=5G -p MemorySwapMax=2G bash -lc 'cd /path/to/app && npm run build'
+```
+- Pour les serveurs long-lived : PM2 ou service systemd séparé, pas enfant du gateway.
+
+**Skill créé**
+- `hermes-gateway-oom-shutdown`
+- Catégorie : `devops`
+- Il contient le runbook complet : triage, logs à checker, diagnostic OOM/SIGTERM/SIGKILL, swap, isolation cgroup, cleanup prudent, restart propre.
+
+## user — 2026-05-15T23:10:04.761674
+
+[Thomas] je veux que tu fasses un cron à 21h tous les soirs sur X pour voir les nouveautés IA donc hesite pas a faire pleins de recherche scrapper avec des mots clés (hermes, openclaw,OpenIA, et d'autres) tu scrappes aussi les comptes des dirigeants etc
+
+## assistant — 2026-05-15T23:10:04.761674
+
+Fait.
+
+Cron créé :
+- **Nom** : `Veille X quotidienne — nouveautés IA agents`
+- **ID** : `d8aaadc1d0d6`
+- **Horaire** : tous les jours à **21h Europe/Zurich**
+- **Livraison** : dans ce topic Telegram
+- **Statut** : actif
+- **Prochain run** : `2026-05-16 21:00`
+
+Il va surveiller :
+- X/Twitter via `xurl` si dispo/authentifié
+- fallback web avec `site:x.com`, GitHub, blogs, changelogs, HN, etc.
+- mots-clés : Hermes, OpenClaw, OpenAI/Codex, Claude Code, Gemini CLI, Cursor, Windsurf, Devin, MCP, agents IA, Browser Use, LangChain, LlamaIndex, etc.
+- comptes dirigeants : Sam Altman, Greg Brockman, Dario Amodei, Demis Hassabis, Elon/xAI, Arthur Mensch, Aravind Srinivas, Karpathy, Vercel, Cursor, NousResearch, OpenRouter, etc.
+
+Format prévu chaque soir :
+- TL;DR
+- signaux importants
+- opportunités VividFlow/Hermes/Brvndlab
+- comptes/posts notables
+- bruit ignoré
+- prochaines actions
+
+Note : `xurl` n’a pas l’air installé/authentifié actuellement sur la machine, donc le cron compensera avec web scraping/recherches publiques. Si on veut une vraie lecture X API robuste, il faudra configurer `xurl` manuellement avec l’app X developer.

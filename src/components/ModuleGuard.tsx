@@ -3,10 +3,13 @@
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { firstAllowedRoute } from '@/components/nav/modules'
 
 // Toujours autorisés, quel que soit allowedModules.
 // /modules = page « Tout » (navigation) → indispensable, même en compte restreint.
-const ALWAYS_ALLOWED = ['/dashboard', '/parametres', '/modules']
+// /dashboard N'EST PLUS toujours autorisé : il expose des KPI sensibles (CA, leads)
+// et doit être réservé aux comptes ayant ce module dans allowedModules.
+const ALWAYS_ALLOWED = ['/parametres', '/modules']
 
 // Dérive le chemin de module de base depuis le pathname.
 // /contacts/123 -> /contacts ; /bibliotheque/data -> /bibliotheque/data
@@ -27,11 +30,13 @@ export default function ModuleGuard() {
     if (!isLoaded || !me || isAdmin) return
     const base = moduleBase(pathname)
     if (ALWAYS_ALLOWED.includes(base)) return
-    // allowedModules undefined/null (anciennes lignes) => aucune restriction => ne pas rediriger.
-    // On ne redirige QUE si c'est un vrai tableau non-vide qui n'inclut pas la base.
+    // allowedModules ABSENT/non-tableau (anciennes lignes) => aucune restriction => ne pas
+    // rediriger. Un tableau (même VIDE) = liste blanche exhaustive : zéro module = aucun
+    // accès (sinon « rien coché » accorderait tout — l'inverse du besoin).
     const allowed = me.allowedModules
-    if (Array.isArray(allowed) && allowed.length > 0 && !allowed.includes(base)) {
-      router.replace('/dashboard')
+    if (Array.isArray(allowed) && !allowed.includes(base)) {
+      // Renvoie vers le 1er module autorisé (jamais /dashboard si non autorisé → pas de boucle).
+      router.replace(firstAllowedRoute(false, allowed))
     }
   }, [isLoaded, me, isAdmin, pathname]) // eslint-disable-line react-hooks/exhaustive-deps
 

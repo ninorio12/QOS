@@ -1,0 +1,31 @@
+---
+type: process
+title: Hermes Memory Hygiene — Mémoire courte vs Second Brain
+status: active
+updated: 2026-06-09
+---
+
+# Hermes Memory Hygiene — Mémoire courte vs Second Brain
+
+Principe: la mémoire courte Hermes/Supermemory doit rester compacte. Elle ne contient que les règles runtime et préférences stables. Les détails, historiques, anciens contrats, sessions, contextes de projet et décisions longues vont dans le Second Brain local.
+
+Règles:
+1. Mémoire courte = noyau opérationnel compact (< limites profile: memory 2200 chars, user 1375 chars).
+2. Second Brain = archive durable, décisions, process, concepts, historique curé.
+3. Supermemory = rappel diffus, jamais poubelle de logs.
+4. Raw Telegram/sessions/live-events/archives = low-trust. Ne pas répondre depuis ces sources sans pertinence forte.
+5. Quand la mémoire est pleine: archiver d'abord dans Second Brain, puis compacter la mémoire; ne jamais supprimer sans backup.
+
+Procédure de nettoyage:
+- sauvegarder `memories/MEMORY.md` et `memories/USER.md`;
+- créer une page archive dans `wiki/archives/memory-cleanups/`;
+- remplacer les mémoires par un noyau runtime compact;
+- importer les pages wiki dans GBrain;
+- redémarrer les gateways actifs.
+
+## Supermemory — mode actuel
+
+Supermemory est désactivé comme provider externe pour les agents VividFlow/Hermes. Les configs gardent `memory_enabled: true` et `user_profile_enabled: true`, mais `memory.provider` est vide: mémoire built-in locale uniquement.
+
+Raison: éviter saturation, coûts, rappels diffus et pollution contextuelle. La source durable officielle reste le Second Brain local + DataOS + GBrain. Supermemory pourra être réactivé plus tard uniquement pour un usage ciblé, avec containers propres et recall strict.
+

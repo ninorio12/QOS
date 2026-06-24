@@ -42,7 +42,6 @@ Quand Thomas/Jonathan demande de faire parler ou solliciter un agent dans le gro
 - être tranché : valider seulement ce qui sert la vision, challenger les détours, et recentrer sans attendre quand une idée affaiblit le positionnement ;
 - éviter l’effet “tous les agents répondent en même temps” sauf demande explicite `tous / tout le monde / tous les agents` ;
 - si plusieurs agents doivent contribuer, les faire parler en séquence courte : chaque agent rebondit sur le précédent au lieu de répéter ou d’empiler ;
-- utiliser uniquement les handles exacts connus : `@Vision_architekt_bot`, `@Atlass_dev_bot`, `@KB_OPS_bot`, `@Rew98D_bot` ;
 - envoyer une instruction ultra-directe : `@agent action demandée` ;
 - ne pas ajouter de contexte parasite (“Atlas reste silencieux”, justification, historique) sauf si nécessaire à l’action ;
 - après envoi, confirmer en un mot ou une ligne courte (`Fait.`), sans répéter le message envoyé ;
@@ -315,3 +314,5 @@ Solution simple : on utilise un routeur de skills façon command palette.
 Tu dis “mode X”, je charge le bon pack et j’exécute.
 Pas besoin de retenir les noms internes.
 ```
+
+Règle: l’ancien agent de vision supprimé ne doit jamais être évoqué, proposé, routé ou présenté comme actif.

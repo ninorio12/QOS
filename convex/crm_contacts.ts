@@ -2,8 +2,26 @@ import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
 import { findDuplicateContact } from "./contactDedup"
 import { enforce } from "./sync"
+import { linkInternal } from "./osProspection"
 import { WORKSPACE } from "./osLib"
 import { normalizeLeadSource } from "./lib/leadSource"
+
+// ── RÈGLE MÉTIER (Thomas, 2026-06-19) ──
+// Un lead OUTBOUND créé depuis le module Contacts DOIT impérativement apparaître à la fois
+// dans le Pipeline Leads (colonne « Nouveau lead ») ET dans le board Prospection.
+// On force donc statut=lead puis on passe par linkInternal (chemin canonique osProspection),
+// qui crée/réutilise la card lead à `nouveau-lead` + le prospection_record (phase1/à appeler).
+// Idempotent : ne duplique jamais ni le lead ni le record. Ne s'applique pas aux clients.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function ensureOutboundCards(ctx: any, contactId: any, by: string) {
+  const c = await ctx.db.get(contactId)
+  if (!c || c.statut === "client") return
+  if (!c.statut) {
+    await ctx.db.patch(contactId, { statut: "lead", leadStatus: c.leadStatus ?? "active", updatedAt: new Date().toISOString() })
+  }
+  await enforce(ctx, contactId)
+  await linkInternal(ctx, contactId, { temperature: c.temperature ?? "froid", by })
+}
 
 const digits = (s?: string | null) => (s || "").replace(/\D/g, "")
 const norm = (s?: string | null) => (s || "").toLowerCase().trim()
@@ -112,9 +130,11 @@ export const get = query({
 export const distinctMetiersNiches = query({
   handler: async (ctx) => {
     const all = await ctx.db.query("crm_contacts").collect()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const roles   = [...new Set(all.map((c: any) => c.role).filter(Boolean) as string[])].sort()
     const metiers = [...new Set(all.map(c => c.metier).filter(Boolean) as string[])].sort()
     const niches  = [...new Set(all.map(c => c.niche).filter(Boolean) as string[])].sort()
-    return { metiers, niches }
+    return { roles, metiers, niches }
   },
 })
 
@@ -138,36 +158,102 @@ export const create = mutation({
     dealDate:     v.optional(v.string()),
     leadStatus:  v.optional(v.string()),
     linkedinUrl: v.optional(v.string()),
+    country:     v.optional(v.string()),
     canton:      v.optional(v.string()),
+    role:        v.optional(v.string()),
     metier:      v.optional(v.string()),
     niche:       v.optional(v.string()),
     tags:        v.optional(v.array(v.string())),
     notes:       v.optional(v.string()),
+    createdBy:   v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { createdBy, ...fields } = args
+    const by = createdBy ?? "human:thomas"
+    // Source outbound (après normalisation) → la fiche EST un lead outbound : cards obligatoires.
+    const isOutbound = fields.source !== undefined && normalizeLeadSource(fields.source) === "outbound"
     // ── Dédup forte : ne JAMAIS créer un doublon si un contact existe déjà
     //    avec le même téléphone / email / LinkedIn → on lie au contact existant.
-    const dupId = await findDuplicateContact(ctx, { phone: args.phone, email: args.email, linkedinUrl: args.linkedinUrl })
+    const dupId = await findDuplicateContact(ctx, { phone: fields.phone, email: fields.email, linkedinUrl: fields.linkedinUrl })
     if (dupId) {
       const match = (await ctx.db.get(dupId))!
       // Compléter uniquement les champs manquants (Contacts reste source de vérité)
       const patch: Record<string, unknown> = { updatedAt: new Date().toISOString() }
-      if (args.email && !match.email) patch.email = args.email
-      if (args.phone && !match.phone) patch.phone = args.phone
-      if (args.linkedinUrl && !match.linkedinUrl) patch.linkedinUrl = args.linkedinUrl
-      if (args.companyName && !match.companyName) patch.companyName = args.companyName
+      if (fields.email && !match.email) patch.email = fields.email
+      if (fields.phone && !match.phone) patch.phone = fields.phone
+      if (fields.linkedinUrl && !match.linkedinUrl) patch.linkedinUrl = fields.linkedinUrl
+      if (fields.companyName && !match.companyName) patch.companyName = fields.companyName
+      // Enrichir la fiche en entier (compléter les champs manquants — Contacts reste source de vérité)
+      if (fields.firstName && !match.firstName) patch.firstName = fields.firstName
+      if (fields.lastName && !match.lastName) patch.lastName = fields.lastName
+      if (fields.city && !match.city) patch.city = fields.city
+      if (fields.postalCode && !match.postalCode) patch.postalCode = fields.postalCode
+      if (fields.country && !match.country) patch.country = fields.country
+      if (fields.canton && !match.canton) patch.canton = fields.canton
+      if (fields.website && !match.website) patch.website = fields.website
+      if (fields.metier && !match.metier) patch.metier = fields.metier
+      if (fields.niche && !match.niche) patch.niche = fields.niche
+      if (fields.address1 && !match.address1) patch.address1 = fields.address1
       await ctx.db.patch(match._id, patch)
       await enforce(ctx, match._id)
+      if (isOutbound) await ensureOutboundCards(ctx, match._id, by)
       return match._id
     }
     const newId = await ctx.db.insert("crm_contacts", {
-      ...args,
-      source:    args.source !== undefined ? normalizeLeadSource(args.source) : undefined,
-      tags:      args.tags ?? [],
+      ...fields,
+      source:    fields.source !== undefined ? normalizeLeadSource(fields.source) : undefined,
+      tags:      fields.tags ?? [],
       createdAt: new Date().toISOString(),
     })
     await enforce(ctx, newId)
+    if (isOutbound) await ensureOutboundCards(ctx, newId, by)
     return newId
+  },
+})
+
+// ── Lead INBOUND (formulaire Meta Ads / lead entrant) ──
+// Crée/réutilise le contact (source=inbound, statut=lead) PUIS matérialise la card
+// Pipeline Leads (« Nouveau lead », source héritée=inbound) via le chemin canonique
+// linkInternal — donc visible dans le module Contacts ET la pipeline commerciale.
+// Idempotent : dédup forte par téléphone/email, jamais de doublon de lead.
+export const ingestInboundLead = mutation({
+  args: {
+    firstName:   v.string(),
+    lastName:    v.optional(v.string()),
+    email:       v.optional(v.string()),
+    phone:       v.optional(v.string()),
+    companyName: v.optional(v.string()),
+    notes:       v.optional(v.string()),
+    tags:        v.optional(v.array(v.string())),
+    temperature: v.optional(v.string()),
+    createdBy:   v.optional(v.string()),
+  },
+  handler: async (ctx, a) => {
+    const by = a.createdBy ?? "agent:meta-ads"
+    const iso = new Date().toISOString()
+    let contactId = await findDuplicateContact(ctx, { phone: a.phone, email: a.email })
+    if (contactId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const c = (await ctx.db.get(contactId))! as any
+      const patch: Record<string, unknown> = { updatedAt: iso }
+      if (a.email && !c.email) patch.email = a.email
+      if (a.phone && !c.phone) patch.phone = a.phone
+      if (a.companyName && !c.companyName) patch.companyName = a.companyName
+      if (a.tags?.length) patch.tags = Array.from(new Set([...(c.tags ?? []), ...a.tags]))
+      if (!c.statut) { patch.statut = "lead"; patch.leadStatus = "active" }
+      await ctx.db.patch(contactId, patch)
+    } else {
+      contactId = await ctx.db.insert("crm_contacts", {
+        firstName: a.firstName, lastName: a.lastName,
+        email: a.email, phone: a.phone, companyName: a.companyName,
+        source: "inbound", statut: "lead", leadStatus: "active",
+        tags: a.tags ?? [], notes: a.notes,
+        createdAt: iso,
+      })
+    }
+    await enforce(ctx, contactId)
+    const res = await linkInternal(ctx, contactId, { temperature: a.temperature ?? "tiede", channel: "formulaire", by })
+    return { contactId, leadId: res.leadId, created: res.created }
   },
 })
 
@@ -192,7 +278,9 @@ export const update = mutation({
     dealDate:     v.optional(v.string()),
     leadStatus:  v.optional(v.string()),
     linkedinUrl: v.optional(v.string()),
+    country:     v.optional(v.string()),
     canton:      v.optional(v.string()),
+    role:        v.optional(v.string()),
     metier:      v.optional(v.string()),
     niche:       v.optional(v.string()),
     tags:        v.optional(v.array(v.string())),
@@ -204,11 +292,41 @@ export const update = mutation({
     for (const [k, v] of Object.entries(fields)) {
       if (v !== undefined) patch[k] = v
     }
-    if (patch.source !== undefined) patch.source = normalizeLeadSource(patch.source as string)
+    if (patch.source !== undefined) {
+      patch.source = normalizeLeadSource(patch.source as string)
+      // Source = ORIGINE IMMUABLE : on ne change jamais une source déjà posée (défense serveur, cf. UI verrouillée).
+      // Un inbound reste inbound, etc. — sinon les analytics de conversion par source seraient faussées.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const cur = await ctx.db.get(id) as any
+      if (cur?.source) delete patch.source
+    }
     await ctx.db.patch(id, patch)
     // Fiche = source de vérité : toute édition resynchronise le placement pipeline
     // (lead↔client↔perdu) et propage les champs dérivés. Plus de désync possible.
     await enforce(ctx, id)
+    // Lead OUTBOUND (source posée OU éditée après coup) → garantir sa card Prospection
+    // automatiquement, exactement comme à la création. Idempotent (linkInternal ne double pas).
+    // Sinon un contact passé en outbound via l'édition n'apparaissait jamais dans le module Prospection.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updated = await ctx.db.get(id) as any
+    if (updated && updated.statut !== "client" && normalizeLeadSource(updated.source ?? "") === "outbound") {
+      await ensureOutboundCards(ctx, id, "human:thomas")
+    }
+  },
+})
+
+// Migration one-off : l'ancien champ "metier" contenait en réalité des RÔLES (CEO, Directeur…).
+// On déplace metier → role, puis on vide metier (qui redevient le vrai secteur d'activité). Idempotent.
+export const migrateMetierToRole = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const contacts = await ctx.db.query("crm_contacts").collect()
+    let n = 0
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const c of contacts as any[]) {
+      if (c.metier && (!c.role || c.metier === c.role)) { await ctx.db.patch(c._id, { role: c.role ?? c.metier, metier: undefined }); n++ }
+    }
+    return { migrated: n }
   },
 })
 
@@ -223,8 +341,20 @@ export const remove = mutation({
       await ctx.db.delete(l._id)
     }
     const cid = args.id.toString()
-    const clients = await ctx.db.query("pipeline_clients").withIndex("by_ghl_contact", q => q.eq("ghl_contact_id", cid)).collect()
-    for (const c of clients) await ctx.db.delete(c._id)
+    // pipeline_clients : purger via les DEUX index (ghl_contact_id legacy + contactId typé Vague 2) → zéro orphelin
+    const clientDocs = [
+      ...await ctx.db.query("pipeline_clients").withIndex("by_ghl_contact", q => q.eq("ghl_contact_id", cid)).collect(),
+      ...await ctx.db.query("pipeline_clients").withIndex("by_contact", q => q.eq("contactId", args.id)).collect(),
+    ]
+    const seenClient = new Set<string>()
+    for (const c of clientDocs) { const k = c._id.toString(); if (!seenClient.has(k)) { seenClient.add(k); await ctx.db.delete(c._id) } }
+    // onboarding lié au contact (sinon doc orphelin)
+    for (const ob of await ctx.db.query("onboarding").withIndex("by_contact", q => q.eq("contactId", cid)).collect()) await ctx.db.delete(ob._id)
+    // os_tasks liées (créées en prospection, linkedClientId = id contact) — pas d'index → scan filtré
+    for (const t of await ctx.db.query("os_tasks").collect()) { if (t.linkedClientId === cid) await ctx.db.delete(t._id) }
+    // os_sales_calls liés (R1/R2 iClosed du contact) — pas d'index par contact → scan filtré (sinon fiche Closing orpheline)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const sc of await ctx.db.query("os_sales_calls").collect()) { if ((sc as any).contactId === cid) await ctx.db.delete(sc._id) }
     // Cascade prospection : enregistrements + événements liés (sinon orphelins dans le board prospection)
     const precords = await ctx.db.query("prospection_records").withIndex("by_contact", q => q.eq("contactId", cid)).collect()
     for (const r of precords) {

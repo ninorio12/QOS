@@ -234,10 +234,15 @@ pip install --upgrade mcp
 
 ### Tools not appearing
 
+- Check the same profile the agent/gateway uses: `hermes --profile <profile> mcp list` and `hermes --profile <profile> mcp test <server>`
 - Check that the server is listed under `mcp_servers` (not `mcp` or `servers`)
 - Ensure the YAML indentation is correct
 - Look at Hermes Agent startup logs for connection messages
 - Tool names are prefixed with `mcp_{server}_{tool}` -- look for that pattern
+
+### `hermes mcp add` connects but then shows "Cancelled"
+
+In non-interactive shells, `hermes mcp add` may successfully discover tools, then prompt for auth/tool selection and cancel before saving the config. Do not assume the server was registered just because discovery succeeded. Verify with `hermes --profile <profile> mcp list`. If it is missing, edit the target profile's `config.yaml` directly under `mcp_servers:` and then run `hermes --profile <profile> mcp test <server>`.
 
 ### Connection keeps dropping
 
@@ -294,6 +299,8 @@ mcp_servers:
     timeout: 180
     connect_timeout: 30
 ```
+
+For the VividFlow Data OS remote MCP endpoint and multi-profile setup, see `references/vividflow-data-os-mcp.md`.
 
 ### Multiple Servers
 

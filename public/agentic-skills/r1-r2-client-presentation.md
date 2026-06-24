@@ -184,8 +184,10 @@ Key rules:
 - Use the narrative spine: Identification → évolution du monde → Éducation → Opportunité business → Audit.
 - Strong pause slides are welcome: e.g. “ON S’ARRÊTE.”, “Automatiser le chaos accélère le chaos.”
 - For visual/prototype details, use `references/vividflow-discovery-agaas-deck.md`.
+- For the latest locked R1 agentic education flow, page-1 hook, Schmid-style visual direction, and ChatGPT-illustration handoff rule, use `references/vividflow-r1-agentic-education-deck-lessons.md`.
 - For human-led pre-production strategy/storyboard, use `references/discovery-deck-human-led-process.md`.
 - For details, use `references/vividflow-discovery-agaas-deck.md` and `references/discovery-deck-anti-wizard-review.md`.
+
 
 ## Workflow opérationnel
 

@@ -1,0 +1,10 @@
+---
+source: /home/hermes/.hermes/profiles/chief_of_staff/sessions/20260615_193744_912be7.jsonl
+captured_at: 2026-06-15T20:39:02.953234
+platform: telegram
+type: conversation_delta
+---
+
+## assistant — 2026-06-15T20:16:15.103612
+
+Oui. Là la bonne piste n’est pas “forcer Google Maps au hasard”. J’ai vérifié GitHub. Le meilleur angle pour nous : **1. Base Suisse : local.ch / annuaires suisses** - Repo trouvé : `Anwaar-Rasool/swiss-local-business-directory-scraper` - Il scrape `local.ch` en 2 étapes : - collecte URLs par catégorie + ville - extraction des fiches business - C’est le plus proche de notre besoin Suisse romande. **2. Enrichissement Google Maps** - Repos utiles : - `asiifdev/business-leads-ai-automation` - `Leo-devv/MapScraperPro` - `jhowbhz/maps-to-lead` - Ils utilisent Puppeteer/Playwright + stealth + export CSV. - Bon pour récupérer : entreprise, site, téléphone, adresse, avis, rating. - Mauvais pour : décisionnaire nominatif fiable. **3. Décisionnaire / email** - Ça ne doit pas venir de Maps seul. - Workflow propre : - Maps/local.ch trouve l’entreprise. - Site officiel trouve équipe/contact/mentions légales. - Email uniquement s’il est visible publiquement. - Décisionnaire seulement si page équipe, registre, site, source claire. - Sinon Qualité C / à vérifier. Ma recommandation nette : **Pipeline hybride** 1. `local.ch` par niche + canton pour sortir des entreprises suisses propres. 2. Google Maps seulement pour enrichir téléphone/site/adresse/activité. 3. Scrape site officiel pour décisionnaire + email. 4. Scoring strict. 5. 10 leads test. 6. Si 7/10 sont A/B, on scale à 100/jour. Je ne laisserais pas l’agent faire du scraping libre. Il faut lui donner ce pipeline précis, sinon il va remplir de la merde.

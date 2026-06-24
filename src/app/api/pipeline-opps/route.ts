@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   const ctx = await getAuthContext()
-  if (!ctx) { const { MOCK_OPPS } = await import('@/lib/mock-data'); return NextResponse.json({ opps: MOCK_OPPS }) }
+  if (!ctx) return NextResponse.json({ opps: [] })
 
   const pipelineId = req.nextUrl.searchParams.get('pipelineId') ?? undefined
   const creds = { apiKey: ctx.ghlApiKey, locationId: ctx.ghlLocationId }

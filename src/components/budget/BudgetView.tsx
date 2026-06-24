@@ -44,7 +44,7 @@ function ServiceCard({ s }: { s: Service }) {
 
 export default function BudgetView() {
   return (
-    <MotionStagger className="flex flex-col md:h-[calc(100vh-56px)] p-4 pb-24 md:pb-4 gap-3">
+    <MotionStagger className="flex flex-col md:h-[calc(100vh-48px)] p-4 pb-24 md:pb-4 gap-3">
       <MotionItem className="flex-shrink-0">
         <p className="text-xs text-soren-subtle">Abonnements & outils du Data OS — coût mensuel (CHF)</p>
       </MotionItem>
@@ -57,7 +57,7 @@ export default function BudgetView() {
           </div>
           <div>
             <p className="text-white/50 text-[11px] font-medium uppercase tracking-wide">Total mensuel</p>
-            <p className="text-white text-2xl font-bold leading-none mt-0.5">{chf(TOTAL)}<span className="text-white/40 text-sm font-medium"> / mois</span></p>
+            <p className="text-white text-2xl font-bold leading-none mt-0.5">{TOTAL.toLocaleString('fr-FR')}<span className="text-white/40 text-sm font-semibold ml-1">CHF</span><span className="text-white/40 text-sm font-medium"> / mois</span></p>
           </div>
         </div>
         <p className="text-white/25 text-xs text-right">{PAID.length} payants · {FREE.length} gratuits</p>

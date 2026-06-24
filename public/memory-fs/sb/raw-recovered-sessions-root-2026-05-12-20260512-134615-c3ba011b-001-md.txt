@@ -1,0 +1,63 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260512_134615_c3ba011b
+source_file: /home/hermes/.hermes/sessions/20260512_134615_c3ba011b.jsonl
+source_sha256_16: 18f4b5c018d85b96
+date: 2026-05-12
+---
+
+# Recovered session root/20260512_134615_c3ba011b
+
+
+## user — 2026-05-12T13:47:42.315737
+
+[Jonathan] Envoie un message à tous les agents et rappelle-leur à chacun quelle est leur responsabilité au sein de Brvndlab
+
+## assistant — 2026-05-12T13:47:42.315737
+
+C’est fait.
+
+Messages envoyés aux 5 agents :
+- Développeur Tech
+- Comptable / Finance
+- Market Radar
+- CMO / Content Manager
+- CSM / Client Success
+
+Je leur ai rappelé leur responsabilité précise, leurs règles critiques et quand ils doivent solliciter les autres agents.
+
+## assistant — 2026-05-13T17:54:36.951204
+
+## Update infra — Migration Cockpit/Hermes vers VPS Hostinger
+
+Migration effectuée et validée.
+
+**Ce qui a été fait :**
+- Connexion SSH sécurisée au VPS Hostinger `76.13.52.163`.
+- Création d’un utilisateur dédié `hermes` avec accès SSH + sudo.
+- Migration du Cockpit/Hermes depuis l’environnement local vers le VPS.
+- Données et contexte transférés : config, `.env`, `auth.json`, skills, sessions, mémoire, profils, cron jobs.
+- Gateway Telegram lancé sur le VPS via `systemd`.
+- `systemd linger` activé : le bot reste actif même après déconnexion SSH.
+- Cron jobs VividFlow vérifiés : 2 jobs actifs.
+- Vérification runtime : les messages Telegram sont bien traités depuis le VPS.
+
+**État actuel :**
+- Machine : `srv1601285`
+- User : `hermes`
+- IP : `76.13.52.163`
+- Hermes VPS : opérationnel
+- Gateway Telegram : actif
+- Taille `.hermes` VPS : ~1.4 Go
+- Local macOS : à considérer comme backup froid uniquement
+
+**Points de vigilance :**
+- Ne pas relancer le gateway Telegram local, sinon risque de double bot.
+- `gbrain` MCP manque encore sur le VPS.
+- `tirith` était un binaire macOS incompatible Linux ; il a été désactivé pour éviter les erreurs.
+
+**Conclusion :**
+Le Cockpit/Hermes tourne maintenant sur le VPS Hostinger. La migration est réussie et l’environnement local ne doit plus servir qu’en backup.

@@ -36,27 +36,37 @@ const EMPTY: DashData = {
   clientTimeline: [], metierBreakdown: [], nicheBreakdown: [], recentLeads: [], totalContactsCount: 0,
 }
 
-export default function DashboardPage() {
-  const [range, setRange] = useState(defaultRange)
+const fetcher = async (url: string) => {
+  const res  = await fetch(url)
+  const json = await res.json() as Partial<DashData>
+  return { ...EMPTY, ...json }
+}
 
+export default function DashboardPage() {
   const tzOffset = new Date().getTimezoneOffset()
-  const key = `/api/dashboard?from=${range.from}&to=${range.to}&tzOffset=${tzOffset}`
-  const { data, isLoading } = useSWR<DashData>(key, async (url: string) => {
-    const res  = await fetch(url)
-    const json = await res.json() as Partial<DashData>
-    return { ...EMPTY, ...json }
-  }, { revalidateOnFocus: false, dedupingInterval: 30_000 })
+  const today = localDate(new Date())
+  const SWR_OPTS = { revalidateOnFocus: false, dedupingInterval: 30_000, keepPreviousData: true }
+
+  // Le dashboard est une vue d'ensemble TOTALE (depuis le début). Le calendrier ne pilote QUE le graphe.
+  const totalKey = `/api/dashboard?from=2000-01-01&to=${today}&tzOffset=${tzOffset}`
+  const { data, isLoading, isValidating } = useSWR<DashData>(totalKey, fetcher, SWR_OPTS)
+
+  // Calendrier local au graphe « Encaissement et Clients » → refetch SEULEMENT la timeline.
+  const [chartRange, setChartRange] = useState(defaultRange)
+  const chartKey = `/api/dashboard?from=${chartRange.from}&to=${chartRange.to}&tzOffset=${tzOffset}`
+  const { data: chartData } = useSWR<DashData>(chartKey, fetcher, SWR_OPTS)
 
   const handleRangeChange = useCallback((from: string, to: string) => {
-    setRange({ from, to })
+    setChartRange({ from, to })
   }, [])
 
   if (isLoading && !data) return <DashboardLoading />
 
   const d = data ?? EMPTY
+  const timeline = chartData?.clientTimeline ?? d.clientTimeline
 
   return (
-    <div className="md:h-full flex flex-col px-3 py-3 md:p-5 md:overflow-auto">
+    <div className={`md:h-full flex flex-col px-3 py-3 md:p-5 md:overflow-auto transition-opacity duration-300 ${isValidating ? 'opacity-60' : 'opacity-100'}`}>
       <DashboardClient
         clientsCount={d.clientsCount}
         caEncaisse={d.caEncaisse}
@@ -66,13 +76,13 @@ export default function DashboardPage() {
         r2Count={d.r2Count}
         metiersCount={d.metiersCount}
         nichesCount={d.nichesCount}
-        clientTimeline={d.clientTimeline}
+        clientTimeline={timeline}
         metierBreakdown={d.metierBreakdown}
         nicheBreakdown={d.nicheBreakdown}
         recentLeads={d.recentLeads}
         totalContactsCount={d.totalContactsCount}
-        rangeFrom={range.from}
-        rangeTo={range.to}
+        rangeFrom="2000-01-01"
+        rangeTo={today}
         onRangeChange={handleRangeChange}
       />
     </div>

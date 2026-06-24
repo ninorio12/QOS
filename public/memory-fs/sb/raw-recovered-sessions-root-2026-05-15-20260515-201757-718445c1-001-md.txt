@@ -1,0 +1,441 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260515_201757_718445c1
+source_file: /home/hermes/.hermes/sessions/20260515_201757_718445c1.jsonl
+source_sha256_16: ef6914bd9382dffe
+date: 2026-05-15
+---
+
+# Recovered session root/20260515_201757_718445c1
+
+
+## user — 2026-05-15T20:19:58.188955
+
+[Thomas] https://github.com/browser-use/browser-harness.git intégre ce skill et fait moi une description
+
+## assistant — 2026-05-15T20:19:58.188955
+
+Thomas, c’est intégré.
+
+**Ce que j’ai fait :**
+- Repo cloné en durable ici : 
+ `/home/hermes/.hermes/vendor/browser-harness`
+- CLI installé en editable avec `uv tool install -e .`
+- Commande dispo globalement : 
+ `browser-harness`
+- Skill Hermes créé et activé : 
+ `browser-harness`
+- Références ajoutées :
+ - `install.md`
+ - interaction skills : screenshots, tabs, iframes, dropdowns, uploads, cookies, network, scrolling, etc.
+
+**Vérification :**
+- `hermes skills list` le voit bien comme `enabled`
+- `browser-harness --version` retourne `0.1.0`
+- Le doctor confirme que Chrome tourne, mais le daemon/CDP n’est pas encore actif.
+
+**Point à faire pour l’utiliser vraiment :**
+Chrome doit autoriser le remote debugging :
+- ouvrir `chrome://inspect/#remote-debugging`
+- cocher **Allow remote debugging for this browser instance**
+- cliquer **Allow** si Chrome affiche le popup
+
+**Description rapide du skill :**
+
+`browser-harness` donne à l’agent un contrôle direct du navigateur via CDP. Contrairement à Playwright classique, il se connecte au Chrome réel de l’utilisateur ou à un browser cloud Browser Use, puis pilote la page avec des actions bas niveau : screenshots, clics coordonnées, JS, CDP brut, gestion des tabs, iframes, downloads, uploads, cookies, requêtes réseau, etc.
+
+La philosophie :
+- screenshot d’abord
+- clic coordonnées quand c’est visible
+- DOM/JS seulement quand nécessaire
+- vérification après chaque action
+- helpers réutilisables dans `agent-workspace/agent_helpers.py`
+- skills par domaine/site possibles via `domain-skills`
+
+En clair : c’est un pont léger entre l’agent et un vrai navigateur, pensé pour automatiser des workflows web complexes sans surcouche lourde.
+
+## user — 2026-05-15T20:25:35.798790
+
+[Thomas] scop la docu dans https://browser-use.com/ et améliore toi considerablement
+
+## assistant — 2026-05-15T20:25:35.798790
+
+C’est fait.
+
+J’ai scopé :
+- `browser-use.com/llms.txt`
+- `docs.browser-use.com/llms.txt`
+- `docs.browser-use.com/llms-full.txt`
+- `docs.browser-use.com/open-source/llms.txt`
+- `docs.browser-use.com/open-source/llms-full.txt`
+
+Et j’ai amélioré durablement le système avec un nouveau skill :
+
+**Skill ajouté : `browser-use`**
+- Activé dans Hermes
+- Catégorie : `software-development`
+- Couvre :
+ - Browser Use Cloud SDK v3
+ - Browser Use Open Source SDK/CLI
+ - Cloud browsers via CDP
+ - Profiles, auth, 2FA, cookies
+ - Structured output Pydantic/Zod
+ - Workspaces/files
+ - Streaming/live preview/recording
+ - Webhooks
+ - Deterministic rerun / cached scripts
+ - Proxies/stealth/CAPTCHA
+ - Custom tools OSS
+ - Production checklist
+
+J’ai aussi patché `browser-harness` pour qu’il sache quand basculer vers `browser-use`.
+
+**Ce que ça change concrètement :**
+- Si tu me demandes de construire une automation Browser Use → je charge `browser-use`.
+- Si tu me demandes de piloter directement un browser depuis Hermes → je charge `browser-harness`.
+- Si c’est production/anti-bot/scale/proxy/CAPTCHA → je privilégie Cloud SDK v3.
+- Si c’est local/self-hosted/custom tools/real Chrome profile → je privilégie OSS SDK.
+- Si extraction importante → je force schema structuré.
+- Si workflow récurrent → je pense deterministic rerun/cache script.
+- Si auth → profil + human-in-loop, pas de credentials bricolés.
+- Si intégration app → webhooks/streaming/workspaces/live preview.
+
+**Refs mises en cache dans le skill :**
+- `site-llms-index.md`
+- `cloud-llms-index.md`
+- `cloud-llms-full.md`
+- `oss-llms-index.md`
+- `oss-llms-full.md`
+
+Vérifié : `browser-use` et `browser-harness` sont bien `enabled`.
+
+## user — 2026-05-15T22:10:56.841778
+
+[Thomas] regarde cette vidéo https://fathom.video/share/CNuGyWVtXszpFF_ijF82ehr_eZ6wAi-z et fait un compte rendu
+
+## assistant — 2026-05-15T22:10:56.841778
+
+Thomas, j’ai regardé la vidéo Fathom et exploité le résumé + transcript. Voilà le compte rendu propre.
+
+## Compte rendu — Call “Implémentation / onboarding / délivrabilité agents IA”
+
+**Durée :** 146 min 
+**Sujet central :** comment onboarder un client, auditer son business, livrer une infrastructure IA/Hermès, puis upsell vers un système multi-agents.
+
+## 1. Idée principale
+
+Le call détaille le process d’agence pour vendre et livrer des agents IA.
+
+La logique est :
+
+1. **R1 découverte / endoctrinement**
+ - Éduquer le prospect sur ce que l’IA peut réellement faire.
+ - Lui faire comprendre que son business peut être transformé par une couche agentique.
+ - Utiliser un deck visuel, simple, orienté douleur → solution → vision.
+
+2. **R2 proposition**
+ - Présenter un hub personnalisé :
+ - cahier des charges,
+ - maquette,
+ - simulateur ROI,
+ - vision de l’agent livré.
+
+3. **Onboarding**
+ - Formulaire client complet.
+ - Récupération des accès, process, SOPs, outils, documents métier.
+ - Drive partagé pour nourrir la base de connaissance.
+
+4. **Audit 2h**
+ - Étape la plus importante.
+ - Cartographier tous les process internes.
+ - Chiffrer le ROI de chaque automatisation.
+ - Prioriser les 3 premiers agents à livrer.
+
+5. **Livraison**
+ - Client crée son VPS.
+ - L’agence déploie Hermès / second cerveau / contexte / structure client.
+ - Connexion aux outils métier.
+ - Puis livraison agent par agent.
+
+6. **Upsell**
+ - Agent “bras droit” initial à ~5k€.
+ - Puis upsell vers agents spécialisés à 15k–20k€.
+ - Rétention via DFY, DWY ou recrutement/formations internes.
+
+## 2. Modèle économique expliqué
+
+Le produit d’appel est un **agent bras droit à 5k€**.
+
+Mais ce n’est pas censé être le vrai centre de profit. Il sert surtout à :
+
+- faire entrer le client,
+- prouver la valeur,
+- créer la confiance,
+- auditer en profondeur,
+- identifier les départements à automatiser.
+
+Ensuite, l’argent est dans les upsells :
+
+- Agent Sales
+- Agent Marketing
+- Agent RH
+- Agent Finance
+- Agent Ops
+- Agent Support
+- etc.
+
+Chaque agent spécialisé peut être vendu entre **15k€ et 20k€** selon complexité / impact business.
+
+Point important : ils acceptent une marge plus faible sur le premier agent si ça permet de verrouiller le client et de créer le terrain pour les gros upsells.
+
+## 3. Audit : le cœur du système
+
+L’audit de 2h est présenté comme l’étape critique.
+
+Objectifs :
+
+- Comprendre le business en détail.
+- Cartographier les process métier.
+- Identifier les tâches répétitives / lentes / coûteuses.
+- Chiffrer le temps perdu.
+- Calculer le ROI d’automatisation.
+- Prioriser les agents à construire.
+
+Exemple donné :
+
+Si un CEO perd 4h/semaine sur une tâche et vaut 1500€/h, ça représente :
+
+- 4h x 1500€ = 6000€/semaine de valeur récupérable.
+
+Donc l’agent n’est pas vendu comme un gadget technique, mais comme une récupération de valeur économique.
+
+Critères de priorisation des agents :
+
+1. Facilité d’implémentation.
+2. Impact direct sur le revenu.
+3. Gain d’efficacité opérationnelle.
+
+## 4. Livraison technique
+
+Le client possède son infrastructure.
+
+Process :
+
+- Le client crée son VPS, typiquement Hostinger KVM2.
+- L’agence déploie l’infra dessus.
+- Hermès sert d’agent central.
+- Une commande de type `/client_implementation [client_name]` permettrait de déployer :
+ - second cerveau,
+ - contexte client,
+ - structure,
+ - base de connaissance,
+ - connexions nécessaires.
+
+L’idée importante : l’agence garde un **DataOS interne** qui contient le contexte client et permet de répliquer/déployer rapidement les infrastructures.
+
+Temps annoncé : **20–30 minutes** pour déployer une base client si le process est bien standardisé.
+
+## 5. Architecture agentique
+
+Ils distinguent :
+
+- **Agent orchestrateur**
+ - Centralise.
+ - Coordonne.
+ - Peut avoir des skills.
+ - Sert de bras droit.
+
+- **Agents spécialisés**
+ - Sales.
+ - Marketing.
+ - RH.
+ - Ops.
+ - Finance.
+ - etc.
+
+Pourquoi segmenter ?
+
+- Meilleure spécialisation.
+- Meilleur cloisonnement des données.
+- Un agent marketing n’a pas besoin d’accéder aux données financières.
+- Ça rend aussi l’upsell plus naturel : chaque département devient une opportunité commerciale.
+
+Point important : l’orchestrateur seul a une limite. Sa vraie valeur augmente quand il a des “employés”, donc des agents spécialisés autour de lui.
+
+## 6. Connexion aux outils
+
+Ils privilégient :
+
+1. **API-first**
+ - CRM,
+ - cloud,
+ - Meta Ads,
+ - Google,
+ - Convex,
+ - Vercel,
+ - etc.
+
+2. **Invitations par email**
+ - Plutôt que demander les mots de passe.
+
+3. **Browser automation quand pas d’API**
+ - Mention de Browser Use / Browserless / Browser Harness.
+ - L’agent peut apprendre à manipuler une interface web comme un humain.
+ - Utile pour outils legacy ou SaaS sans API exploitable.
+
+Ce point est très pertinent pour nous : ça confirme que la couche navigateur/CDP est stratégique pour traiter les outils non intégrables proprement.
+
+## 7. Sécurité / souveraineté des données
+
+Objection principale : “Où vont mes données ?”
+
+Réponse proposée :
+
+- Le client possède son VPS.
+- Les données restent sur son infrastructure.
+- L’agence peut avoir un accès monitoring/optimisation uniquement avec accord.
+- Traitement externe principal : API OpenAI.
+- Positionnement : OpenAI est soumis à des exigences fortes, notamment européennes, donc peut être défendu côté sécurité.
+
+Pour données sensibles :
+
+- Option monitoring uniquement.
+- Option anonymisation.
+- Option limitation d’accès par agent.
+- Human-in-the-loop pour actions irréversibles.
+
+Point contractuel :
+
+- Si le client utilise mal son agent, la responsabilité doit être transférée contractuellement au client.
+- Les actions sensibles doivent avoir des garde-fous.
+
+## 8. Rétention
+
+Trois modèles récurrents :
+
+### DFY — Done For You
+L’agence garde un développeur / opérateur IA à temps partiel pour maintenir et améliorer l’infra.
+
+### DWY — Done With You
+Coaching / consulting mensuel. Exemple évoqué : autour de 1k€/mois pour plusieurs sessions.
+
+### DIY
+L’agence aide le client à recruter et former un développeur interne pour qu’il devienne autonome.
+
+Le récurrent n’est pas forcément vendu comme maintenance technique pure, mais comme :
+- optimisation continue,
+- nouveaux agents,
+- supervision,
+- conseil,
+- montée en compétence.
+
+## 9. Deck de vente
+
+Gros point de discussion sur le deck.
+
+Critique du deck actuel :
+- trop de texte,
+- pas assez visuel,
+- manque de narration.
+
+Structure recommandée :
+
+1. **Problème**
+ - Montrer la douleur actuelle.
+ - Faire ressentir le coût de l’inefficacité.
+
+2. **Étude de cas**
+ - Montrer les conséquences concrètes.
+
+3. **Solution**
+ - Présenter l’agent comme réponse.
+
+4. **Process**
+ - Montrer étape par étape comment ça va fonctionner.
+
+5. **Vision**
+ - Démo live ou mockup SaaS/dashboard personnalisé.
+ - Montrer l’état final souhaité.
+
+Jonathan doit partager sa structure/logique de deck, qui semble être perçue comme plus forte.
+
+## 10. Actions promises / next steps
+
+**Erwan :**
+- Partager le modèle de formulaire d’onboarding.
+- Partager le dépôt GitHub avec 43 skills d’agence.
+- Partager une liste de YouTubeurs IA recommandés.
+
+**Erwan + Minozan :**
+- Refaire les modules de delivery de l’école.
+- Ajouter SOPs, modèles, skills.
+- Créer un module dédié au DataOS d’agence.
+- Refaire le deck R1 pour le rendre plus visuel/story-driven.
+
+**Jonathan :**
+- Partager la structure et logique de son deck de vente personnel.
+
+## 11. Ce qu’on doit retenir pour VividFlow / nous
+
+Les points vraiment exploitables :
+
+### A. Il faut formaliser notre delivery OS
+On doit avoir un process standardisé :
+
+- formulaire onboarding,
+- audit,
+- mapping process,
+- calcul ROI,
+- priorisation agents,
+- déploiement VPS,
+- setup DataOS,
+- setup Hermès,
+- connexion outils,
+- garde-fous,
+- rétention.
+
+### B. Le DataOS est clé
+Le DataOS n’est pas un bonus. C’est le moteur :
+
+- mémoire client,
+- audit,
+- SOPs,
+- accès,
+- décisions,
+- transcript calls,
+- objections,
+- signaux,
+- cahier des charges,
+- agents à construire.
+
+### C. Le “bras droit” est une porte d’entrée
+L’agent principal n’est pas forcément le gros produit final. C’est le cheval de Troie pour vendre le système multi-agents.
+
+### D. La sécurité doit être anticipée
+Il faut une réponse claire aux objections :
+
+- VPS client,
+- séparation des agents,
+- accès limité,
+- logs,
+- validation humaine,
+- anonymisation,
+- contrat de responsabilité.
+
+### E. Browser automation devient une brique stratégique
+Pour les outils sans API, Browser Use / Browser Harness / CDP devient indispensable.
+
+### F. Le deck doit vendre la transformation, pas la techno
+Le prospect doit voir :
+- sa douleur,
+- le coût actuel,
+- le futur système,
+- le ROI,
+- la démonstration concrète.
+
+## Synthèse ultra-courte
+
+Le call explique comment vendre et livrer une agence IA sérieuse : entrer avec un agent bras droit à 5k€, faire un audit très fort, cartographier les process, prouver le ROI, déployer Hermès/DataOS sur VPS client, puis upsell vers des agents spécialisés à 15k–20k€. Le vrai actif n’est pas juste l’agent, c’est le delivery system : onboarding, audit, DataOS, skills, sécurité, rétention et deck de vente.

@@ -1,0 +1,32 @@
+# Signature email VividFlow — automatisation
+
+## Décision
+Tous les emails VividFlow envoyés par l’agent doivent partir via le compte Himalaya `vividflow` avec l’expéditeur visible `Équipe VividFlow`.
+
+## Signature officielle
+- Source HTML officielle : `/home/hermes/outputs/vividflow-signature-official/signature-vividflow-officielle-snippet.html`
+- Logo officiel utilisé en email : `/home/hermes/workspaces/vividflow-data-os/public/brand/vividflow-logo.jpg`
+- Site affiché : `vividflow.co` avec lien `https://vividflow.co`
+
+## Point d’entrée obligatoire pour les nouveaux emails
+Utiliser le wrapper :
+
+```bash
+/home/hermes/.hermes/profiles/chief_of_staff/scripts/send_vividflow_email.py --to "destinataire@example.com" --subject "Sujet" <<'EOF'
+Bonjour [prénom],
+
+J’espère que tu vas bien.
+...
+EOF
+```
+
+Le script :
+- ajoute automatiquement la signature HTML ;
+- remplace le logo data-uri par une image inline `cid:vividflow-logo` ;
+- attache le logo officiel en inline ;
+- envoie via `himalaya template send --account vividflow`.
+
+## À ne pas faire
+- Ne pas envoyer les emails VividFlow via Gmail API OAuth tant que l’identité du compte n’est pas prouvée agent.
+- Ne pas envoyer sans signature sauf demande explicite.
+- Ne pas utiliser `Hermes VividFlow` comme expéditeur ou signature.

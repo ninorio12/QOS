@@ -262,10 +262,32 @@ Reject:
 - Website summaries disguised as insight.
 - Emotional/generic endings such as “l’avenir de vos clients” when a concrete business lever is available.
 
+## R1 Education Deck Opener Calibration
+
+For VividFlow R1 education decks, the first page is not a normal explanatory slide. It must open the conversation and create an immediate **effet miroir** for a boomer/patron ICP.
+
+Rules:
+- Start from the prospect’s current level of consciousness, not from VividFlow’s architecture. Most people know AI as ChatGPT/Claude-style answering, not as operational capacity.
+- The opener should be a conversation trigger, not a diagram: one strong hook + recognizable AI logos can be stronger than a system visual.
+- Validated page-1 hook direction: “La plupart des gens connaissent l’IA comme un outil de réponse. Pas encore comme une force de travail.”
+- Use logos such as ChatGPT, Claude, Gemini, Perplexity, Microsoft Copilot as mirror elements only. They should be recognizable, visible, and premium; hover can reveal official color + name. Do **not** add usage tooltips or explanatory labels unless explicitly requested.
+- If a true illustration is needed, brief ChatGPT/image generation separately; Claude/HTML should integrate it, not invent complex illustrations itself.
+- Standard is perfection, not “validable”: do not tell Jonathan a VividFlow deck page is validable if it still lacks hook, mature typography, color calibration, motion, or emotional clarity.
+- For 3-mockup requests, require genuinely different directions, not small layout tweaks. Give intention and quality bar before prescribing exact composition.
+
+Anti-patterns:
+- Metaphors that force the concept too early: orchestra, mechanism, cockpit, dashboard, robot.
+- Logos that are tiny/fantomatic/decorative; they must support the mirror effect.
+- Hover content with beginner/generic usage lists (“rédaction · idées · reformulation”) that makes the page feel training-like.
+- Copy that accuses the prospect (“vos équipes…”) or assumes they already understand operational AI/agentique.
+- Calling a page “close enough” when the typography, motion, color, or emotion is merely clean.
+
+Session reference: `references/session-vividflow-r1-opener-calibration.md` captures the R1 page-1 calibration path and prompt rules.
+
 ## Delivery Format
 
 Before showing a draft, include:
-- Status: draft, wireframe, or final-ready.
+- Status: draft, wireframe, or final-ready. Avoid “validable” for Jonathan; say precisely what is still missing before perfection.
 - Score: /50.
 - Weakest axis.
 - What still needs validation.

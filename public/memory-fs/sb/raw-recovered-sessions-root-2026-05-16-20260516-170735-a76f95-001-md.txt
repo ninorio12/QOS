@@ -1,0 +1,353 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260516_170735_a76f95
+source_file: /home/hermes/.hermes/sessions/20260516_170735_a76f95.jsonl
+source_sha256_16: 74d263d5a4296fbf
+date: 2026-05-16
+---
+
+# Recovered session root/20260516_170735_a76f95
+
+
+## user — 2026-05-16T17:15:54.567572
+
+[Jonathan] On a travaillé avec lui un peu et voici ce qu'il m'a dit :
+
+Exactement. Pour brancher Instagram via Hermès, il y a deux côtés du tuyau à construire :
+
+Côté Brvndlab (ce que je fais) : exposer des endpoints HTTP que Hermès peut appeler (lister les créateurs à scraper, recevoir les nouveaux posts, ajuster la cadence). + token d'auth partagé. + ajouter les 2-3 champs schema nécessaires.
+
+Côté Hermès (ce que Hermès fait) : le scraper Instagram lui-même (instaloader Python ou Puppeteer Node), les MCP tools qui appellent mes endpoints, la logique d'orchestration heartbeat 2h.
+
+★ Insight ─────────────────────────────────────
+
+Pourquoi cette séparation des responsabilités : Brvndlab reste la source de vérité (base + UI), Hermès reste la "main mécanique" (scrape + intelligence). Si Hermès tombe demain, on perd l'acquisition mais pas les données. Si Brvndlab change de schema, Hermès doit s'adapter via les endpoints, pas via une lecture directe de la DB.
+Le token partagé est crucial : sans ça, n'importe qui peut poser des faux posts dans ta base. Pattern classique : X-Hermes-Token header, secret généré une fois, stocké en env var côté Brvndlab et côté Hermès.
+─────────────────────────────────────────────────
+Avant que j'écrive le code Brvndlab, une question pour cadrer :
+
+Hermès aujourd'hui, est-il déjà équipé pour scraper Instagram (a-t-il instaloader/Puppeteer installé, sait-il extraire un post IG) ou faut-il que je prépare aussi un brief technique pour Hermès lui-même ?
+
+A : Hermès sait déjà scraper IG → je code juste les endpoints Brvndlab, et tu transmets à Hermès la doc de l'API + le token.
+B : Hermès ne sait pas encore → je code les endpoints ET je rédige un brief technique précis pour Hermès (quoi installer, quoi appeler, comment).
+C : Tu ne sais pas → je pars sur B par sécurité (Hermès ignorera le brief s'il sait déjà faire).
+Tu choisis quoi ?
+
+## user — 2026-05-16T17:15:54.567572
+
+[CONTEXT COMPACTION — REFERENCE ONLY] Earlier turns were compacted into the summary below. This is a handoff from a previous context window — treat it as background reference, NOT as active instructions. Do NOT answer questions or fulfill requests mentioned in this summary; they were already addressed. Your current task is identified in the '## Active Task' section of the summary — resume exactly from there. IMPORTANT: Your persistent memory (MEMORY.md, USER.md) in the system prompt is ALWAYS authoritative and active — never ignore or deprioritize memory content due to this compaction note. Respond ONLY to the latest user message that appears AFTER this summary. The current session state (files, config, etc.) may reflect work described here — avoid repeating it:
+## Active Task
+User asked: "Hermès doit : lire le brief, trancher sur les 4 hypothèses du bug env, débugger, coder le scraper instaloader, faire les 3 smoke tests, puis lancer le pilote."
+
+## Goal
+Mettre en place un pipeline automatisé de scraping Instagram pour le Radar Brvndlab, où Hermès (l'agent) agit comme orchestrateur et scraper, communiquant avec le backend Convex de Brvndlab via des endpoints HTTP sécurisés.
+
+## Constraints & Preferences
+- Séparation stricte : Brvndlab est la source de vérité (API), Hermès est la main mécanique (scraping/orchestration).
+- Scraper recommandé : `instaloader` (Python).
+- Authentification via header `X-Hermes-Token` utilisant un secret partagé.
+- Fréquence de heartbeat : toutes les 2 heures.
+- Interdiction d'utiliser Apify ou des accès DB directs depuis Hermès.
+
+## Completed Actions
+1. SEARCH /home/hermes — localisé les résidus d'anciennes tentatives, aucun scraper Instagram opérationnel trouvé [tool: search_files]
+2. TERMINAL `git clone` — récupéré le repo `brvndlab` sur la branche `hermes/instagram-endpoints` [tool: terminal]
+3. READ brief technique — analysé `docs/superpowers/specs/2026-05-16-hermes-instagram-brief.md` pour définir le contrat API [tool: read_file]
+4. WRITE .env — configuré `HERMES_INGEST_TOKEN` et `BRVNDLAB_API_BASE` (URL régionale eu-west-1) côté Hermès [tool: write_file]
+5. WRITE `instagram_heartbeat.py` — créé le script complet intégrant `instaloader` et la logique d'ingestion [tool: write_file]
+6. TERMINAL `pip install` — configuré l'environnement virtuel avec `instaloader==4.14.2` [tool: terminal]
+7. TEST `smoke` — confirmé le bug `500` côté Convex : "HERMES_INGEST_TOKEN non configuré côté Convex" [tool: terminal]
+8. PATCH `convex/hermesIngest.ts` & `convex/http.ts` — implémenté un contournement du bug `process.env` en déléguant la validation du token à une `internalQuery` (qui a accès aux secrets là où le runtime HTTP échoue) [tool: patch]
+9. TERMINAL `npx convex codegen` — synchronisé les types TypeScript pour inclure les nouveaux endpoints et la validation [tool: terminal]
+
+## Active State
+- Working Directory: `/home/hermes/workspace/brvndlab/brvndlab-app` (repo Brvndlab) et `/home/hermes/workspace/brvndlab-hermes-instagram` (runtime Hermès)
+- Branch: `hermes/instagram-endpoints`
+- Scraper: Opérationnel mais bloqué par le déploiement effectif du fix Convex.
+- Modified Files: `convex/http.ts`, `convex/hermesIngest.ts` (fixes auth), `instagram_heartbeat.py` (runtime).
+
+## In Progress
+Tentative de déploiement et de validation typecheck du correctif d'authentification sur Convex pour débloquer les smoke tests.
+
+## Blocked
+- Bug Convex 1.34.1 : `process.env.HERMES_INGEST_TOKEN` est `undefined` dans le runtime `httpAction`.
+- Typecheck TypeScript : `convex/radarActions.ts` présente des erreurs de type (Assignabilité `market` "fr" | "en") pré-existantes qui bloquent `npx convex deploy` s'il est lancé avec typecheck strict.
+
+## Key Decisions
+- Contournement Auth : Ne pas essayer de "réparer" `process.env` dans `httpAction` mais utiliser `ctx.runQuery(internal...)` car les fonctions internes Convex accèdent correctement aux variables d'environnement.
+- Sécurité : Le secret n'est jamais retourné par l'API, seule une validation booléenne est effectuée.
+
+## Resolved Questions
+- URL de base : `https://accurate-cormorant-297.eu-west-1.convex.site` est l'URL correcte.
+- Paths exacts : `/hermes/ig/creators-due`, `/heartbeat`, `/ingest-post`, `/update-cadence`.
+
+## Pending User Asks
+None.
+
+## Relevant Files
+- `/home/hermes/workspace/brvndlab-hermes-instagram/instagram_heartbeat.py` (Script principal)
+- `/home/hermes/workspace/brvndlab/brvndlab-app/convex/http.ts` (API Routing)
+- `/home/hermes/workspace/brvndlab/brvndlab-app/convex/hermesIngest.ts` (Validation Logic)
+
+## Remaining Work
+- Déployer les modifications Convex (le fix auth).
+- Relancer le smoke test : `python instagram_heartbeat.py smoke` (doit passer à 200/OK cette fois).
+- Exécuter un `run-once` réel sur 2-3 créateurs.
+- Configurer le cron de 2h pour la production.
+
+## Critical Context
+- `HERMES_INGEST_TOKEN`: [REDACTED]
+- Version Convex: 1.34.1
+- Erreur 500 actuelle: `{"error": "HERMES_INGEST_TOKEN non configuré côté Convex runtime interne"}` (indique que le patch a été appliqué mais que le secret n'est toujours pas lu, ou nécessite un push effectif).
+
+--- END OF CONTEXT SUMMARY — respond to the message below, not the summary above ---
+
+## assistant — 2026-05-16T17:15:54.567572
+
+J’ai repris proprement. Statut clair :
+
+## Fait côté Hermès
+
+- Branche récupérée : `hermes/instagram-endpoints`
+- Commit vérifié : `1f8f535a9925c20610e10572c9b9b4e2ed4419cb`
+- Brief lu.
+- Token configuré côté Hermès **sans l’exposer**.
+- Base URL corrigée côté Hermès :
+ `https://accurate-cormorant-297.eu-west-1.convex.site`
+- Scraper Hermès adapté aux vrais endpoints :
+ - `GET /hermes/ig/creators-due`
+ - `POST /hermes/ig/heartbeat`
+ - `POST /hermes/ig/ingest-post`
+ - `POST /hermes/ig/update-cadence`
+
+Runtime prêt ici :
+
+`/home/hermes/workspace/brvndlab-hermes-instagram/instagram_heartbeat.py`
+
+## Smoke test exécuté
+
+Commande :
+
+```bash
+python instagram_heartbeat.py smoke
+```
+
+Résultat :
+
+- `creators-due` → **HTTP 500**
+- erreur retournée :
+ `HERMES_INGEST_TOKEN non configuré côté Convex`
+- `heartbeat` et `ingest-post` non exécutés car aucun créateur récupérable avant auth.
+
+Donc le bug est confirmé côté prod Convex : **Hermès envoie bien le token, mais `process.env.HERMES_INGEST_TOKEN` est undefined dans le runtime HTTP.**
+
+## Diagnostic
+
+Je tranche : la bonne première fix est **helper interne de validation**, pas table `_secrets` tout de suite.
+
+Raison :
+- la doc Convex indique bien `process.env.KEY`;
+- mais le bug semble spécifique au `httpAction` runtime ;
+- donc on teste/contourne en lisant le token depuis une `internalQuery`, puis le HTTP handler reçoit seulement `true/false`.
+
+Si l’internal runtime voit aussi `undefined`, alors seulement on passe au fallback `_secrets`.
+
+## Message à transmettre à Claude Code
+
+> Hermès a confirmé le bug en prod. 
+> Le scraper est prêt et les env côté Hermès sont configurées. 
+> Smoke test sur `GET /hermes/ig/creators-due` avec le bon token + bonne URL régionale retourne :
+> `HTTP 500 {"error":"HERMES_INGEST_TOKEN non configuré côté Convex"}`
+>
+> Donc le token arrive côté Hermès, mais `process.env.HERMES_INGEST_TOKEN` est bien undefined dans `convex/http.ts`.
+>
+> Fix recommandée par Hermès : déplacer la validation du token dans une `internalQuery` côté `convex/hermesIngest.ts`, appelée depuis `http.ts`, qui retourne uniquement `{ ok: boolean, reason }`, jamais le secret.
+>
+> Patch préparé côté Hermès :
+> `/home/hermes/workspace/brvndlab-hermes-instagram/brvndlab-convex-auth-fix.patch`
+>
+> À faire côté Brvndlab :
+> 1. ajouter `_validateHermesToken` dans `convex/hermesIngest.ts`
+> 2. rendre `requireHermesAuth` async dans `convex/http.ts`
+> 3. remplacer les 4 appels `requireHermesAuth(request)` par `await requireHermesAuth(ctx, request)`
+> 4. lancer `npx convex codegen`
+> 5. redeploy Convex prod
+>
+> J’ai vérifié localement après patch : les erreurs `http.ts` disparaissent après `npx convex codegen`. Il reste uniquement 2 erreurs TypeScript préexistantes dans `convex/radarActions.ts` sur `market: string` vs `"fr" | "en"`, hors patch auth.
+
+## Important
+
+Je ne lance pas le cron/pilote tant que ce patch n’est pas déployé, sinon on va juste spammer du 500 toutes les 2h.
+
+## user — 2026-05-16T17:15:54.567572
+
+[Jonathan] Bug auth résolu. Endpoints live et testés. Tu peux lancer le pilote.
+
+Cause : Convex 1.34.1 a un bug qui rend process.env.HERMES_INGEST_TOKEN invisible dans tous ses runtimes (V8 isolate ET Node action), malgré une configuration valide via convex env set. J'ai testé les 3 hypothèses du brief sans succès. La 4ème (fallback table) marche.
+
+Fix appliquée côté Brvndlab :
+
+Nouvelle table Convex appSecrets (privée, jamais exposée client)
+Token stocké dans la row key = "hermes_ingest_token"
+convex/hermesAuth.ts : lecture du token via internalQuery qui accède à la DB
+convex/http.ts : requireHermesAuth appelle cette query au lieu de process.env
+Token initialisé en prod : mathieusystem et matisclouet retournés correctement
+Commit fix sur la branche : hermes/instagram-endpoints (commit 05e9dae1612901c60b863cae162f36c87bb886e5)
+
+Pull avec :
+
+
+git fetch origin
+git checkout hermes/instagram-endpoints
+git pull
+3 smoke tests live validés :
+
+
+1. GET /hermes/ig/creators-due?limit=5 avec bon token
+ → HTTP 200 {"ok":true,"count":2,"creators":[
+ {"creatorId":"n57a7vjp7hcyf52j1d1x7z51dx86c8wq","handle":"mathieusystem",...},
+ {"creatorId":"n57913sx0pxf4q64rnk9h9xr1h86m33n","handle":"matisclouet",...}
+ ]}
+
+2. GET /hermes/ig/creators-due (sans token)
+ → HTTP 401 {"error":"Token absent"}
+
+3. POST /hermes/ig/heartbeat avec body vide
+ → HTTP 400 {"error":"creatorId, hasNew (boolean), nextHeartbeatAt (number) requis"}
+Token et URL inchangés côté Hermès :
+
+HERMES_INGEST_TOKEN=8a58cd3dc8df3fc872abc192f4df91c3d5a17d2882dc3224f88a80399fb464c6
+BRVNDLAB_API_BASE=https://accurate-cormorant-297.eu-west-1.convex.site
+Tu peux lancer le pilote. Démarre par les 2 créateurs IG actifs (mathieusystem, matisclouet) que le système retourne déjà. Le brief technique reste à jour : la cadence adaptative, l'idempotence, l'anti rate-limit n'ont pas bougé.
+
+Si tu rotates le token un jour : npx convex run --prod hermesAuth:setHermesToken '{"token":"NOUVEAU","bootstrapSecret":"..."}' (nécessitera de set BOOTSTRAP_SECRET en env Convex pour la rotation).
+
+## assistant — 2026-05-16T17:15:54.567572
+
+Pilote lancé.
+
+## Ce qui est fait
+
+- Branche Brvndlab pullée sur le fix :
+ `05e9dae1612901c60b863cae162f36c87bb886e5`
+- 3 smoke tests live relancés côté Hermès :
+ - `creators-due` avec token → **200 OK**, 2 créateurs : `mathieusystem`, `matisclouet`
+ - `creators-due` sans token → **401 OK**
+ - `heartbeat` body vide → **400 OK**
+- Script Hermès patché pour éviter qu’Instaloader dorme 30 min dans un cron.
+- Cron créé :
+ - Nom : `Brvndlab Radar Instagram — pilote Hermès`
+ - ID : `62418ce7d7fc`
+ - Cadence : toutes les 2h
+ - Script : `brvndlab_instagram_pilot.sh`
+ - Delivery : topic actuel
+ - Mode : silencieux sauf post ingéré ou erreur non-rate-limit
+
+## Premier run pilote
+
+Les 2 créateurs sont bien récupérés, mais Instagram répond actuellement :
+
+`429 Too Many Requests`
+
+sur :
+- `mathieusystem`
+- `matisclouet`
+
+Donc **auth Brvndlab OK, pipeline Hermès OK, blocage actuel = rate-limit Instagram côté Instaloader/IP/session**.
+
+J’ai laissé le cron actif : il retentera toutes les 2h. Il ne va pas spammer le topic avec les 429 attendus. Si un post est ingéré, il notifiera ici.
+
+## Point d’attention
+
+Si le 429 persiste, il faudra ajouter une vraie session Instagram à Hermès :
+
+- `INSTAGRAM_USERNAME`
+- `INSTAGRAM_SESSION_FILE`
+
+ou passer par un proxy/session propre. Pour l’instant, le pilote est lancé en mode retry propre.
+
+## user — 2026-05-16T17:29:31.210741
+
+[Jonathan] Règle de problème : je veux vraiment tout avoir en temps réel. Là je peux toujours voir que c'est écrit, quelque chose qui a été scanné il y a trois jours. Non, moi je veux tout ça en temps réel là pour Instagram. Parce qu'on est d'accord que, quand je te fais scanner un compte par Instagram, si tu le scrapes, ça te coûte rien. Je perds pas d'argent?
+
+## assistant — 2026-05-16T17:29:31.210741
+
+Oui, **en coût direct**, scraper Instagram ne te coûte quasiment rien :
+
+- pas de coût API Instagram ;
+- pas de coût SearchAPI/kome/Apify ;
+- pas de coût LLM si on fait juste la collecte brute ;
+- seulement infra serveur + bande passante, donc marginal.
+
+Mais ce n’est pas “gratuit” au sens opérationnel :
+
+- Instagram rate-limit vite les IP non loggées ;
+- il faut une session IG propre ou plusieurs sessions ;
+- parfois proxy résidentiel/datacenter propre si on veut du quasi temps réel fiable ;
+- risque de blocage temporaire si on scrape trop agressif.
+
+Donc la vraie règle : **ce n’est pas l’argent qui limite, c’est la fiabilité/rate-limit Instagram.**
+
+## Pour ton besoin “temps réel”
+
+Tu as raison : afficher “scanné il y a 3 jours” dans Radar, ça tue la valeur.
+
+On doit changer la logique :
+
+1. **Scan à l’ouverture**
+ - Quand tu ouvres un compte IG dans Radar, Hermès lance un refresh immédiat.
+ - L’UI affiche : `Scan en cours…`
+ - Dès que c’est fini : posts mis à jour.
+
+2. **Scan manuel prioritaire**
+ - Bouton : `Scanner maintenant`
+ - Ça met le compte en priorité dans la queue Hermès.
+
+3. **Freshness stricte**
+ - Si un compte a été scanné il y a plus de X heures, on ne le présente plus comme “à jour”.
+ - Label clair :
+ - `À jour`
+ - `Scan en cours`
+ - `Données anciennes`
+ - `Instagram limite le scan`
+
+4. **Background polling**
+ - Les comptes actifs : toutes les 1-2h.
+ - Les comptes moins actifs : cadence adaptative.
+ - Mais dès qu’un humain demande le compte : priorité immédiate.
+
+5. **Pas de faux temps réel**
+ - On ne promet pas “live seconde par seconde”.
+ - On promet : **actualisation à la demande + fraîcheur visible**.
+
+## Décision technique
+
+Le cron toutes les 2h est bien pour le fond, mais insuffisant pour l’UX.
+
+Il faut ajouter un endpoint côté Brvndlab du type :
+
+`POST /hermes/ig/request-scan`
+
+Payload :
+```json
+{
+ "creatorId": "...",
+ "priority": "user_requested"
+}
+```
+
+Puis Hermès traite cette queue en priorité.
+
+## Réponse courte à ta question
+
+Oui : **si on scrape nous-mêmes, tu ne perds pas d’argent à chaque scan.**
+
+Mais si tu veux du “temps réel produit”, il faut accepter soit :
+- une session IG fiable côté Hermès ;
+- soit des proxies si Instagram bloque ;
+- soit une logique “scan à la demande” plutôt qu’un cron passif.
+
+Ma reco : **on garde le cron 2h, mais on ajoute maintenant le scan à la demande prioritaire.** C’est ça qui donnera l’impression de temps réel dans Brvndlab.

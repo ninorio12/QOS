@@ -1,0 +1,19 @@
+import { cronJobs } from "convex/server"
+import { api, internal } from "./_generated/api"
+
+const crons = cronJobs()
+
+// Synchronisation horaire des insights Meta Ads (no-op si aucun compte connecté).
+crons.interval("meta insights sync", { hours: 1 }, api.mediaBuyer.syncInsights, {})
+
+// Synchronisation horaire des créas Meta (visuels + KPI) → alimente le board live
+// de décision (media_buyer_board) et la galerie de créas. No-op si non connecté.
+crons.interval("meta creatives sync", { hours: 1 }, api.metaAds.syncCreatives, { datePreset: "last_14d" })
+
+// Snapshot quotidien du Score Santé Business (cockpit Prospection) → Évolution 7j/30j.
+crons.daily("prospection health snapshot", { hourUTC: 2, minuteUTC: 0 }, internal.prospectionCockpit.snapshotHealth, {})
+
+// Sync iClosed : les kickoffs réservés par les clients → onboarding (date/heure) + carte « Kickoff booké ».
+crons.interval("iclosed kickoff sync", { minutes: 15 }, api.iclosed.syncKickoffs, {})
+
+export default crons

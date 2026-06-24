@@ -163,6 +163,12 @@ For Jonathan:
 
 When Jonathan/Thomas gives a Framer/Vercel reference site and wants a fast visual test, use `references/framer-reference-to-prototype-workflow.md`. Build a small visual prototype first, then QA contrast/hero/CTA before explaining.
 
+### Funnel-hack / faithful thank-you page clone
+
+When Jonathan/Thomas gives a live funnel or Vercel URL and asks for a faithful VividFlow copy, use `references/funnel-hack-vercel-clone-workflow.md`: fetch the live HTML/CSS/JS assets, preserve visual parity, adapt brand/copy with Claude Code if useful, grep for source-brand/contact leakage, build, deploy, and verify the live URL. Keep embeds as placeholders unless a real replacement is provided.
+
+When the task is to recover or patch a VividFlow confirmation/thank-you/funnel page already present on the VPS, also use `references/vividflow-static-funnel-route-audit.md`: search exact visible copy in `/home/hermes/workspaces`, inspect `package.json`/`index.html`/`.vercel`, and check whether CTA links still point to `.html` files instead of the intended pretty routes.
+
 For the current VividFlow website direction, also use `references/vividflow-generalist-website-calibration.md` before writing copy or briefing design. It captures the validated generalist B2B positioning, hero, structure, agents, CTA rules, and Jonathan’s step-validation workflow.
 
 For VividFlow website work inspired by Naiom/AI-agent agencies, also read `references/naiom-vividflow-website-benchmark.md`: VividFlow is now generalist B2B automation/AI-agent infrastructure for PME, not immobilier-only.
@@ -189,6 +195,7 @@ Rules:
 - The page reveals one concrete lever and keeps 2 points for the call; it is a projection, not a full sales pitch.
 - If Jonathan is confused by a slide, reduce to one job for the slide and give a decisive keep/remove verdict.
 - If a system-map slide is directionally right but too dense, prefer progressive motion/reveal over adding more labels or rebuilding the concept.
+- **P5 icons are fixed in the template** — do NOT set `p5icon1`–`p5icon6` fields in content JSON. The `data-f="p5iconX"` attributes have been removed from `templates/p5.html`; any values in content JSON are silently ignored. The reference `references/vividflow-outbound-p5-icon-config.md` documents the deprecated behaviour and the 6 fixed default icons (phone, document, chat, checklist, checklist, network).
 
 ### Vercel Mockup Board
 Must include:
@@ -217,6 +224,20 @@ Quality gate:
 - not just a pretty dashboard
 - modules communicate or clearly show how they will
 - human-in-the-loop boundary visible for sensitive actions
+
+### Faithful Data OS / existing-product mockup
+
+When Thomas/Jonathan asks for a mockup “fidèle à 100%”, do **not** invent a prettier static version. Treat the current product/codebase as source-of-truth:
+- locate the live/current repo and entry files before designing anything
+- build or run the real app if possible
+- screenshot the current UI and compare the delivered artifact against it
+- if deploying a mockup URL, prefer deploying the actual app/project or a direct faithful extraction over a fresh HTML approximation
+- after Vercel deploy, verify both HTTP content and a production screenshot
+
+Quality gate:
+- local and production screenshots must show the same layout family
+- no page blanche, auth wall, exploded layout, unreadable contrast, or clipped critical controls
+- if the Vercel CLI times out after printing a URL, inspect/check the deployment URL before assuming failure
 
 ### AGaaS / CRM Screen
 Must include:

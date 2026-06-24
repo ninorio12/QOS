@@ -1,0 +1,233 @@
+---
+type: raw-session
+status: recovered
+updated: 2026-06-16
+profile: root
+session_id: 20260520_082018_6da8dc30
+source_file: /home/hermes/.hermes/sessions/20260520_082018_6da8dc30.jsonl
+source_sha256_16: e7ea5342de57428a
+date: 2026-05-20
+---
+
+# Recovered session root/20260520_082018_6da8dc30
+
+
+## user — 2026-05-20T08:27:03.090910
+
+Stop arrête tout
+
+## assistant — 2026-05-20T08:27:03.090910
+
+Ok, j’arrête.
+
+Rien d’autre ne sera lancé.
+
+## user — 2026-05-20T08:48:02.783453
+
+Vas lui dire que je suis connecté en ligne
+
+## assistant — 2026-05-20T08:48:02.783453
+
+C’est envoyé à Thomas.
+
+## assistant — 2026-05-20T08:56:12.385067
+
+Compte rendu — VPS Hostinger / CPU
+
+On a regardé la saturation CPU du VPS.
+
+Constat :
+- Le VPS actuel est sur 2 vCPU.
+- Hostinger indique une limitation CPU active.
+- La RAM n’est pas le problème : elle reste globalement OK.
+- Le disque et la bande passante ne semblent pas être les goulots d’étranglement.
+- Le problème principal est bien le CPU.
+
+Process qui consomment :
+- `next-server` consomme fortement : logique, Thomas est en train de développer le SaaS dessus.
+- Chrome / Playwright headless consomme aussi pas mal : probablement lié à Hermes / MCP / automatisation navigateur.
+- Hermes gateway + agents + Next dev + builds + Playwright sur 2 vCPU, c’est trop serré.
+
+Conclusion :
+- Ce n’est pas forcément un bug : c’est surtout que le VPS fait à la fois serveur de dev SaaS + infra Hermes/agents + navigateur headless.
+- 2 vCPU est trop faible pour cet usage.
+
+Reco :
+- Minimum : upgrade Hostinger vers KVM 4.
+- Confort : KVM 8 si le budget est acceptable.
+- Ne pas juste cliquer sur “Supprimer les limitations” sans upgrade/nettoyage, sinon Hostinger risque de relimiter si la charge continue.
+
+Ordre conseillé :
+1. Upgrade VPS en KVM 4 ou KVM 8.
+2. Redémarrer si Hostinger le demande.
+3. Vérifier en SSH avec `nproc`, `free -h`, `uptime`.
+4. Ensuite seulement supprimer les limitations Hostinger.
+
+Mon avis : pour VividFlow/Hermes multi-agents + dev SaaS sur le même VPS, KVM 8 est le choix propre si le prix est acceptable.
+
+## user — 2026-05-20T10:45:51.279671
+
+[The user sent a voice message~ Here's what they said: "Salut, j'ai un appel normalement dans une heure au 45 000, je sais plus, aux alentours des 11 heures. Tu me l'as bloqué avec passine l'osseau dans mon calendrier. J'aimerais que tu lui envoie un mail et que tu lui dis que probablement, on va devoir reporter de 45 minutes même une heure six ni à deux mains, parce que j'ai pas mal de tâches à gérer avec mon équipe."]
+
+## assistant — 2026-05-20T10:45:51.279671
+
+Je n’ai pas pu l’envoyer directement : l’accès Google/Gmail est expiré ou révoqué, donc Calendar + Gmail bloquent.
+
+J’ai préparé le mail prêt à envoyer ici : 
+MEDIA:/tmp/report_appel_pacy.eml
+
+Texte :
+> Bonjour, 
+> Jonathan te prévient que l’appel risque de devoir être reporté de 45 minutes à 1 heure, voire à demain si nécessaire. 
+> Il a pas mal de tâches à gérer avec son équipe. 
+> Merci pour ta compréhension.
+
+Pour que je puisse envoyer les prochains mails moi-même, il faudra reconnecter Google/Gmail.
+
+## user — 2026-05-20T10:48:29.956064
+
+[Replying to: "Compte rendu — VPS Hostinger / CPU
+
+On a regardé la saturation CPU du VPS.
+
+Constat :
+- Le VPS actuel est sur 2 vCPU.
+- Hostinger indique une limitation CPU active.
+- La RAM n’est pas le problème : elle reste globalement OK.
+- Le disque et la bande passante ne semblent pas être les goulots d’étranglement.
+- Le problème principal est bien le CPU.
+
+Process qui consomment :
+- next-server consomme fortement : logique, Thomas est en train de développer le SaaS dessus.
+- Chrome / Playwright headless c"]
+
+[The user sent a voice message~ Here's what they said: "Qu'est-ce qui s'est passé ? Comment ça se fait que tu ne peux plus envoyer d'y mail ? Est-ce que j'ai fait une action qui a à provoquer ça ?"]
+
+## assistant — 2026-05-20T10:48:29.956064
+
+Non, a priori tu n’as rien fait de “grave”.
+
+Ce qui s’est passé :
+- Le token Google existe encore, mais il est expiré.
+- Surtout : Google renvoie `invalid_grant: Token has been expired or revoked`.
+- Ça veut dire que le **refresh token n’est plus accepté** par Google, donc je ne peux plus rafraîchir l’accès automatiquement.
+- Résultat : plus d’accès Calendar/Gmail tant qu’on ne reconnecte pas Google.
+
+Causes possibles :
+- Tu as retiré l’accès dans ton compte Google / sécurité.
+- Google a invalidé l’autorisation après un changement de sécurité, mot de passe, consentement OAuth, ou app en mode test.
+- L’OAuth utilisé par Hermes a été réinitialisé / remplacé.
+- Ou le token sauvegardé a été régénéré partiellement autour de 10:02, puis il a expiré sans refresh valide.
+
+Ce n’est pas lié au VPS CPU directement. Le VPS peut être lent, mais ici l’erreur est claire : **auth Google révoquée/expirée**, pas problème machine.
+
+Action à faire :
+- On reconnecte Google Workspace une fois.
+- Après ça je pourrai de nouveau lire ton agenda et envoyer les mails.
+
+Si tu veux, envoie-moi “reconnecte Google” et je te donne le lien OAuth à ouvrir.
+
+## user — 2026-05-20T10:51:38.855513
+
+Règle ce problème tout seul
+
+## assistant — 2026-05-20T10:51:38.855513
+
+J’ai fait la partie que je peux faire seul : j’ai relancé le flux OAuth Google.
+
+Blocage : Google impose une validation humaine dans ton compte. Je ne peux pas contourner ça sans tes identifiants, et je ne veux pas les avoir.
+
+Ouvre ce lien, accepte, puis copie-colle ici **l’URL complète** affichée après la redirection — même si la page affiche une erreur localhost :
+
+https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=498701455586-29qahn2tcn6hhuge28a3q0g55k06qrv8.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A1&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.send+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.modify+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcalendar+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcontacts.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fspreadsheets+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdocuments.readonly&state=mnpvcIYNPYZj4M3RfKTst5xpW0t9fI&code_challenge=I4LChMAh-dUx9rdg0eKx1CQZ4Fy2KCLjWeSR9tF85pU&code_challenge_method=S256&access_type=offline&prompt=consent
+
+Dès que tu me renvoies l’URL, je termine la reconnexion et je vérifie Gmail + Calendar.
+
+## user — 2026-05-20T10:53:03.815113
+
+Il se peut que la page Web à l'adresse http://localhost:1/?state=mnpvcIYNPYZj4M3RfKTst5xpW0t9fI&iss=https://accounts.google.com&code=4/0AeoWuM93f6mboGfzj3ObCi0WYuB4SN3oODsCCORppzeM_uQjSxDrTQbWJIflRyWgJ6Fz4A&scope=https://www.googleapis.com/auth/gmail.readonly%20https://www.googleapis.com/auth/gmail.send%20https://www.googleapis.com/auth/gmail.modify%20https://www.googleapis.com/auth/drive.readonly%20https://www.googleapis.com/auth/contacts.readonly%20https://www.googleapis.com/auth/documents.readonly%20https://www.googleapis.com/auth/spreadsheets%20https://www.googleapis.com/auth/calendar soit temporairement inaccessible ou qu'elle ait été déplacée de façon permanente à une autre adresse Web.
+
+## assistant — 2026-05-20T10:53:03.815113
+
+Réglé.
+
+- Google reconnecté.
+- Token validé.
+- Calendar fonctionne à nouveau.
+- J’ai vérifié : l’appel “Appel de démo avec Maman” est bien visible à **11h30–12h30**.
+
+Je peux maintenant reprendre Gmail/Calendar.
+
+## user — 2026-05-20T11:25:59.888996
+
+j'ai créer une nouveau bot HTTP API:
+8634018054:AAGNjO9V63JOV8eKz7tZ9M52NDlkjfFjLaQ
+
+## assistant — 2026-05-20T11:25:59.888996
+
+C’est branché.
+
+- Bot détecté : **Atlas_dev**
+- Username : `@Atlass_dev_bot`
+- Profil Hermes créé : `atlas_dev`
+- Gateway dédiée lancée : `hermes-gateway-atlas_dev`
+- Statut : **actif**
+- Telegram connecté : **OK**
+- Utilisateurs autorisés : toi + Thomas
+
+Point important : le bot ne peut pas t’envoyer de message tant que tu ne l’as pas démarré côté Telegram.
+
+Fais juste :
+1. Ouvre `@Atlass_dev_bot`
+2. Clique **Start**
+3. Envoie un message test genre “ping”
+
+Après ça, Atlas répondra directement comme bot Dev. 
+Et garde ce token privé — si tu l’as partagé ailleurs, il faudra le régénérer via BotFather.
+
+## user — 2026-05-20T11:36:32.142613
+
+voila j'ai fais 2 autres bot, connecte les a hermes aussi
+Done! Congratulations on your new bot. You will find it at t.me/Vision_architekt_bot. You can now add a description, about section and profile picture for your bot, see /help for a list of commands. By the way, when you've finished creating your cool bot, ping our Bot Support if you want a better username for it. Just make sure the bot is fully operational before you do this.
+
+Use this token to access the HTTP API:
+8996887218:AAF2IstxVo9aGy8uy0CotCWBRiWhFdR9Xuc
+Keep your token secure and store it safely, it can be used by anyone to control your bot.
+
+For a description of the Bot API, see this page: https://core.telegram.org/bots/api
+Done! Congratulations on your new bot. You will find it at t.me/KB_OPS_bot. You can now add a description, about section and profile picture for your bot, see /help for a list of commands. By the way, when you've finished creating your cool bot, ping our Bot Support if you want a better username for it. Just make sure the bot is fully operational before you do this.
+
+Use this token to access the HTTP API:
+8822965217:AAGGW4LpigLGTv4QdAvAUdxo62wxeSTCpM4
+Keep your token secure and store it safely, it can be used by anyone to control your bot.
+
+For a description of the Bot API, see this page: https://core.telegram.org/bots/api
+
+## assistant — 2026-05-20T11:36:32.142613
+
+C’est fait.
+
+Bots connectés à Hermes :
+
+- **Vision Architect**
+ - Bot : `@Vision_architekt_bot`
+ - Profil Hermes : `vision_architekt`
+ - Service : `hermes-gateway-vision_architekt.service`
+ - Statut : **actif**
+ - Telegram : **connecté**
+
+- **KB OPS**
+ - Bot : `@KB_OPS_bot`
+ - Profil Hermes : `kb_ops`
+ - Service : `hermes-gateway-kb_ops.service`
+ - Statut : **actif**
+ - Telegram : **connecté**
+
+Rappel : comme pour Atlas, Telegram ne permet pas au bot d’envoyer le premier DM. 
+Il faut ouvrir chaque bot et cliquer **Start** :
+
+- `@Vision_architekt_bot`
+- `@KB_OPS_bot`
+
+Ensuite envoie juste “ping” dans chaque bot pour tester. 
+Les 3 services sont actifs : Atlas, Vision Architekt, KB OPS.
