@@ -22,7 +22,7 @@ export async function PATCH(req: NextRequest) {
   ]
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
   for (const key of allowed) {
-    if (key in body) update[key] = body[key]
+    if (key in body && body[key] !== null) update[key] = body[key]
   }
 
   const { data, error } = await supabase

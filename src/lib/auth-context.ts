@@ -21,24 +21,17 @@ export type AuthContext = {
 export async function getAuthContext(): Promise<AuthContext | null> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
-  // Dev bypass: pas de session mais env vars réels → superadmin automatique
   if (!user) {
-    const ghlKey = process.env.GHL_API_KEY ?? ''
-    const ghlLoc = process.env.GHL_LOCATION_ID ?? ''
-    if (ghlKey && ghlLoc && ghlKey !== 'placeholder_ghl_key') {
-      return {
-        userId:        'dev-bypass',
-        orgId:         null,
-        role:          'superadmin',
-        ghlApiKey:     ghlKey,
-        ghlLocationId: ghlLoc,
-        isSuperAdmin:  true,
-      }
+    if (process.env.DEMO_MODE !== 'true') return null
+    return {
+      userId:        'demo',
+      orgId:         null,
+      role:          'superadmin' as UserRole,
+      ghlApiKey:     '',
+      ghlLocationId: '',
+      isSuperAdmin:  true,
     }
   }
-
-  if (!user) return null
 
   const admin = createAdminClient()
   const { data: profile } = await admin

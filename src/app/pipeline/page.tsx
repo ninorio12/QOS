@@ -1,121 +1,98 @@
 import Link from 'next/link'
 import { GitMerge, Settings } from 'lucide-react'
 import KanbanBoard from '@/components/pipeline/KanbanBoard'
-import { getOpportunities, getPipelines, getUsers } from '@/lib/ghl'
+import { getPipelines, getOpportunities, getUsers } from '@/lib/ghl'
 import { stageColor, type GHLPipelineData, type Opportunity } from '@/components/pipeline/types'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
-// ─── Empty state ──────────────────────────────────────────────
-function PipelineEmpty({ error }: { error?: string }) {
-  return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="px-6 pt-6 pb-4 flex-shrink-0">
-        <h1 className="text-3xl font-black text-soren-text leading-tight">Pipeline</h1>
-        <p className="text-sm text-soren-muted mt-1">Aucun pipeline disponible</p>
-      </div>
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center max-w-[300px]">
-          <div className="w-12 h-12 rounded-2xl bg-soren-card border border-soren-border flex items-center justify-center mx-auto mb-4 shadow-sm">
-            <GitMerge size={20} className="text-soren-subtle" />
-          </div>
-          <p className="text-sm font-semibold text-soren-text mb-1.5">Connexion CRM échouée</p>
-          <p className="text-xs text-soren-subtle leading-relaxed mb-5">
-            Vérifiez la connexion dans Paramètres → Intégrations
-          </p>
-          <Link
-            href="/parametres"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-soren-text bg-soren-card border border-soren-border hover:bg-soren-elevated px-4 py-2 rounded-full transition-colors shadow-sm"
-          >
-            <Settings size={12} /> Paramètres → Intégrations
-          </Link>
-          {error && (
-            <pre className="text-[10px] text-[#EF4444] mt-4 font-mono break-all whitespace-pre-wrap leading-relaxed bg-[#FEF2F2] rounded-xl px-3 py-2 text-left">
-              {error}
-            </pre>
-          )}
-        </div>
-      </div>
-    </div>
-  )
+// ─── Local pipeline (fallback when GHL is unavailable) ────────
+const LOCAL_PIPELINE: GHLPipelineData = {
+  id: 'local-pipeline-01',
+  name: 'Pipeline Commercial',
+  stages: [
+    { id: 'stage-nouveau',     name: 'Nouveau lead',  color: stageColor('nouveau'),  position: 0 },
+    { id: 'stage-qualif',      name: 'Qualification', color: stageColor('qualif'),   position: 1 },
+    { id: 'stage-proposition', name: 'Proposition',   color: stageColor('devis'),    position: 2 },
+    { id: 'stage-negociation', name: 'Négociation',   color: stageColor('rdv'),      position: 3 },
+    { id: 'stage-gagne',       name: 'Gagné',         color: stageColor('gagné'),    position: 4 },
+  ],
+}
+
+async function getLocalOpportunities(): Promise<Opportunity[]> {
+  const admin = createAdminClient()
+  const { data } = await admin.from('local_opportunities').select('*').order('created_at', { ascending: false })
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    id:         r.id as string,
+    name:       r.name as string,
+    company:    (r.company as string) ?? '',
+    value:      Number(r.value ?? 0),
+    source:     (r.source as string) ?? '',
+    createdAt:  (r.created_at as string).split('T')[0],
+    initials:   ((r.name as string).trim().split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase()),
+    stageId:    r.stage_id as string,
+    pipelineId: 'local-pipeline-01',
+    email:      (r.email as string) ?? '',
+    phone:      (r.phone as string) ?? '',
+    contactId:  '',
+    tags:       [],
+    status:     'open' as const,
+  }))
 }
 
 // ─── Page ─────────────────────────────────────────────────────
 export default async function PipelinePage() {
   let pipelines:     GHLPipelineData[] = []
   let opportunities: Opportunity[]     = []
-  let fetchError:    string | null     = null
 
+  // Try GHL
   try {
     const [rawPipelines, rawOpps, rawUsers] = await Promise.all([
       getPipelines(),
       getOpportunities(100),
       getUsers().catch(() => []),
     ])
-
     const userInitialsMap = new Map(rawUsers.map(u => {
       const name = u.name ?? `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim()
       const ini  = name.trim().split(' ').map(w => w[0] ?? '').join('').slice(0, 2).toUpperCase()
       return [u.id, ini || '?']
     }))
-
     pipelines = rawPipelines.map(p => ({
-      id:     p.id,
-      name:   p.name,
-      stages: p.stages
-        .sort((a, b) => a.position - b.position)
-        .map(s => {
-          const cleanName = s.name.replace(/^[^\w\d\s'"«»-]+\s*/, '').trim()
-          return {
-            id:       s.id,
-            name:     cleanName,
-            color:    stageColor(s.name),
-            position: s.position,
-          }
-        }),
+      id: p.id, name: p.name,
+      stages: p.stages.sort((a, b) => a.position - b.position).map(s => ({
+        id: s.id,
+        name: s.name.replace(/^[^\w\d\s'"«»-]+\s*/, '').trim(),
+        color: stageColor(s.name),
+        position: s.position,
+      })),
     }))
-
     opportunities = rawOpps.map(opp => {
       const contactName = opp.contact?.name ?? opp.name
       const initials    = opp.assignedTo
         ? (userInitialsMap.get(opp.assignedTo) ?? '?')
         : contactName.trim().split(' ').map(w => w[0] ?? '').join('').slice(0, 2).toUpperCase()
-      const rawSource   = (opp as Record<string, unknown> & { attributions?: { utmSessionSource?: string }[] })
+      const rawSource = (opp as Record<string, unknown> & { attributions?: { utmSessionSource?: string }[] })
         .attributions?.[0]?.utmSessionSource
       return {
-        id:         opp.id,
-        name:       contactName,
+        id: opp.id, name: contactName,
         company:    ((opp.contact as Record<string, unknown> | null)?.companyName as string | undefined) ?? '',
         value:      opp.monetaryValue ?? 0,
         source:     rawSource && rawSource !== 'CRM UI' ? rawSource : '',
         createdAt:  opp.createdAt.split('T')[0],
-        initials,
-        stageId:    opp.pipelineStageId,
-        pipelineId: opp.pipelineId,
-        email:      (opp.contact?.email ?? ''),
-        phone:      (opp.contact?.phone ?? ''),
-        contactId:  (opp.contact?.id ?? ''),
+        initials, stageId: opp.pipelineStageId, pipelineId: opp.pipelineId,
+        email:      opp.contact?.email ?? '', phone: opp.contact?.phone ?? '',
+        contactId:  opp.contact?.id ?? '',
         tags:       (opp.contact?.tags ?? []).filter(t => !['ia', 'kai', 'soren', 'mia', 'auto', 'ia active', 'auto ia active'].includes(t.toLowerCase())),
         status:     'open' as const,
       }
     })
-  } catch (err) {
-    fetchError = err instanceof Error ? err.message : String(err)
-  }
+  } catch { /* GHL unavailable */ }
 
-  // GHL non connecté → pipeline vide mais fonctionnel (pas d'erreur)
+  // Fallback to local Supabase data
   if (pipelines.length === 0) {
-    pipelines = [{
-      id: 'default',
-      name: 'Pipeline principal',
-      stages: [
-        { id: 'nouveau',      name: 'Nouveau lead',    color: '#6366F1', position: 0 },
-        { id: 'qualification', name: 'Qualification',  color: '#F59E0B', position: 1 },
-        { id: 'proposition',  name: 'Proposition',     color: '#3B82F6', position: 2 },
-        { id: 'negociation',  name: 'Négociation',     color: '#8B5CF6', position: 3 },
-        { id: 'gagne',        name: 'Gagné',           color: '#10B981', position: 4 },
-      ],
-    }]
+    pipelines = [LOCAL_PIPELINE]
+    opportunities = await getLocalOpportunities()
   }
 
   return (

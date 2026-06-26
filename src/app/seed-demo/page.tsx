@@ -33,7 +33,6 @@ const SOREN_SETTINGS = {
   tva_intra:   'FR 25 500 123 321',
   assurance:   'AssureurPro — 15, rue des assurances 34000 Montpellier — N° 450123',
   brand_color: '#d28e46',
-  logo_svg:    null,
 }
 
 // ─── Devis Jean Dupont ────────────────────────────────────────────────────────

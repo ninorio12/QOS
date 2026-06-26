@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getAuthContext } from '@/lib/auth-context'
 import { getDashboardData } from '@/lib/dashboard'
+import { getLocalDashboardData } from '@/lib/dashboard-local'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,12 +12,13 @@ export async function GET() {
   try {
     const creds = { apiKey: ctx.ghlApiKey, locationId: ctx.ghlLocationId }
     const data = await getDashboardData(creds)
-    return NextResponse.json(data)
-  } catch (err) {
-    console.error('[Dashboard API]', err)
-    return NextResponse.json(
-      { metrics: { totalContacts: 0, pipelineValue: 0, activeDeals: 0, wonDeals: 0, totalDeals: 0 }, funnel: [], recentOpps: [], featuredContact: null, weeklyBreakdown: [], monthlyPipeline: [] },
-      { status: 500 }
-    )
-  }
+    // GHL returned useful data
+    if (data.metrics.totalDeals > 0 || data.metrics.totalContacts > 0) {
+      return NextResponse.json(data)
+    }
+  } catch { /* GHL unavailable — fall through */ }
+
+  // Fallback: local Supabase data
+  const local = await getLocalDashboardData()
+  return NextResponse.json(local)
 }

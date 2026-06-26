@@ -5,6 +5,19 @@ import { stageColor, type GHLPipelineData } from '@/components/pipeline/types'
 
 export const dynamic = 'force-dynamic'
 
+// Pipeline local fallback (used when GHL is unavailable)
+const LOCAL_PIPELINE: GHLPipelineData = {
+  id: 'local-pipeline-01',
+  name: 'Pipeline Commercial',
+  stages: [
+    { id: 'stage-nouveau',      name: 'Nouveau lead',   color: stageColor('nouveau'),      position: 0 },
+    { id: 'stage-qualif',       name: 'Qualification',  color: stageColor('qualif'),        position: 1 },
+    { id: 'stage-proposition',  name: 'Proposition',    color: stageColor('devis'),         position: 2 },
+    { id: 'stage-negociation',  name: 'Négociation',    color: stageColor('rdv'),           position: 3 },
+    { id: 'stage-gagne',        name: 'Gagné',          color: stageColor('gagné'),         position: 4 },
+  ],
+}
+
 export async function GET() {
   const ctx = await getAuthContext()
   if (!ctx) return NextResponse.json({ pipelines: [] }, { status: 401 })
@@ -23,8 +36,10 @@ export async function GET() {
           position: s.position,
         })),
     }))
-    return NextResponse.json({ pipelines })
-  } catch (err) {
-    return NextResponse.json({ pipelines: [], error: String(err) }, { status: 500 })
+    if (pipelines.length > 0) return NextResponse.json({ pipelines })
+  } catch {
+    // GHL unavailable — fall through to local pipeline
   }
+
+  return NextResponse.json({ pipelines: [LOCAL_PIPELINE] })
 }

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'crypto'
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -30,13 +31,17 @@ function buildCompany(settings: Record<string, unknown> | null, logoBase64: stri
   }
 }
 
-const AGENT_SECRET = process.env.HERMES_SHARED_SECRET ?? 'hermes-qos-ec4888da90d34e9b'
+const AGENT_SECRET = process.env.HERMES_SHARED_SECRET
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const body = await req.json().catch(() => ({})) as { channel?: string }
   const channel = body.channel === 'email' ? 'email' : 'whatsapp'
 
-  const isAgent = req.headers.get('authorization') === `Bearer ${AGENT_SECRET}`
+  const auth = req.headers.get('authorization') ?? ''
+  const presented = auth.startsWith('Bearer ') ? auth.slice(7) : ''
+  const isAgent = !!AGENT_SECRET &&
+    presented.length === AGENT_SECRET.length &&
+    timingSafeEqual(Buffer.from(presented), Buffer.from(AGENT_SECRET))
   const supabase = isAgent ? createAdminClient() : await createClient()
 
   const [{ data: devis }, { data: settings }] = await Promise.all([

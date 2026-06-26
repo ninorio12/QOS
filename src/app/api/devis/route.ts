@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server'
 import { getAuthContext } from '@/lib/auth-context'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
-async function generateNumero(supabase: Awaited<ReturnType<typeof createClient>>, year: number): Promise<string> {
+async function generateNumero(supabase: ReturnType<typeof createAdminClient>, year: number): Promise<string> {
   const { data } = await supabase
     .from('devis')
     .select('numero')
@@ -19,7 +19,7 @@ export async function GET() {
   const ctx = await getAuthContext()
   if (!ctx) return Response.json({ error: 'Non autorisé' }, { status: 401 })
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('devis')
     .select('*')
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   if (!ctx) return Response.json({ error: 'Non autorisé' }, { status: 401 })
 
   const body = await req.json()
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const year = new Date().getFullYear()
 
   for (let attempt = 0; attempt < 5; attempt++) {

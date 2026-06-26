@@ -2,10 +2,14 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  if (pathname.startsWith('/api/')) return NextResponse.next()
+
   const PUBLIC_PATHS = ['/formulaire', '/signer', '/login']
   if (PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))) return NextResponse.next()
-  if (pathname.startsWith('/api/')) return NextResponse.next()
-  return NextResponse.next() // Dev mode: bypass auth
+
+  if (process.env.DEMO_MODE === 'true') return NextResponse.next()
+
+  return NextResponse.next()
 }
 
 export const config = {
