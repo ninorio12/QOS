@@ -163,7 +163,7 @@ function ColFilterDropdown({ values, active, onSelect, onClose }: {
   )
 }
 
-const ALL_COLS = ['Téléphone', 'E-mail', "Nom de l'entreprise", 'Rôle', 'Niche', 'Source', 'Statut', 'Étape', 'Début', 'Fin', 'Durée', 'Paiement', 'Mensualités', 'Montant total', 'Montant/mois', 'Échéance', 'RDV', 'Objections', 'Canton', 'Créé'] as const
+const ALL_COLS = ['Téléphone', 'E-mail', "Nom de l'entreprise", 'Source', 'Statut', 'Étape', 'Début', 'Fin', 'Durée', 'Paiement', 'Mensualités', 'Montant total', 'Montant/mois', 'Échéance', 'RDV', 'Objections', 'Canton', 'Créé'] as const
 // Libellé d'affichage des colonnes (la clé interne reste 'Canton' pour ne rien casser).
 const COL_LABELS: Record<string, string> = {
   Canton: 'Canton / Région',
@@ -241,12 +241,6 @@ function ContactRow({
       </td>}
       {v("Nom de l'entreprise") && <td className="px-3 py-2 min-w-[160px]">
         {contact.companyName ? <span className="text-[12px] text-[#374151] truncate">{contact.companyName}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
-      </td>}
-      {v('Rôle') && <td className="px-3 py-2 min-w-[130px]">
-        {contact.role ? <span className="text-[12px] text-[#374151] truncate">{contact.role}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
-      </td>}
-      {v('Niche') && <td className="px-3 py-2 min-w-[140px]">
-        {contact.niche ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#F3F4F6] text-[#6B7280] dark:bg-white/10 dark:text-zinc-300 whitespace-nowrap">{contact.niche}</span> : <span className="text-sm text-[#D1D5DB]">—</span>}
       </td>}
       {v('Source') && <td className="px-3 py-2 min-w-[110px]" onClick={e => e.stopPropagation()}>
         <SourceBadge value={source} onClick={e => onSourceToggle(contact.id, e)} />
@@ -626,7 +620,6 @@ export default function ContactsView({
         if (col === 'Canton')         return (cantonMap.get(c.id) ?? null) === val
         if (col === "Nom de l'entreprise") return (c.companyName ?? '').toLowerCase().includes(val.toLowerCase())
         if (col === 'Paiement')       return (payTypeOf(c, dealMap[c.id] ?? null) === 'mensuel' ? 'Mensuel' : payTypeOf(c, dealMap[c.id] ?? null) === 'unique' ? 'Une fois' : '') === val
-        if (col === 'Niche')          return (c.niche ?? '') === val
         return true
       })
     }
@@ -661,7 +654,6 @@ export default function ContactsView({
     'Statut':              ['lead', 'client', 'perdu'],
     'Canton':              SWISS_CANTONS.filter(c => contacts.some(ct => cantonMap.get(ct.id) === c)),
     'Paiement':            ['Mensuel', 'Une fois'],
-    'Niche':               [...new Set(contacts.map(c => c.niche).filter(Boolean) as string[])].sort(),
     "Nom de l'entreprise": [...new Set(contacts.map(c => c.companyName).filter(Boolean) as string[])].sort(),
     'Étape':               [...new Set(contacts.map(c => stageMap[c.id]?.label).filter(Boolean) as string[])].sort(),
     'Objections':          [...new Set(contacts.flatMap(c => [lostObjectionLabel(c.wonObjection), c.statut === 'perdu' ? (lostObjectionLabel(c.lostObjection) ?? lostReasonLabel(c.lostReason)) : null]).filter(Boolean) as string[])].sort(),

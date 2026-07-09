@@ -48,7 +48,6 @@ type EditableFields = {
   lastName:    string
   email:       string
   phone:       string
-  companyName: string
   address1:    string
   city:        string
   postalCode:  string
@@ -406,7 +405,6 @@ export default function ContactDetailPage({
     lastName:    contact.lastName    ?? '',
     email:       contact.email       ?? '',
     phone:       contact.phone       ?? '',
-    companyName: contact.companyName ?? '',
     address1:    contact.address1    ?? '',
     city:        contact.city        ?? '',
     postalCode:  contact.postalCode  ?? '',
@@ -525,9 +523,6 @@ export default function ContactDetailPage({
           <Avatar contact={contact} />
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-black text-soren-text leading-tight">{displayName}</h1>
-            {fields.companyName && (
-              <p className="text-sm text-soren-muted mt-0.5">{fields.companyName}</p>
-            )}
             <div className="flex flex-wrap items-center gap-2 mt-3">
               {tags.map(t => (
                 <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-soren-elevated text-soren-muted border border-soren-border">
@@ -563,7 +558,6 @@ export default function ContactDetailPage({
           <Field label="Nom"        name="lastName"    value={fields.lastName}    editing={editing} onChange={handleChange} />
           <Field label="Email"      name="email"       value={fields.email}       editing={editing} onChange={handleChange} type="email" href={!editing && fields.email ? `mailto:${fields.email}` : undefined} />
           <Field label="Téléphone"  name="phone"       value={fields.phone}       editing={editing} onChange={handleChange} type="tel"   href={!editing && fields.phone ? `tel:${fields.phone}` : undefined} />
-          <Field label="Entreprise" name="companyName" value={fields.companyName} editing={editing} onChange={handleChange} />
           {!editing && (
             <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
               <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">Ajouté le</p>

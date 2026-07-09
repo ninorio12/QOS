@@ -183,84 +183,6 @@ function CustomSelect({
   )
 }
 
-// ─── Combobox (select existing OR create new) ─────────────────
-function Combobox({
-  label, value, onChange, options, placeholder,
-}: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  options: string[]
-  placeholder: string
-}) {
-  const [open, setOpen]   = useState(false)
-  const [query, setQuery] = useState('')
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
-  const filtered = query.trim()
-    ? options.filter(o => o.toLowerCase().includes(query.toLowerCase()))
-    : options
-  const canCreate = query.trim() && !options.some(o => o.toLowerCase() === query.trim().toLowerCase())
-
-  return (
-    <div ref={ref} className="relative">
-      <label className={labelCls}>{label}</label>
-      <button
-        type="button"
-        onClick={() => { setOpen(o => !o); setQuery('') }}
-        className="w-full bg-soren-elevated rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all flex items-center justify-between gap-2"
-      >
-        <span className={value ? 'text-soren-text' : 'text-soren-subtle'}>{value || placeholder}</span>
-        <ChevronDown size={13} className={`text-soren-subtle transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <div className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-soren-card border border-soren-border rounded-2xl shadow-xl overflow-hidden flex flex-col" style={{ maxHeight: 260 }}>
-          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-soren-border flex-shrink-0">
-            <Search size={11} className="text-soren-subtle flex-shrink-0" />
-            <input
-              autoFocus
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="Rechercher ou créer…"
-              className="flex-1 text-xs text-soren-text placeholder-[#9CA3AF] outline-none bg-transparent"
-            />
-          </div>
-          <div className="overflow-y-auto flex-1">
-            {value && (
-              <button type="button" onClick={() => { onChange(''); setOpen(false) }}
-                className="w-full text-left px-4 py-2 text-xs text-soren-subtle hover:bg-soren-elevated">
-                — Aucun —
-              </button>
-            )}
-            {filtered.map(o => (
-              <button key={o} type="button" onClick={() => { onChange(o); setOpen(false) }}
-                className="w-full text-left flex items-center justify-between px-4 py-2 text-[12px] text-soren-text hover:bg-soren-elevated">
-                {o}
-                {o === value && <Check size={13} className="text-[#3462EE]" />}
-              </button>
-            ))}
-            {canCreate && (
-              <button type="button" onClick={() => { onChange(query.trim()); setOpen(false) }}
-                className="w-full text-left flex items-center gap-2 px-4 py-2 text-[12px] text-[#3462EE] font-semibold hover:bg-soren-elevated border-t border-soren-border">
-                <Plus size={13} /> Créer « {query.trim()} »
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ─── Section header ───────────────────────────────────────────
 function Section({ title }: { title: string }) {
   return <p className="text-[10px] font-bold uppercase tracking-widest text-soren-subtle">{title}</p>
@@ -378,21 +300,6 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
     mode === 'leads' ? 'lead' : mode === 'clients' ? 'client'
       : (initialStatut ?? (contact as (Record<string, unknown> & { statut?: 'lead' | 'client' | 'perdu' }) | undefined)?.statut ?? 'lead')
   )
-  const [role,   setRole]     = useState<string>((contact as Record<string, unknown> & { role?: string } | undefined)?.role ?? '')
-  const [niche,  setNiche]    = useState<string>((contact as Record<string, unknown> & { niche?: string } | undefined)?.niche ?? '')
-  const [roleOptions,   setRoleOptions]   = useState<string[]>([])
-  const [nicheOptions,  setNicheOptions]  = useState<string[]>([])
-
-  useEffect(() => {
-    fetch('/api/crm/contacts/options')
-      .then(r => r.json())
-      .then((d: { roles?: string[]; niches?: string[] }) => {
-        setRoleOptions(d.roles ?? [])
-        setNicheOptions(d.niches ?? [])
-      })
-      .catch(() => {})
-  }, [])
-
   // ── Deal (accompagnement) — champs fiche : dates, durée, type de paiement ──
   const [dealStart,  setDealStart]  = useState<string>(contact?.dealStartDate ?? '')
   const [dealEnd,    setDealEnd]    = useState<string>(contact?.dealEndDate ?? '')
@@ -421,7 +328,6 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
     lastName:    contact?.lastName    ?? '',
     email:       contact?.email       ?? '',
     localPhone:  parsedPhone.local,
-    companyName: contact?.companyName ?? '',
     address1:    contact?.address1    ?? '',
     city:        contact?.city        ?? '',
     postalCode:  contact?.postalCode  ?? '',
@@ -492,7 +398,6 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             lastName:    form.lastName,
             email:       form.email,
             phone:       phone || contact.phone,
-            companyName: form.companyName,
             address1:    form.address1,
             city:        form.city,
             postalCode:  form.postalCode,
@@ -500,8 +405,6 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             canton:      canton || undefined,
             statut,
             source:      inoutbound,
-            role:        role || undefined,
-            niche:       niche  || undefined,
             dealStartDate:      dealStart || undefined,
             dealEndDate:        dealEnd   || undefined,
             dealDurationMonths: dealMonths && Number.isFinite(parseInt(dealMonths, 10)) ? parseInt(dealMonths, 10) : undefined,
@@ -540,13 +443,10 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           contactName: `${form.firstName} ${form.lastName}`.trim() || contact.contactName,
           email:       form.email       || null,
           phone:       phone            || contact.phone,
-          companyName: form.companyName || null,
           address1:    form.address1    || null,
           city:        form.city        || null,
           postalCode:  form.postalCode  || null,
           country:     country          || null,
-          role:        role             || null,
-          niche:       niche            || null,
           dealStartDate:      dealStart || null,
           dealEndDate:        dealEnd   || null,
           dealDurationMonths: dealMonths ? parseInt(dealMonths, 10) : null,
@@ -566,11 +466,9 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           body: JSON.stringify({
             firstName: form.firstName, lastName: form.lastName || undefined,
             email: form.email || undefined, phone: phone || undefined,
-            companyName: form.companyName || undefined,
             address1: form.address1 || undefined, city: form.city || undefined,
             postalCode: form.postalCode || undefined,
             source: inoutbound, statut, country: country || undefined, canton: canton || undefined,
-            role: role || undefined, niche: niche || undefined,
             dealStartDate:      dealStart || undefined,
             dealEndDate:        dealEnd   || undefined,
             dealDurationMonths: dealMonths && Number.isFinite(parseInt(dealMonths, 10)) ? parseInt(dealMonths, 10) : undefined,
@@ -602,8 +500,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           id: newId, contactName,
           firstName: form.firstName || null, lastName: form.lastName || null,
           email: form.email || null, phone: phone || null,
-          companyName: form.companyName || null,
-          role: role || null, niche: niche || null,
+          companyName: null,
           dealStartDate: dealStart || null, dealEndDate: dealEnd || null,
           dealDurationMonths: dealMonths ? parseInt(dealMonths, 10) : null,
           paymentType: payType || null,
@@ -660,16 +557,6 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                 <label className={labelCls}>Nom</label>
                 <input value={form.lastName} onChange={set('lastName')} placeholder="Dupont" className={inputCls} />
               </div>
-            </div>
-
-            <div>
-              <label className={labelCls}>Entreprise</label>
-              <input value={form.companyName} onChange={set('companyName')} placeholder="Dupont Construction" className={inputCls} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Combobox label="Rôle"   value={role}   onChange={setRole}   options={roleOptions}   placeholder="ex: CEO, Directeur" />
-              <Combobox label="Niche"  value={niche}  onChange={setNiche}  options={nicheOptions}  placeholder="ex: Immobilier" />
             </div>
 
             <div>
