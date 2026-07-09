@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { X, ChevronDown, Search, Check, Plus, Save, ClipboardList, CreditCard, FileText, Workflow, ArrowUpRight, Send, Trash2 } from 'lucide-react'
+import { X, ChevronDown, Search, Check, Plus, Save, ClipboardList, CreditCard, FileText, Workflow, Send, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
@@ -379,22 +379,43 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
       : (initialStatut ?? (contact as (Record<string, unknown> & { statut?: 'lead' | 'client' | 'perdu' }) | undefined)?.statut ?? 'lead')
   )
   const [role,   setRole]     = useState<string>((contact as Record<string, unknown> & { role?: string } | undefined)?.role ?? '')
-  const [metier, setMetier]   = useState<string>((contact as Record<string, unknown> & { metier?: string } | undefined)?.metier ?? '')
   const [niche,  setNiche]    = useState<string>((contact as Record<string, unknown> & { niche?: string } | undefined)?.niche ?? '')
   const [roleOptions,   setRoleOptions]   = useState<string[]>([])
-  const [metierOptions, setMetierOptions] = useState<string[]>([])
   const [nicheOptions,  setNicheOptions]  = useState<string[]>([])
 
   useEffect(() => {
     fetch('/api/crm/contacts/options')
       .then(r => r.json())
-      .then((d: { roles?: string[]; metiers?: string[]; niches?: string[] }) => {
+      .then((d: { roles?: string[]; niches?: string[] }) => {
         setRoleOptions(d.roles ?? [])
-        setMetierOptions(d.metiers ?? [])
         setNicheOptions(d.niches ?? [])
       })
       .catch(() => {})
   }, [])
+
+  // ── Deal (accompagnement) — champs fiche : dates, durée, type de paiement ──
+  const [dealStart,  setDealStart]  = useState<string>(contact?.dealStartDate ?? '')
+  const [dealEnd,    setDealEnd]    = useState<string>(contact?.dealEndDate ?? '')
+  const [dealMonths, setDealMonths] = useState<string>(contact?.dealDurationMonths ? String(contact.dealDurationMonths) : '')
+  const [payType,    setPayType]    = useState<string>(contact?.paymentType ?? '')
+  // Infos dérivées (montant pipeline_clients, plan Paiement, prochain RDV) — lecture seule sur la fiche.
+  const dealMetaInfo = useQuery(api.crm_contacts.dealMeta, contact?.id ? { contactId: contact.id as never } : 'skip') as {
+    totalAmount?: number; installments?: number; perInstallment?: number
+    nextDueDate?: string; nextDueAmount?: number; nextCallDate?: string; nextCallTitle?: string
+  } | null | undefined
+
+  // Date de fin auto-remplie = début + durée (tant que l'utilisateur ne l'a pas fixée lui-même).
+  function addMonths(dateStr: string, months: number): string {
+    const d = new Date(dateStr + 'T00:00:00')
+    if (Number.isNaN(d.getTime())) return ''
+    d.setMonth(d.getMonth() + months)
+    return d.toISOString().slice(0, 10)
+  }
+  function syncDealEnd(start: string, months: string, endTouched: boolean) {
+    const m = parseInt(months, 10)
+    if (!endTouched && start && Number.isFinite(m) && m > 0) setDealEnd(addMonths(start, m))
+  }
+  const dealEndTouched = useRef(false)
   const [form, setForm] = useState({
     firstName:   contact?.firstName   ?? '',
     lastName:    contact?.lastName    ?? '',
@@ -404,7 +425,6 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
     address1:    contact?.address1    ?? '',
     city:        contact?.city        ?? '',
     postalCode:  contact?.postalCode  ?? '',
-    website:     contact?.website     ?? '',
     value:       '',
     source:      contact?.source      ?? 'Direct',
   })
@@ -476,14 +496,16 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             address1:    form.address1,
             city:        form.city,
             postalCode:  form.postalCode,
-            website:     form.website,
             country:     country || undefined,
             canton:      canton || undefined,
             statut,
             source:      inoutbound,
             role:        role || undefined,
-            metier:      metier || undefined,
             niche:       niche  || undefined,
+            dealStartDate:      dealStart || undefined,
+            dealEndDate:        dealEnd   || undefined,
+            dealDurationMonths: dealMonths && Number.isFinite(parseInt(dealMonths, 10)) ? parseInt(dealMonths, 10) : undefined,
+            paymentType:        payType || undefined,
             tags,
           }),
         })
@@ -522,11 +544,13 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           address1:    form.address1    || null,
           city:        form.city        || null,
           postalCode:  form.postalCode  || null,
-          website:     form.website     || null,
           country:     country          || null,
           role:        role             || null,
-          metier:      metier           || null,
           niche:       niche            || null,
+          dealStartDate:      dealStart || null,
+          dealEndDate:        dealEnd   || null,
+          dealDurationMonths: dealMonths ? parseInt(dealMonths, 10) : null,
+          paymentType:        payType   || null,
           tags,
           dateUpdated: new Date().toISOString(),
         }
@@ -544,9 +568,14 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             email: form.email || undefined, phone: phone || undefined,
             companyName: form.companyName || undefined,
             address1: form.address1 || undefined, city: form.city || undefined,
-            postalCode: form.postalCode || undefined, website: form.website || undefined,
+            postalCode: form.postalCode || undefined,
             source: inoutbound, statut, country: country || undefined, canton: canton || undefined,
-            role: role || undefined, metier: metier || undefined, niche: niche || undefined, tags: [],
+            role: role || undefined, niche: niche || undefined,
+            dealStartDate:      dealStart || undefined,
+            dealEndDate:        dealEnd   || undefined,
+            dealDurationMonths: dealMonths && Number.isFinite(parseInt(dealMonths, 10)) ? parseInt(dealMonths, 10) : undefined,
+            paymentType:        payType || undefined,
+            tags: [],
           }),
         })
         const data = await res.json().catch(() => ({})) as { contact?: { id: string; _id: string }; error?: string }
@@ -574,7 +603,10 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           firstName: form.firstName || null, lastName: form.lastName || null,
           email: form.email || null, phone: phone || null,
           companyName: form.companyName || null,
-          role: role || null, metier: metier || null, niche: niche || null,
+          role: role || null, niche: niche || null,
+          dealStartDate: dealStart || null, dealEndDate: dealEnd || null,
+          dealDurationMonths: dealMonths ? parseInt(dealMonths, 10) : null,
+          paymentType: payType || null,
           dateAdded: new Date().toISOString(), dateUpdated: null, tags: [],
         }
         onAdd?.(newContact)
@@ -637,7 +669,6 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
 
             <div className="grid grid-cols-2 gap-3">
               <Combobox label="Rôle"   value={role}   onChange={setRole}   options={roleOptions}   placeholder="ex: CEO, Directeur" />
-              <Combobox label="Métier" value={metier} onChange={setMetier} options={metierOptions} placeholder="ex: Conseil, BTP, e-commerce" />
               <Combobox label="Niche"  value={niche}  onChange={setNiche}  options={nicheOptions}  placeholder="ex: Immobilier" />
             </div>
 
@@ -734,21 +765,6 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               </div>
             )}
 
-            <div>
-              <label className={labelCls}>Site web</label>
-              <div className="relative">
-                <input type="url" value={form.website} onChange={set('website')} placeholder="https://exemple.ch" className={inputCls + ' pr-9'} />
-                {form.website.trim() && (
-                  <a
-                    href={/^https?:\/\//i.test(form.website.trim()) ? form.website.trim() : `https://${form.website.trim()}`}
-                    target="_blank" rel="noopener noreferrer" title="Ouvrir le site web"
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg flex items-center justify-center text-soren-muted hover:text-[#3462EE] hover:bg-soren-elevated transition-colors"
-                  >
-                    <ArrowUpRight size={14} />
-                  </a>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* ── Statut + Source (même fiche partout) ── */}
@@ -844,11 +860,107 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               </button>
             )}
 
-            {/* Montant du deal — only when client */}
+            {/* ── Deal — montant, dates, durée, paiement (only when client) ── */}
             {statut === 'client' && (
+              <div className="flex flex-col gap-3">
+                <Section title="Deal" />
+
+                <div>
+                  <label className={labelCls}>Montant total du deal (CHF)</label>
+                  <input type="number" value={clientValue} onChange={e => setClientValue(e.target.value)} placeholder="ex: 3500" className={inputCls} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelCls}>Date de début</label>
+                    <input type="date" value={dealStart}
+                      onChange={e => { setDealStart(e.target.value); syncDealEnd(e.target.value, dealMonths, dealEndTouched.current) }}
+                      className={inputCls} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Date de fin</label>
+                    <input type="date" value={dealEnd}
+                      onChange={e => { dealEndTouched.current = true; setDealEnd(e.target.value) }}
+                      className={inputCls} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelCls}>Durée (mois)</label>
+                    <input type="number" min={1} value={dealMonths} placeholder="ex: 6"
+                      onChange={e => { setDealMonths(e.target.value); syncDealEnd(dealStart, e.target.value, dealEndTouched.current) }}
+                      className={inputCls} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Type de paiement</label>
+                    <div className="flex gap-2">
+                      {([
+                        { id: 'mensuel', label: 'Mensuel' },
+                        { id: 'unique',  label: 'Une fois' },
+                      ] as const).map(opt => {
+                        const isSelected = payType === opt.id
+                        return (
+                          <button key={opt.id} type="button" onClick={() => setPayType(isSelected ? '' : opt.id)}
+                            className={`flex-1 py-2 px-2 rounded-xl border text-[11px] font-bold transition-all duration-150 ${
+                              isSelected
+                                ? 'border-[#3462EE] bg-[#3462EE]/10 text-[#3462EE]'
+                                : 'border-soren-border bg-soren-card text-soren-text hover:bg-soren-elevated'
+                            }`}>
+                            {opt.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mensualités / échéances / prochain RDV — dérivés du module Paiement et des RDV (lecture seule). */}
+                {(dealMetaInfo?.installments || dealMetaInfo?.nextDueDate || dealMetaInfo?.nextCallDate) && (
+                  <div className="flex flex-col gap-1.5 bg-soren-elevated rounded-xl px-3 py-2.5">
+                    {dealMetaInfo?.installments !== undefined && (
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-soren-muted">Mensualités</span>
+                        <span className="font-semibold text-soren-text">
+                          {dealMetaInfo.installments}×
+                          {dealMetaInfo.perInstallment ? ` · CHF ${dealMetaInfo.perInstallment.toLocaleString('fr-CH')} / mois` : ''}
+                        </span>
+                      </div>
+                    )}
+                    {dealMetaInfo?.nextDueDate && (
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-soren-muted">Prochaine échéance</span>
+                        <span className="font-semibold text-soren-text">
+                          {new Date(dealMetaInfo.nextDueDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                          {dealMetaInfo.nextDueAmount ? ` · CHF ${dealMetaInfo.nextDueAmount.toLocaleString('fr-CH')}` : ''}
+                        </span>
+                      </div>
+                    )}
+                    {dealMetaInfo?.nextCallDate && (
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-soren-muted">Prochain rendez-vous</span>
+                        <span className="font-semibold text-soren-text">
+                          {new Date(dealMetaInfo.nextCallDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                          {' à '}{new Date(dealMetaInfo.nextCallDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          {dealMetaInfo.nextCallTitle ? ` · ${dealMetaInfo.nextCallTitle}` : ''}
+                        </span>
+                      </div>
+                    )}
+                    <p className="text-[10px] text-soren-subtle">Gérés dans le module Paiement et les RDV — affichage seul ici.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Prochain RDV — visible aussi pour les leads (R1/R2 planifié). */}
+            {statut !== 'client' && dealMetaInfo?.nextCallDate && (
               <div className="flex flex-col gap-2">
-                <Section title="Montant du deal" />
-                <input type="number" value={clientValue} onChange={e => setClientValue(e.target.value)} placeholder="ex: 3500" className={inputCls} />
+                <Section title="Prochain rendez-vous" />
+                <span className="inline-flex w-fit items-center text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#EFF6FF] text-[#2563EB] border border-[#BFDBFE]">
+                  {new Date(dealMetaInfo.nextCallDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                  {' à '}{new Date(dealMetaInfo.nextCallDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  {dealMetaInfo.nextCallTitle ? ` · ${dealMetaInfo.nextCallTitle}` : ''}
+                </span>
               </div>
             )}
 

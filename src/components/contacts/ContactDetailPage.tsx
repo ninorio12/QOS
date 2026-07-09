@@ -8,6 +8,8 @@ import { type GHLContact, type GHLOpportunity, type GHLPipeline } from '@/lib/gh
 import { fetchJSON } from '@/lib/fetchJSON'
 import { regionConfig, regionDisplay, COUNTRIES } from '@/lib/regions'
 import { getAvatarColor, type ContactAttribution } from './types'
+import { useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
 
 const BOT_COLORS: Record<string, string> = {
   Mia: '#8B5CF6', Kai: '#3462EE', Luc: '#F97316', Eva: '#EC4899',
@@ -52,7 +54,11 @@ type EditableFields = {
   postalCode:  string
   country:     string
   canton:      string
-  website:     string
+  // Deal (accompagnement) — durée saisie en mois (string côté formulaire, number côté Convex)
+  dealStartDate:      string
+  dealEndDate:        string
+  dealDurationMonths: string
+  paymentType:        string
 }
 
 function Field({
@@ -383,6 +389,12 @@ export default function ContactDetailPage({
   const [tags,     setTags]     = useState<string[]>(contact.tags ?? [])
   const [tagInput, setTagInput] = useState('')
 
+  // Infos deal dérivées (montant pipeline_clients, plan Paiement, prochain RDV) — lecture seule.
+  const dealMetaInfo = useQuery(api.crm_contacts.dealMeta, { contactId: contact.id as never }) as {
+    totalAmount?: number; installments?: number; perInstallment?: number
+    nextDueDate?: string; nextDueAmount?: number; nextCallDate?: string; nextCallTitle?: string
+  } | null | undefined
+
   function addTag(val: string) {
     const t = val.trim().toLowerCase()
     if (t && !tags.includes(t)) setTags(prev => [...prev, t])
@@ -400,7 +412,10 @@ export default function ContactDetailPage({
     postalCode:  contact.postalCode  ?? '',
     country:     contact.country     ?? '',
     canton:      contact.canton      ?? '',
-    website:     contact.website     ?? '',
+    dealStartDate:      contact.dealStartDate ?? '',
+    dealEndDate:        contact.dealEndDate   ?? '',
+    dealDurationMonths: contact.dealDurationMonths ? String(contact.dealDurationMonths) : '',
+    paymentType:        contact.paymentType   ?? '',
   })
 
   const [original] = useState<EditableFields>({ ...fields })
@@ -419,10 +434,13 @@ export default function ContactDetailPage({
     setSaving(true)
     setError(null)
     try {
+      // dealDurationMonths est saisi en texte mais validé v.number() côté Convex.
+      const { dealDurationMonths, ...rest } = fields
+      const months = parseInt(dealDurationMonths, 10)
       await fetchJSON(`/api/contact/${contact.id}`, {
         method:  'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ ...fields, tags }),
+        body:    JSON.stringify({ ...rest, dealDurationMonths: Number.isFinite(months) && months > 0 ? months : undefined, tags }),
       })
       // Synchronise le KanbanBoard et toutes les vues qui affichent ce contact
       const bc = new BroadcastChannel('soren-opp-updates')
@@ -546,7 +564,6 @@ export default function ContactDetailPage({
           <Field label="Email"      name="email"       value={fields.email}       editing={editing} onChange={handleChange} type="email" href={!editing && fields.email ? `mailto:${fields.email}` : undefined} />
           <Field label="Téléphone"  name="phone"       value={fields.phone}       editing={editing} onChange={handleChange} type="tel"   href={!editing && fields.phone ? `tel:${fields.phone}` : undefined} />
           <Field label="Entreprise" name="companyName" value={fields.companyName} editing={editing} onChange={handleChange} />
-          <Field label="Site web"   name="website"     value={fields.website}     editing={editing} onChange={handleChange} href={!editing && fields.website ? fields.website : undefined} />
           {!editing && (
             <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
               <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">Ajouté le</p>
@@ -565,6 +582,68 @@ export default function ContactDetailPage({
           <Field label="Code postal" name="postalCode" value={fields.postalCode}  editing={editing} onChange={handleChange} />
           <CountryField value={fields.country} editing={editing} onChange={v => { if (v !== fields.country) handleChange('canton', ''); handleChange('country', v) }} />
           <RegionField country={fields.country} value={fields.canton} editing={editing} onChange={v => handleChange('canton', v)} />
+        </div>
+
+        {/* Deal — dates/durée/paiement éditables ; montants, mensualités, échéance & RDV dérivés
+            des sources de vérité (pipeline_clients, module Paiement, RDV) via crm_contacts.dealMeta. */}
+        <div className="bg-soren-card rounded-2xl px-6 pt-4 pb-2 mb-4">
+          <h3 className="text-[10px] font-bold text-soren-subtle uppercase tracking-widest mb-1">Deal</h3>
+          <Field label="Date de début" name="dealStartDate" value={fields.dealStartDate} editing={editing} onChange={handleChange} type="date" />
+          <Field label="Date de fin"   name="dealEndDate"   value={fields.dealEndDate}   editing={editing} onChange={handleChange} type="date" />
+          <Field label="Durée (mois)"  name="dealDurationMonths" value={fields.dealDurationMonths} editing={editing} onChange={handleChange} type="number" />
+          <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
+            <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-2 flex-shrink-0">Paiement</p>
+            {editing ? (
+              <div className="flex-1">
+                <CustomSelect
+                  value={fields.paymentType}
+                  onChange={v => handleChange('paymentType', v)}
+                  options={[{ value: '', label: '— Choisir —' }, { value: 'mensuel', label: 'Mensuel' }, { value: 'unique', label: 'Paiement en une fois' }]}
+                />
+              </div>
+            ) : (
+              <p className={`text-sm pt-1.5 ${fields.paymentType ? 'text-soren-text' : 'text-[#D1D5DB] italic'}`}>
+                {fields.paymentType === 'mensuel' ? 'Mensuel' : fields.paymentType === 'unique' ? 'Paiement en une fois' : '—'}
+              </p>
+            )}
+          </div>
+          {dealMetaInfo && (
+            <>
+              {dealMetaInfo.totalAmount !== undefined && (
+                <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
+                  <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">Montant total</p>
+                  <p className="text-sm font-semibold text-soren-text">CHF {dealMetaInfo.totalAmount.toLocaleString('fr-CH')}</p>
+                </div>
+              )}
+              {dealMetaInfo.installments !== undefined && (
+                <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
+                  <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">Mensualités</p>
+                  <p className="text-sm text-soren-text">
+                    {dealMetaInfo.installments}×{dealMetaInfo.perInstallment ? ` · CHF ${dealMetaInfo.perInstallment.toLocaleString('fr-CH')} / mensualité` : ''}
+                  </p>
+                </div>
+              )}
+              {dealMetaInfo.nextDueDate && (
+                <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
+                  <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">Proch. échéance</p>
+                  <p className="text-sm text-soren-text">
+                    {new Date(dealMetaInfo.nextDueDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {dealMetaInfo.nextDueAmount ? ` · CHF ${dealMetaInfo.nextDueAmount.toLocaleString('fr-CH')}` : ''}
+                  </p>
+                </div>
+              )}
+              {dealMetaInfo.nextCallDate && (
+                <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
+                  <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">Proch. RDV</p>
+                  <p className="text-sm text-soren-text">
+                    {new Date(dealMetaInfo.nextCallDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                    {' à '}{new Date(dealMetaInfo.nextCallDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    {dealMetaInfo.nextCallTitle ? ` · ${dealMetaInfo.nextCallTitle}` : ''}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Pipeline / Opportunités */}

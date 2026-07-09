@@ -163,17 +163,44 @@ function ColFilterDropdown({ values, active, onSelect, onClose }: {
   )
 }
 
-const ALL_COLS = ['Téléphone', 'E-mail', "Nom de l'entreprise", 'Rôle', 'Métier', 'Niche', 'Source', 'Statut', 'Étape', 'Objections', 'Canton', 'Créé'] as const
+const ALL_COLS = ['Téléphone', 'E-mail', "Nom de l'entreprise", 'Rôle', 'Niche', 'Source', 'Statut', 'Étape', 'Début', 'Fin', 'Durée', 'Paiement', 'Mensualités', 'Montant total', 'Montant/mois', 'Échéance', 'RDV', 'Objections', 'Canton', 'Créé'] as const
 // Libellé d'affichage des colonnes (la clé interne reste 'Canton' pour ne rien casser).
-const COL_LABELS: Record<string, string> = { Canton: 'Canton / Région' }
+const COL_LABELS: Record<string, string> = {
+  Canton: 'Canton / Région',
+  'Début': 'Date de début',
+  'Fin': 'Date de fin',
+  'Montant/mois': 'Montant / mensualité',
+  'Échéance': 'Prochaine échéance',
+  'RDV': 'Prochain RDV',
+}
 type ColName = typeof ALL_COLS[number]
+
+// Infos deal dérivées (montant pipeline_clients, plan onboarding, RDV) — cf. crm_contacts.dealMetaAll.
+type DealMeta = {
+  totalAmount?:    number
+  installments?:   number
+  perInstallment?: number
+  nextDueDate?:    string
+  nextDueAmount?:  number
+  nextCallDate?:   string
+  nextCallTitle?:  string
+}
+
+const chf = (n?: number) => (n !== undefined && n > 0) ? `CHF ${n.toLocaleString('fr-CH')}` : null
+const dateFr = (s?: string | null) => s ? new Date(s).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : null
+// Type de paiement : champ fiche prioritaire, sinon déduit du plan de mensualités (Paiement).
+function payTypeOf(contact: GHLContact, deal: DealMeta | null): 'mensuel' | 'unique' | null {
+  if (contact.paymentType === 'mensuel' || contact.paymentType === 'unique') return contact.paymentType
+  if (deal?.installments) return deal.installments > 1 ? 'mensuel' : 'unique'
+  return null
+}
 
 type ColFilter = Partial<Record<ColName | 'Nom de Contact', string>>
 
 // ─── Table row ────────────────────────────────────────────────
 function ContactRow({
   contact, checked, onCheck, onClick, visibleCols,
-  source, statut, canton, stage,
+  source, statut, canton, stage, deal,
   onSourceToggle, onStatutToggle, onCantonChange,
 }: {
   contact:         GHLContact
@@ -185,6 +212,7 @@ function ContactRow({
   statut:          'lead' | 'client' | 'perdu'
   canton:          string | null
   stage:           { label: string; lost: boolean } | null
+  deal:            DealMeta | null
   onSourceToggle:  (id: string, e: React.MouseEvent) => void
   onStatutToggle:  (id: string, e: React.MouseEvent) => void
   onCantonChange:  (id: string, c: string | null) => void
@@ -217,9 +245,6 @@ function ContactRow({
       {v('Rôle') && <td className="px-3 py-2 min-w-[130px]">
         {contact.role ? <span className="text-[12px] text-[#374151] truncate">{contact.role}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
       </td>}
-      {v('Métier') && <td className="px-3 py-2 min-w-[140px]">
-        {contact.metier ? <span className="text-[12px] text-[#374151] truncate">{contact.metier}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
-      </td>}
       {v('Niche') && <td className="px-3 py-2 min-w-[140px]">
         {contact.niche ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#F3F4F6] text-[#6B7280] dark:bg-white/10 dark:text-zinc-300 whitespace-nowrap">{contact.niche}</span> : <span className="text-sm text-[#D1D5DB]">—</span>}
       </td>}
@@ -235,6 +260,49 @@ function ContactRow({
             stage.lost ? 'bg-[#FEE2E2] text-[#B91C1C] border-[#FECACA]' : 'bg-[#EFF6FF] text-[#2563EB] border-[#BFDBFE]'
           }`}>
             {stage.lost && <X size={9} strokeWidth={3} className="flex-shrink-0" />}{stage.label}
+          </span>
+        ) : <span className="text-[12px] text-[#D1D5DB]">—</span>}
+      </td>}
+      {v('Début') && <td className="px-3 py-2 min-w-[110px]">
+        {dateFr(contact.dealStartDate) ? <span className="text-[12px] text-[#374151] whitespace-nowrap">{dateFr(contact.dealStartDate)}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
+      </td>}
+      {v('Fin') && <td className="px-3 py-2 min-w-[110px]">
+        {dateFr(contact.dealEndDate) ? <span className="text-[12px] text-[#374151] whitespace-nowrap">{dateFr(contact.dealEndDate)}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
+      </td>}
+      {v('Durée') && <td className="px-3 py-2 min-w-[80px]">
+        {contact.dealDurationMonths ? <span className="text-[12px] text-[#374151] whitespace-nowrap">{contact.dealDurationMonths} mois</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
+      </td>}
+      {v('Paiement') && <td className="px-3 py-2 min-w-[100px]">
+        {(() => {
+          const pt = payTypeOf(contact, deal)
+          if (!pt) return <span className="text-[12px] text-[#D1D5DB]">—</span>
+          return pt === 'mensuel'
+            ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap border bg-[#EFF6FF] text-[#2563EB] border-[#BFDBFE] dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/20">Mensuel</span>
+            : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap border bg-[#F3F4F6] text-[#6B7280] border-[#E5E7EB] dark:bg-white/10 dark:text-zinc-300 dark:border-white/10">Une fois</span>
+        })()}
+      </td>}
+      {v('Mensualités') && <td className="px-3 py-2 min-w-[90px]">
+        {deal?.installments ? <span className="text-[12px] text-[#374151] whitespace-nowrap">{deal.installments}×</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
+      </td>}
+      {v('Montant total') && <td className="px-3 py-2 min-w-[110px]">
+        {chf(deal?.totalAmount) ? <span className="text-[12px] font-semibold text-[#374151] whitespace-nowrap">{chf(deal?.totalAmount)}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
+      </td>}
+      {v('Montant/mois') && <td className="px-3 py-2 min-w-[110px]">
+        {chf(deal?.perInstallment) ? <span className="text-[12px] text-[#374151] whitespace-nowrap">{chf(deal?.perInstallment)}</span> : <span className="text-[12px] text-[#D1D5DB]">—</span>}
+      </td>}
+      {v('Échéance') && <td className="px-3 py-2 min-w-[130px]">
+        {deal?.nextDueDate ? (
+          <span className="text-[12px] text-[#374151] whitespace-nowrap">
+            {dateFr(deal.nextDueDate)}{deal.nextDueAmount ? <span className="text-soren-muted"> · {chf(deal.nextDueAmount)}</span> : null}
+          </span>
+        ) : <span className="text-[12px] text-[#D1D5DB]">—</span>}
+      </td>}
+      {v('RDV') && <td className="px-3 py-2 min-w-[140px]">
+        {deal?.nextCallDate ? (
+          <span className="text-[12px] text-[#374151] whitespace-nowrap">
+            {new Date(deal.nextCallDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+            {' '}{new Date(deal.nextCallDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+            {deal.nextCallTitle ? <span className="text-soren-muted"> · {deal.nextCallTitle}</span> : null}
           </span>
         ) : <span className="text-[12px] text-[#D1D5DB]">—</span>}
       </td>}
@@ -282,7 +350,7 @@ function ColHeader({
   onFilter:     (col: string, val: string | null) => void
 }) {
   const [showFilter, setShowFilter] = useState(false)
-  const SORTABLE = ['Nom de Contact', 'Créé', "Nom de l'entreprise"]
+  const SORTABLE = ['Nom de Contact', 'Créé', "Nom de l'entreprise", 'Début', 'Fin', 'Échéance']
   const sortable = SORTABLE.includes(col)
   const active   = sortCol === col
   const filtered = !!activeFilter
@@ -349,6 +417,8 @@ export default function ContactsView({
   // Étape commerciale de chaque contact (1 seul appel groupé).
   const stageMap = (useQuery(api.crm_contacts.commercialStagesAll) ?? {}) as Record<string, { label: string; lost: boolean; key: string }>
   const stageOf = (id: string) => stageMap[id] ?? null
+  // Infos deal/paiement/RDV dérivées (1 seul appel groupé) — colonnes Montant, Mensualités, Échéance, RDV.
+  const dealMap = (useQuery(api.crm_contacts.dealMetaAll) ?? {}) as Record<string, DealMeta>
   useEffect(() => {
     if (!liveContacts) return
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -371,6 +441,10 @@ export default function ContactsView({
       lostObjection: c.lostObjection || null,
       wonObjection:  c.wonObjection  || null,
       dealDate:      c.dealDate      || null,
+      dealStartDate:      c.dealStartDate      || null,
+      dealEndDate:        c.dealEndDate        || null,
+      dealDurationMonths: c.dealDurationMonths ?? null,
+      paymentType:        c.paymentType        || null,
       canton:        c.canton        || null,
       role:        c.role        || null,
       metier:      c.metier      || null,
@@ -551,7 +625,7 @@ export default function ContactsView({
         if (col === 'Objections')     return [lostObjectionLabel(c.wonObjection), c.statut === 'perdu' ? (lostObjectionLabel(c.lostObjection) ?? lostReasonLabel(c.lostReason)) : null].filter(Boolean).includes(val)
         if (col === 'Canton')         return (cantonMap.get(c.id) ?? null) === val
         if (col === "Nom de l'entreprise") return (c.companyName ?? '').toLowerCase().includes(val.toLowerCase())
-        if (col === 'Métier')         return (c.metier ?? '') === val
+        if (col === 'Paiement')       return (payTypeOf(c, dealMap[c.id] ?? null) === 'mensuel' ? 'Mensuel' : payTypeOf(c, dealMap[c.id] ?? null) === 'unique' ? 'Une fois' : '') === val
         if (col === 'Niche')          return (c.niche ?? '') === val
         return true
       })
@@ -564,12 +638,15 @@ export default function ContactsView({
         else if (sortCol === 'Créé')              { va = a.dateAdded; vb = b.dateAdded }
         else if (sortCol === 'Dernière activité') { va = a.dateUpdated ?? a.dateAdded; vb = b.dateUpdated ?? b.dateAdded }
         else if (sortCol === "Nom de l'entreprise") { va = a.companyName ?? ''; vb = b.companyName ?? '' }
+        else if (sortCol === 'Début')             { va = a.dealStartDate ?? ''; vb = b.dealStartDate ?? '' }
+        else if (sortCol === 'Fin')               { va = a.dealEndDate ?? '';   vb = b.dealEndDate ?? '' }
+        else if (sortCol === 'Échéance')          { va = dealMap[a.id]?.nextDueDate ?? ''; vb = dealMap[b.id]?.nextDueDate ?? '' }
         return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
       })
     }
 
     return result
-  }, [contacts, debouncedQuery, colFilters, sortCol, sortDir, sourceMap, statutMap, cantonMap, stageMap, filterPipeline, pipelineContactIds])
+  }, [contacts, debouncedQuery, colFilters, sortCol, sortDir, sourceMap, statutMap, cantonMap, stageMap, dealMap, filterPipeline, pipelineContactIds])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
   const safePage    = Math.min(page, totalPages)
@@ -583,7 +660,7 @@ export default function ContactsView({
     'Source':              ['inbound', 'outbound', 'recommandation'],
     'Statut':              ['lead', 'client', 'perdu'],
     'Canton':              SWISS_CANTONS.filter(c => contacts.some(ct => cantonMap.get(ct.id) === c)),
-    'Métier':              [...new Set(contacts.map(c => c.metier).filter(Boolean) as string[])].sort(),
+    'Paiement':            ['Mensuel', 'Une fois'],
     'Niche':               [...new Set(contacts.map(c => c.niche).filter(Boolean) as string[])].sort(),
     "Nom de l'entreprise": [...new Set(contacts.map(c => c.companyName).filter(Boolean) as string[])].sort(),
     'Étape':               [...new Set(contacts.map(c => stageMap[c.id]?.label).filter(Boolean) as string[])].sort(),
@@ -658,6 +735,15 @@ export default function ContactsView({
       'Canton':            cantonMap.get(c.id) ?? '',
       'Source':            sourceMap.get(c.id) ?? 'inbound',
       'Statut':            statutMap.get(c.id) ?? 'lead',
+      'Date de début':     c.dealStartDate ?? '',
+      'Date de fin':       c.dealEndDate ?? '',
+      'Durée (mois)':      c.dealDurationMonths ?? '',
+      'Type de paiement':  payTypeOf(c, dealMap[c.id] ?? null) ?? '',
+      'Mensualités':       dealMap[c.id]?.installments ?? '',
+      'Montant total':     dealMap[c.id]?.totalAmount ?? '',
+      'Montant / mensualité': dealMap[c.id]?.perInstallment ?? '',
+      'Prochaine échéance':   dealMap[c.id]?.nextDueDate ?? '',
+      'Prochain RDV':         dealMap[c.id]?.nextCallDate ?? '',
       'Objection surmontée': lostObjectionLabel(c.wonObjection) ?? '',
       'Objection perdante':  (c.statut === 'perdu' ? (lostObjectionLabel(c.lostObjection) ?? lostReasonLabel(c.lostReason)) : null) ?? '',
       'Créé':              formatDate(c.dateAdded),
@@ -835,6 +921,7 @@ export default function ContactsView({
                   statut={statutMap.get(contact.id) ?? 'lead'}
                   canton={cantonMap.get(contact.id) ?? null}
                   stage={stageOf(contact.id)}
+                  deal={dealMap[contact.id] ?? null}
                   onSourceToggle={handleSourceToggle}
                   onStatutToggle={handleStatutToggle}
                   onCantonChange={handleCantonChange}

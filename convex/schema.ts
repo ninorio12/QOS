@@ -117,6 +117,14 @@ export default defineSchema({
     wonObjection: v.optional(v.string()),  // objection surmontée à la conversion en client
     dealDate:     v.optional(v.string()),  // date de la transaction (conversion en client)
     amountTbd:    v.optional(v.boolean()), // montant du deal à définir (client converti sans montant connu)
+    // ── Deal (accompagnement) — champs éditables sur la fiche contact.
+    // Le montant total vit dans pipeline_clients.value et le plan de mensualités
+    // (nombre, montants, échéances) dans onboarding.payment : la fiche les AFFICHE
+    // (cf. crm_contacts.dealMeta) mais ne les duplique pas ici.
+    dealStartDate:      v.optional(v.string()),  // date de début de l'accompagnement (YYYY-MM-DD)
+    dealEndDate:        v.optional(v.string()),  // date de fin (YYYY-MM-DD)
+    dealDurationMonths: v.optional(v.number()),  // durée en mois (3, 6, 12…)
+    paymentType:        v.optional(v.string()),  // 'mensuel' | 'unique' (paiement en une fois)
     leadStatus:  v.optional(v.string()),  // active | handoff | non_qualifie | dormant
     linkedinUrl: v.optional(v.string()),
     country:     v.optional(v.string()),  // pays (adresse) — Suisse/France/… pour le champ Canton/Région

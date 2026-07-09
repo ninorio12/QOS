@@ -115,6 +115,81 @@ export const commercialStagesAll = query({
   },
 })
 
+// ── Deal meta : infos deal/paiement/RDV AFFICHÉES sur la fiche et les colonnes Contacts,
+// dérivées des sources de vérité existantes (jamais dupliquées sur crm_contacts) :
+//   montant total → pipeline_clients.value · mensualités → onboarding.payment
+//   prochaine échéance → onboarding.dueDates/paidStatus · prochain RDV → os_sales_calls planifié.
+export type DealMeta = {
+  totalAmount?:      number   // montant total du deal (pipeline_clients.value)
+  installments?:     number   // nombre de mensualités (onboarding.payment.installments)
+  perInstallment?:   number   // montant par mensualité (moyenne des montants du plan)
+  nextDueDate?:      string   // prochaine échéance de paiement non payée
+  nextDueAmount?:    number
+  nextCallDate?:     string   // prochain rendez-vous planifié (ISO)
+  nextCallTitle?:    string
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function foldDealMeta(out: Record<string, DealMeta>, cli: any, ob: any, calls: any[], nowIso: string, contactId: string) {
+  const meta: DealMeta = {}
+  if (cli && typeof cli.value === "number" && cli.value > 0) meta.totalAmount = cli.value
+  if (ob?.payment) {
+    meta.installments = ob.payment.installments
+    const amounts: number[] = ob.payment.amounts ?? []
+    if (amounts.length > 0) meta.perInstallment = Math.round((amounts.reduce((s, a) => s + a, 0) / amounts.length) * 100) / 100
+    if (meta.totalAmount === undefined && amounts.length > 0) meta.totalAmount = amounts.reduce((s, a) => s + a, 0)
+    // Prochaine échéance = première date d'échéance dont le versement n'est pas payé.
+    const due: string[] = ob.dueDates ?? []
+    const paid: boolean[] = ob.paidStatus ?? []
+    for (let i = 0; i < due.length; i++) {
+      if (paid[i] || !due[i]) continue
+      if (!meta.nextDueDate || due[i] < meta.nextDueDate) { meta.nextDueDate = due[i]; meta.nextDueAmount = amounts[i] }
+    }
+  }
+  for (const sc of calls) {
+    if (!sc.date || sc.status !== "planned" || sc.date < nowIso) continue
+    if (!meta.nextCallDate || sc.date < meta.nextCallDate) { meta.nextCallDate = sc.date; meta.nextCallTitle = sc.stage ?? sc.title }
+  }
+  if (Object.keys(meta).length > 0) out[contactId] = meta
+}
+
+export const dealMeta = query({
+  args: { contactId: v.id("crm_contacts") },
+  handler: async (ctx, { contactId }) => {
+    const cid = contactId.toString()
+    const cli = await ctx.db.query("pipeline_clients").withIndex("by_contact", q => q.eq("contactId", contactId)).first()
+    const ob = await ctx.db.query("onboarding").withIndex("by_contact", q => q.eq("contactId", cid)).first()
+    const calls = await ctx.db.query("os_sales_calls").withIndex("by_contact", q => q.eq("contactId", cid)).collect()
+    const out: Record<string, DealMeta> = {}
+    foldDealMeta(out, cli, ob, calls, new Date().toISOString(), cid)
+    return out[cid] ?? null
+  },
+})
+
+// Version groupée pour les colonnes du tableau Contacts (1 seul appel pour tous les contacts).
+export const dealMetaAll = query({
+  args: {},
+  handler: async (ctx) => {
+    const nowIso = new Date().toISOString()
+    const clis = await ctx.db.query("pipeline_clients").collect()
+    const obs = await ctx.db.query("onboarding").collect()
+    const calls = await ctx.db.query("os_sales_calls").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
+    const cliBy = new Map<string, unknown>(); for (const c of clis) if (c.contactId) cliBy.set(String(c.contactId), c)
+    const obBy = new Map<string, unknown>(); for (const o of obs) obBy.set(o.contactId, o)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const callsBy = new Map<string, any[]>()
+    for (const sc of calls) {
+      if (!sc.contactId) continue
+      const arr = callsBy.get(sc.contactId) ?? []
+      arr.push(sc); callsBy.set(sc.contactId, arr)
+    }
+    const out: Record<string, DealMeta> = {}
+    const ids = new Set<string>([...cliBy.keys(), ...obBy.keys(), ...callsBy.keys()])
+    for (const id of ids) foldDealMeta(out, cliBy.get(id), obBy.get(id), callsBy.get(id) ?? [], nowIso, id)
+    return out
+  },
+})
+
 export const list = query({
   handler: async (ctx) => {
     return await ctx.db.query("crm_contacts").order("desc").collect()
@@ -156,6 +231,10 @@ export const create = mutation({
     lostObjection:v.optional(v.string()),
     wonObjection: v.optional(v.string()),
     dealDate:     v.optional(v.string()),
+    dealStartDate:      v.optional(v.string()),
+    dealEndDate:        v.optional(v.string()),
+    dealDurationMonths: v.optional(v.number()),
+    paymentType:        v.optional(v.string()),
     leadStatus:  v.optional(v.string()),
     linkedinUrl: v.optional(v.string()),
     country:     v.optional(v.string()),
@@ -276,6 +355,10 @@ export const update = mutation({
     lostObjection:v.optional(v.string()),
     wonObjection: v.optional(v.string()),
     dealDate:     v.optional(v.string()),
+    dealStartDate:      v.optional(v.string()),
+    dealEndDate:        v.optional(v.string()),
+    dealDurationMonths: v.optional(v.number()),
+    paymentType:        v.optional(v.string()),
     leadStatus:  v.optional(v.string()),
     linkedinUrl: v.optional(v.string()),
     country:     v.optional(v.string()),

@@ -277,6 +277,11 @@ export type GHLContact = {
   wonObjection?:  string | null
   dealDate?:      string | null
   canton?:        string | null
+  // Deal (accompagnement) — champs éditables sur la fiche contact
+  dealStartDate?:      string | null
+  dealEndDate?:        string | null
+  dealDurationMonths?: number | null
+  paymentType?:        string | null   // 'mensuel' | 'unique'
 }
 
 export type GHLUser = {
