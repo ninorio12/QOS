@@ -645,7 +645,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
         </div>
 
         {/* Scrollable body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+        <form onSubmit={handleSubmit} className="fiche-contact-fields flex-1 overflow-y-auto p-6 flex flex-col gap-6">
 
           {/* ── Contact ── */}
           <div className="flex flex-col gap-3">

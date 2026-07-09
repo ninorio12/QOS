@@ -94,7 +94,7 @@ function Field({
           type={type}
           value={value}
           onChange={e => onChange(name, e.target.value)}
-          className="flex-1 text-sm text-soren-text bg-[#F9F9F7] border border-soren-border rounded-lg px-3 py-1.5 outline-none focus:border-[#3462EE] transition-colors"
+          className="flex-1 text-sm text-soren-text bg-[#FAFAF8] border border-soren-border rounded-lg px-3 py-1.5 outline-none focus:border-[#3462EE] transition-colors"
         />
       ) : href ? (
         <a href={href} className="text-sm text-[#3462EE] hover:underline break-all pt-1.5">{value}</a>
@@ -131,7 +131,7 @@ function RegionField({ country, value, editing, onChange }: {
             value={value}
             onChange={e => onChange(e.target.value)}
             placeholder="Canton, région…"
-            className="flex-1 text-sm text-soren-text bg-[#F9F9F7] border border-soren-border rounded-lg px-3 py-1.5 outline-none focus:border-[#3462EE] transition-colors"
+            className="flex-1 text-sm text-soren-text bg-[#FAFAF8] border border-soren-border rounded-lg px-3 py-1.5 outline-none focus:border-[#3462EE] transition-colors"
           />
         )
       ) : (
@@ -230,7 +230,7 @@ function CustomSelect({ value, onChange, options, placeholder = '— Choisir —
               className={`w-full text-left px-3 py-2.5 text-sm transition-colors flex items-center gap-2 ${
                 opt.value === value
                   ? 'bg-soren-elevated text-soren-text font-medium'
-                  : 'text-[#374151] hover:bg-[#F9F9F7]'
+                  : 'text-[#374151] hover:bg-[#FAFAF8]'
               }`}
             >
               {opt.value === value && <span className="w-1.5 h-1.5 rounded-full bg-[#3462EE] flex-shrink-0" />}
@@ -473,7 +473,7 @@ export default function ContactDetailPage({
 
   return (
     <div className="h-full overflow-y-auto bg-soren-app p-6">
-      <div className="max-w-2xl mx-auto">
+      <div className="fiche-contact-fields max-w-2xl mx-auto">
 
         {/* Back */}
         <div className="flex items-center justify-between mb-6">
