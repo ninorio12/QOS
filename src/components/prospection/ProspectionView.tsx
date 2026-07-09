@@ -33,8 +33,10 @@ type ProspRecord = { id: string; contactId: string; column: string; shortNote?: 
 const fmtFollowUp = (iso?: string) => { if (!iso) return ''; const d = new Date(iso); return isNaN(d.getTime()) ? '' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) }
 
 // Règles métier de déplacement :
-//  • « Leads interne » est une colonne réservée : seuls les leads internes (envoyés depuis une fiche) y vont — un lead normal ne peut PAS y être glissé. Un lead interne peut y revenir.
-//  • Un lead interne ne peut JAMAIS retomber dans « Leads à traiter » (entrée réservée aux leads bruts).
+//  Mouvement libre pour pouvoir CORRIGER une erreur de drop (remettre une carte depuis n'importe quelle
+//  colonne, NRP/Perdu/RDV inclus). Seuls 2 garde-fous d'intégrité de type subsistent :
+//  • « Leads interne » = réservé aux leads internes (envoyés depuis une fiche) — mais accessible depuis n'importe où.
+//  • « Leads à traiter » = réservé aux leads bruts (non internes) — accessible depuis n'importe où.
 const isMoveAllowed = (r: ProspRecord, target: string) => {
   if (target === 'leads_interne')  return !!r.internalLead
   if (target === 'leads_a_traiter') return !r.internalLead
@@ -44,7 +46,7 @@ const isMoveAllowed = (r: ProspRecord, target: string) => {
 const blockReason = (r: ProspRecord, target: string) =>
   target === 'leads_interne'
     ? '« Leads interne » est réservé aux contacts envoyés depuis leur fiche'
-    : 'Un lead interne ne peut pas revenir dans « Leads à traiter »'
+    : '« Leads à traiter » est réservé aux leads (un lead interne y est exclu)'
 
 // Colonnes du board — ordre = parcours commercial.
 const COLUMNS: { id: string; label: string; color: string }[] = [
@@ -69,8 +71,6 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
   const internal = r.internalLead
   return (
     <div className={`border rounded-lg px-2.5 py-1.5 flex flex-col gap-1 select-none transition-all ${
-      internal ? 'border-l-[3px] border-l-[#FF4D00]' : ''
-    } ${
       dragging
         ? internal
           ? 'bg-[#FF4D00]/15 backdrop-blur-sm border-[#FF4D00] shadow-[0_0_0_1px_#FF4D00,0_4px_16px_rgba(0,0,0,0.12)] rotate-1 cursor-grabbing'
@@ -218,14 +218,21 @@ function Column({ col, records, onOpen, wasDragged, onMove, colIndex = 0, colCou
 function Overlay({ children, onClose }: { children: React.ReactNode; onClose?: () => void }) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
-  // Fermeture clavier (Échap) + verrou du scroll body, comme le <Modal> partagé.
+  // Verrou du scroll + masque la chrome mobile (header/nav) tant que la modale est
+  // ouverte : sinon le header `fixed z-40`, opaque, resterait visible en transparence
+  // sous le fond flouté (bg-black/40) et donnerait l'impression d'être « devant ».
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.documentElement.classList.add('vf-modal-open')
+    return () => { document.body.style.overflow = prev; document.documentElement.classList.remove('vf-modal-open') }
+  }, [])
+  // Fermeture clavier (Échap).
   useEffect(() => {
     if (!onClose) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prev }
+    return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
   if (!mounted || typeof document === 'undefined') return null
   return createPortal(children, document.body)
@@ -312,8 +319,10 @@ function Fiche({ r, onClose, onEdit, onMove }: { r: ProspRecord; onClose: () => 
 // Toute fermeture sans clic (fond, Annuler) renvoie la carte à sa colonne d'origine.
 function IClosedBookingModal({ rec, onConfirm, onCancel }: { rec: ProspRecord; onConfirm: () => void; onCancel: () => void }) {
   const params = new URLSearchParams()
-  if (rec.contact.fullName) params.set('name', rec.contact.fullName)
-  if (rec.contact.email) params.set('email', rec.contact.email)
+  // iClosed attend les paramètres `iclosedName` / `iclosedEmail` / `iclosedPhone` (pas `name` / `email`).
+  if (rec.contact.fullName) params.set('iclosedName', rec.contact.fullName)
+  if (rec.contact.email) params.set('iclosedEmail', rec.contact.email)
+  if (rec.contact.phone) params.set('iclosedPhone', rec.contact.phone)
   const url = ICLOSED_R1_BOOKING_URL + (ICLOSED_R1_BOOKING_URL.includes('?') ? '&' : '?') + params.toString()
   return (
     <Overlay onClose={onCancel}>
@@ -323,8 +332,8 @@ function IClosedBookingModal({ rec, onConfirm, onCancel }: { rec: ProspRecord; o
         <span className="w-12 h-12 rounded-full bg-[#16A34A]/12 flex items-center justify-center"><CalendarCheck size={22} className="text-[#16A34A]" /></span>
         <div>
           <p className="text-[15px] font-bold text-soren-text">Booker le R1</p>
-          <p className="text-[12px] text-soren-muted mt-1"><span className="font-semibold text-soren-text">{rec.contact.fullName}</span> — choisis la date, l'heure et le closer sur iClosed.</p>
-          {rec.contact.email && <p className="text-[11px] text-soren-subtle mt-1.5">Email pré-rempli : {rec.contact.email}</p>}
+          <p className="text-[12px] text-soren-muted mt-1"><span className="font-semibold text-soren-text">{rec.contact.fullName}</span> : choisis la date, l'heure et le closer sur iClosed.</p>
+          {(rec.contact.email || rec.contact.phone) && <p className="text-[11px] text-soren-subtle mt-1.5">Pré-rempli :{rec.contact.email ? ` ${rec.contact.email}` : ''}{rec.contact.email && rec.contact.phone ? ' ·' : ''}{rec.contact.phone ? ` ${rec.contact.phone}` : ''}</p>}
         </div>
         <a href={url} target="_blank" rel="noreferrer" onClick={onConfirm}
           className="w-full inline-flex items-center justify-center gap-2 h-11 rounded-xl bg-[#FF4D00] text-white text-[13px] font-bold hover:bg-[#E64500] transition-colors">
@@ -346,9 +355,9 @@ function LostReasonModal({ rec, onConfirm, onCancel }: { rec: ProspRecord; onCon
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
       <div className="relative w-full max-w-sm bg-soren-card rounded-2xl shadow-2xl p-6 flex flex-col gap-4">
         <div className="flex flex-col items-center text-center gap-2">
-          <span className="w-12 h-12 rounded-full bg-[#FEE2E2] flex items-center justify-center"><UserMinus size={22} className="text-[#DC2626]" /></span>
+          <span className="w-12 h-12 rounded-full bg-soren-elevated flex items-center justify-center"><UserMinus size={22} className="text-soren-subtle" /></span>
           <div>
-            <p className="text-[15px] font-bold text-soren-text">Veuillez sélectionner la raison</p>
+            <p className="text-[15px] font-semibold text-soren-text">Raison de la perte</p>
             <p className="text-[12px] text-soren-muted mt-1">Pourquoi <span className="font-semibold text-soren-text">{rec.contact.fullName}</span> est-il perdu ?</p>
           </div>
         </div>
@@ -357,8 +366,8 @@ function LostReasonModal({ rec, onConfirm, onCancel }: { rec: ProspRecord; onCon
             const Icon = r.icon
             return (
               <button key={r.code} onClick={() => onConfirm(r.code)}
-                className="w-full flex items-center gap-3 h-11 px-4 rounded-xl border border-soren-border bg-soren-card text-[13px] font-semibold text-soren-text hover:border-[#DC2626] hover:bg-[#FEE2E2]/40 transition-colors">
-                <Icon size={17} className="text-[#DC2626] flex-shrink-0" />{r.label}
+                className="w-full flex items-center gap-3 h-11 px-4 rounded-lg border border-soren-border bg-soren-card text-[13px] font-medium text-soren-text hover:border-soren-text/25 hover:bg-soren-elevated transition-colors">
+                <Icon size={17} className="text-soren-subtle flex-shrink-0" />{r.label}
               </button>
             )
           })}
@@ -631,7 +640,7 @@ export default function ProspectionView() {
       </div>
 
       {/* Board kanban */}
-      <div className="flex-1 min-h-0 px-5 pb-2">
+      <div className="flex-1 min-h-0 px-5 pb-4">
         <DndContext sensors={sensors} collisionDetection={collisionDetection}
           measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
           autoScroll={{ canScroll: el => el === boardRef.current, threshold: { x: 0.2, y: 0 }, acceleration: 20 }}

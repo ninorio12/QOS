@@ -98,7 +98,7 @@ export default function PaiementView() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Toolbar */}
-      <div className="px-6 pt-5 pb-3 flex-shrink-0 flex items-center justify-between gap-3 flex-wrap">
+      <div className="px-4 md:px-6 pt-4 md:pt-5 pb-3 flex-shrink-0 flex items-center justify-start md:justify-between gap-2 md:gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <div className="relative" ref={calRef}>
             <button onClick={() => setCalOpen(v => !v)}
@@ -115,7 +115,7 @@ export default function PaiementView() {
             )}
           </div>
           {filterContact && (
-            <a href="/paiement" className="flex items-center gap-1 text-[11px] font-semibold text-soren-muted hover:text-soren-text bg-soren-card border border-soren-border rounded-full px-3 py-1.5">
+            <a href="/paiement" className="flex items-center gap-1 whitespace-nowrap text-[11px] font-semibold text-soren-muted hover:text-soren-text bg-soren-card border border-soren-border rounded-full px-3 py-1.5">
               <X size={12} /> {filterName ?? 'Tous'}
             </a>
           )}
@@ -124,42 +124,42 @@ export default function PaiementView() {
             <button
               onClick={isAdmin ? () => { if (confirm('Déconnecter Stripe ?')) disconnectStripe({}) } : undefined}
               title={isAdmin ? `${stripeConn.accountName ?? 'Compte Stripe'}${stripeConn.livemode === false ? ' · test' : ''} — cliquer pour déconnecter` : 'Compte société (géré par un admin)'}
-              className={`inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1.5 rounded-full transition-colors ${isAdmin ? 'hover:border-emerald-500/50' : 'cursor-default'}`}
+              className={`inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold text-emerald-600 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1.5 rounded-full transition-colors ${isAdmin ? 'hover:border-emerald-500/50' : 'cursor-default'}`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Stripe connecté
             </button>
           ) : isAdmin ? (
             <button
               onClick={() => setConnectOpen(true)}
-              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-soren-accent bg-soren-accent/10 border border-soren-accent/25 px-2.5 py-1.5 rounded-full hover:bg-soren-accent/15 transition-colors"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold text-soren-accent bg-soren-accent/10 border border-soren-accent/25 px-2.5 py-1.5 rounded-full hover:bg-soren-accent/15 transition-colors"
             >
               <CreditCard size={13} />Connecter Stripe
             </button>
           ) : (
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-soren-muted bg-soren-card border border-soren-border px-2.5 py-1.5 rounded-full cursor-default" title="Compte société — connexion réservée à un admin">
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium text-soren-muted bg-soren-card border border-soren-border px-2.5 py-1.5 rounded-full cursor-default" title="Compte société — connexion réservée à un admin">
               <CreditCard size={13} />Stripe non connecté
             </span>
           )}
           {stripeConn?.connected && isAdmin && (
-            <button onClick={runSync} disabled={syncing} className="inline-flex items-center gap-1.5 text-[11px] font-medium text-soren-muted bg-soren-card border border-soren-border rounded-full px-2.5 py-1.5 hover:text-soren-text transition-colors disabled:opacity-60">
+            <button onClick={runSync} disabled={syncing} className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium text-soren-muted bg-soren-card border border-soren-border rounded-full px-2.5 py-1.5 hover:text-soren-text transition-colors disabled:opacity-60">
               <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />{syncing ? 'Sync…' : 'Sync Stripe'}
             </button>
           )}
           {/* Connexion Revolut Pro (virements reçus hors Stripe) */}
           {revolutStatus?.connected ? (
-            <span title={`${revolutStatus.count} virement(s) Revolut importé(s)`} className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-full" style={{ color: '#0A6CFF', background: '#0A6CFF14', border: '1px solid #0A6CFF40' }}>
+            <span title={`${revolutStatus.count} virement(s) Revolut importé(s)`} className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold px-2.5 py-1.5 rounded-full" style={{ color: '#0A6CFF', background: '#0A6CFF14', border: '1px solid #0A6CFF40' }}>
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#0A6CFF' }} />Revolut connecté
             </span>
           ) : (
-            <button onClick={() => setConnectRevolutOpen(true)} className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-full" style={{ color: '#0A6CFF', background: '#0A6CFF10', border: '1px solid #0A6CFF40' }}>
+            <button onClick={() => setConnectRevolutOpen(true)} className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold px-2.5 py-1.5 rounded-full" style={{ color: '#0A6CFF', background: '#0A6CFF10', border: '1px solid #0A6CFF40' }}>
               <Landmark size={13} />Connecter Revolut
             </button>
           )}
-          <button onClick={() => setManualOpen(true)} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white rounded-full px-2.5 py-1.5 transition-opacity hover:opacity-90" style={{ background: '#FF4D00' }}>
+          <button onClick={() => setManualOpen(true)} className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold text-white rounded-full px-2.5 py-1.5 transition-opacity hover:opacity-90" style={{ background: '#FF4D00' }}>
             <Plus size={13} />Ajouter un virement
           </button>
         </div>
-        <div className="flex items-center gap-2 flex-1 min-w-0 md:min-w-[200px] max-w-md bg-soren-card border border-soren-border rounded-full px-3.5 py-2">
+        <div className="flex items-center gap-2 basis-full md:basis-auto md:flex-1 min-w-0 md:min-w-[200px] md:max-w-md bg-soren-card border border-soren-border rounded-full px-3.5 py-2">
           <Search size={13} className="text-soren-subtle flex-shrink-0" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un client…"
             className="flex-1 bg-transparent text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none" />

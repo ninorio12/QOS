@@ -26,7 +26,7 @@ export default async function PipelinePage() {
   // No Convex → show empty default pipeline
   if (!url) {
     return (
-      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+      <div className="flex-1 md:h-[calc(100vh-3rem)] flex flex-col overflow-hidden min-h-0">
         <KanbanBoard initialPipelines={[DEFAULT_PIPELINE]} initialOpportunities={[]} />
       </div>
     )
@@ -57,14 +57,14 @@ export default async function PipelinePage() {
     // avant tout contrôle d'accès). Le board se peuple côté client via sa live query, sous la
     // garde de ModuleGuard (un compte sans /pipeline est redirigé). Cf. backlog auth pré-prod.
     return (
-      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+      <div className="flex-1 md:h-[calc(100vh-3rem)] flex flex-col overflow-hidden min-h-0">
         <KanbanBoard initialPipelines={pipelines} initialOpportunities={[]} />
       </div>
     )
   } catch {
     // Convex error → show empty default pipeline (don't block the user)
     return (
-      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+      <div className="flex-1 md:h-[calc(100vh-3rem)] flex flex-col overflow-hidden min-h-0">
         <KanbanBoard initialPipelines={[DEFAULT_PIPELINE]} initialOpportunities={[]} />
       </div>
     )

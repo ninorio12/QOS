@@ -99,6 +99,7 @@ function OppCard({ opp, isDragging = false, muted = false, hideValue = false }: 
             </span>
           )}
           {src && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: src.bg, color: src.color }}>{src.label}</span>}
+          {opp.noShow && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: '#FEE2E2', color: '#DC2626' }}>no-show</span>}
         </div>
         <Avatar initials={opp.initials} />
       </div>
@@ -246,14 +247,10 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
           </SortableContext>
         )}
 
+        {/* 1ʳᵉ étape (Nouveau lead) et dernière étape : pas de zone perdu :un nouveau lead ne peut pas
+            être perdu. Pas de réservateur d'espace → les cartes occupent toute la hauteur (les colonnes
+            restent alignées via l'étirement flex du board row). */}
         {!showLost && !isLastStage && !isFirstStage && <LostZone stageId={stage.id} isOver={isLostOver} />}
-        {/* 1ʳᵉ étape (Nouveau lead) et dernière étape : pas de zone perdu :un nouveau lead ne peut pas être perdu.
-            On réserve la même hauteur pour garder les colonnes alignées. */}
-        {!showLost && (isLastStage || isFirstStage) && (
-          <div aria-hidden className="mt-1.5 flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-transparent py-1.5 pointer-events-none select-none">
-            <span className="text-[10px] font-semibold opacity-0">·</span>
-          </div>
-        )}
       </div>
     </div>
   )
@@ -347,6 +344,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   // Reactive live leads + contacts :la card DÉRIVE de la fiche contact (source unique).
   const liveLeads = useQuery(api.crm_leads.list)
   const liveContacts = useQuery(api.crm_contacts.list)
+  const liveCalls = useQuery(api.osSalesCalls.list, {})
   useEffect(() => {
     if (!liveLeads || draggingRef.current) return
     // source de vérité = la fiche contact ; la chip inbound/outbound en dérive.
@@ -355,6 +353,11 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     for (const c of (liveContacts ?? []) as { _id: string; source?: string; statut?: string }[]) {
       if (c.source) sourceByContact.set(c._id, c.source)
       if (c.statut) statutByContact.set(c._id, c.statut)
+    }
+    // Contacts avec un RDV marqué no-show (récupérable) → chip rouge sur la carte pipeline.
+    const noShowContacts = new Set<string>()
+    for (const k of (liveCalls ?? []) as { contactId?: string; status?: string }[]) {
+      if (k.status === 'no_show' && k.contactId) noShowContacts.add(k.contactId)
     }
     const mapped: Opportunity[] = (liveLeads as {
       _id: string; name: string; email?: string; phone?: string; company?: string;
@@ -366,6 +369,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
       createdAt: l.createdAt.split('T')[0], initials: l.initials,
       stageId: l.stageId, pipelineId: l.pipelineId, email: l.email ?? '', phone: l.phone ?? '',
       contactId: l.contactId ?? '', tags: [], status: l.status as Opportunity['status'],
+      noShow: !!(l.contactId && noShowContacts.has(l.contactId)),
     }))
     // Source de vérité = statut de la fiche : un lead dont le contact est devenu CLIENT
     // ne reste pas dans le board Leads (sinon carte fantôme en double avec le board Clients),
@@ -373,7 +377,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     const visible = mapped.filter(o => !(o.contactId && statutByContact.get(o.contactId) === 'client'))
     setOpps(visible.filter(o => o.status !== 'lost'))
     setLostOpps(visible.filter(o => o.status === 'lost'))
-  }, [liveLeads, liveContacts])
+  }, [liveLeads, liveContacts, liveCalls])
 
   async function reopenLead(opp: Opportunity) {
     // Restaure l'étape où le lead avait été perdu (source de vérité = contact.lostStage), sinon 1ʳᵉ colonne.
@@ -856,10 +860,12 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
 
       <DndContext sensors={sensors} collisionDetection={collisionDetection} measuring={{ droppable: { strategy: MeasuringStrategy.Always } }} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0">
-          <div className="flex items-center gap-5">
+        {/* En-tête : desktop = 1 ligne (compteur | voir perdus | recherche | nouveau).
+            Mobile = ligne 1 (compteur + voir perdus + nouveau), ligne 2 (recherche pleine largeur via basis-full). */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-2 px-3 md:px-6 pt-3 md:pt-5 pb-2 md:pb-3 flex-shrink-0">
+          <div className="flex items-center gap-3 md:gap-5 mr-auto order-1">
             <div>
-              <p className="text-xs text-soren-muted mt-1">
+              <p className="text-[11px] md:text-xs text-soren-muted">
                 {totalCount} {showLost ? 'perdus' : 'opportunités'}
               </p>
             </div>
@@ -877,41 +883,37 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            {!showLost && activeId && <TrashZone isOver={overId === TRASH_ID} />}
-            <button
-              onClick={() => setShowLost(s => !s)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all border ${
-                showLost
-                  ? 'bg-red-50 border-red-200 text-red-600'
-                  : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'
-              }`}
-            >
-              {showLost ? <Eye size={12} /> : <EyeOff size={12} />}
-              {showLost ? 'Voir actifs' : 'Voir perdus'}
-            </button>
-            {/* Recherche soft, à gauche de « Nouveau lead » */}
-            <div className="relative">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-soren-subtle pointer-events-none" />
-              <input
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Rechercher…"
-                className="w-36 focus:w-52 bg-soren-card border border-soren-border rounded-full pl-8 pr-3 py-1.5 text-[11px] text-soren-text placeholder-soren-subtle outline-none focus:ring-2 focus:ring-[#FF4D00]/20 focus:border-[#FF4D00]/40 transition-all duration-300"
-              />
-            </div>
-            {!showLost && (
-              <NewLeadWidget
-                compact
-                mode="leads"
-                onAddOpp={handleAddOpp}
-              />
-            )}
+          {!showLost && activeId && <span className="order-2 flex-shrink-0"><TrashZone isOver={overId === TRASH_ID} /></span>}
+          <button
+            onClick={() => setShowLost(s => !s)}
+            className={`order-3 flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all border flex-shrink-0 ${
+              showLost
+                ? 'bg-red-50 border-red-200 text-red-600'
+                : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'
+            }`}
+          >
+            {showLost ? <Eye size={12} /> : <EyeOff size={12} />}
+            {showLost ? 'Voir actifs' : 'Voir perdus'}
+          </button>
+          {!showLost && (
+            <span className="order-4 md:order-5 flex-shrink-0">
+              <NewLeadWidget compact mode="leads" onAddOpp={handleAddOpp} />
+            </span>
+          )}
+          {/* Recherche : pleine largeur sur sa propre ligne en mobile (basis-full), inline avant « Nouveau » en desktop. */}
+          <div className="relative order-5 md:order-4 basis-full md:basis-auto md:w-36 md:focus-within:w-52 transition-all duration-300">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-soren-subtle pointer-events-none" />
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Rechercher…"
+              className="w-full bg-soren-card border border-soren-border rounded-full pl-8 pr-3 py-1.5 text-[11px] text-soren-text placeholder-soren-subtle outline-none focus:ring-2 focus:ring-[#FF4D00]/20 focus:border-[#FF4D00]/40"
+            />
           </div>
         </div>
 
         {/* Board */}
-        <div className="relative flex-1 min-h-0">
+        <div className="relative flex-1 min-h-0 flex flex-col pb-3">
           <div
             className={`pointer-events-none absolute left-0 top-0 bottom-4 w-8 z-10 transition-opacity duration-200 ${scrolled ? 'opacity-100' : 'opacity-0'}`}
             style={{ background: 'linear-gradient(to right, var(--bg-app) 40%, transparent)' }}
@@ -920,7 +922,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
             className="pointer-events-none absolute right-0 top-0 bottom-4 w-8 z-10"
             style={{ background: 'linear-gradient(to left, var(--bg-app) 40%, transparent)' }}
           />
-          <div ref={boardRef} className="flex gap-3 overflow-x-auto px-3 md:px-6 pb-[max(1rem,env(safe-area-inset-bottom))] kanban-scroll kanban-board-row">
+          <div ref={boardRef} className="flex flex-1 min-h-0 gap-3 overflow-x-auto px-3 md:px-6 pb-[max(1rem,env(safe-area-inset-bottom))] kanban-scroll kanban-board-row">
             {stages.map((stage, i) => (
               <KanbanColumn
                 key={stage.id}
@@ -967,6 +969,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
         <IClosedBookingModal
           fullName={pendingBooking.opp.name}
           email={pendingBooking.opp.email}
+          phone={pendingBooking.opp.phone}
           label={pendingBooking.stageId === 'r2' ? 'R2' : 'R1'}
           bookingUrl={pendingBooking.stageId === 'r2' ? ICLOSED_R2_BOOKING_URL : ICLOSED_R1_BOOKING_URL}
           onConfirm={commitBooking}

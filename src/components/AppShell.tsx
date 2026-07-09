@@ -8,6 +8,7 @@ import ThemeSync from '@/components/ThemeSync'
 import ModuleGuard from '@/components/ModuleGuard'
 import PageTransition from '@/components/PageTransition'
 import OnboardingModal from '@/components/OnboardingModal'
+import VersionWatcher from '@/components/VersionWatcher'
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -16,6 +17,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <ThemeSync />
       <ModuleGuard />
       <OnboardingModal />
+      <VersionWatcher />
 
       {/* Sidebar — desktop only */}
       <div className="hidden md:block">
@@ -34,7 +36,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <MobileNav />
 
       {/* Main content */}
-      <main className="md:ml-56 pt-14 md:pt-12 pb-28 md:pb-0 md:h-screen md:overflow-y-auto">
+      <main className="vf-main-offset pt-14 md:pt-12 pb-28 md:pb-0 md:h-screen md:overflow-y-auto">
         <PageTransition>{children}</PageTransition>
       </main>
     </div>

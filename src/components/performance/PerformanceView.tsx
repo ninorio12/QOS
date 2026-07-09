@@ -1,12 +1,15 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { Phone, UserCheck, MessageSquare, CalendarCheck, XCircle, Percent, BarChart3, Target, Plus, Check, Trash2, X, Pencil, CalendarDays, Banknote, type LucideIcon } from 'lucide-react'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { Portal } from '@/components/ui/Portal'
 import { Modal } from '@/components/ui/Modal'
+
+const RollingNumber = dynamic(() => import('@/components/dashboard/RollingNumber'), { ssr: false })
 
 const iso = (d: Date) => d.toISOString().slice(0, 10)
 const today = () => localDate(new Date())
@@ -76,7 +79,7 @@ function KpiMini({ label, value, suffix, formula, Icon, color }: { label: string
         <span className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: color + '18', color }}><Icon size={13} /></span>
       </div>
       <div className="text-[15px] md:text-[16px] font-semibold tracking-tight text-soren-text leading-none tabular-nums">
-        {value}{suffix && <span className="text-[11px] text-soren-muted font-semibold ml-1">{suffix}</span>}
+        <RollingNumber value={String(value)} className="tabular-nums" />{suffix && <span className="text-[11px] text-soren-muted font-semibold ml-1">{suffix}</span>}
       </div>
       <span className="text-[10px] font-semibold text-[#FF4D00]/70">{formula ?? 'durant la période'}</span>
     </div>

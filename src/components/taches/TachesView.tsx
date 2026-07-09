@@ -21,7 +21,7 @@ type Task = {
   id: string; title: string; description?: string; objective?: string; status: string; priority: string
   assigneeType: string; assigneeId?: string; source: string; order?: number
   linkedClientId?: string
-  objectiveAchieved?: boolean; completionNote?: string; completedAt?: string
+  objectiveAchieved?: boolean; completionNote?: string; completedAt?: string; archivedAt?: string
   comments?: Comment[]
   createdBy: string; createdAt: string; updatedAt: string
 }
@@ -32,6 +32,11 @@ function isRecentDone(t: Task): boolean {
   const ts = t.completedAt ?? t.updatedAt
   if (!ts) return true
   return (Date.now() - new Date(ts).getTime()) < HISTORY_DAYS * 86_400_000
+}
+// Une tâche est dans l'Historique si elle a été archivée explicitement, OU validée depuis plus de HISTORY_DAYS jours.
+function isHistory(t: Task): boolean {
+  if (t.archivedAt) return true
+  return (t.status === 'done' || t.status === 'cancelled') && !isRecentDone(t)
 }
 
 const COLUMNS = [
@@ -112,9 +117,9 @@ function uniqueCommenters(comments?: Comment[]): Comment[] {
 
 function AssigneeChip({ t }: { t: Task }) {
   return (
-    <span className="inline-flex items-center gap-1 text-[9px] font-semibold pl-0.5 pr-1.5 py-0.5 rounded-full bg-soren-elevated text-soren-muted">
+    <span className="inline-flex items-center gap-1 text-[9px] font-semibold pl-0.5 pr-1.5 py-0.5 rounded-full bg-soren-elevated text-soren-muted whitespace-nowrap flex-shrink-0 max-w-full">
       <AssigneeBadge type={t.assigneeType} name={t.assigneeId ?? ''} />
-      {t.assigneeId || (t.assigneeType === 'agent' ? 'Agent' : 'Non assigné')}
+      <span className="truncate">{t.assigneeId || (t.assigneeType === 'agent' ? 'Agent' : 'Non assigné')}</span>
     </span>
   )
 }
@@ -146,13 +151,6 @@ function CardBody({ t, onValidate, overlay = false }: { t: Task; onValidate?: (e
           ${done ? 'bg-[#16A34A] text-white' : 'border-[1.5px] border-[#C8CBD0] text-transparent hover:border-[#16A34A] hover:text-[#16A34A]'}`}>
         <Check size={10} strokeWidth={3} />
       </button>
-      {/* Pulse « en cours » — la carte est vivante quand un agent bosse dessus */}
-      {t.status === 'in_progress' && !overlay && (
-        <span className="absolute top-2 right-2 flex h-2 w-2" title="En cours">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3462EE] opacity-60" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-[#3462EE]" />
-        </span>
-      )}
       <p title={t.title} className={`text-[11px] font-semibold text-soren-text leading-snug truncate ${done ? 'line-through text-soren-subtle' : ''}`}>{clampWords(t.title, 4)}</p>
       {t.description && <p title={t.description} className="text-[10px] text-soren-muted leading-snug line-clamp-3">{t.description}</p>}
       <div className="flex items-center gap-1">
@@ -264,6 +262,7 @@ function TaskModal({ task, onClose }: { task: Task | null; onClose: () => void }
   const create = useMutation(api.osTasks.create)
   const update = useMutation(api.osTasks.update)
   const removeT = useMutation(api.osTasks.remove)
+  const archive = useMutation(api.osTasks.archive)
   const addComment = useMutation(api.osTasks.addComment)
   const editComment = useMutation(api.osTasks.editComment)
   const deleteComment = useMutation(api.osTasks.deleteComment)
@@ -375,7 +374,12 @@ function TaskModal({ task, onClose }: { task: Task | null; onClose: () => void }
         </div>
         <div className="px-6 py-3 border-t border-soren-border flex items-center justify-between gap-3 flex-shrink-0">
           {task ? (
-            <button onClick={() => { removeT({ id: task.id as never }); onClose() }} className="flex items-center gap-1.5 text-[11px] font-semibold text-soren-muted hover:text-[#DC2626]"><Trash2 size={12} /> Supprimer</button>
+            <div className="flex items-center gap-3">
+              <button onClick={() => { removeT({ id: task.id as never }); onClose() }} className="flex items-center gap-1.5 text-[11px] font-semibold text-soren-muted hover:text-[#DC2626]"><Trash2 size={12} /> Supprimer</button>
+              {!task.archivedAt && (
+                <button onClick={() => { archive({ id: task.id as never }); onClose() }} className="flex items-center gap-1.5 text-[11px] font-semibold text-soren-muted hover:text-soren-text"><RotateCcw size={12} /> Archiver</button>
+              )}
+            </div>
           ) : <span />}
           <button onClick={save} disabled={!title.trim()}
             className="flex items-center gap-1.5 bg-[#FF4D00] text-white text-[12px] font-semibold px-5 py-2 rounded-full hover:bg-[#e64500] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
@@ -477,6 +481,7 @@ export default function TachesView() {
   const remoteTasksRaw = useQuery(api.osTasks.list, {})
   const remoteTasks = useMemo<Task[]>(() => (remoteTasksRaw ?? []) as Task[], [remoteTasksRaw])
   const update = useMutation(api.osTasks.update)
+  const unarchive = useMutation(api.osTasks.unarchive)
   const [local, setLocal] = useState<Task[]>([])
   const draggingRef = useRef(false)
   const wasDragged = useRef(false)
@@ -513,19 +518,18 @@ export default function TachesView() {
     const m: Record<string, Task[]> = {}
     for (const c of COLUMNS) m[c.id] = []
     for (const t of boardTasks) {
-      const c = columnOf(t.status)
-      if (c === 'done' && !isRecentDone(t)) continue   // ancienne tâche validée → table Historique
-      m[c].push(t)
+      if (isHistory(t)) continue   // archivée ou ancienne validée → table Historique
+      m[columnOf(t.status)].push(t)
     }
     for (const c of COLUMNS) m[c.id].sort((a, b) => (b.order ?? 0) - (a.order ?? 0))
     return m
   }, [boardTasks])
 
-  // Historique : tâches validées il y a plus de HISTORY_DAYS jours (plus récentes en haut).
+  // Historique : tâches archivées OU validées il y a plus de HISTORY_DAYS jours (plus récentes en haut).
   const history = useMemo(() =>
     boardTasks
-      .filter(t => columnOf(t.status) === 'done' && !isRecentDone(t))
-      .sort((a, b) => ((b.completedAt ?? b.updatedAt) < (a.completedAt ?? a.updatedAt) ? -1 : 1)),
+      .filter(isHistory)
+      .sort((a, b) => ((b.archivedAt ?? b.completedAt ?? b.updatedAt) < (a.archivedAt ?? a.completedAt ?? a.updatedAt) ? -1 : 1)),
     [boardTasks])
 
   // Vue « par agent » : tâches groupées par agent (toutes colonnes ; on masque les vieilles validées).
@@ -535,7 +539,7 @@ export default function TachesView() {
     for (const a of AGENT_PROFILES) m[a.id] = []
     const unassigned: Task[] = []
     for (const t of local) {
-      if (columnOf(t.status) === 'done' && !isRecentDone(t)) continue
+      if (isHistory(t)) continue
       const a = agentOf(t)
       if (a) m[a.id].push(t); else unassigned.push(t)
     }
@@ -553,8 +557,9 @@ export default function TachesView() {
   }
 
   function restoreTask(t: Task) {
-    setLocal(prev => prev.map(x => x.id === t.id ? { ...x, status: 'todo' } : x))
-    update({ id: t.id as never, status: 'todo' })
+    // Restaure depuis l'Historique : on vide aussi archivedAt/completedAt (sinon ça reste en Historique).
+    setLocal(prev => prev.map(x => x.id === t.id ? { ...x, status: 'todo', archivedAt: undefined, completedAt: undefined } : x))
+    unarchive({ id: t.id as never, status: 'todo' })
   }
 
   function confirmValidate(achieved: boolean, note: string) {
@@ -636,7 +641,7 @@ export default function TachesView() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="px-6 pt-4 pb-3 flex-shrink-0 flex items-center gap-3">
+      <div className="px-3 md:px-6 pt-3 md:pt-4 pb-3 flex-shrink-0 flex items-center gap-2 md:gap-3">
         {/* Toggle de vue */}
         <div className="inline-flex items-center gap-0.5 bg-soren-elevated rounded-full p-0.5 flex-shrink-0">
           {([['status', 'Statuts'], ['agent', 'Par agent']] as const).map(([v, label]) => (
@@ -651,7 +656,7 @@ export default function TachesView() {
               className={`flex-shrink-0 text-[9px] font-bold px-2 h-[26px] rounded-full border transition-colors ${agent === 'all' ? 'bg-soren-sidebar text-white border-soren-sidebar' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>Tous</button>
             {AGENT_PROFILES.map(a => (
               <button key={a.id} onClick={() => setAgent(a.name)} title={a.name}
-                className={`flex-shrink-0 rounded-full transition-all ${agent === a.name ? 'ring-2 ring-[#FF4D00] ring-offset-1' : 'opacity-55 hover:opacity-100'}`}>
+                className={`flex-shrink-0 rounded-full transition-all ${agent === a.name ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}>
                 <AgentFace id={a.id} name={a.name} avatar={a.avatar} size={26} />
               </button>
             ))}

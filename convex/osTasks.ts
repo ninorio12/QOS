@@ -134,7 +134,43 @@ export const deleteComment = mutation({
   },
 })
 
+// Archive → la tâche bascule immédiatement dans la colonne « Historique » de l'UI (indépendamment des 5 jours).
+// Si la tâche est encore ouverte, on la considère résolue (status=done + completedAt) en plus de l'archiver.
+export const archive = mutation({
+  args: { id: v.id("os_tasks"), by: v.optional(v.string()) },
+  handler: async (ctx, { id, by }) => {
+    const existing = await ctx.db.get(id)
+    if (!existing) return
+    const actor = by ?? "human:thomas"
+    const now = new Date().toISOString()
+    const open = existing.status !== "done" && existing.status !== "cancelled"
+    const patch: Record<string, unknown> = { archivedAt: now, updatedAt: now, updatedBy: actor }
+    if (open) { patch.status = "done"; if (!existing.completedAt) patch.completedAt = now }
+    await ctx.db.patch(id, patch)
+    await logActivity(ctx, { actorType: actor.startsWith("agent") ? "agent" : "human", actorId: actor, eventType: "task.updated", entityType: "task", entityId: id, summary: `Tâche archivée (Historique) : ${existing.title}`, metadata: { archivedAt: now } })
+  },
+})
+
+// Sort de l'Historique → revient sur le board (par défaut en « À faire »).
+export const unarchive = mutation({
+  args: { id: v.id("os_tasks"), status: v.optional(v.string()), by: v.optional(v.string()) },
+  handler: async (ctx, { id, status, by }) => {
+    const existing = await ctx.db.get(id)
+    if (!existing) return
+    const actor = by ?? "human:thomas"
+    const now = new Date().toISOString()
+    await ctx.db.patch(id, { archivedAt: undefined, status: status ?? "todo", completedAt: undefined, updatedAt: now, updatedBy: actor })
+    await logActivity(ctx, { actorType: actor.startsWith("agent") ? "agent" : "human", actorId: actor, eventType: "task.updated", entityType: "task", entityId: id, summary: `Tâche restaurée depuis l'Historique : ${existing.title}` })
+  },
+})
+
 export const remove = mutation({
-  args: { id: v.id("os_tasks") },
-  handler: async (ctx, { id }) => { await ctx.db.delete(id) },
+  args: { id: v.id("os_tasks"), by: v.optional(v.string()) },
+  handler: async (ctx, { id, by }) => {
+    const existing = await ctx.db.get(id)
+    if (!existing) return
+    const actor = by ?? "human:thomas"
+    await logActivity(ctx, { actorType: actor.startsWith("agent") ? "agent" : "human", actorId: actor, eventType: "task.updated", entityType: "task", entityId: id, summary: `Tâche supprimée : ${existing.title}`, metadata: { deleted: true } })
+    await ctx.db.delete(id)
+  },
 })

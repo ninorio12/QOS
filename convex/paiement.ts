@@ -17,9 +17,11 @@ export const overview = query({
     const leads = await ctx.db.query("crm_leads").collect()
     const stripePayments = await ctx.db.query("stripe_payments").withIndex("by_created").collect()
     const externalPayments = await ctx.db.query("external_payments").collect()
+    const fxRows = await ctx.db.query("fx_rates").collect()
+    const fxToChf: Record<string, number> = { chf: 1 }; for (const r of fxRows) fxToChf[r.currency] = r.rate
 
     // ── Argent : source UNIQUE de vérité (réconciliation partagée avec dashboard.getMetrics) ──
-    const money = reconcileMoney({ obs, clients, contacts, stripePayments, externalPayments, from, to, tzOffset: args.tzOffset })
+    const money = reconcileMoney({ obs, clients, contacts, stripePayments, externalPayments, from, to, tzOffset: args.tzOffset, fxToChf })
     const { encaisse, attente, rembourse, enRetard, pending, failed, disputes, transactions } = money
 
     // ── États (cumulatif ≤ to, définition CRM — identique au dashboard) ──

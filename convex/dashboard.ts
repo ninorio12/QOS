@@ -83,7 +83,9 @@ export const getMetrics = query({
     const obs = await ctx.db.query("onboarding").collect()
     const stripePayments = await ctx.db.query("stripe_payments").withIndex("by_created").collect()
     const externalPayments = await ctx.db.query("external_payments").collect()
-    const args0 = { obs, clients: allClients, contacts: allContacts, stripePayments, externalPayments, tzOffset: args.tzOffset }
+    const fxRows = await ctx.db.query("fx_rates").collect()
+    const fxToChf: Record<string, number> = { chf: 1 }; for (const r of fxRows) fxToChf[r.currency] = r.rate
+    const args0 = { obs, clients: allClients, contacts: allContacts, stripePayments, externalPayments, tzOffset: args.tzOffset, fxToChf }
     // CARTES = TOTAUX à vie (indépendants de la période) : encaissé total + à collecter total.
     const todayStr = new Date().toISOString().slice(0, 10)
     const moneyTotal  = reconcileMoney({ ...args0, from: '2000-01-01', to: todayStr })

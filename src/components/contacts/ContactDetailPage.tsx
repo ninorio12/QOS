@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, Pencil, X, Check, Loader2, Bot, User, ChevronDown } from 'lucide-react'
+import { ChevronLeft, Pencil, X, Save, Loader2, Bot, User, ChevronDown } from 'lucide-react'
 import { type GHLContact, type GHLOpportunity, type GHLPipeline } from '@/lib/ghl'
 import { fetchJSON } from '@/lib/fetchJSON'
 import { regionConfig, regionDisplay, COUNTRIES } from '@/lib/regions'
@@ -489,7 +489,7 @@ export default function ContactDetailPage({
                 disabled={saving}
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-soren-sidebar hover:bg-[#222222] disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
               >
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 Sauvegarder
               </button>
             </div>

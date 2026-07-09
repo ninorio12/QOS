@@ -3,6 +3,7 @@ import { query, internalMutation } from "./_generated/server"
 import { WORKSPACE } from "./osLib"
 import { localDay } from "./timeLib"
 import { funnelCohort } from "./funnelCohort"
+import { reconcileMoney } from "./moneyReconciliation"
 
 // Cockpit Prospection — Score Santé Business + Heatmap Équipes.
 // Source 100% réelle ; les seuils marqués "ajustable" sont des constantes à régler.
@@ -52,7 +53,13 @@ async function coreMetrics(ctx: any, from: string, to: string, tz?: number) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const distinct = (pred: (e: any) => boolean) => new Set(evWin.filter(pred).map((e: any) => e.prospectionRecordId)).size
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const contactes = distinct((e: any) => EV_CONTACT.includes(e.eventType))
+  // Contactés = leads RÉELLEMENT travaillés = distinct avec AU MOINS un événement (toute action),
+  // identique au module Suivi Setting → réponses ⊆ contactés, taux de réponse ≤ 100%.
+  const contactes = new Set(evWin.map((e: any) => e.prospectionRecordId)).size
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // Réponse = même définition que le module affiché (performance.summary) : répondu/intéressé + R1 booké (l'appel a eu lieu) + perdu « pas intéressé ».
+  const reponses = distinct((e: any) => EV_RESPONSE.includes(e.eventType) || e.eventType === "r1_booke" || (e.eventType === "perdu" && e.notes === "pas_interesse"))
+  const tauxReponse = contactes ? Math.min(100, Math.round((reponses / contactes) * 100)) : 0
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const contacts = await ctx.db.query("crm_contacts").collect()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -60,13 +67,22 @@ async function coreMetrics(ctx: any, from: string, to: string, tz?: number) {
   // R1 / shows / no-shows / ventes : SOURCE UNIQUE = la cohorte du funnel (funnelCohort.ts).
   // Les anneaux/scorecards consomment exactement les mêmes valeurs que le funnel affiché :
   // plus de double moteur (events vs cohorte), plus de taux >100% à l'écran.
-  const fc = funnelCohort(contacts, allLeads, from, to, dayOf)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const salesCalls = await ctx.db.query("os_sales_calls").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
+  const fc = funnelCohort(contacts, allLeads, from, to, dayOf, salesCalls)
   const r1Booked = fc.r1Booked, noShows = fc.noShows, shows = fc.shows, ventes = fc.ventes
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const clients = await ctx.db.query("pipeline_clients").collect()
+  // CA = ENCAISSÉ réel sur [from,to] (même source de vérité que Dashboard + Paiement),
+  // pas le montant contracté (pipeline_clients.value) qui surévaluait le Score Santé.
+  const obs = await ctx.db.query("onboarding").collect()
+  const stripePayments = await ctx.db.query("stripe_payments").withIndex("by_created").collect()
+  const externalPayments = await ctx.db.query("external_payments").collect()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ca = clients.filter((c: any) => inWin(c.createdAt)).reduce((s: number, c: any) => s + (c.value ?? 0), 0)
+  const fxRows = await ctx.db.query("fx_rates").collect()
+  const fxToChf: Record<string, number> = { chf: 1 }; for (const r of fxRows) fxToChf[r.currency] = r.rate
+  const ca = reconcileMoney({ obs, clients, contacts, stripePayments, externalPayments, from, to, tzOffset: tz, fxToChf }).encaisse
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const meta = await ctx.db.query("meta_daily").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
@@ -102,9 +118,10 @@ async function coreMetrics(ctx: any, from: string, to: string, tz?: number) {
     // Taux issus de la cohorte du funnel (bornés ≤100% par construction).
     leadsR1: fc.tauxLeadsR1,
     showRate: fc.tauxShow,
+    tauxShowR2: fc.tauxShowR2,
     closeRate: fc.tauxClose,
     cpl, ctr, ca, objCompletion, spend,
-    r1Booked, shows, noShows, ventes, mleads, contactes,
+    r1Booked, shows, noShows, ventes, mleads, contactes, reponses, tauxReponse,
   }
 }
 
@@ -112,18 +129,35 @@ async function coreMetrics(ctx: any, from: string, to: string, tz?: number) {
 async function objectives(ctx: any) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const doc = await ctx.db.query("prospection_objectives").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).first()
-  return { leadsR1: doc?.leadsR1 ?? 30, tauxShow: doc?.tauxShow ?? 75, tauxClose: doc?.tauxClose ?? 30, ca: doc?.ca ?? 30000 }
+  return {
+    leadsR1: doc?.leadsR1 ?? 50, tauxShow: doc?.tauxShow ?? 75, tauxShowR2: doc?.tauxShowR2 ?? 75,
+    tauxClose: doc?.tauxClose ?? 30, tauxReponse: doc?.tauxReponse ?? 30, cpl: doc?.cpl ?? 30,
+    ca: doc?.ca ?? 30000,
+  }
 }
 
 // Score Santé Business /100 = moyenne pondérée de 4 sous-scores normalisés.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function computeScore(m: any, obj: any): number {
   const clamp = (x: number) => Math.max(0, Math.min(100, x))
-  const subShow = clamp((m.showRate / (obj.tauxShow || 1)) * 100)
-  const subClose = clamp((m.closeRate / (obj.tauxClose || 1)) * 100)
-  const subCpl = m.cpl > 0 ? clamp((TARGET_CPL / m.cpl) * 100) : 100
-  const subCa = clamp((m.ca / (obj.ca || 1)) * 100)
-  return Math.round(0.30 * subShow + 0.30 * subClose + 0.20 * subCpl + 0.20 * subCa)
+  // Un levier ne compte QUE s'il a de la vraie activité. Sinon il est EXCLU (jamais 100 « gratuit »)
+  // et son poids est redistribué sur les leviers actifs. Aucune activité du tout → score 0.
+  // 4 KPI, chacun = % de SON objectif (géré dans le bouton Objectif). Levier vide = exclu (poids redistribué).
+  //  leads→R1 25% (actif si contactés>0) · taux réponse 25% (contactés>0) · closing 30% (R1>0) · CPL 20% inverse (dépense>0)
+  const parts: { s: number; w: number }[] = []
+  if ((m.contactes ?? 0) > 0) {
+    parts.push({ s: clamp((m.leadsR1 / (obj.leadsR1 || 1)) * 100), w: 0.25 })          // taux conversion leads → R1
+    parts.push({ s: clamp((m.tauxReponse / (obj.tauxReponse || 1)) * 100), w: 0.25 })  // taux de réponse
+  }
+  if ((m.r1Booked ?? 0) > 0) {
+    parts.push({ s: clamp((m.closeRate / (obj.tauxClose || 1)) * 100), w: 0.30 })      // taux de closing
+  }
+  if ((m.spend ?? 0) > 0 && m.cpl > 0) {
+    parts.push({ s: clamp(((obj.cpl || TARGET_CPL) / m.cpl) * 100), w: 0.20 })         // CPL (inverse : plus bas = mieux)
+  }
+  if (parts.length === 0) return 0
+  const totalW = parts.reduce((s, p) => s + p.w, 0)
+  return Math.round(parts.reduce((s, p) => s + p.s * (p.w / totalW), 0))
 }
 
 export const healthScore = query({
@@ -196,9 +230,13 @@ export const teamScorecards = query({
     // tendance CPL (plus bas = mieux)
     const dCpl = (cur: number, pr: number) => { const d = Math.round(cur - pr); return { delta: pr <= 0 ? null : `${d <= 0 ? "▼ " : "▲ +"}${Math.abs(d)} CHF`, deltaGood: d <= 0 } }
 
-    const settersScore = m.contactes === 0 ? 0 : Math.round(0.55 * clampPct(m.leadsR1, obj.leadsR1) + 0.45 * m.objCompletion * 100)
+    // Scores cards = fonction des KPI AFFICHÉS de la card vs leurs objectifs (pas de formule figée).
+    const avg = (...xs: number[]) => xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : 0
+    // Setting : taux conversion leads→R1 + taux de réponse, chacun vs son objectif.
+    // Aucune activité (0 lead contacté) = pas de données → N/A (null), jamais un score trompeur.
+    const settersScore = m.contactes === 0 ? null : avg(clampPct(m.leadsR1, obj.leadsR1), clampPct(m.tauxReponse, obj.tauxReponse))
     const setters = {
-      score: settersScore, tone: toneOf(settersScore), charge: m.objCompletion,
+      score: settersScore, tone: settersScore === null ? "vide" as const : toneOf(settersScore), charge: m.objCompletion,
       metrics: [
         { label: "Leads → R1", value: `${p1(m.leadsR1)}%`, ...dPts(m.leadsR1, prev.leadsR1) },
         { label: "Show-rate", value: `${p1(m.showRate)}%`, ...dPts(m.showRate, prev.showRate) },
@@ -210,9 +248,11 @@ export const teamScorecards = query({
         : `L'équipe tourne bien, les leads avancent comme il faut.`,
     }
 
-    const closersScore = m.r1Booked === 0 ? 0 : Math.round(0.7 * clampPct(m.closeRate, obj.tauxClose) + 0.3 * clampPct(m.showRate, obj.tauxShow))
+    // Closing : taux de closing + taux de show R2 (le closer gère le R2), chacun vs son objectif.
+    // Aucun R1 tenu = pas de matière à closer → N/A (null).
+    const closersScore = m.r1Booked === 0 ? null : avg(clampPct(m.closeRate, obj.tauxClose), clampPct(m.tauxShowR2, obj.tauxShowR2))
     const closers = {
-      score: closersScore, tone: toneOf(closersScore), charge: m.objCompletion,
+      score: closersScore, tone: closersScore === null ? "vide" as const : toneOf(closersScore), charge: m.objCompletion,
       metrics: [
         { label: "Taux de closing", value: `${p1(m.closeRate)}%`, ...dPts(m.closeRate, prev.closeRate) },
         { label: "Shows / No-shows", value: `${m.shows} / ${m.noShows}`, delta: null as string | null, deltaGood: true },
@@ -224,15 +264,17 @@ export const teamScorecards = query({
         : `Le closing est solide, les ventes suivent.`,
     }
 
-    const ctrScore = prev.ctr <= 0 ? 60 : Math.max(0, Math.min(100, (m.ctr / prev.ctr) * 100))
-    const pubScore = m.spend === 0 ? 0 : Math.round(0.5 * clampPct(TARGET_CPL, m.cpl > 0 ? m.cpl : TARGET_CPL) + 0.5 * ctrScore)
+    // Media Buying : CPL vs objectif CPL (inverse : plus bas = mieux).
+    // Pas de dépense = pas de données → N/A (null). Dépense MAIS 0 lead (cpl=0) = vraie contre-perf → 0 (critique).
+    const pubScore = m.spend <= 0 ? null : (m.cpl > 0 ? Math.round(clampPct(obj.cpl || TARGET_CPL, m.cpl)) : 0)
     const publicite = {
-      score: pubScore, tone: toneOf(pubScore), charge: null as number | null,
+      score: pubScore, tone: pubScore === null ? "vide" as const : toneOf(pubScore), charge: null as number | null,
       metrics: [
         { label: "CPL", value: `${Math.round(m.cpl).toLocaleString("fr-FR")} CHF`, ...dCpl(m.cpl, prev.cpl) },
         { label: "CTR", value: `${p1(m.ctr)}%`, ...dPts(m.ctr, prev.ctr) },
       ],
       diagnostic: m.spend <= 0 ? `Aucune publicité diffusée cette période.`
+        : (m.mleads === 0) ? `Budget dépensé mais aucun lead généré, à corriger d'urgence.`
         : m.cpl > TARGET_CPL ? `La pub coûte trop cher pour ce qu'elle rapporte, à optimiser.`
         : (prev.ctr > 0 && m.ctr < prev.ctr * 0.85) ? `Les pubs s'essoufflent, il est temps de changer les visuels.`
         : `La pub tourne bien et ramène des leads au bon prix.`,

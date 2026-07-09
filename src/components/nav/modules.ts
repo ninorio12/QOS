@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, GitMerge, Users, Building2, PhoneCall, TrendingUp, Gauge, Rocket, CreditCard,
-  CalendarDays, HardDrive, FolderOpen, ListChecks, BotMessageSquare, CheckSquare,
+  CalendarDays, CalendarClock, HardDrive, FolderOpen, ListChecks, BotMessageSquare, CheckSquare,
   ScrollText, Database, Wallet, Plug, Settings, Megaphone, type LucideIcon,
 } from 'lucide-react'
 
@@ -21,6 +21,7 @@ export const MODULES: ModuleDef[] = [
   { href: '/onboarding',         label: 'Onboarding',           icon: Rocket,           group: 'Pilotage' },
   { href: '/paiement',           label: 'Paiement',             icon: CreditCard,       group: 'Pilotage' },
   { href: '/calendrier',         label: 'Calendrier',           icon: CalendarDays,     group: 'Pilotage' },
+  { href: '/reservations',       label: 'Réservations',         icon: CalendarClock,    group: 'Pilotage' },
   { href: '/bibliotheque/data',    label: 'Data',               icon: HardDrive,        group: 'Bibliothèque' },
   { href: '/bibliotheque/records', label: 'Records',            icon: FolderOpen,       group: 'Bibliothèque' },
   { href: '/bibliotheque/process', label: 'Process',            icon: ListChecks,       group: 'Bibliothèque' },

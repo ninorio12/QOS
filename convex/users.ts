@@ -3,7 +3,7 @@ import { mutation, query } from "./_generated/server"
 import { requireAdmin } from "./osLib"
 
 // Liste canonique des modules de l'app (chemins de routes). Utilisée pour les droits d'accès.
-export const ALL_MODULES = ["/dashboard","/pipeline","/contacts","/prospection","/performance","/onboarding","/paiement","/calendrier","/bibliotheque/data","/bibliotheque/records","/bibliotheque/process","/equipe","/taches","/logs","/knowledge","/workflows","/budget","/integrations"]
+export const ALL_MODULES = ["/dashboard","/pipeline","/contacts","/prospection","/performance","/onboarding","/paiement","/calendrier","/reservations","/bibliotheque/data","/bibliotheque/records","/bibliotheque/process","/equipe","/taches","/logs","/knowledge","/workflows","/budget","/integrations"]
 
 // Utilisateur courant (depuis l'identité Clerk) — sert à gater l'UI (ex. boutons admin).
 export const me = query({

@@ -12,10 +12,10 @@ import {
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import MetaLogo from '@/components/media-buyer/MetaLogo'
 const ClientTimelineChart   = dynamic(() => import('./ClientTimelineChart'),   { ssr: false })
+const MetierPie             = dynamic(() => import('./MetierPie'),             { ssr: false })
 import type { WeeklyDay, MonthlyPoint, ClientTimelinePoint, MetierBreakdown, Payment } from '@/lib/dashboard'
 import { Modal } from '@/components/ui/Modal'
 import ConversionRates from '@/components/analyse/ConversionRates'
-import { PieChart, Pie, Cell, Tooltip as PieTooltip, ResponsiveContainer } from 'recharts'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { MotionFade } from '@/components/ui/Motion'
@@ -251,29 +251,7 @@ export default function DashboardClient({
           ) : (
             <>
               <div className="relative h-[120px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={metierBreakdown}
-                      dataKey="count"
-                      nameKey="label"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={36}
-                      outerRadius={54}
-                      strokeWidth={0}
-                    >
-                      {metierBreakdown.map((entry, i) => (
-                        <Cell key={i} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <PieTooltip
-                      contentStyle={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, fontSize: 12, padding: '6px 10px' }}
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      formatter={(v: any) => v}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                <MetierPie data={metierBreakdown} />
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <span className="text-[18px] font-bold text-soren-text">{metiersCount}</span>
                 </div>

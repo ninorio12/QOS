@@ -92,6 +92,9 @@ export const POLICY: Record<string, PolicyEntry> = {
   tasks_list: { module: "tasks", verb: "read" },
   tasks_create: { module: "tasks", verb: "write" },
   tasks_update: { module: "tasks", verb: "write" },
+  tasks_archive: { module: "tasks", verb: "archive" },     // → colonne Historique (réversible)
+  tasks_unarchive: { module: "tasks", verb: "write" },     // sort de l'Historique
+  tasks_delete: { module: "tasks", verb: "delete" },       // suppression définitive
   tasks_comment: { module: "tasks", verb: "write" },
   // Activities
   activities_list: { module: "activities", verb: "read" },
@@ -183,6 +186,84 @@ export const POLICY: Record<string, PolicyEntry> = {
   process_subfolder_create: { module: "processes", verb: "write" },
   // État COO global
   dataos_state: { module: "dataos", verb: "read" },
+
+  // ── Extension MCP « couverture totale » (2026-06-29) ──
+  // Tableau de bord & analytics
+  dashboard_metrics:            { module: "dashboard", verb: "read" },
+  analytics_realtime:           { module: "analytics", verb: "read" },
+  company_settings_get:         { module: "settings", verb: "read" },
+  integrations_list:            { module: "integrations", verb: "read" },
+  fx_rates:                     { module: "fx", verb: "read" },
+  fx_sync:                      { module: "fx", verb: "write" },
+  // Paiements
+  stripe_connection_status:     { module: "paiement", verb: "read" },
+  stripe_recent_payments:       { module: "paiement", verb: "read" },
+  external_payments_list:       { module: "paiement", verb: "read" },
+  revolut_status:               { module: "paiement", verb: "read" },
+  external_payment_create:      { module: "paiement", verb: "write" },
+  external_payment_record_revolut: { module: "paiement", verb: "write" },
+  external_payment_delete:      { module: "paiement", verb: "delete" },
+  // Pipeline / leads
+  lead_stage_count:             { module: "pipeline", verb: "read" },
+  leads_delete:                 { module: "pipeline", verb: "delete" },
+  pipeline_config_get:          { module: "pipeline", verb: "read" },
+  // Contacts
+  contacts_commercial_stages:   { module: "contacts", verb: "read" },
+  contacts_metiers_niches:      { module: "contacts", verb: "read" },
+  contacts_ingest_inbound:      { module: "contacts", verb: "write" },
+  contacts_delete:              { module: "contacts", verb: "delete" },
+  contact_meta_get:             { module: "contacts", verb: "read" },
+  contact_meta_set:             { module: "contacts", verb: "write" },
+  // Clients
+  pipeline_client_by_contact:   { module: "clients", verb: "read" },
+  pipeline_client_delete:       { module: "clients", verb: "delete" },
+  // Closing
+  closing_record_outcome:       { module: "closing", verb: "write" },
+  closing_save_bio_for_contact: { module: "closing", verb: "write" },
+  closing_calendar_events:      { module: "closing", verb: "read" },
+  closing_iclosed_status:       { module: "closing", verb: "read" },
+  closing_remove_call:          { module: "closing", verb: "delete" },
+  // Onboarding
+  onboarding_schedule_kickoff:  { module: "onboarding", verb: "write" },  // était orphelin (non mappé)
+  onboarding_kickoff_calendar:  { module: "onboarding", verb: "read" },
+  iclosed_sync_kickoffs:        { module: "onboarding", verb: "write" },
+  // Prospection
+  prospection_get:              { module: "prospection", verb: "read" },
+  prospection_events:           { module: "prospection", verb: "read" },
+  prospection_add_note:         { module: "prospection", verb: "write" },
+  prospection_set_column:       { module: "prospection", verb: "move" },
+  prospection_goal_today:       { module: "prospection", verb: "read" },
+  prospection_set_goal:         { module: "prospection", verb: "write" },
+  prospection_cockpit_health:   { module: "prospection", verb: "read" },
+  prospection_cockpit_heatmap:  { module: "prospection", verb: "read" },
+  prospection_cockpit_scorecards: { module: "prospection", verb: "read" },
+  prospection_objectives_get:   { module: "prospection", verb: "read" },
+  prospection_objectives_set:   { module: "prospection", verb: "write" },
+  // Performance
+  performance_funnel:           { module: "performance", verb: "read" },
+  performance_objectives_range: { module: "performance", verb: "read" },
+  performance_daily_task_delete:{ module: "performance", verb: "delete" },
+  // Meta Ads
+  media_buyer_dashboard:        { module: "media_buyer", verb: "read" },
+  media_buyer_summary:          { module: "media_buyer", verb: "read" },
+  media_buyer_connection_status:{ module: "media_buyer", verb: "read" },
+  media_buyer_inbound_contacts: { module: "media_buyer", verb: "read" },
+  media_buyer_sync:             { module: "media_buyer", verb: "write" },
+  // Outbound
+  outbound_mark_replied:        { module: "outreach", verb: "write" },
+  outbound_mark_replied_email:  { module: "outreach", verb: "write" },
+  // iClosed
+  iclosed_sync_recent:          { module: "closing", verb: "write" },
+  // Connaissance
+  knowledge_update:             { module: "knowledge", verb: "write" },
+  knowledge_archive:            { module: "knowledge", verb: "archive" },
+  knowledge_delete:             { module: "knowledge", verb: "delete" },
+  // Agents
+  agents_get_detail:            { module: "agents", verb: "read" },
+  agents_pending_approvals:     { module: "agents", verb: "read" },
+  agents_set_status:            { module: "agents", verb: "write" },
+  agent_brains_list:            { module: "agents", verb: "read" },
+  agent_brain_get:              { module: "agents", verb: "read" },
 }
 
 // ── Verbes qui requièrent une approbation quand ils sont accordés ───────────

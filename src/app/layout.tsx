@@ -1,6 +1,5 @@
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
-import NextTopLoader from 'nextjs-toploader'
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import Providers from '@/components/Providers'
@@ -46,7 +45,8 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <NextTopLoader color="#FF4D00" height={2} shadow="0 0 8px #FF4D00,0 0 4px #FF4D00" showSpinner={false} />
+        {/* Pose data-sidebar AVANT le rendu pour que le contenu démarre au bon décalage (pas de flash). */}
+        <script dangerouslySetInnerHTML={{ __html: `try{document.documentElement.dataset.sidebar=localStorage.getItem('vf-sidebar-collapsed')==='1'?'collapsed':'expanded'}catch(e){}` }} />
         <Providers>
           <PinchZoomGuard />
           <ShellGate>{children}</ShellGate>

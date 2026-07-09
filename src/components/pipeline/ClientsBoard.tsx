@@ -396,30 +396,32 @@ export default function ClientsBoard() {
 
       <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0">
-          <div>
-            <p className="text-xs text-soren-muted mt-1">
+        {/* En-tête : desktop = 1 ligne (compteur | recherche | nouveau).
+            Mobile = ligne 1 (compteur + nouveau), ligne 2 (recherche pleine largeur via basis-full). */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-2 px-3 md:px-6 pt-3 md:pt-5 pb-2 md:pb-3 flex-shrink-0">
+          <div className="order-1 mr-auto">
+            <p className="text-[11px] md:text-xs text-soren-muted">
               {clients.length} clients · <span className="font-semibold text-soren-text">{totalValue.toLocaleString('fr-FR')} CHF</span>
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {/* Recherche soft, à gauche de « Nouveau client » */}
-            <div className="relative">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-soren-subtle pointer-events-none" />
-              <input
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Rechercher…"
-                className="w-36 focus:w-52 bg-soren-card border border-soren-border rounded-full pl-8 pr-3 py-1.5 text-[11px] text-soren-text placeholder-soren-subtle outline-none focus:ring-2 focus:ring-[#FF4D00]/20 focus:border-[#FF4D00]/40 transition-all duration-300"
-              />
-            </div>
-            {/* Modal creates contact + client server-side; reactive query shows it instantly */}
+          {/* Modal creates contact + client server-side; reactive query shows it instantly */}
+          <span className="order-3 flex-shrink-0">
             <NewLeadWidget mode="clients" />
+          </span>
+          {/* Recherche : pleine largeur sur sa propre ligne en mobile (basis-full), inline avant « Nouveau » en desktop. */}
+          <div className="relative order-4 md:order-2 basis-full md:basis-auto md:w-36 md:focus-within:w-52 transition-all duration-300">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-soren-subtle pointer-events-none" />
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Rechercher…"
+              className="w-full bg-soren-card border border-soren-border rounded-full pl-8 pr-3 py-1.5 text-[11px] text-soren-text placeholder-soren-subtle outline-none focus:ring-2 focus:ring-[#FF4D00]/20 focus:border-[#FF4D00]/40"
+            />
           </div>
         </div>
 
         {/* Board */}
-        <div className="relative flex-1 min-h-0">
+        <div className="relative flex-1 min-h-0 flex flex-col pb-3">
           <div
             className={`pointer-events-none absolute left-0 top-0 bottom-4 w-8 z-10 transition-opacity duration-200 ${scrolled ? 'opacity-100' : 'opacity-0'}`}
             style={{ background: 'linear-gradient(to right, var(--bg-app) 40%, transparent)' }}
@@ -428,7 +430,7 @@ export default function ClientsBoard() {
             className="pointer-events-none absolute right-0 top-0 bottom-4 w-8 z-10"
             style={{ background: 'linear-gradient(to left, var(--bg-app) 40%, transparent)' }}
           />
-          <div ref={boardRef} className="flex gap-3 overflow-x-auto px-3 md:px-6 pb-[max(1rem,env(safe-area-inset-bottom))] kanban-scroll kanban-board-row">
+          <div ref={boardRef} className="flex flex-1 min-h-0 gap-3 overflow-x-auto px-3 md:px-6 pb-[max(1rem,env(safe-area-inset-bottom))] kanban-scroll kanban-board-row">
             {CLIENT_STAGES.map(stage => (
               <ClientColumn
                 key={stage.id}

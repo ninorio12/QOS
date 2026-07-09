@@ -170,6 +170,12 @@ html.dark .nav-island {
   padding-bottom: env(safe-area-inset-bottom, 16px);
 }
 
+/* ── Fluidité tactile : pas de flash bleu ni de délai 300ms au tap (mobile) ── */
+.tap-clean { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+@media (hover: none) {
+  a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
+}
+
 /* ── Tooltips globaux ── */
 [data-tooltip] { position: relative; }
 [data-tooltip]::after {
@@ -226,16 +232,17 @@ html.dark .nav-island {
   align-items: stretch;
 }
 
-/* Vertical scroll inside kanban columns — max-height bypasses broken flex chain */
+/* Vertical scroll inside kanban columns — desktop : la chaîne flex (page = hauteur réelle,
+   board row = flex-1, colonne = h-full) fait remplir la colonne jusqu'en bas, au même niveau
+   que la sidebar. Mobile : hauteur fixe d'origine (vue une colonne à la fois). */
 .kanban-col {
-  min-height: calc(100vh - 250px);
-  max-height: calc(100vh - 210px);
+  min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
 @media (max-width: 767px) {
-  .kanban-col { max-height: calc(100vh - 250px); }
+  .kanban-col { min-height: calc(100vh - 250px); max-height: calc(100vh - 250px); }
 }
 .kanban-col::-webkit-scrollbar { width: 4px; }
 .kanban-col::-webkit-scrollbar-track { background: transparent; border-radius: 999px; }
@@ -314,7 +321,12 @@ select:focus {
 @keyframes vf-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 @keyframes vf-fade { from { opacity: 0; } to { opacity: 1; } }
 
-.vf-stagger-page { animation: vf-fade 200ms ease-out both; }
+/* Module FIXE : pas de fondu/translation de la page entière entre modules
+   (demande Thomas 2026-06-29). La page apparaît nette ; seules les cartes
+   [data-stagger] animent leur arrivée progressive ci-dessous. */
+.vf-stagger-page {
+  /* aucune animation de page : transition module → module instantanée */
+}
 /* Cascade plafonnée aux 10 premiers enfants : le reste apparaît sans animation
    (évite le jank/reflow sur les longues listes : Activités, Second Brain, Skills…). */
 .vf-stagger-page [data-stagger] > *:nth-child(-n+10) {
@@ -334,7 +346,6 @@ select:focus {
 .vf-stagger-page [data-stagger] > *:nth-child(10) { animation-delay: 400ms; }
 
 @media (prefers-reduced-motion: reduce) {
-  .vf-stagger-page,
   .vf-stagger-page [data-stagger] > *:nth-child(-n+10) { animation: vf-fade 120ms ease-out both; }
 }
 
@@ -420,3 +431,34 @@ select:focus {
   to   { opacity: 1; transform: translateY(0); }
 }
 .vf-toast-in { animation: vf-toast-in 220ms cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* ── Décalage contenu/Header selon l'état de la sidebar (repliée = icônes seules) ──
+   Piloté par <html data-sidebar="collapsed|expanded"> posé par Sidebar.tsx.
+   Largeurs : sidebar pleine ≈ 14rem d'emprise, repliée ≈ 5rem. Desktop uniquement. */
+.vf-main-offset { margin-left: 0; }
+.vf-header-offset { left: 0; }
+
+/* Modale prospection ouverte (Overlay porté dans <body>, z-100) : on masque le
+   header mobile (fixed, z-40, opaque) qui sinon resterait visible en transparence
+   sous le fond flouté et donnerait l'impression d'être « devant » la fiche. */
+html.vf-modal-open .vf-mobile-header { display: none; }
+@media (min-width: 768px) {
+  .vf-main-offset { margin-left: 14rem; transition: margin-left 300ms cubic-bezier(0.22,1,0.36,1); }
+  .vf-header-offset { left: 14rem; transition: left 300ms cubic-bezier(0.22,1,0.36,1); }
+  html[data-sidebar="collapsed"] .vf-main-offset { margin-left: 6rem; }
+  html[data-sidebar="collapsed"] .vf-header-offset { left: 6rem; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   UX Pro Max — améliorations transversales (a11y + polish), tout le SaaS
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Utilitaire « lift » premium au survol pour les cartes cliquables (à appliquer via class vf-lift). */
+.vf-lift { transition: transform 150ms cubic-bezier(0.22,1,0.36,1), box-shadow 150ms cubic-bezier(0.22,1,0.36,1); }
+.vf-lift:hover { transform: translateY(-2px); box-shadow: 0 8px 24px -10px rgba(0,0,0,0.18); }
+
+/* Respect de prefers-reduced-motion : on neutralise animations/transitions/lift. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  .vf-lift:hover { transform: none; }
+}

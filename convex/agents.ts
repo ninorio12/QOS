@@ -392,6 +392,12 @@ export const recordCredential = internalMutation({
 export const generateToken = action({
   args: { agentId: v.id("os_agents"), label: v.optional(v.string()), scopes: v.optional(v.array(v.string())) },
   handler: async (ctx, { agentId, label, scopes }): Promise<{ token: string }> => {
+    // Réservé aux admins (identité Clerk transmise par l'UI). Sinon n'importe qui pourrait se forger
+    // un token agent via l'URL Convex publique (prise de contrôle du Data OS via MCP).
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error("Authentification requise.")
+    const isAdmin = await ctx.runQuery(internal.mediaBuyer._isAdmin, { clerkUserId: identity.subject })
+    if (!isAdmin) throw new Error("Génération de token réservée aux administrateurs.")
     const raw = `vfa_${crypto.randomUUID().replace(/-/g, "")}${crypto.randomUUID().replace(/-/g, "")}`
     const tokenHash = await sha256hex(raw)
     await ctx.runMutation(internal.agents.recordCredential, { agentId, tokenHash, label, scopes: scopes ?? ["heartbeat", "getContext", "reportRun", "logEvent", "requestApproval"] })

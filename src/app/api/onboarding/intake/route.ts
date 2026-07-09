@@ -31,11 +31,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'invalid_email' }, { status: 400, headers: CORS })
     }
 
-    const result = await new ConvexHttpClient(url).mutation(api.onboarding.intakeSubmit, {
+    const convex = new ConvexHttpClient(url)
+    const result = await convex.mutation(api.onboarding.intakeSubmit, {
       email,
       submission: body.submission ?? {},
       profile: body.profile,
     })
+
+    // Loop provisioning Hermes : « bouton go » automatique. On prévient le webhook
+    // (n8n → SSH host → provision-loop) qui provisionne le client s'il est éligible
+    // (contrat signé + accès VPS). Payload = email seul (aucun secret). Best-effort :
+    // ne doit JAMAIS casser l'onboarding. Le cron robot-réveil reste le filet de sécurité.
+    // URL résolue au runtime depuis le Data OS (doc sys:provision-webhook, resync par la
+    // loop) → survit au changement d'URL du tunnel sans redeploy ; fallback env.
+    let hook = process.env.N8N_PROVISION_WEBHOOK_URL
+    try {
+      const doc = await convex.query(api.osKbDocs.getByDocId, { docId: 'sys:provision-webhook' })
+      const b = (doc as { body?: string } | null)?.body?.trim()
+      if (b && b.startsWith('http')) hook = b
+    } catch { /* garde le fallback env */ }
+    if (hook) {
+      try {
+        await fetch(hook, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-provision-secret': process.env.N8N_PROVISION_SECRET ?? '',
+            'bypass-tunnel-reminder': 'true', // localtunnel : évite la page d'avertissement
+          },
+          body: JSON.stringify({ email }),
+          signal: AbortSignal.timeout(5000),
+        })
+      } catch { /* best-effort : le robot-réveil rattrapera */ }
+    }
+
     return NextResponse.json(result, { headers: CORS })
   } catch (err) {
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500, headers: CORS })

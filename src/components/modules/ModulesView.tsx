@@ -17,7 +17,8 @@ export default function ModulesView() {
   // Compte restreint : la grille ne montre que les modules autorisés.
   const loading = me === undefined && !isAdmin
   const allowed = useMemo(
-    () => MODULES.filter(m => loading || canSeeModule(m.href, isAdmin, me?.allowedModules)),
+    // Sur mobile, « Pipeline Clients » n'est pas listé : le module Pipeline regroupe déjà Leads + Clients (onglets).
+    () => MODULES.filter(m => m.href !== '/pipeline/clients' && (loading || canSeeModule(m.href, isAdmin, me?.allowedModules))),
     [isAdmin, me, loading],
   )
 

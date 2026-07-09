@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { X, ChevronDown, Search, Check, Plus, ClipboardList, CreditCard, FileText, Workflow, ArrowUpRight, Send, Trash2 } from 'lucide-react'
+import { X, ChevronDown, Search, Check, Plus, Save, ClipboardList, CreditCard, FileText, Workflow, ArrowUpRight, Send, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
@@ -368,10 +368,15 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
   const [tags,          setTags]          = useState<string[]>(contact?.tags ?? [])
 
   const [canton, setCanton]   = useState<string>(initialCanton ?? '')
-  const [country, setCountry] = useState<string>(contact?.country ?? '')
+  // Défaut Suisse (CRM Suisse romande) → le sélecteur de canton est dispo d'emblée sur toute
+  // nouvelle fiche. Une fiche existante garde son pays.
+  const [country, setCountry] = useState<string>(contact?.country || 'Suisse')
   const rc = regionConfig(country)  // libellé + options (Canton CH / Région FR / texte libre)
   const [statut, setStatut]   = useState<'lead' | 'client' | 'perdu'>(
-    mode === 'leads' ? 'lead' : mode === 'clients' ? 'client' : (initialStatut ?? 'lead')
+    // Sans mode ni initialStatut explicite (ex. ouverture depuis Pipeline Clients), on lit le statut
+    // RÉEL du contact (sinon défaut « lead » même pour un client → fiche fausse).
+    mode === 'leads' ? 'lead' : mode === 'clients' ? 'client'
+      : (initialStatut ?? (contact as (Record<string, unknown> & { statut?: 'lead' | 'client' | 'perdu' }) | undefined)?.statut ?? 'lead')
   )
   const [role,   setRole]     = useState<string>((contact as Record<string, unknown> & { role?: string } | undefined)?.role ?? '')
   const [metier, setMetier]   = useState<string>((contact as Record<string, unknown> & { metier?: string } | undefined)?.metier ?? '')
@@ -638,7 +643,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
 
             <div>
               <label className={labelCls}>E-mail</label>
-              <input type="email" value={form.email} onChange={set('email')} placeholder="jean@exemple.fr" className={inputCls} />
+              <input type="email" value={form.email} onChange={set('email')} placeholder="jean@exemple.ch" className={inputCls} />
             </div>
 
             {/* Téléphone */}
@@ -687,17 +692,17 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
 
             <div>
               <label className={labelCls}>Adresse</label>
-              <input value={form.address1} onChange={set('address1')} placeholder="12 rue de la Paix" className={inputCls} />
+              <input value={form.address1} onChange={set('address1')} placeholder="Rue du Rhône 14" className={inputCls} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelCls}>Ville</label>
-                <input value={form.city} onChange={set('city')} placeholder="Paris" className={inputCls} />
+                <input value={form.city} onChange={set('city')} placeholder="Genève" className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Code postal</label>
-                <input value={form.postalCode} onChange={set('postalCode')} placeholder="75001" className={inputCls} />
+                <input value={form.postalCode} onChange={set('postalCode')} placeholder="1204" className={inputCls} />
               </div>
             </div>
 
@@ -732,7 +737,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             <div>
               <label className={labelCls}>Site web</label>
               <div className="relative">
-                <input type="url" value={form.website} onChange={set('website')} placeholder="https://exemple.fr" className={inputCls + ' pr-9'} />
+                <input type="url" value={form.website} onChange={set('website')} placeholder="https://exemple.ch" className={inputCls + ' pr-9'} />
                 {form.website.trim() && (
                   <a
                     href={/^https?:\/\//i.test(form.website.trim()) ? form.website.trim() : `https://${form.website.trim()}`}
@@ -760,13 +765,6 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                   {commercialStage.lost && <X size={13} className="flex-shrink-0" strokeWidth={3} />}
                   {commercialStage.label}
                 </span>
-                {/* Bouton Closing — uniquement quand le lead est en R1 ou R2 (et pas perdu). */}
-                {!commercialStage.lost && (commercialStage.key === 'r1' || commercialStage.key === 'r2') && (
-                  <button type="button" onClick={() => goToModule('/closing')}
-                    className="inline-flex w-fit items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-full bg-[#FF4D00] text-white shadow-sm hover:brightness-110 transition-all">
-                    <ArrowUpRight size={14} /> Préparer le closing
-                  </button>
-                )}
               </div>
             )}
 
@@ -779,19 +777,23 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                   { id: 'client', label: 'Client', color: '#10B981' },
                   { id: 'perdu',  label: 'Perdu',  color: '#EF4444' },
                 ] as { id: 'lead' | 'client' | 'perdu'; label: string; color: string }[]).map(opt => {
-                  // mode='leads' locks to lead; mode='clients' locks to client
-                  const locked = (mode === 'leads' && opt.id !== 'lead') || (mode === 'clients' && opt.id !== 'client')
+                  // mode='leads' locks to lead ; mode='clients' locks to client.
+                  // « Perdu » n'est jamais un choix de création : un lead devient perdu via le pipeline.
+                  // On le verrouille sauf si le contact est DÉJÀ perdu (affichage en édition).
+                  const locked = (mode === 'leads' && opt.id !== 'lead')
+                    || (mode === 'clients' && opt.id !== 'client')
+                    || (opt.id === 'perdu' && statut !== 'perdu')
                   const isSelected = statut === opt.id
                   return (
                     <button key={opt.id} type="button"
                       disabled={locked}
+                      title={opt.id === 'perdu' && locked ? 'Un contact ne peut pas être créé « perdu » : un lead devient perdu via le pipeline.' : undefined}
                       onClick={() => !locked && setStatut(opt.id)}
-                      className={`flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all ${locked ? 'opacity-30 cursor-not-allowed' : ''} ${isSelected ? '' : 'border-soren-border bg-soren-elevated'}`}
-                      style={isSelected ? { borderColor: opt.color, background: opt.color + '14' } : undefined}
+                      className={`relative flex-1 flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl border transition-all duration-150 ${locked ? 'opacity-30 cursor-not-allowed' : 'hover:bg-soren-elevated hover:border-[#D1D5DB]'} ${isSelected ? '' : 'border-soren-border bg-soren-card'}`}
+                      style={isSelected ? { borderColor: opt.color, background: opt.color + '12', boxShadow: `0 0 0 1px ${opt.color}` } : undefined}
                     >
                       <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
                       <span className={`text-[11px] font-bold ${isSelected ? '' : 'text-soren-text'}`} style={isSelected ? { color: opt.color } : undefined}>{opt.label}</span>
-                      {isSelected && <Check size={11} style={{ color: opt.color }} />}
                     </button>
                   )
                 })}
@@ -938,12 +940,11 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                     <button key={opt.id} type="button"
                       onClick={() => { if (!sourceLocked) setInoutbound(opt.id) }}
                       disabled={sourceLocked}
-                      className={`flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all ${isSelected ? '' : 'border-soren-border bg-soren-elevated'} ${sourceLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
-                      style={isSelected ? { borderColor: opt.color, background: opt.bg } : undefined}
+                      className={`relative flex-1 flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl border transition-all duration-150 ${isSelected ? '' : 'border-soren-border bg-soren-card hover:bg-soren-elevated hover:border-[#D1D5DB]'} ${sourceLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      style={isSelected ? { borderColor: opt.color, background: opt.bg, boxShadow: `0 0 0 1px ${opt.color}` } : undefined}
                     >
                       <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
                       <span className={`text-[10px] font-bold leading-tight text-center ${isSelected ? '' : 'text-soren-text'}`} style={isSelected ? { color: opt.color } : undefined}>{opt.label}</span>
-                      {isSelected && <Check size={11} style={{ color: opt.color }} />}
                     </button>
                   )
                 })}
@@ -956,13 +957,14 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             <p className="text-xs text-[#EF4444] bg-[#FEF2F2] rounded-xl px-3 py-2">{error}</p>
           )}
 
-          <div className="flex gap-3 pt-1">
+          <div className="flex justify-end gap-2 pt-1">
             <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-full border border-soren-border text-sm text-soren-muted hover:border-[#D1D5DB] hover:text-soren-text transition-colors">
-              Annuler
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-soren-border text-[12px] text-soren-muted hover:border-[#D1D5DB] hover:text-soren-text transition-colors">
+              <X size={13} /> Annuler
             </button>
             <button type="submit" disabled={saving || !form.firstName.trim()}
-              className="flex-1 py-2.5 rounded-full bg-soren-sidebar hover:bg-[#2a2a2a] disabled:opacity-50 text-white text-sm font-semibold transition-colors">
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#FF4D00] hover:brightness-110 disabled:opacity-50 text-white text-[12px] font-semibold transition-colors">
+              {isEdit ? <Save size={14} /> : <Plus size={14} />}
               {saving
                 ? (isEdit ? 'Enregistrement…' : 'Création en cours…')
                 : (isEdit ? 'Enregistrer' : mode === 'leads' ? 'Créer le lead' : mode === 'clients' ? 'Créer le client' : 'Créer le contact')}

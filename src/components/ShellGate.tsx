@@ -17,7 +17,7 @@ import AppShell from '@/components/AppShell'
 const SHELL_PREFIXES = [
   '/dashboard', '/prospection', '/logs', '/modules',
   '/onboarding', '/integrations', '/equipe', '/budget',
-  '/parametres', '/contacts', '/knowledge', '/pipeline', '/calendrier',
+  '/parametres', '/contacts', '/knowledge', '/pipeline', '/calendrier', '/reservations',
   '/taches', '/paiement', '/performance', '/bibliotheque',
   '/closing', '/media-buyer', '/cockpit',
 ]

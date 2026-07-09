@@ -30,14 +30,14 @@ export const summary = query({
     const tauxValideEnvoi = validated > 0 ? Math.round((envois / validated) * 100) : 0
     const tauxReponse = envois > 0 ? Math.round((reponses / envois) * 100) : 0   // réponses ÷ emails envoyés
 
-    // Score throughput (la machine produit-elle ?) — 0..100
-    let score = 0
-    if (sourced > 0)   score += 25
-    if (validated > 0) score += 20
-    if (decks > 0)     score += 20
-    if (envois > 0)    score += 25
-    if (r1 > 0)        score += 10
-    const tone: "bon" | "surveillance" | "critique" = score >= 70 ? "bon" : score >= 40 ? "surveillance" : "critique"
+    // Score = atteinte de TON objectif de taux de réponse (réglé dans le bouton Objectif, défaut 30%).
+    // C'est le résultat qui compte : 0% de réponse → 0. Pas d'envoi → 0.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const objDoc = await ctx.db.query("prospection_objectives").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).first()
+    const objReponse = objDoc?.tauxReponse ?? 30
+    // Aucun email envoyé = pas de données → N/A (null), pas un score trompeur.
+    const score = envois > 0 ? Math.max(0, Math.min(100, Math.round((tauxReponse / (objReponse || 1)) * 100))) : null
+    const tone: "bon" | "surveillance" | "critique" | "vide" = score === null ? "vide" : score >= 70 ? "bon" : score >= 40 ? "surveillance" : "critique"
 
     const diagnostic = sourced === 0
       ? `Pas encore de prospection outbound lancée.`

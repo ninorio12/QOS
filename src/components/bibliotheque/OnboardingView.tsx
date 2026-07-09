@@ -7,6 +7,9 @@ import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { fmtMoney } from '@/lib/money'
 import { ICLOSED_KICKOFF_BOOKING_URL } from '@/components/shared/IClosedBookingModal'
+import Select from '@/components/ui/Select'
+import { CANTON_NAMES } from '@/lib/regions'
+import { slugify, isBoldShift } from '@/lib/audit-synthesis/slug'
 
 const CONTRACT_CURRENCIES = ['CHF', 'EUR', 'USD', 'GBP']
 import {
@@ -22,7 +25,20 @@ const NewContactModal = dynamic(() => import('@/components/contacts/NewContactMo
 
 // ─── Types ────────────────────────────────────────────────────
 type ClientLite = { id: string; ghl_contact_id?: string; name: string; company: string; value: number; createdAt: number }
-type FullContact = { id: string; firstName?: string; lastName?: string; companyName?: string; address1?: string; phone?: string; email?: string }
+type FullContact = { id: string; firstName?: string; lastName?: string; companyName?: string; address1?: string; city?: string; postalCode?: string; canton?: string; country?: string; phone?: string; email?: string }
+
+// Adresse complète pour le contrat : rue, CP + ville, canton (nom déplié) puis pays — dédupliquée.
+function composeAddress(c: FullContact | null): string | undefined {
+  if (!c) return undefined
+  const cityLine = [c.postalCode, c.city].map(s => (s ?? '').trim()).filter(Boolean).join(' ')
+  const canton = c.canton ? (CANTON_NAMES[c.canton] ?? c.canton) : ''
+  const seen = new Set<string>()
+  const parts = [c.address1, cityLine, canton, c.country]
+    .map(s => (s ?? '').trim())
+    .filter(Boolean)
+    .filter(p => { const k = p.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true })
+  return parts.length ? parts.join(', ') : undefined
+}
 type SignedContract = { fileName: string; storageId?: string; dataUrl?: string; uploadedAt: string }
 type OnboardingDoc = {
   contactId: string
@@ -36,6 +52,8 @@ type OnboardingDoc = {
   formReceivedAt?: string
   contractGenerated?: boolean
   kickoffEventId?: string
+  kickoffAt?: string
+  auditSynthesis?: { sheetUrl?: string; mappingUrl?: string; recordId?: string; generatedAt?: string; sentAt?: string; finalPdf?: { fileName: string; storageId: string; uploadedAt: string } }
 }
 
 function fmt(n: number) { return `${Math.round(n).toLocaleString('fr-FR')} CHF` }
@@ -180,10 +198,10 @@ function ClientOnboarding({ client, contactId, router }: { client: ClientLite; c
   return (
     <div className="px-6 py-6 max-w-3xl mx-auto flex flex-col gap-5">
       <div>
-        <h2 className="text-xl font-black text-soren-text">{client.name}</h2>
+        <h2 className="text-[17px] font-bold text-soren-text tracking-tight">{client.name}</h2>
         <p className="text-[12px] text-soren-muted">{client.company || 'Client'} · Deal {fmt(client.value)}</p>
-        <div className="mt-3 flex items-center gap-3">
-          <div className="flex-1 h-2 rounded-full bg-soren-elevated overflow-hidden">
+        <div className="mt-2.5 flex items-center gap-3">
+          <div className="flex-1 h-1.5 rounded-full bg-soren-elevated overflow-hidden">
             <div className="h-full bg-[#FF4D00] transition-all" style={{ width: `${pct}%` }} />
           </div>
           <span className="text-[11px] font-bold text-soren-text">{pct}%</span>
@@ -235,6 +253,14 @@ function ClientOnboarding({ client, contactId, router }: { client: ClientLite; c
         })()}
       </StepCard>
 
+      <AuditSynthesisStep
+        done={!!tasks.auditSynthesisDone}
+        onToggle={v => setTask('auditSynthesisDone', v)}
+        client={client} full={full}
+        saved={doc?.auditSynthesis}
+        onSave={a => save({ auditSynthesis: { ...(doc?.auditSynthesis ?? {}), ...a } })}
+      />
+
       <PaymentPhase
         amounts={doc?.payment?.amounts ?? [client.value]}
         paidStatus={doc?.paidStatus ?? []}
@@ -242,6 +268,165 @@ function ClientOnboarding({ client, contactId, router }: { client: ClientLite; c
         onPay={(paidStatus, paidDates) => save({ paidStatus, paidDates })}
       />
     </div>
+  )
+}
+
+// Synthèse Audit (Profit Map) : 3 sources (Google Sheet, mapping Lucidchart, record kickoff)
+// → génère le livrable PDF pixel-perfect (route /api/onboarding/audit-synthesis-pdf) et l'envoie par email.
+function AuditSynthesisStep({ done, onToggle, client, full, saved, onSave }: {
+  done: boolean
+  onToggle: (v: boolean) => void
+  client: ClientLite
+  full: FullContact | null
+  saved?: { sheetUrl?: string; mappingUrl?: string; recordId?: string; generatedAt?: string; sentAt?: string; finalPdf?: { fileName: string; storageId: string; uploadedAt: string } }
+  onSave: (v: { sheetUrl?: string; mappingUrl?: string; recordId?: string; generatedAt?: string; sentAt?: string; finalPdf?: { fileName: string; storageId: string; uploadedAt: string } }) => void
+}) {
+  const [sheetUrl, setSheetUrl] = useState(saved?.sheetUrl ?? '')
+  const [mappingUrl, setMappingUrl] = useState(saved?.mappingUrl ?? '')
+  const [recordId, setRecordId] = useState(saved?.recordId ?? '')
+  const [sending, setSending] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const genUploadUrl = useMutation(api.files.generateUploadUrl)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const finalPdf = saved?.finalPdf
+  const finalUrl = useQuery(api.files.getUrl, finalPdf?.storageId ? { storageId: finalPdf.storageId } : 'skip')
+
+  async function handleFile(file: File) {
+    if (!file) return
+    if (file.type !== 'application/pdf') { setMsg({ ok: false, text: 'Dépose un fichier PDF.' }); return }
+    setUploading(true); setMsg(null)
+    try {
+      const uploadUrl = await genUploadUrl()
+      const res = await fetch(uploadUrl, { method: 'POST', headers: { 'Content-Type': file.type }, body: file })
+      const { storageId } = await res.json() as { storageId: string }
+      onSave({ finalPdf: { fileName: file.name, storageId, uploadedAt: new Date().toISOString() } })
+      setMsg({ ok: true, text: `PDF finalisé déposé : ${file.name}` })
+    } catch { setMsg({ ok: false, text: 'Échec du dépôt du PDF.' }) } finally { setUploading(false) }
+  }
+
+  const [meetings, setMeetings] = useState<{ id: string; title: string; participants: string }[]>([])
+  useEffect(() => {
+    let alive = true
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const norm = (arr: any[], src: 'tldv' | 'fathom') => (arr || []).map((m: any) => {
+      if (src === 'tldv') {
+        const inv = (m.invitees ?? m.attendees ?? []).map((x: any) => x?.name).filter(Boolean)
+        return { id: String(m.id ?? m._id ?? ''), title: m.name ?? m.title ?? 'Réunion', participants: Array.from(new Set([m.organizer?.name, ...inv].filter(Boolean))).join(', ') }
+      }
+      const inv = (m.calendar_invitees ?? []).map((x: any) => x?.name).filter(Boolean)
+      return { id: `fathom-${m.recording_id ?? m.id ?? ''}`, title: m.meeting_title ?? m.title ?? 'Réunion', participants: Array.from(new Set([m.recorded_by?.name, ...inv].filter(Boolean))).join(', ') }
+    }).filter((x: { id: string }) => x.id)
+    Promise.all([
+      fetch('/api/tldv/meetings').then(r => r.json()).catch(() => ({ meetings: [] })),
+      fetch('/api/fathom/meetings').then(r => r.json()).catch(() => ({ meetings: [] })),
+    ]).then(([t, f]) => { if (alive) setMeetings([...norm(t.meetings, 'tldv'), ...norm(f.meetings, 'fathom')]) })
+    return () => { alive = false }
+  }, [])
+
+  const recordOptions = [
+    { value: '', label: 'Sélectionner un record…' },
+    ...meetings.map(m => ({ value: m.id, label: m.participants ? `${m.title} — ${m.participants}` : m.title })),
+    ...(recordId && !meetings.some(m => m.id === recordId) ? [{ value: recordId, label: recordId }] : []),
+  ]
+
+  const needsSheet = !isBoldShift(client.company || client.name) && !sheetUrl.trim()
+
+  async function generate() {
+    if (needsSheet) { setMsg({ ok: false, text: "Ajoute le lien du Google Sheet d'audit avant de générer." }); return }
+    // Persiste les sources avant d'ouvrir le lien propre (la route les relit côté serveur).
+    await fetch('/api/onboarding', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contactId: client.id, auditSynthesis: { ...(saved ?? {}), sheetUrl, mappingUrl, recordId, generatedAt: new Date().toISOString() } }),
+    }).catch(() => {})
+    onToggle(true)
+    window.open(`/audit-synthese/${slugify(client.company || client.name)}`, '_blank')
+  }
+
+  async function sendByEmail() {
+    if (sending || !full?.email) return
+    if (!finalPdf && needsSheet) { setMsg({ ok: false, text: "Dépose le PDF finalisé (ou ajoute le lien du Google Sheet) avant d'envoyer." }); return }
+    setSending(true); setMsg(null)
+    try {
+      const res = await fetch('/api/onboarding/send-audit-synthesis', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: full.email, firstName: full.firstName, company: client.company || full.companyName,
+          clientName: client.name, sheetUrl, mappingUrl, recordId,
+          storageId: finalPdf?.storageId, fileName: finalPdf?.fileName,
+        }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.ok) throw new Error(j.error || "Échec de l'envoi")
+      onSave({ sentAt: new Date().toISOString() })
+      onToggle(true)
+      setMsg({ ok: true, text: `Profit Map envoyée à ${j.email}` })
+    } catch (e) {
+      setMsg({ ok: false, text: (e as Error).message })
+    } finally { setSending(false) }
+  }
+
+  const inputCls = "w-full px-3 py-2 rounded-xl border border-soren-border bg-soren-card text-[12px] text-soren-text placeholder:text-soren-subtle focus:outline-none focus:border-[#FF4D00]/50"
+
+  return (
+    <StepCard icon={<ClipboardList size={16} />} title="Synthèse Audit (Profit Map)" done={done} onToggle={onToggle}>
+      <div className="flex flex-col gap-3">
+        <div>
+          <label className="block text-[11px] font-semibold text-soren-muted mb-1">Lien Google Sheet (dossier de travail d'audit)</label>
+          <div className="flex items-center gap-2">
+            <input value={sheetUrl} onChange={e => setSheetUrl(e.target.value)} onBlur={() => onSave({ sheetUrl, mappingUrl, recordId })} placeholder="https://docs.google.com/spreadsheets/…" className={inputCls + ' flex-1'} />
+            <a href={sheetUrl || undefined} target="_blank" rel="noreferrer" title="Ouvrir le Google Sheet" aria-disabled={!sheetUrl} className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-xl border border-soren-border text-soren-muted hover:text-[#FF4D00] hover:border-[#FF4D00]/40 transition-colors ${sheetUrl ? '' : 'pointer-events-none opacity-40'}`}><ExternalLink size={14} /></a>
+          </div>
+        </div>
+        <div>
+          <label className="block text-[11px] font-semibold text-soren-muted mb-1">Lien mapping process (Lucidchart)</label>
+          <div className="flex items-center gap-2">
+            <input value={mappingUrl} onChange={e => setMappingUrl(e.target.value)} onBlur={() => onSave({ sheetUrl, mappingUrl, recordId })} placeholder="https://lucid.app/…" className={inputCls + ' flex-1'} />
+            <a href={mappingUrl || undefined} target="_blank" rel="noreferrer" title="Ouvrir le mapping Lucidchart" aria-disabled={!mappingUrl} className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-xl border border-soren-border text-soren-muted hover:text-[#FF4D00] hover:border-[#FF4D00]/40 transition-colors ${mappingUrl ? '' : 'pointer-events-none opacity-40'}`}><ExternalLink size={14} /></a>
+          </div>
+        </div>
+        <div>
+          <label className="block text-[11px] font-semibold text-soren-muted mb-1">Record du kickoff</label>
+          <Select value={recordId} onChange={v => { setRecordId(v); onSave({ sheetUrl, mappingUrl, recordId: v }) }} options={recordOptions} className="w-full" />
+        </div>
+        <div className="pt-1">
+          <button onClick={generate} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FF4D00] text-white text-[12px] font-semibold hover:bg-[#e64500] transition-colors">
+            <Eye size={13} /> Générer le PDF (brouillon)
+          </button>
+          <p className="text-[10.5px] text-soren-muted mt-1.5">Génère le brouillon depuis le Google Sheet, on le peaufine, puis tu déposes la version finale ci-dessous.</p>
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-semibold text-soren-muted mb-1">Profit Map finalisée (le PDF envoyé au client)</label>
+          {finalPdf ? (
+            <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
+              <FileCheck2 size={15} style={{ color: '#2563EB' }} />
+              <span className="text-[12px] font-semibold flex-1 truncate" style={{ color: '#2563EB' }}>{finalPdf.fileName}</span>
+              <a href={finalUrl ?? '#'} target="_blank" rel="noreferrer" title="Voir" className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#DBEAFE] transition-colors" style={{ color: '#2563EB' }}><Eye size={14} /></a>
+              <button onClick={() => onSave({ finalPdf: undefined })} title="Supprimer" className="w-7 h-7 flex items-center justify-center rounded-lg text-[#DC2626] hover:bg-[#FEE2E2] transition-colors"><Trash2 size={14} /></button>
+            </div>
+          ) : (
+            <div
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) void handleFile(f) }}
+              onClick={() => fileRef.current?.click()}
+              className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-soren-border py-5 cursor-pointer hover:border-[#FF4D00]/50 hover:bg-soren-elevated/50 transition-colors text-center">
+              <Upload size={16} className="text-soren-subtle" />
+              <span className="text-[11.5px] text-soren-muted">{uploading ? 'Dépôt…' : 'Glisse le PDF finalisé ici, ou clique pour choisir'}</span>
+              <input ref={fileRef} type="file" accept="application/pdf" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) void handleFile(f); e.target.value = '' }} />
+            </div>
+          )}
+        </div>
+
+        <div className="pt-1">
+          <button disabled={sending || !full?.email} title={full?.email ? `Envoyer à ${full.email}` : "Ce contact n'a pas d'email"} onClick={sendByEmail} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-soren-border text-[12px] font-semibold text-soren-text hover:bg-soren-elevated disabled:opacity-50 transition-colors">
+            <Send size={13} /> {sending ? 'Envoi…' : (finalPdf ? 'Envoyer le PDF finalisé' : 'Envoyer par email')}
+          </button>
+        </div>
+        {msg && <p className={`text-[11.5px] font-semibold ${msg.ok ? 'text-[#16A34A]' : 'text-[#DC2626]'}`}>{msg.text}</p>}
+        {saved?.sentAt && <p className="text-[11px] text-soren-muted">Dernier envoi : {new Date(saved.sentAt).toLocaleString('fr-FR')}</p>}
+      </div>
+    </StepCard>
   )
 }
 
@@ -262,25 +447,25 @@ function PaymentPhase({ amounts, paidStatus, paidDates, onPay }: {
   }
 
   return (
-    <div className="bg-soren-card border border-soren-border rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
+    <div className="bg-soren-card border border-soren-border rounded-xl p-3.5 flex flex-col gap-2.5 shadow-sm">
       <div className="flex items-center gap-3">
-        {allPaid ? <CheckCircle2 size={20} className="text-[#16A34A]" /> : <Circle size={20} className="text-soren-subtle" />}
-        <span className="flex items-center gap-2 text-[13px] font-normal text-soren-text flex-1"><CreditCard size={16} />Paiement</span>
+        {allPaid ? <CheckCircle2 size={18} className="text-[#16A34A]" /> : <Circle size={18} className="text-soren-subtle" />}
+        <span className="flex items-center gap-2 text-[13px] font-normal text-soren-text flex-1"><CreditCard size={15} />Paiement</span>
       </div>
       <div className="pl-8 flex flex-col gap-3">
         {/* cards — refined palette */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <div className="rounded-xl p-3" style={{ background: '#FF4D00' }}>
+          <div className="rounded-xl p-2.5" style={{ background: '#FF4D00' }}>
             <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.65)' }}>Total</span>
-            <p className="text-[18px] font-black tabular-nums" style={{ color: '#fff' }}>{fmt(total)}</p>
+            <p className="text-[15px] font-bold tabular-nums" style={{ color: '#fff' }}>{fmt(total)}</p>
           </div>
-          <div className="rounded-xl p-3" style={{ background: '#1C1C1E' }}>
+          <div className="rounded-xl p-2.5" style={{ background: '#1C1C1E' }}>
             <span className="text-[10px]" style={{ color: '#888' }}>Encaissé</span>
-            <p className="text-[18px] font-black tabular-nums" style={{ color: '#fff' }}>{fmt(encaisse)}</p>
+            <p className="text-[15px] font-bold tabular-nums" style={{ color: '#fff' }}>{fmt(encaisse)}</p>
           </div>
-          <div className="rounded-xl p-3 border border-soren-border" style={{ background: 'var(--bg-elevated)' }}>
+          <div className="rounded-xl p-2.5 border border-soren-border" style={{ background: 'var(--bg-elevated)' }}>
             <span className="text-[10px]" style={{ color: '#888' }}>En attente</span>
-            <p className="text-[18px] font-black tabular-nums" style={{ color: 'var(--text)' }}>{fmt(attente)}</p>
+            <p className="text-[15px] font-bold tabular-nums" style={{ color: 'var(--text)' }}>{fmt(attente)}</p>
           </div>
         </div>
         {/* installments — table lines */}
@@ -314,10 +499,10 @@ function StepCard({ icon, title, done, onToggle, children, extra }: {
 }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="bg-soren-card border border-soren-border rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
+    <div className="bg-soren-card border border-soren-border rounded-xl p-3.5 flex flex-col gap-2.5 shadow-sm">
       <div className="flex items-center gap-3">
         <button onClick={() => onToggle(!done)} className="flex-shrink-0">
-          {done ? <CheckCircle2 size={20} className="text-[#16A34A]" /> : <Circle size={20} className="text-soren-subtle" />}
+          {done ? <CheckCircle2 size={18} className="text-[#16A34A]" /> : <Circle size={18} className="text-soren-subtle" />}
         </button>
         <span className="flex items-center gap-2 text-[13px] font-normal text-soren-text flex-1">{icon}{title}</span>
         {extra}
@@ -386,16 +571,23 @@ function ContractStep({ done, onToggle, client, full, payment, signed, onPayment
     onPayment({ installments, amounts: arr })
   }
 
+  const [sending, setSending] = useState(false)
+  const [sentMsg, setSentMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  function contractPayload(extra: Record<string, unknown>) {
+    return {
+      clientName: client.name, company: full?.companyName || client.company, address: composeAddress(full),
+      phone: full?.phone, email: full?.email, representant: client.name,
+      amount: client.value, installments, amounts, currency, ...extra,
+    }
+  }
+
   async function generate(preview: boolean) {
     setBusy(true)
     try {
       const res = await fetch('/api/onboarding/contract', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientName: client.name, company: client.company || full?.companyName, address: full?.address1,
-          phone: full?.phone, email: full?.email, representant: client.name,
-          amount: client.value, installments, amounts, currency, preview,
-        }),
+        body: JSON.stringify(contractPayload({ preview })),
       })
       if (!res.ok) throw new Error()
       const blob = await res.blob()
@@ -405,6 +597,41 @@ function ContractStep({ done, onToggle, client, full, payment, signed, onPayment
       setTimeout(() => URL.revokeObjectURL(url), 10000)
       onGenerated()
     } catch { /* ignore */ } finally { setBusy(false) }
+  }
+
+  async function sendByEmail() {
+    if (sending || !full?.id) return
+    setSending(true); setSentMsg(null)
+    try {
+      const res = await fetch('/api/onboarding/send-contract', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contractPayload({ contactId: full.id })),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.ok) throw new Error(j.error || "Échec de l'envoi")
+      setSentMsg({ ok: true, text: `Contrat envoyé à ${j.email}` })
+      onGenerated()
+    } catch (e) {
+      setSentMsg({ ok: false, text: (e as Error).message })
+    } finally { setSending(false) }
+  }
+
+  const [requesting, setRequesting] = useState(false)
+  async function requestSignature() {
+    if (requesting || !full?.id) return
+    setRequesting(true); setSentMsg(null)
+    try {
+      const res = await fetch('/api/onboarding/request-signature', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contractPayload({ contactId: full.id })),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.ok) throw new Error(j.error || "Échec de l'envoi")
+      setSentMsg({ ok: true, text: `Lien de signature envoyé à ${j.email}` })
+      onGenerated()
+    } catch (e) {
+      setSentMsg({ ok: false, text: (e as Error).message })
+    } finally { setRequesting(false) }
   }
 
   async function handleFile(file: File) {
@@ -427,14 +654,27 @@ function ContractStep({ done, onToggle, client, full, payment, signed, onPayment
           <button disabled={busy} onClick={() => generate(false)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FF4D00] text-white text-[12px] font-semibold hover:bg-[#e64500] disabled:opacity-50 transition-colors">
             <Download size={13} /> {busy ? 'Génération…' : 'Générer & télécharger'}
           </button>
+          <button disabled={sending || !full?.email} title={full?.email ? `Envoyer à ${full.email}` : "Ce contact n'a pas d'email"} onClick={sendByEmail} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-soren-border text-[12px] font-semibold text-soren-text hover:bg-soren-elevated disabled:opacity-50 transition-colors">
+            <Send size={13} /> {sending ? 'Envoi…' : 'Envoyer par email'}
+          </button>
+          <button disabled={requesting || !full?.email} title={full?.email ? `Envoyer un lien de signature à ${full.email}` : "Ce contact n'a pas d'email"} onClick={requestSignature} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#FF4D00]/40 text-[12px] font-semibold text-[#FF4D00] hover:bg-[#FF4D00]/10 disabled:opacity-50 transition-colors">
+            <FileSignature size={13} /> {requesting ? 'Envoi…' : 'Envoyer pour signature'}
+          </button>
           <div className="flex items-center gap-1.5 ml-auto">
             <span className="text-[11px] text-soren-muted">Devise</span>
-            <select value={currency} onChange={e => setCurrency(e.target.value)}
-              className="text-[12px] font-semibold text-soren-text bg-soren-elevated border border-soren-border rounded-xl px-2.5 py-2 outline-none cursor-pointer">
-              {CONTRACT_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <Select
+              value={currency}
+              onChange={setCurrency}
+              options={CONTRACT_CURRENCIES.map(c => ({ value: c, label: c }))}
+              align="right"
+              className="w-[84px] font-semibold"
+            />
           </div>
         </div>
+
+        {sentMsg && (
+          <p className={`text-[11px] font-medium ${sentMsg.ok ? 'text-emerald-600' : 'text-[#EF4444]'}`}>{sentMsg.text}</p>
+        )}
 
         <div className="flex flex-col gap-2">
           <span className="text-[11px] font-semibold text-soren-muted">Modalités de paiement — Total {cfmt(client.value)}</span>
@@ -508,7 +748,7 @@ const ACCOUNT_GROUPS: { title: string; fields: [string, string][] }[] = [
   { title: 'Vercel', fields: [['vercel_access', '']] },
   { title: 'Convex', fields: [['convex_access', '']] },
   { title: 'FAL.IA', fields: [['fal_access', '']] },
-  { title: 'Nous Research', fields: [['hermes_access', '']] },
+  { title: 'BrowserUse', fields: [['hermes_access', '']] },
   { title: 'Boîte mail', fields: [
     ['workspace_provider', 'Fournisseur'], ['workspace_google_json', 'Clé JSON (Google)'],
     ['workspace_microsoft_client_id', 'ID application (client)'], ['workspace_microsoft_tenant_id', 'ID annuaire (locataire)'],
@@ -545,7 +785,7 @@ function CopyBtn({ text }: { text: string }) {
 
 // Ligne sobre du miroir : label + valeur (ou « Non renseigné »). Secret = mono + œil. Actions discrètes à droite.
 function MirrorRow({ fieldKey, value, label, compact }: { fieldKey: string; value: unknown; label?: string; compact?: boolean }) {
-  const [show, setShow] = useState(true)
+  const [show, setShow] = useState(false)
   const empty = !hasValue(value)
   const isArr = Array.isArray(value)
   const str = isArr ? (value as unknown[]).join(', ') : String(value ?? '')

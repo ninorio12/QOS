@@ -198,6 +198,9 @@ export default function ProfilTab() {
   }
 
   const initial = (form.firstName.trim()[0] || form.lastName.trim()[0] || 'A').toUpperCase()
+  // La photo locale (localStorage) n'existe que sur l'appareil où elle a été uploadée.
+  // Clerk est la source de vérité → fallback sur user.imageUrl (sinon avatar absent sur un autre appareil, ex. mobile).
+  const photoSrc = form.photo || (user?.hasImage ? user.imageUrl : '')
 
   return (
     <div className="flex flex-col gap-4 pb-24">
@@ -223,11 +226,11 @@ export default function ProfilTab() {
               'focus:outline-none focus:ring-2 focus:ring-[#FF4D00]/40 focus:ring-offset-2 focus:ring-offset-soren-card',
               dragging ? 'ring-2 ring-[#FF4D00] ring-offset-2 ring-offset-soren-card' : '',
             ].join(' ')}
-            style={form.photo ? undefined : { backgroundColor: '#FF4D00' }}
+            style={photoSrc ? undefined : { backgroundColor: '#FF4D00' }}
           >
-            {form.photo ? (
+            {photoSrc ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={form.photo} alt="Photo de profil" className="w-full h-full object-cover" />
+              <img src={photoSrc} alt="Photo de profil" className="w-full h-full object-cover" />
             ) : (
               <span className="text-2xl font-bold text-white">{initial}</span>
             )}

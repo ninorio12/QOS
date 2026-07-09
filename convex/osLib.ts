@@ -2,6 +2,10 @@ import { MutationCtx, QueryCtx } from "./_generated/server"
 
 export const WORKSPACE = "vividflow"
 
+// Jour 1 du projet actuel (date ISO YYYY-MM-DD). Tout ce qui précède (RDV iClosed, dépenses Meta…)
+// vient d'anciens projets et ne doit PAS être compté/importé. Décision Thomas 2026-06-26.
+export const PROJECT_START_DATE = "2026-06-26"
+
 // Garde-fou admin : exige un utilisateur authentifié (Clerk) avec role === 'admin'.
 // Utilise l'identité serveur (getUserIdentity) — ne fait jamais confiance au client.
 export async function requireAdmin(ctx: QueryCtx | MutationCtx) {

@@ -20,7 +20,9 @@ function eventBounds(from: string, to: string) {
 
 // Familles d'événements (eventType des prospection_events)
 const CONTACT  = ["appele", "message_laisse", "pas_repondu", "repondu", "a_rappeler", "interesse"]
-const RESPONSE = ["repondu", "interesse"]
+// Réponse = le prospect a répondu : Répondu / Intéressé, OU RDV booké (l'appel a eu lieu = réponse).
+// (Le cas « Perdu avec raison pas intéressé » est ajouté à part dans summary, via la raison de l'événement.)
+const RESPONSE = ["repondu", "interesse", "r1_booke"]
 const RAPPEL   = ["a_rappeler"]
 const R1EV     = ["r1_booke"]
 const LOST     = ["perdu", "negatif", "mauvais_numero", "non_qualifie"]
@@ -69,8 +71,17 @@ export const summary = query({
   args: { setter: v.optional(v.string()), from: v.optional(v.string()), to: v.optional(v.string()), channel: v.optional(v.string()), tzOffset: v.optional(v.number()) },
   handler: async (ctx, a) => {
     const { list, recs, from, to, dayOf } = await loadEvents(ctx, a)
-    const contactes = distinctLeads(list, e => CONTACT.includes(e.eventType))
-    const reponses  = distinctLeads(list, e => RESPONSE.includes(e.eventType))
+    // « Contactés » = leads RÉELLEMENT travaillés sur la période = leads distincts ayant AU MOINS
+    // un événement de prospection (toute action loggée). Garantit que réponses/R1/perdus ⊆ contactés
+    // → les taux (réponse, conversion R1) sont bornés ≤ 100% par construction.
+    const contactes = new Set(list.map((e: any) => e.prospectionRecordId)).size
+    // Réponses = RESPONSE (répondu/intéressé/RDV booké) + perdu avec raison « pas intéressé » (l'appel a eu lieu).
+    const reponses  = new Set<string>([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...list.filter((e: any) => RESPONSE.includes(e.eventType)).map((e: any) => e.prospectionRecordId),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...list.filter((e: any) => e.eventType === "perdu" && e.notes === "pas_interesse").map((e: any) => e.prospectionRecordId),
+    ]).size
     const r1Booked  = distinctLeads(list, e => R1EV.includes(e.eventType))
     const perdus    = distinctLeads(list, e => LOST.includes(e.eventType))
 
@@ -82,23 +93,26 @@ export const summary = query({
 
     const objectifR1 = (await goalsInRange(ctx, from, to)).reduce((s: number, g: any) => s + (g.targetR1Booked ?? 0), 0)
 
-    // CA généré lié aux appels — placeholder tant qu'aucun montant n'est saisi sur les cartes prospection.
-    // Commission setter = 2% des paiements ENCAISSÉS (échéances cochées payées) en onboarding,
-    // UNIQUEMENT pour les clients issus de l'outbound. Respecte la période via paidDates.
+    // Commission setter = 2% des paiements ENCAISSÉS, UNIQUEMENT pour les clients passés par la
+    // colonne « RDV booké » de Prospection (R1 booké via le module Prospection), PAS tous les outbound.
+    // Même filtre que nouveauxClients : prospection_record boardColumn=rdv_booke OU status=handoff.
+    // Virements Revolut/manuels inclus (sinon commission 0 pour tout client payé hors Stripe).
     const COMMISSION_RATE = 0.02
-    // Base de commission = encaissé RÉEL (source unique reconcileMoney, Stripe-aware) des clients
-    // outbound sur la période. Aligne la commission sur l'encaissé canonique de Dashboard et Paiement.
     const onbs = await ctx.db.query("onboarding").collect()
     const contacts = await ctx.db.query("crm_contacts").collect()
     const clients = await ctx.db.query("pipeline_clients").collect()
     const stripePayments = await ctx.db.query("stripe_payments").withIndex("by_created").collect()
+    const externalPayments = await ctx.db.query("external_payments").collect()
+    const fxRows = await ctx.db.query("fx_rates").collect()
+    const fxToChf: Record<string, number> = { chf: 1 }; for (const r of fxRows) fxToChf[r.currency] = r.rate
+    // « via appel » = funnel outbound : on EXCLUT les leads interne (ajoutés à la main depuis une fiche).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sourceById = new Map<string, string | undefined>(contacts.map((c: any) => [c._id.toString(), c.source]))
-    const money = reconcileMoney({ obs: onbs, clients, contacts, stripePayments, from, to, tzOffset: a.tzOffset })
-    const paidOutbound = money.transactions
-      .filter(t => t.type === "payment" && t.status === "encaissé" && sourceById.get(t.contactId) === "outbound")
+    const prospR1Contacts = new Set((recs as any[]).filter((r: any) => !r.internalLead && (r.boardColumn === "rdv_booke" || r.status === "handoff")).map((r: any) => String(r.contactId)))
+    const money = reconcileMoney({ obs: onbs, clients, contacts, stripePayments, externalPayments, from, to, tzOffset: a.tzOffset, fxToChf })
+    const paidProspR1 = money.transactions
+      .filter(t => t.type === "payment" && t.status === "encaissé" && prospR1Contacts.has(String(t.contactId)))
       .reduce((s, t) => s + t.amount, 0)
-    const commission = Math.round(paidOutbound * COMMISSION_RATE)
+    const commission = Math.round(paidProspR1 * COMMISSION_RATE)
 
     // Nouveaux clients obtenus via appel = leads passés par "RDV booké sur iClosed" (rdv_booke / handoff)
     // dont le contact est désormais "client". Daté par la conversion du contact (contact.updatedAt).
@@ -108,6 +122,7 @@ export const summary = query({
       (recs as any[]).filter((r: any) => {
         const c = contactById.get(r.contactId)
         if (!c || c.statut !== "client") return false
+        if (r.internalLead) return false   // lead interne ≠ client obtenu via appel
         if (!(r.boardColumn === "rdv_booke" || r.status === "handoff")) return false
         const d = dayOf(c.updatedAt ?? r.updatedAt)
         return d >= from && d <= to
@@ -116,8 +131,8 @@ export const summary = query({
 
     return {
       contactes, reponses, aRappeler, r1Booked, perdus, objectifR1, commission, nouveauxClients,
-      tauxReponse:   contactes ? Math.round((reponses / contactes) * 100) : 0,
-      conversionR1:  contactes ? Math.round((r1Booked / contactes) * 100) : 0,
+      tauxReponse:   contactes ? Math.min(100, Math.round((reponses / contactes) * 100)) : 0,
+      conversionR1:  contactes ? Math.min(100, Math.round((r1Booked / contactes) * 100)) : 0,
     }
   },
 })
@@ -136,11 +151,12 @@ export const funnel = query({
     const dayOf = (iso: string) => localDay(iso, a.tzOffset)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const contacts = await ctx.db.query("crm_contacts").collect()
-
     // FUNNEL = cohorte (source UNIQUE partagée avec le cockpit, cf. funnelCohort.ts).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const allLeads = await ctx.db.query("crm_leads").collect()
-    const fc = funnelCohort(contacts as any[], allLeads as any[], from, to, dayOf)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const salesCalls = await ctx.db.query("os_sales_calls").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
+    const fc = funnelCohort(contacts as any[], allLeads as any[], from, to, dayOf, salesCalls as any[])
     return { leadsATraiter: fc.leadsTotal, ...fc }
   },
 })

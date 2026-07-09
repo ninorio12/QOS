@@ -38,7 +38,7 @@ export type RegionOption = { value: string; label: string }
 
 /** Config du champ régional selon le pays : libellé + options (null = texte libre). */
 export function regionConfig(country: string): { label: string; options: RegionOption[] | null } {
-  if (isCH(country)) return { label: 'Canton', options: SWISS_CANTONS.map(code => ({ value: code, label: `${code} — ${CANTON_NAMES[code]}` })) }
+  if (isCH(country)) return { label: 'Canton', options: SWISS_CANTONS.map(code => ({ value: code, label: CANTON_NAMES[code] })) }
   if (isFR(country)) return { label: 'Région', options: FRENCH_REGIONS.map(r => ({ value: r, label: r })) }
   return { label: 'Canton / Région', options: null }
 }
@@ -46,6 +46,6 @@ export function regionConfig(country: string): { label: string; options: RegionO
 /** Affichage lisible d'une valeur (déplie le code canton CH → nom). */
 export function regionDisplay(country: string, value: string): string {
   if (!value) return ''
-  if (isCH(country) && CANTON_NAMES[value]) return `${value} — ${CANTON_NAMES[value]}`
+  if (isCH(country) && CANTON_NAMES[value]) return CANTON_NAMES[value]
   return value
 }

@@ -28,6 +28,7 @@ export type Opportunity = {
   contactId:  string
   tags:       string[]
   status:     'open' | 'won' | 'lost' | 'abandoned'
+  noShow?:    boolean   // R1/R2 marqué no-show (récupérable) : chip rouge sur la carte
 }
 
 // ─── Legacy types for KanbanBoard (deprecated) ──────────────

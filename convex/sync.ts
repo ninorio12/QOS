@@ -36,6 +36,19 @@ export async function enforce(ctx: any, contactId: any, opts?: { dealValue?: num
   const contact = await ctx.db.get(contactId)
   if (!contact) return { ok: false, reason: 'contact not found' }
 
+  // GARDE statut : on normalise (casse/espaces) et on RANGE toute valeur inconnue non-vide sur 'lead'
+  // au lieu de tomber dans la branche « no statut » qui SUPPRIME lead+client (perte silencieuse de pipeline
+  // sur une simple faute type "Lead" / "prospect"). Seul un statut VIDE retire des pipelines.
+  {
+    const raw = String(contact.statut ?? '').trim().toLowerCase()
+    const valid = raw === 'lead' || raw === 'client' || raw === 'perdu'
+    const normalized = valid ? raw : (raw ? 'lead' : '')
+    if (normalized !== contact.statut) {
+      if (normalized) await ctx.db.patch(contactId, { statut: normalized })
+      contact.statut = normalized
+    }
+  }
+
   // Objection cohérente avec l'issue COURANTE du deal :
   //  - rouge (lostObjection) seulement si statut=perdu ; vert (wonObjection) seulement si statut=client.
   //  Sinon on efface l'objection devenue obsolète (ex. deal perdu ré-ouvert → plus de rouge).
@@ -101,6 +114,7 @@ export async function enforce(ctx: any, contactId: any, opts?: { dealValue?: num
       await ctx.db.insert("lead_stage_history", {
         leadId, stageId: firstStage?.id ?? 'nouveau-lead',
         stageName: firstStage?.name ?? 'Nouveau lead', enteredAt: new Date().toISOString().split('T')[0],
+        source: contact.source ?? 'inbound', contactId,
       })
     }
     await reconcileProspection(ctx, cid, leadId, contact.statut)
@@ -160,7 +174,7 @@ export async function convertToClientLogic(ctx: any, args: {
       const history = await ctx.db.query("lead_stage_history").withIndex("by_lead", (q: any) => q.eq("leadId", openLead._id)).collect()
       const last = history.length ? history[history.length - 1] : null
       if (!last || last.stageId !== "nouveau-client") {
-        await ctx.db.insert("lead_stage_history", { leadId: openLead._id, stageId: "nouveau-client", stageName: "Gagné - Client", enteredAt: dealDate })
+        await ctx.db.insert("lead_stage_history", { leadId: openLead._id, stageId: "nouveau-client", stageName: "Gagné - Client", enteredAt: dealDate, source: openLead.source, contactId })
       }
     }
 
@@ -225,7 +239,7 @@ export const reconcileAll = mutation({
       const want = LEAD_STAGE_FOR_COLUMN[boardColumnOf(r)]
       if (want && lead.stageId !== want) {
         await ctx.db.patch(lead._id, { stageId: want })
-        await ctx.db.insert("lead_stage_history", { leadId: lead._id, stageId: want, stageName: want, enteredAt: new Date().toISOString().split("T")[0] })
+        await ctx.db.insert("lead_stage_history", { leadId: lead._id, stageId: want, stageName: want, enteredAt: new Date().toISOString().split("T")[0], source: lead.source, contactId: lead.contactId })
         aligned++
       }
     }
