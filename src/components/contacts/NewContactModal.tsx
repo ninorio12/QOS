@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { X, ChevronDown, Search, Check, Plus, ClipboardList, CreditCard, FileText, Workflow, ArrowUpRight, Send, Trash2 } from 'lucide-react'
+import { X, ChevronDown, Search, Check, Plus, Save, ClipboardList, CreditCard, FileText, Workflow, Send, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
@@ -183,84 +183,6 @@ function CustomSelect({
   )
 }
 
-// ─── Combobox (select existing OR create new) ─────────────────
-function Combobox({
-  label, value, onChange, options, placeholder,
-}: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  options: string[]
-  placeholder: string
-}) {
-  const [open, setOpen]   = useState(false)
-  const [query, setQuery] = useState('')
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
-  const filtered = query.trim()
-    ? options.filter(o => o.toLowerCase().includes(query.toLowerCase()))
-    : options
-  const canCreate = query.trim() && !options.some(o => o.toLowerCase() === query.trim().toLowerCase())
-
-  return (
-    <div ref={ref} className="relative">
-      <label className={labelCls}>{label}</label>
-      <button
-        type="button"
-        onClick={() => { setOpen(o => !o); setQuery('') }}
-        className="w-full bg-soren-elevated rounded-xl px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all flex items-center justify-between gap-2"
-      >
-        <span className={value ? 'text-soren-text' : 'text-soren-subtle'}>{value || placeholder}</span>
-        <ChevronDown size={13} className={`text-soren-subtle transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <div className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-soren-card border border-soren-border rounded-2xl shadow-xl overflow-hidden flex flex-col" style={{ maxHeight: 260 }}>
-          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-soren-border flex-shrink-0">
-            <Search size={11} className="text-soren-subtle flex-shrink-0" />
-            <input
-              autoFocus
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="Rechercher ou créer…"
-              className="flex-1 text-xs text-soren-text placeholder-[#9CA3AF] outline-none bg-transparent"
-            />
-          </div>
-          <div className="overflow-y-auto flex-1">
-            {value && (
-              <button type="button" onClick={() => { onChange(''); setOpen(false) }}
-                className="w-full text-left px-4 py-2 text-xs text-soren-subtle hover:bg-soren-elevated">
-                — Aucun —
-              </button>
-            )}
-            {filtered.map(o => (
-              <button key={o} type="button" onClick={() => { onChange(o); setOpen(false) }}
-                className="w-full text-left flex items-center justify-between px-4 py-2 text-[12px] text-soren-text hover:bg-soren-elevated">
-                {o}
-                {o === value && <Check size={13} className="text-[#3462EE]" />}
-              </button>
-            ))}
-            {canCreate && (
-              <button type="button" onClick={() => { onChange(query.trim()); setOpen(false) }}
-                className="w-full text-left flex items-center gap-2 px-4 py-2 text-[12px] text-[#3462EE] font-semibold hover:bg-soren-elevated border-t border-soren-border">
-                <Plus size={13} /> Créer « {query.trim()} »
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ─── Section header ───────────────────────────────────────────
 function Section({ title }: { title: string }) {
   return <p className="text-[10px] font-bold uppercase tracking-widest text-soren-subtle">{title}</p>
@@ -368,38 +290,36 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
   const [tags,          setTags]          = useState<string[]>(contact?.tags ?? [])
 
   const [canton, setCanton]   = useState<string>(initialCanton ?? '')
-  const [country, setCountry] = useState<string>(contact?.country ?? '')
+  // Défaut Suisse (CRM Suisse romande) → le sélecteur de canton est dispo d'emblée sur toute
+  // nouvelle fiche. Une fiche existante garde son pays.
+  const [country, setCountry] = useState<string>(contact?.country || 'Suisse')
   const rc = regionConfig(country)  // libellé + options (Canton CH / Région FR / texte libre)
   const [statut, setStatut]   = useState<'lead' | 'client' | 'perdu'>(
-    mode === 'leads' ? 'lead' : mode === 'clients' ? 'client' : (initialStatut ?? 'lead')
+    // Sans mode ni initialStatut explicite (ex. ouverture depuis Pipeline Clients), on lit le statut
+    // RÉEL du contact (sinon défaut « lead » même pour un client → fiche fausse).
+    mode === 'leads' ? 'lead' : mode === 'clients' ? 'client'
+      : (initialStatut ?? (contact as (Record<string, unknown> & { statut?: 'lead' | 'client' | 'perdu' }) | undefined)?.statut ?? 'lead')
   )
-  const [role,   setRole]     = useState<string>((contact as Record<string, unknown> & { role?: string } | undefined)?.role ?? '')
-  const [metier, setMetier]   = useState<string>((contact as Record<string, unknown> & { metier?: string } | undefined)?.metier ?? '')
-  const [niche,  setNiche]    = useState<string>((contact as Record<string, unknown> & { niche?: string } | undefined)?.niche ?? '')
-  const [roleOptions,   setRoleOptions]   = useState<string[]>([])
-  const [metierOptions, setMetierOptions] = useState<string[]>([])
-  const [nicheOptions,  setNicheOptions]  = useState<string[]>([])
+  // ── Deal (accompagnement) — non éditables ici : on ne fait que réémettre les valeurs
+  // déjà portées par le contact (sync GHL) pour ne pas les écraser à l'enregistrement.
+  const dealStart  = contact?.dealStartDate ?? ''
+  const dealEnd    = contact?.dealEndDate ?? ''
+  const dealMonths = contact?.dealDurationMonths ? String(contact.dealDurationMonths) : ''
+  const payType    = contact?.paymentType ?? ''
+  // Infos dérivées (montant pipeline_clients, plan Paiement, prochain RDV) — lecture seule sur la fiche.
+  const dealMetaInfo = useQuery(api.crm_contacts.dealMeta, contact?.id ? { contactId: contact.id as never } : 'skip') as {
+    totalAmount?: number; installments?: number; perInstallment?: number
+    nextDueDate?: string; nextDueAmount?: number; nextCallDate?: string; nextCallTitle?: string
+  } | null | undefined
 
-  useEffect(() => {
-    fetch('/api/crm/contacts/options')
-      .then(r => r.json())
-      .then((d: { roles?: string[]; metiers?: string[]; niches?: string[] }) => {
-        setRoleOptions(d.roles ?? [])
-        setMetierOptions(d.metiers ?? [])
-        setNicheOptions(d.niches ?? [])
-      })
-      .catch(() => {})
-  }, [])
   const [form, setForm] = useState({
     firstName:   contact?.firstName   ?? '',
     lastName:    contact?.lastName    ?? '',
     email:       contact?.email       ?? '',
     localPhone:  parsedPhone.local,
-    companyName: contact?.companyName ?? '',
     address1:    contact?.address1    ?? '',
     city:        contact?.city        ?? '',
     postalCode:  contact?.postalCode  ?? '',
-    website:     contact?.website     ?? '',
     value:       '',
     source:      contact?.source      ?? 'Direct',
   })
@@ -467,18 +387,17 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             lastName:    form.lastName,
             email:       form.email,
             phone:       phone || contact.phone,
-            companyName: form.companyName,
             address1:    form.address1,
             city:        form.city,
             postalCode:  form.postalCode,
-            website:     form.website,
             country:     country || undefined,
             canton:      canton || undefined,
             statut,
             source:      inoutbound,
-            role:        role || undefined,
-            metier:      metier || undefined,
-            niche:       niche  || undefined,
+            dealStartDate:      dealStart || undefined,
+            dealEndDate:        dealEnd   || undefined,
+            dealDurationMonths: dealMonths && Number.isFinite(parseInt(dealMonths, 10)) ? parseInt(dealMonths, 10) : undefined,
+            paymentType:        payType || undefined,
             tags,
           }),
         })
@@ -513,15 +432,14 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           contactName: `${form.firstName} ${form.lastName}`.trim() || contact.contactName,
           email:       form.email       || null,
           phone:       phone            || contact.phone,
-          companyName: form.companyName || null,
           address1:    form.address1    || null,
           city:        form.city        || null,
           postalCode:  form.postalCode  || null,
-          website:     form.website     || null,
           country:     country          || null,
-          role:        role             || null,
-          metier:      metier           || null,
-          niche:       niche            || null,
+          dealStartDate:      dealStart || null,
+          dealEndDate:        dealEnd   || null,
+          dealDurationMonths: dealMonths ? parseInt(dealMonths, 10) : null,
+          paymentType:        payType   || null,
           tags,
           dateUpdated: new Date().toISOString(),
         }
@@ -537,11 +455,14 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           body: JSON.stringify({
             firstName: form.firstName, lastName: form.lastName || undefined,
             email: form.email || undefined, phone: phone || undefined,
-            companyName: form.companyName || undefined,
             address1: form.address1 || undefined, city: form.city || undefined,
-            postalCode: form.postalCode || undefined, website: form.website || undefined,
+            postalCode: form.postalCode || undefined,
             source: inoutbound, statut, country: country || undefined, canton: canton || undefined,
-            role: role || undefined, metier: metier || undefined, niche: niche || undefined, tags: [],
+            dealStartDate:      dealStart || undefined,
+            dealEndDate:        dealEnd   || undefined,
+            dealDurationMonths: dealMonths && Number.isFinite(parseInt(dealMonths, 10)) ? parseInt(dealMonths, 10) : undefined,
+            paymentType:        payType || undefined,
+            tags: [],
           }),
         })
         const data = await res.json().catch(() => ({})) as { contact?: { id: string; _id: string }; error?: string }
@@ -568,8 +489,10 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
           id: newId, contactName,
           firstName: form.firstName || null, lastName: form.lastName || null,
           email: form.email || null, phone: phone || null,
-          companyName: form.companyName || null,
-          role: role || null, metier: metier || null, niche: niche || null,
+          companyName: null,
+          dealStartDate: dealStart || null, dealEndDate: dealEnd || null,
+          dealDurationMonths: dealMonths ? parseInt(dealMonths, 10) : null,
+          paymentType: payType || null,
           dateAdded: new Date().toISOString(), dateUpdated: null, tags: [],
         }
         onAdd?.(newContact)
@@ -608,7 +531,7 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
         </div>
 
         {/* Scrollable body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+        <form onSubmit={handleSubmit} className="fiche-contact-fields flex-1 overflow-y-auto p-6 flex flex-col gap-6">
 
           {/* ── Contact ── */}
           <div className="flex flex-col gap-3">
@@ -626,19 +549,8 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             </div>
 
             <div>
-              <label className={labelCls}>Entreprise</label>
-              <input value={form.companyName} onChange={set('companyName')} placeholder="Dupont Construction" className={inputCls} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Combobox label="Rôle"   value={role}   onChange={setRole}   options={roleOptions}   placeholder="ex: CEO, Directeur" />
-              <Combobox label="Métier" value={metier} onChange={setMetier} options={metierOptions} placeholder="ex: Conseil, BTP, e-commerce" />
-              <Combobox label="Niche"  value={niche}  onChange={setNiche}  options={nicheOptions}  placeholder="ex: Immobilier" />
-            </div>
-
-            <div>
               <label className={labelCls}>E-mail</label>
-              <input type="email" value={form.email} onChange={set('email')} placeholder="jean@exemple.fr" className={inputCls} />
+              <input type="email" value={form.email} onChange={set('email')} placeholder="jean@exemple.ch" className={inputCls} />
             </div>
 
             {/* Téléphone */}
@@ -687,17 +599,17 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
 
             <div>
               <label className={labelCls}>Adresse</label>
-              <input value={form.address1} onChange={set('address1')} placeholder="12 rue de la Paix" className={inputCls} />
+              <input value={form.address1} onChange={set('address1')} placeholder="Rue du Rhône 14" className={inputCls} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelCls}>Ville</label>
-                <input value={form.city} onChange={set('city')} placeholder="Paris" className={inputCls} />
+                <input value={form.city} onChange={set('city')} placeholder="Genève" className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Code postal</label>
-                <input value={form.postalCode} onChange={set('postalCode')} placeholder="75001" className={inputCls} />
+                <input value={form.postalCode} onChange={set('postalCode')} placeholder="1204" className={inputCls} />
               </div>
             </div>
 
@@ -729,21 +641,6 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               </div>
             )}
 
-            <div>
-              <label className={labelCls}>Site web</label>
-              <div className="relative">
-                <input type="url" value={form.website} onChange={set('website')} placeholder="https://exemple.fr" className={inputCls + ' pr-9'} />
-                {form.website.trim() && (
-                  <a
-                    href={/^https?:\/\//i.test(form.website.trim()) ? form.website.trim() : `https://${form.website.trim()}`}
-                    target="_blank" rel="noopener noreferrer" title="Ouvrir le site web"
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg flex items-center justify-center text-soren-muted hover:text-[#3462EE] hover:bg-soren-elevated transition-colors"
-                  >
-                    <ArrowUpRight size={14} />
-                  </a>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* ── Statut + Source (même fiche partout) ── */}
@@ -760,13 +657,6 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                   {commercialStage.lost && <X size={13} className="flex-shrink-0" strokeWidth={3} />}
                   {commercialStage.label}
                 </span>
-                {/* Bouton Closing — uniquement quand le lead est en R1 ou R2 (et pas perdu). */}
-                {!commercialStage.lost && (commercialStage.key === 'r1' || commercialStage.key === 'r2') && (
-                  <button type="button" onClick={() => goToModule('/closing')}
-                    className="inline-flex w-fit items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-full bg-[#FF4D00] text-white shadow-sm hover:brightness-110 transition-all">
-                    <ArrowUpRight size={14} /> Préparer le closing
-                  </button>
-                )}
               </div>
             )}
 
@@ -779,19 +669,23 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                   { id: 'client', label: 'Client', color: '#10B981' },
                   { id: 'perdu',  label: 'Perdu',  color: '#EF4444' },
                 ] as { id: 'lead' | 'client' | 'perdu'; label: string; color: string }[]).map(opt => {
-                  // mode='leads' locks to lead; mode='clients' locks to client
-                  const locked = (mode === 'leads' && opt.id !== 'lead') || (mode === 'clients' && opt.id !== 'client')
+                  // mode='leads' locks to lead ; mode='clients' locks to client.
+                  // « Perdu » n'est jamais un choix de création : un lead devient perdu via le pipeline.
+                  // On le verrouille sauf si le contact est DÉJÀ perdu (affichage en édition).
+                  const locked = (mode === 'leads' && opt.id !== 'lead')
+                    || (mode === 'clients' && opt.id !== 'client')
+                    || (opt.id === 'perdu' && statut !== 'perdu')
                   const isSelected = statut === opt.id
                   return (
                     <button key={opt.id} type="button"
                       disabled={locked}
+                      title={opt.id === 'perdu' && locked ? 'Un contact ne peut pas être créé « perdu » : un lead devient perdu via le pipeline.' : undefined}
                       onClick={() => !locked && setStatut(opt.id)}
-                      className={`flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all ${locked ? 'opacity-30 cursor-not-allowed' : ''} ${isSelected ? '' : 'border-soren-border bg-soren-elevated'}`}
-                      style={isSelected ? { borderColor: opt.color, background: opt.color + '14' } : undefined}
+                      className={`relative flex-1 flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl border transition-all duration-150 ${locked ? 'opacity-30 cursor-not-allowed' : 'hover:bg-soren-elevated hover:border-[#D1D5DB]'} ${isSelected ? '' : 'border-soren-border bg-soren-card'}`}
+                      style={isSelected ? { borderColor: opt.color, background: opt.color + '12', boxShadow: `0 0 0 1px ${opt.color}` } : undefined}
                     >
                       <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
                       <span className={`text-[11px] font-bold ${isSelected ? '' : 'text-soren-text'}`} style={isSelected ? { color: opt.color } : undefined}>{opt.label}</span>
-                      {isSelected && <Check size={11} style={{ color: opt.color }} />}
                     </button>
                   )
                 })}
@@ -842,11 +736,62 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               </button>
             )}
 
-            {/* Montant du deal — only when client */}
+            {/* ── Deal — montant (only when client) ── */}
             {statut === 'client' && (
+              <div className="flex flex-col gap-3">
+                <Section title="Deal" />
+
+                <div>
+                  <label className={labelCls}>Montant total du deal (CHF)</label>
+                  <input type="number" value={clientValue} onChange={e => setClientValue(e.target.value)} placeholder="ex: 3500" className={inputCls} />
+                </div>
+
+                {/* Mensualités / échéances / prochain RDV — dérivés du module Paiement et des RDV (lecture seule). */}
+                {(dealMetaInfo?.installments || dealMetaInfo?.nextDueDate || dealMetaInfo?.nextCallDate) && (
+                  <div className="flex flex-col gap-1.5 bg-soren-elevated rounded-xl px-3 py-2.5">
+                    {dealMetaInfo?.installments !== undefined && (
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-soren-muted">Mensualités</span>
+                        <span className="font-semibold text-soren-text">
+                          {dealMetaInfo.installments}×
+                          {dealMetaInfo.perInstallment ? ` · CHF ${dealMetaInfo.perInstallment.toLocaleString('fr-CH')} / mois` : ''}
+                        </span>
+                      </div>
+                    )}
+                    {dealMetaInfo?.nextDueDate && (
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-soren-muted">Prochaine échéance</span>
+                        <span className="font-semibold text-soren-text">
+                          {new Date(dealMetaInfo.nextDueDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                          {dealMetaInfo.nextDueAmount ? ` · CHF ${dealMetaInfo.nextDueAmount.toLocaleString('fr-CH')}` : ''}
+                        </span>
+                      </div>
+                    )}
+                    {dealMetaInfo?.nextCallDate && (
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-soren-muted">Prochain rendez-vous</span>
+                        <span className="font-semibold text-soren-text">
+                          {new Date(dealMetaInfo.nextCallDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                          {' à '}{new Date(dealMetaInfo.nextCallDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          {dealMetaInfo.nextCallTitle ? ` · ${dealMetaInfo.nextCallTitle}` : ''}
+                        </span>
+                      </div>
+                    )}
+                    <p className="text-[10px] text-soren-subtle">Gérés dans le module Paiement et les RDV — affichage seul ici.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Prochain RDV — visible aussi pour les leads (R1/R2 planifié). */}
+            {statut !== 'client' && dealMetaInfo?.nextCallDate && (
               <div className="flex flex-col gap-2">
-                <Section title="Montant du deal" />
-                <input type="number" value={clientValue} onChange={e => setClientValue(e.target.value)} placeholder="ex: 3500" className={inputCls} />
+                <Section title="Prochain rendez-vous" />
+                <span className="inline-flex w-fit items-center text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#EFF6FF] text-[#2563EB] border border-[#BFDBFE]">
+                  {new Date(dealMetaInfo.nextCallDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                  {' à '}{new Date(dealMetaInfo.nextCallDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  {dealMetaInfo.nextCallTitle ? ` · ${dealMetaInfo.nextCallTitle}` : ''}
+                </span>
               </div>
             )}
 
@@ -938,12 +883,11 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
                     <button key={opt.id} type="button"
                       onClick={() => { if (!sourceLocked) setInoutbound(opt.id) }}
                       disabled={sourceLocked}
-                      className={`flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-2xl border-2 transition-all ${isSelected ? '' : 'border-soren-border bg-soren-elevated'} ${sourceLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
-                      style={isSelected ? { borderColor: opt.color, background: opt.bg } : undefined}
+                      className={`relative flex-1 flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl border transition-all duration-150 ${isSelected ? '' : 'border-soren-border bg-soren-card hover:bg-soren-elevated hover:border-[#D1D5DB]'} ${sourceLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      style={isSelected ? { borderColor: opt.color, background: opt.bg, boxShadow: `0 0 0 1px ${opt.color}` } : undefined}
                     >
                       <span className="w-2 h-2 rounded-full" style={{ background: opt.color }} />
                       <span className={`text-[10px] font-bold leading-tight text-center ${isSelected ? '' : 'text-soren-text'}`} style={isSelected ? { color: opt.color } : undefined}>{opt.label}</span>
-                      {isSelected && <Check size={11} style={{ color: opt.color }} />}
                     </button>
                   )
                 })}
@@ -956,13 +900,14 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             <p className="text-xs text-[#EF4444] bg-[#FEF2F2] rounded-xl px-3 py-2">{error}</p>
           )}
 
-          <div className="flex gap-3 pt-1">
+          <div className="flex justify-end gap-2 pt-1">
             <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-full border border-soren-border text-sm text-soren-muted hover:border-[#D1D5DB] hover:text-soren-text transition-colors">
-              Annuler
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-soren-border text-[12px] text-soren-muted hover:border-[#D1D5DB] hover:text-soren-text transition-colors">
+              <X size={13} /> Annuler
             </button>
             <button type="submit" disabled={saving || !form.firstName.trim()}
-              className="flex-1 py-2.5 rounded-full bg-soren-sidebar hover:bg-[#2a2a2a] disabled:opacity-50 text-white text-sm font-semibold transition-colors">
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#FF4D00] hover:brightness-110 disabled:opacity-50 text-white text-[12px] font-semibold transition-colors">
+              {isEdit ? <Save size={14} /> : <Plus size={14} />}
               {saving
                 ? (isEdit ? 'Enregistrement…' : 'Création en cours…')
                 : (isEdit ? 'Enregistrer' : mode === 'leads' ? 'Créer le lead' : mode === 'clients' ? 'Créer le client' : 'Créer le contact')}
