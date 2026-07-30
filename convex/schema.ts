@@ -1077,6 +1077,31 @@ export default defineSchema({
     .index("by_ws_status", ["workspaceId", "status"])
     .index("by_ws_ref", ["workspaceId", "refId"]),
 
+  // Cockpit Media Buyer : discussion par card KPI (Jonathan, Thomas, l'agent).
+  // Un mouvement de levier produit un message ÉCRIT ordinaire, jamais une ligne système.
+  os_card_messages: defineTable({
+    workspaceId: v.string(),
+    cardId:      v.string(),                                   // spend | impressions | clicks | leads | cpl | ctr | cr
+    author:      v.string(),                                   // nom affiché
+    authorKind:  v.union(v.literal("agent"), v.literal("human")),
+    avatarUrl:   v.optional(v.string()),
+    body:        v.string(),
+    icon:        v.optional(v.string()),                       // "target" quand le message pose une cible
+    createdAt:   v.number(),
+  })
+    .index("by_ws_card", ["workspaceId", "cardId", "createdAt"])
+    .index("by_ws",      ["workspaceId", "createdAt"]),
+
+  // Leviers du cockpit : budget/jour, cible CPL, objectif leads, plancher CTR.
+  os_card_settings: defineTable({
+    workspaceId: v.string(),
+    cardId:      v.string(),
+    key:         v.string(),                                   // budgetPerDay | cplTarget | leadsWeekly | ctrFloor
+    value:       v.number(),
+    updatedBy:   v.string(),
+    updatedAt:   v.number(),
+  }).index("by_ws_key", ["workspaceId", "key"]),
+
   meta_creatives: defineTable({
     workspaceId:  v.string(),
     adId:         v.string(),

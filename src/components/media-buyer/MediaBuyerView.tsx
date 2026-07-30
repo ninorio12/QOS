@@ -18,6 +18,7 @@ const MetaConnectModal = dynamic(() => import('./MetaConnectModal'), { ssr: fals
 const MetaLeadsModal = dynamic(() => import('./MetaLeadsModal'), { ssr: false })
 const MetaGuide = dynamic(() => import('./MetaGuide'), { ssr: false })
 const CreativeIntelligence = dynamic(() => import('./CreativeIntelligence'), { ssr: false })
+const CardDrop = dynamic(() => import('./CardDrop'), { ssr: false })
 
 type Delta = { pct: number; dir: 'up' | 'down'; good: boolean } | null
 type Kpi = { value: number; delta: Delta }
@@ -58,8 +59,8 @@ function Variance({ delta }: { delta: Delta }) {
   )
 }
 
-function KpiCard({ icon: Icon, label, value, suffix, delta, color, onClick }: {
-  icon: React.ElementType; label: string; value: string; suffix?: string; delta: Delta; color: string; onClick?: () => void
+function KpiCard({ icon: Icon, label, value, suffix, delta, color, onClick, drop }: {
+  icon: React.ElementType; label: string; value: string; suffix?: string; delta: Delta; color: string; onClick?: () => void; drop?: string
 }) {
   return (
     <div
@@ -76,6 +77,7 @@ function KpiCard({ icon: Icon, label, value, suffix, delta, color, onClick }: {
         {value}{suffix && <span className="text-[12px] text-soren-muted font-semibold ml-1">{suffix}</span>}
       </div>
       <Variance delta={delta} />
+      {drop && <CardDrop cardId={drop} />}
     </div>
   )
 }
@@ -202,17 +204,17 @@ export default function MediaBuyerView() {
           </div>
         )}
         {/* KPIs ligne 1 */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 mb-2 md:mb-3">
-          <KpiCard icon={DollarSign}        label="Dépense"     value={loading ? v : chf(k!.spend.value)}        suffix={cur} delta={loading ? null : k!.spend.delta}       color="#16A34A" />
-          <KpiCard icon={Eye}               label="Impressions" value={loading ? v : nf(k!.impressions.value)}   delta={loading ? null : k!.impressions.delta} color="#0EA5E9" />
-          <KpiCard icon={MousePointerClick} label="Clics"       value={loading ? v : nf(k!.clicks.value)}        delta={loading ? null : k!.clicks.delta}      color="#8B5CF6" />
-          <KpiCard icon={Users}             label="Leads"       value={loading ? v : nf(k!.leads.value)}         delta={loading ? null : k!.leads.delta}       color="#3462EE" onClick={() => setLeadsOpen(true)} />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 mb-2 md:mb-3 items-start">
+          <KpiCard icon={DollarSign}        label="Dépense"     value={loading ? v : chf(k!.spend.value)}        suffix={cur} delta={loading ? null : k!.spend.delta}       color="#16A34A" drop="spend" />
+          <KpiCard icon={Eye}               label="Impressions" value={loading ? v : nf(k!.impressions.value)}   delta={loading ? null : k!.impressions.delta} color="#0EA5E9" drop="impressions" />
+          <KpiCard icon={MousePointerClick} label="Clics"       value={loading ? v : nf(k!.clicks.value)}        delta={loading ? null : k!.clicks.delta}      color="#8B5CF6" drop="clicks" />
+          <KpiCard icon={Users}             label="Leads"       value={loading ? v : nf(k!.leads.value)}         delta={loading ? null : k!.leads.delta}       color="#3462EE" onClick={() => setLeadsOpen(true)} drop="leads" />
         </div>
         {/* KPIs ligne 2 */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 mb-5">
-          <KpiCard icon={DollarSign} label="CPL" value={loading ? v : cpl(k!.cpl.value)} suffix={cur} delta={loading ? null : k!.cpl.delta} color="#FF4D00" />
-          <KpiCard icon={Percent}    label="CTR" value={loading ? v : pct(k!.ctr.value)} suffix="%"   delta={loading ? null : k!.ctr.delta} color="#D97706" />
-          <KpiCard icon={Gauge}      label="CR"  value={loading ? v : pct(k!.cr.value)}  suffix="%"   delta={loading ? null : k!.cr.delta} color="#14B8A6" />
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 mb-5 items-start">
+          <KpiCard icon={DollarSign} label="CPL" value={loading ? v : cpl(k!.cpl.value)} suffix={cur} delta={loading ? null : k!.cpl.delta} color="#FF4D00" drop="cpl" />
+          <KpiCard icon={Percent}    label="CTR" value={loading ? v : pct(k!.ctr.value)} suffix="%"   delta={loading ? null : k!.ctr.delta} color="#D97706" drop="ctr" />
+          <KpiCard icon={Gauge}      label="CR"  value={loading ? v : pct(k!.cr.value)}  suffix="%"   delta={loading ? null : k!.cr.delta} color="#14B8A6" drop="cr" />
         </div>
 
         {/* Graphiques */}
