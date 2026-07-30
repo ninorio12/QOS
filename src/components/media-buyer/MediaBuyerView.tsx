@@ -7,7 +7,7 @@ import { useQuery, useMutation, useAction } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import {
   DollarSign, Eye, MousePointerClick, Users, Percent, Gauge,
-  RefreshCw, CalendarDays, ArrowUpRight, Play, X,
+  RefreshCw, CalendarDays, ArrowUpRight, Play, X, Info,
 } from 'lucide-react'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import MetaLogo from './MetaLogo'
@@ -59,8 +59,29 @@ function Variance({ delta }: { delta: Delta }) {
   )
 }
 
-function KpiCard({ icon: Icon, label, value, suffix, delta, color, onClick, drop }: {
-  icon: React.ElementType; label: string; value: string; suffix?: string; delta: Delta; color: string; onClick?: () => void; drop?: string
+function InfoTip({ text }: { text: string }) {
+  const [show, setShow] = useState(false)
+  return (
+    <span className="relative inline-flex" onClick={(e) => e.stopPropagation()} onMouseLeave={() => setShow(false)}>
+      <button
+        onClick={() => setShow((s) => !s)}
+        onMouseEnter={() => setShow(true)}
+        className="text-soren-subtle hover:text-soren-text transition-colors"
+        title=""
+      >
+        <Info size={11} />
+      </button>
+      {show && (
+        <span className="absolute left-0 top-full mt-1.5 z-30 w-60 bg-soren-card border border-soren-border rounded-xl shadow-lg px-3 py-2.5 text-[10.5px] font-normal text-soren-muted leading-relaxed normal-case">
+          {text}
+        </span>
+      )}
+    </span>
+  )
+}
+
+function KpiCard({ icon: Icon, label, value, suffix, delta, color, onClick, drop, info }: {
+  icon: React.ElementType; label: string; value: string; suffix?: string; delta: Delta; color: string; onClick?: () => void; drop?: string; info?: string
 }) {
   return (
     <div
@@ -69,7 +90,7 @@ function KpiCard({ icon: Icon, label, value, suffix, delta, color, onClick, drop
     >
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1 text-[10px] font-medium text-soren-muted leading-none">
-          {label}{onClick && <ArrowUpRight size={11} className="text-soren-accent" />}
+          {label}{info && <InfoTip text={info} />}{onClick && <ArrowUpRight size={11} className="text-soren-accent" />}
         </span>
         <span className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: color + '18', color }}><Icon size={13} /></span>
       </div>
@@ -212,9 +233,9 @@ export default function MediaBuyerView() {
         </div>
         {/* KPIs ligne 2 */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 mb-5 items-start">
-          <KpiCard icon={DollarSign} label="CPL" value={loading ? v : cpl(k!.cpl.value)} suffix={cur} delta={loading ? null : k!.cpl.delta} color="#FF4D00" drop="cpl" />
-          <KpiCard icon={Percent}    label="CTR" value={loading ? v : pct(k!.ctr.value)} suffix="%"   delta={loading ? null : k!.ctr.delta} color="#D97706" drop="ctr" />
-          <KpiCard icon={Gauge}      label="CR"  value={loading ? v : pct(k!.cr.value)}  suffix="%"   delta={loading ? null : k!.cr.delta} color="#14B8A6" drop="cr" />
+          <KpiCard icon={DollarSign} label="CPL" value={loading ? v : cpl(k!.cpl.value)} suffix={cur} delta={loading ? null : k!.cpl.delta} color="#FF4D00" drop="cpl" info="Coût par lead : dépense ÷ leads, le prix d'un contact. Bon repère : sous 10 CHF en lead gen, et surtout sous la médiane du compte ; au-delà du double de la médiane, on coupe." />
+          <KpiCard icon={Percent}    label="CTR" value={loading ? v : pct(k!.ctr.value)} suffix="%"   delta={loading ? null : k!.ctr.delta} color="#D97706" drop="ctr" info="Taux de clic : % des impressions qui cliquent. Moyenne Meta ≈ 1 %. Bon signe à 1,5 % et plus ; sous 0,8 %, la créa n'accroche pas." />
+          <KpiCard icon={Gauge}      label="CR"  value={loading ? v : pct(k!.cr.value)}  suffix="%"   delta={loading ? null : k!.cr.delta} color="#14B8A6" drop="cr" info="Taux de conversion : % des clics qui deviennent des leads. Bon repère : 10 % et plus sur une page de capture ; sous 5 %, le problème est après le clic (page ou offre)." />
         </div>
 
         {/* Graphiques */}

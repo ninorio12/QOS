@@ -1092,6 +1092,16 @@ export default defineSchema({
     .index("by_ws_card", ["workspaceId", "cardId", "createdAt"])
     .index("by_ws",      ["workspaceId", "createdAt"]),
 
+  // Synthèse du Media Buyer : une note libre, rangée en historique après 24 h si remplie.
+  os_syntheses: defineTable({
+    workspaceId: v.string(),
+    body:        v.string(),
+    updatedBy:   v.string(),
+    avatarUrl:   v.optional(v.string()),
+    createdAt:   v.number(),
+    updatedAt:   v.number(),
+  }).index("by_ws", ["workspaceId", "createdAt"]),
+
   // Leviers du cockpit : budget/jour, cible CPL, objectif leads, plancher CTR.
   os_card_settings: defineTable({
     workspaceId: v.string(),
