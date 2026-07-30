@@ -39,7 +39,7 @@ export default function CreativeIntelligence() {
   useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current) }, [])
 
   return (
-    <div className="bg-soren-elevated border border-soren-border rounded-2xl overflow-hidden mb-5">
+    <div className="bg-soren-card border border-soren-border rounded-2xl overflow-hidden">
       <button
         onClick={() => setOpen((s) => !s)}
         className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left"
@@ -63,7 +63,7 @@ export default function CreativeIntelligence() {
             onChange={(e) => onType(e.target.value)}
             placeholder="Écrire la synthèse du jour…"
             rows={5}
-            className="w-full text-[12px] leading-relaxed bg-soren-card border border-soren-border rounded-xl px-3.5 py-3 text-soren-text outline-none focus:border-soren-accent/50 resize-y"
+            className="w-full text-[12px] leading-relaxed bg-soren-elevated border border-soren-border rounded-xl px-3.5 py-3 text-soren-text outline-none focus:border-soren-accent/50 resize-y"
           />
           {(past?.length ?? 0) > 0 && (
             <button
@@ -76,7 +76,7 @@ export default function CreativeIntelligence() {
             </button>
           )}
           {showHistory && (past ?? []).map((s) => (
-            <div key={s._id} className="bg-soren-card border border-soren-border rounded-xl px-3.5 py-3">
+            <div key={s._id} className="bg-soren-elevated border border-soren-border rounded-xl px-3.5 py-3">
               <div className="text-[9.5px] text-soren-subtle mb-1">
                 {fmtWhen(s.createdAt)} · <span className="font-semibold text-soren-muted">{s.updatedBy}</span>
               </div>
