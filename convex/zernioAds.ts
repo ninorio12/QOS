@@ -47,17 +47,27 @@ async function resolveMetaAds(): Promise<{ fbAccountId: string; adAccountId: str
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fb = (accounts?.accounts ?? []).find((a: any) => a.platform === "facebook")
   if (!fb) return null
+  // Choix de l'ad account : ZERNIO_META_AD_ACCOUNT (déterministe) d'abord.
+  // L'espace de Jonathan en expose 15, dont un DÉSACTIVÉ en tête de liste :
+  // « prendre le premier » aurait branché le board sur un compte mort.
+  const pinned = process.env.ZERNIO_META_AD_ACCOUNT
+  if (pinned) return { fbAccountId: fb._id, adAccountId: pinned.startsWith("act_") ? pinned : `act_${pinned}` }
   const ad = await zget("/ads/accounts", { accountId: fb._id })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const list: any[] = ad?.adAccounts ?? ad?.accounts ?? (Array.isArray(ad) ? ad : [])
-  const first = list[0]
-  const adAccountId: string | undefined = first?.id ?? first?.adAccountId ?? first?.account_id
-  if (!adAccountId) return null
-  return { fbAccountId: fb._id, adAccountId: String(adAccountId).startsWith("act_") ? String(adAccountId) : `act_${adAccountId}` }
+  const list: any[] = (ad?.accounts ?? []).filter((x: any) => x.selectable !== false && x.accountStatus === 1)
+  // Heuristique de secours : le compte VividFlow non-backup, sinon le premier actif.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const viv = list.filter((x: any) => /vividflow/i.test(x.name ?? "")).sort((a: any, b: any) => (a.name?.length ?? 99) - (b.name?.length ?? 99))[0]
+  const chosen = viv ?? list[0]
+  if (!chosen?.id) return null
+  return { fbAccountId: fb._id, adAccountId: String(chosen.id) }
 }
 
 function presetToRange(preset: string): { fromDate: string; toDate: string } {
-  const days = preset === "last_7d" ? 7 : preset === "last_30d" ? 30 : 14
+  // Forme generique last_Nd : le board envoie 7/14/30, un backfill peut demander
+  // 365. Inconnu = 14 jours, le defaut historique du module.
+  const m = /^last_(\d+)d$/.exec(preset)
+  const days = m ? Math.min(parseInt(m[1], 10), 730) : 14
   const to = new Date()
   const from = new Date(Date.now() - days * 86400_000)
   const d = (x: Date) => x.toISOString().slice(0, 10)
@@ -127,8 +137,9 @@ export const creatives = internalAction({
       const linkClicks = parseFloat(r.inline_link_clicks ?? "0") || 0
       const results = purchases > 0 ? purchases : leads
       out.push({
-        adId: String(r.ad_id), name: r.ad_name ?? meta?.name ?? "Sans nom", status,
-        campaign: r.campaign_name ?? null, adset: r.adset_name ?? null,
+        adId: String(r.ad_id), name: r.ad_name ?? meta?.name ?? "Sans nom",
+        status: status ?? undefined,
+        campaign: r.campaign_name ?? undefined, adset: r.adset_name ?? undefined,
         imageUrl: cr.imageUrl ?? cr.image_url ?? cr.thumbnailUrl ?? cr.thumbnail_url ?? null,
         thumbnailUrl: cr.thumbnailUrl ?? cr.thumbnail_url ?? null,
         videoSource: cr.videoUrl ?? cr.video_url ?? null,
