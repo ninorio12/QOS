@@ -224,12 +224,14 @@ export default function MediaBuyerView() {
             <div className="h-[180px]">
               {!loading && d!.series.length > 0 ? <MetaCplChart data={d!.series} /> : <EmptyChart />}
             </div>
+            <CardDrop cardId="chart_cpl" variant="panel" />
           </div>
           <div className="bg-soren-card border border-soren-border rounded-2xl p-5">
             <h3 className="text-[10.5px] uppercase tracking-wide text-soren-muted font-semibold mb-3">Leads générés</h3>
             <div className="h-[180px]">
               {!loading && d!.series.length > 0 ? <MetaLeadsChart data={d!.series} /> : <EmptyChart />}
             </div>
+            <CardDrop cardId="chart_leads" variant="panel" />
           </div>
         </div>
 
@@ -263,6 +265,7 @@ export default function MediaBuyerView() {
               </tbody>
             </table>
           </div>
+          <CardDrop cardId="top_campaigns" variant="flush" />
         </div>
 
         {/* Détail par niveau */}
@@ -303,6 +306,7 @@ export default function MediaBuyerView() {
               </tbody>
             </table>
           </div>
+          <CardDrop cardId="detail" variant="flush" />
         </div>
         <CreativeIntelligence />
         <div className="h-4" />

@@ -14,14 +14,14 @@ import { WORKSPACE } from "./osLib"
 const ARCHIVE_MS = 3 * 86400_000
 const AGENT_NAME = "Media Buyer"
 
-async function whoami(ctx: QueryCtx | MutationCtx): Promise<{ name: string; avatarUrl?: string } | null> {
+async function whoami(ctx: QueryCtx | MutationCtx): Promise<{ name: string; avatarUrl?: string; isAdmin: boolean } | null> {
   const identity = await ctx.auth.getUserIdentity()
   if (!identity) return null
   const user = await ctx.db
     .query("users")
     .withIndex("by_clerk", (q) => q.eq("clerkUserId", identity.subject))
     .first()
-  return user ? { name: user.name, avatarUrl: user.avatarUrl ?? undefined } : null
+  return user ? { name: user.name, avatarUrl: user.avatarUrl ?? undefined, isAdmin: user.role === "admin" } : null
 }
 
 const fmtChf = (n: number) => (Math.round(n * 100) / 100).toLocaleString("fr-CH")
@@ -102,6 +102,19 @@ export const post = mutation({
       icon: a.icon,
       createdAt: Date.now(),
     })
+  },
+})
+
+/** Supprimer un message : son auteur, ou un admin. L'agent (pas de session) peut retirer les siens. */
+export const remove = mutation({
+  args: { id: v.id("os_card_messages") },
+  handler: async (ctx, a) => {
+    const msg = await ctx.db.get(a.id)
+    if (!msg || msg.workspaceId !== WORKSPACE) throw new Error("Message introuvable")
+    const me = await whoami(ctx)
+    const allowed = me ? me.isAdmin || me.name === msg.author : msg.authorKind === "agent"
+    if (!allowed) throw new Error("Seul l'auteur du message (ou un admin) peut le supprimer")
+    await ctx.db.delete(a.id)
   },
 })
 

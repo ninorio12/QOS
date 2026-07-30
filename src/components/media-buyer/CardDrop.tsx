@@ -12,7 +12,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { ChevronDown, History, Target, Send } from 'lucide-react'
+import { ChevronDown, History, Target, Send, Trash2 } from 'lucide-react'
 
 type Msg = { _id: string; author: string; authorKind: string; avatarUrl?: string; body: string; icon?: string; createdAt: number }
 type Overview = {
@@ -44,17 +44,26 @@ function Avatar({ url, name, size = 22 }: { url?: string; name: string; size?: n
   )
 }
 
-function Message({ m }: { m: Msg }) {
+function Message({ m, onDelete }: { m: Msg; onDelete?: () => void }) {
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2 group/msg">
       <Avatar url={m.avatarUrl} name={m.author} />
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-[11px] font-bold text-soren-text">{m.author}</span>
           {m.authorKind === 'agent' && (
             <span className="text-[8px] font-bold uppercase tracking-wide rounded px-1 py-0.5 bg-soren-accent/10 text-soren-accent">Agent</span>
           )}
           <span className="text-[9.5px] text-soren-subtle">{fmtWhen(m.createdAt)}</span>
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              title="Supprimer le message"
+              className="ml-auto opacity-0 group-hover/msg:opacity-100 transition-opacity text-soren-subtle hover:text-red-600"
+            >
+              <Trash2 size={11} />
+            </button>
+          )}
         </div>
         <p className="text-[11.5px] text-soren-muted leading-relaxed mt-0.5 flex items-start gap-1">
           {m.icon === 'target' && <Target size={11} className="text-soren-accent flex-shrink-0 mt-0.5" />}
@@ -65,10 +74,21 @@ function Message({ m }: { m: Msg }) {
   )
 }
 
-export default function CardDrop({ cardId }: { cardId: string }) {
+// kpi = dans une card KPI (p-3/p-4) ; panel = conteneur p-5 (graphiques) ;
+// flush = conteneur sans padding (sections tableau), la zone gère son propre px-5.
+const VARIANT_ROOT: Record<string, { root: string; pad: string }> = {
+  kpi:   { root: '-mx-3 md:-mx-4 -mb-3 md:-mb-4 mt-1.5', pad: 'px-3 md:px-4' },
+  panel: { root: '-mx-5 -mb-5 mt-3', pad: 'px-5' },
+  flush: { root: '', pad: 'px-5' },
+}
+
+export default function CardDrop({ cardId, variant = 'kpi' }: { cardId: string; variant?: 'kpi' | 'panel' | 'flush' }) {
   const ov = useQuery(api.cardThreads.overview) as Overview | undefined
+  const me = useQuery(api.users.me)
   const post = useMutation(api.cardThreads.post)
   const setLever = useMutation(api.cardThreads.setLever)
+  const removeMsg = useMutation(api.cardThreads.remove)
+  const canDelete = (m: Msg) => Boolean(me && (me.isAdmin || me.name === m.author))
 
   const [open, setOpen] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
@@ -93,12 +113,13 @@ export default function CardDrop({ cardId }: { cardId: string }) {
     if (lever && val !== leverState?.value) void setLever({ key: lever.key, value: val })
   }
 
+  const vr = VARIANT_ROOT[variant]
   return (
-    <div className="-mx-3 md:-mx-4 -mb-3 md:-mb-4 mt-1.5 border-t border-soren-border/60" onClick={(e) => e.stopPropagation()}>
+    <div className={`${vr.root} border-t border-soren-border/60`} onClick={(e) => e.stopPropagation()}>
       {/* Aperçu : la dernière modification, qui et quand */}
       <button
         onClick={() => setOpen((s) => !s)}
-        className="w-full flex items-center gap-1.5 px-3 md:px-4 py-2 text-left cursor-pointer"
+        className={`w-full flex items-center gap-1.5 ${vr.pad} py-2 text-left cursor-pointer`}
       >
         {card?.last ? (
           <>
@@ -115,9 +136,11 @@ export default function CardDrop({ cardId }: { cardId: string }) {
       </button>
 
       {open && (
-        <div className="px-3 md:px-4 pb-3 flex flex-col gap-2.5">
+        <div className={`${vr.pad} pb-3 flex flex-col gap-2.5`}>
           {/* Le fil actif (moins de 3 jours) */}
-          {(card?.active ?? []).map((m) => <Message key={m._id} m={m} />)}
+          {(card?.active ?? []).map((m) => (
+            <Message key={m._id} m={m} onDelete={canDelete(m) ? () => void removeMsg({ id: m._id as never }) : undefined} />
+          ))}
 
           {/* Composer */}
           <div className="flex items-center gap-1.5">
@@ -143,7 +166,11 @@ export default function CardDrop({ cardId }: { cardId: string }) {
               Historique de conversation ({card!.archivedCount})
             </button>
           )}
-          {showHistory && (hist ?? []).map((m) => <div key={m._id} className="opacity-60"><Message m={m} /></div>)}
+          {showHistory && (hist ?? []).map((m) => (
+            <div key={m._id} className="opacity-60">
+              <Message m={m} onDelete={canDelete(m) ? () => void removeMsg({ id: m._id as never }) : undefined} />
+            </div>
+          ))}
 
           {/* Le levier propre à la card */}
           {lever && (
