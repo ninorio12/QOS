@@ -20,12 +20,9 @@ type Overview = {
   levers: Record<string, { value: number; updatedBy: string; updatedAt: number }>
 }
 
-const LEVER_BY_CARD: Record<string, { key: string; label: string; kind: 'slider' | 'number'; suffix: string; target?: boolean; max?: number }> = {
-  spend: { key: 'budgetPerDay', label: 'Budget / jour', kind: 'number', suffix: 'CHF/j' },
-  cpl:   { key: 'cplTarget',    label: 'CPL cible',     kind: 'number', suffix: 'CHF', target: true },
-  leads: { key: 'leadsWeekly',  label: 'Objectif / semaine', kind: 'number', suffix: 'leads', target: true },
-  ctr:   { key: 'ctrFloor',     label: 'Plancher CTR',  kind: 'number', suffix: '%', target: true },
-}
+// Les objectifs vivent dans la card Dashboard (MediaDashboard.tsx) : ici, plus
+// aucun levier sous les cards, uniquement la discussion.
+const LEVER_BY_CARD: Record<string, { key: string; label: string; kind: 'slider' | 'number'; suffix: string; target?: boolean; max?: number }> = {}
 
 const fmtWhen = (t: number) => {
   const d = new Date(t)

@@ -19,6 +19,7 @@ const MetaLeadsModal = dynamic(() => import('./MetaLeadsModal'), { ssr: false })
 const MetaGuide = dynamic(() => import('./MetaGuide'), { ssr: false })
 const CreativeIntelligence = dynamic(() => import('./CreativeIntelligence'), { ssr: false })
 const CardDrop = dynamic(() => import('./CardDrop'), { ssr: false })
+const MediaDashboard = dynamic(() => import('./MediaDashboard'), { ssr: false })
 
 type Delta = { pct: number; dir: 'up' | 'down'; good: boolean } | null
 type Kpi = { value: number; delta: Delta }
@@ -224,18 +225,18 @@ export default function MediaBuyerView() {
             Échec de la synchronisation Meta : {syncErr}
           </div>
         )}
-        {/* KPIs ligne 1 */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 mb-2 md:mb-3 items-start">
+        {/* KPIs + Dashboard */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 md:gap-3 mb-5 items-start">
+          <div className="lg:col-span-2 grid grid-cols-2 gap-2 md:gap-3 items-start">
           <KpiCard icon={DollarSign}        label="Dépense"     value={loading ? v : chf(k!.spend.value)}        suffix={cur} delta={loading ? null : k!.spend.delta}       color="#16A34A" drop="spend" />
           <KpiCard icon={Eye}               label="Impressions" value={loading ? v : nf(k!.impressions.value)}   delta={loading ? null : k!.impressions.delta} color="#0EA5E9" drop="impressions" />
-          <KpiCard icon={MousePointerClick} label="Clics"       value={loading ? v : nf(k!.clicks.value)}        delta={loading ? null : k!.clicks.delta}      color="#8B5CF6" drop="clicks" />
           <KpiCard icon={Users}             label="Leads"       value={loading ? v : nf(k!.leads.value)}         delta={loading ? null : k!.leads.delta}       color="#3462EE" onClick={() => setLeadsOpen(true)} drop="leads" />
-        </div>
-        {/* KPIs ligne 2 */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 mb-5 items-start">
+          <KpiCard icon={MousePointerClick} label="Clics"       value={loading ? v : nf(k!.clicks.value)}        delta={loading ? null : k!.clicks.delta}      color="#8B5CF6" drop="clicks" />
           <KpiCard icon={DollarSign} label="CPL" value={loading ? v : cpl(k!.cpl.value)} suffix={cur} delta={loading ? null : k!.cpl.delta} color="#FF4D00" drop="cpl" info="Coût par lead : dépense ÷ leads, le prix d'un contact. Bon repère : sous 10 CHF en lead gen, et surtout sous la médiane du compte ; au-delà du double de la médiane, on coupe." />
           <KpiCard icon={Percent}    label="CTR" value={loading ? v : pct(k!.ctr.value)} suffix="%"   delta={loading ? null : k!.ctr.delta} color="#D97706" drop="ctr" info="Taux de clic : % des impressions qui cliquent. Moyenne Meta ≈ 1 %. Bon signe à 1,5 % et plus ; sous 0,8 %, la créa n'accroche pas." />
           <KpiCard icon={Gauge}      label="CR"  value={loading ? v : pct(k!.cr.value)}  suffix="%"   delta={loading ? null : k!.cr.delta} color="#14B8A6" drop="cr" info="Taux de conversion : % des clics qui deviennent des leads. Bon repère : 10 % et plus sur une page de capture ; sous 5 %, le problème est après le clic (page ou offre)." />
+          </div>
+          <MediaDashboard />
         </div>
 
         {/* Graphiques */}

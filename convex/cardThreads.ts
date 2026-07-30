@@ -32,6 +32,8 @@ const LEVERS: Record<string, { cardId: string; message: (v: number) => string; i
   cplTarget:    { cardId: "cpl",   message: (n) => `Cible CPL posée à ${fmtChf(n)} CHF.`, icon: "target" },
   leadsWeekly:  { cardId: "leads", message: (n) => `Objectif posé à ${Math.round(n)} leads/semaine.`, icon: "target" },
   ctrFloor:     { cardId: "ctr",   message: (n) => `Plancher CTR posé à ${fmtChf(n)} %.`, icon: "target" },
+  // Fréquence = impressions ÷ reach : le fil naturel est la card Impressions.
+  freqMax:      { cardId: "impressions", message: (n) => `Fréquence max posée à ${fmtChf(n)}.`, icon: "target" },
 }
 
 /** Tout ce que le board affiche, en une requête : dernier message par card,
