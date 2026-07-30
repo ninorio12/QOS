@@ -257,6 +257,8 @@ export default function MediaBuyerView() {
           </div>
         </div>
 
+        <CreativeIntelligence />
+
         {/* Top 10 Campagnes */}
         <div className="bg-soren-card border border-soren-border rounded-2xl overflow-hidden mb-5">
           <div className="px-5 pt-4 pb-3"><h3 className="text-[13px] font-semibold text-soren-text tracking-tight">Top 10 Campagnes</h3></div>
@@ -330,7 +332,6 @@ export default function MediaBuyerView() {
           </div>
           <CardDrop cardId="detail" variant="flush" />
         </div>
-        <CreativeIntelligence />
         <div className="h-4" />
         </>)}
       </div>

@@ -41,7 +41,7 @@ export default function MediaDashboard() {
   }
 
   return (
-    <div className="bg-soren-card rounded-2xl p-4 md:p-5 shadow-sm border border-soren-border/60 flex flex-col gap-3.5">
+    <div className="bg-soren-elevated rounded-2xl p-4 md:p-5 shadow-sm border border-soren-border flex flex-col gap-3.5">
       <div className="flex items-center gap-2">
         <SlidersHorizontal size={14} className="text-soren-accent" />
         <span className="text-[13px] font-bold text-soren-text">Dashboard</span>
@@ -82,7 +82,7 @@ export default function MediaDashboard() {
                   onChange={(e) => setDrafts((d) => ({ ...d, [o.key]: e.target.value === '' ? null : Number(e.target.value) }))}
                   onBlur={() => { if (draft != null) commit(o.key, draft, state?.value) }}
                   onKeyDown={(e) => { if (e.key === 'Enter' && draft != null) commit(o.key, draft, state?.value) }}
-                  className="w-24 text-[12px] font-bold bg-soren-elevated border border-soren-border rounded-lg px-2.5 py-1.5 text-soren-text outline-none focus:border-soren-accent/50 tabular-nums"
+                  className="w-24 text-[12px] font-bold bg-soren-card border border-soren-border rounded-lg px-2.5 py-1.5 text-soren-text outline-none focus:border-soren-accent/50 tabular-nums"
                 />
                 {o.suffix && <span className="text-[10px] text-soren-subtle">{o.suffix}</span>}
               </div>
