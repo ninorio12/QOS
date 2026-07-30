@@ -21,7 +21,7 @@ type Overview = {
 }
 
 const LEVER_BY_CARD: Record<string, { key: string; label: string; kind: 'slider' | 'number'; suffix: string; hint: string; target?: boolean; max?: number }> = {
-  spend: { key: 'budgetPerDay', label: 'Budget / jour', kind: 'slider', suffix: 'CHF', max: 100, hint: "Le curseur écrit directement dans le fil ; l'agent applique chez Meta par paliers de 15 %." },
+  spend: { key: 'budgetPerDay', label: 'Budget / jour', kind: 'number', suffix: 'CHF/j', hint: "La valeur écrit directement dans le fil ; l'agent applique chez Meta par paliers de 15 %." },
   cpl:   { key: 'cplTarget',    label: 'CPL cible',     kind: 'number', suffix: 'CHF', target: true, hint: 'Nourrit les verdicts kill (>200 %) et scale (<70 %).' },
   leads: { key: 'leadsWeekly',  label: 'Objectif / semaine', kind: 'number', suffix: 'leads', target: true, hint: "Le rythme attendu ; l'agent alerte quand la semaine décroche." },
   ctr:   { key: 'ctrFloor',     label: 'Plancher CTR',  kind: 'number', suffix: '%', target: true, hint: 'Sous ce plancher, une variante de créa se prépare.' },
