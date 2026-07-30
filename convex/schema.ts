@@ -117,6 +117,14 @@ export default defineSchema({
     wonObjection: v.optional(v.string()),  // objection surmontée à la conversion en client
     dealDate:     v.optional(v.string()),  // date de la transaction (conversion en client)
     amountTbd:    v.optional(v.boolean()), // montant du deal à définir (client converti sans montant connu)
+    // ── Deal (accompagnement) — champs éditables sur la fiche contact.
+    // Le montant total vit dans pipeline_clients.value et le plan de mensualités
+    // (nombre, montants, échéances) dans onboarding.payment : la fiche les AFFICHE
+    // (cf. crm_contacts.dealMeta) mais ne les duplique pas ici.
+    dealStartDate:      v.optional(v.string()),  // date de début de l'accompagnement (YYYY-MM-DD)
+    dealEndDate:        v.optional(v.string()),  // date de fin (YYYY-MM-DD)
+    dealDurationMonths: v.optional(v.number()),  // durée en mois (3, 6, 12…)
+    paymentType:        v.optional(v.string()),  // 'mensuel' | 'unique' (paiement en une fois)
     leadStatus:  v.optional(v.string()),  // active | handoff | non_qualifie | dormant
     linkedinUrl: v.optional(v.string()),
     country:     v.optional(v.string()),  // pays (adresse) — Suisse/France/… pour le champ Canton/Région
@@ -130,6 +138,11 @@ export default defineSchema({
     isDemo:      v.optional(v.boolean()),
     createdAt:   v.string(),
     updatedAt:   v.optional(v.string()),
+    // Brief closer rédigé AVANT qu'un RDV iClosed soit booké (donc avant qu'un os_sales_calls existe).
+    // Repli affiché par le module Closing tant qu'aucun appel ne porte de bio. Cf. closing.saveBioForContact.
+    bioMarkdown:    v.optional(v.string()),
+    bioGeneratedAt: v.optional(v.string()),
+    bioBy:          v.optional(v.string()),
   })
     .index("by_email",   ["email"])
     .index("by_created", ["createdAt"]),
@@ -152,6 +165,10 @@ export default defineSchema({
     stageId:   v.string(),
     stageName: v.string(),
     enteredAt: v.string(),   // ISO date YYYY-MM-DD
+    // Dénormalisés pour le funnel FLUX : le lead est supprimé à la conversion, donc impossible
+    // de remonter sa source/son contact après coup. Optionnels = lignes pré-enrichissement.
+    source:    v.optional(v.string()),            // 'inbound' | 'outbound'
+    contactId: v.optional(v.id("crm_contacts")),
   })
     .index("by_lead",    ["leadId"])
     .index("by_stage",   ["stageId"])
@@ -220,6 +237,18 @@ export default defineSchema({
     contractGenerated: v.optional(v.boolean()), // contrat déjà généré au moins une fois
     kickoffEventId: v.optional(v.string()),
     kickoffAt:  v.optional(v.string()),      // date/heure ISO du kickoff réservé sur iClosed (webhook)
+    auditSynthesis: v.optional(v.object({    // Synthèse Audit (Profit Map) — sources + suivi génération/envoi
+      sheetUrl:    v.optional(v.string()),   // lien Google Sheet (dossier de travail d'audit)
+      mappingUrl:  v.optional(v.string()),   // lien mapping process (Lucidchart)
+      recordId:    v.optional(v.string()),   // record du kickoff (record_notes.recordId)
+      generatedAt: v.optional(v.string()),
+      sentAt:      v.optional(v.string()),
+      finalPdf:    v.optional(v.object({     // PDF final peaufiné déposé (Convex storage) → celui envoyé au client
+        fileName:   v.string(),
+        storageId:  v.string(),
+        uploadedAt: v.string(),
+      })),
+    })),
     updatedAt:  v.string(),
   }).index("by_contact", ["contactId"]),
 
@@ -232,6 +261,33 @@ export default defineSchema({
     contactId: v.optional(v.string()),// rattaché après soumission (intake)
     updatedAt: v.string(),
   }).index("by_token", ["token"]),
+
+  // Demandes de signature électronique du contrat (page publique /signer/<id>).
+  // L'_id du doc sert de jeton porteur dans le lien email (non devinable).
+  contract_signatures: defineTable({
+    contactId:   v.optional(v.string()),     // crm_contacts _id (notif/back-link onboarding)
+    status:      v.string(),                 // envoye | vu | signe
+    // Données nécessaires pour régénérer le PDF (mêmes champs que le contrat).
+    contract:    v.object({
+      clientName:   v.string(),
+      company:      v.optional(v.string()),
+      address:      v.optional(v.string()),
+      phone:        v.optional(v.string()),
+      email:        v.optional(v.string()),
+      representant: v.optional(v.string()),
+      amount:       v.number(),
+      installments: v.number(),
+      amounts:      v.array(v.number()),
+      ref:          v.string(),              // figé à la création (cohérence aperçu/signé)
+      currency:     v.string(),
+    }),
+    sentAt:      v.string(),
+    viewedAt:    v.optional(v.string()),
+    signedAt:    v.optional(v.string()),
+    signerName:  v.optional(v.string()),     // nom saisi par le signataire
+    signatureDataUrl: v.optional(v.string()),// PNG de la signature (dessin/typée)
+    signedStorageId:  v.optional(v.string()),// PDF signé (Convex File Storage)
+  }).index("by_contact", ["contactId"]),
 
   // Métadonnées libres par enregistrement tl;dv — synthèse, balises, nom personnalisé (éditable/persisté)
   record_notes: defineTable({
@@ -283,6 +339,10 @@ export default defineSchema({
     status:    v.string(),               // connected | disconnected
     secret:    v.optional(v.string()),   // clé/token (jamais renvoyé en clair au client)
     account:   v.optional(v.string()),   // libellé masqué/compte affichable
+    // Santé réelle de la connexion, écrite par le sync lui-même. Sans ça, un badge "connecté"
+    // peut rester au vert alors que la clé API est révoquée depuis des semaines (vécu 28/07/2026).
+    lastSyncAt:    v.optional(v.string()),   // ISO du dernier sync RÉUSSI
+    lastSyncError: v.optional(v.string()),   // message de la dernière erreur (null si tout va bien)
     updatedAt: v.string(),
   }).index("by_key", ["key"]),
 
@@ -324,6 +384,14 @@ export default defineSchema({
     lastSyncAt:    v.optional(v.string()),
   })
     .index("by_workspace", ["workspaceId"]),
+
+  // Taux de change vers CHF (rafraîchis par cron via frankfurter.app, base BCE).
+  // rate = facteur multiplicatif pour convertir 1 unité de `currency` en CHF.
+  fx_rates: defineTable({
+    currency:  v.string(),   // code ISO minuscule : 'eur' | 'usd' | 'gbp' | 'chf' …
+    rate:      v.number(),   // 1 `currency` = `rate` CHF
+    updatedAt: v.string(),
+  }).index("by_currency", ["currency"]),
 
   // Paiements externes (hors Stripe) : virements Revolut Pro (webhook) + saisies manuelles.
   external_payments: defineTable({
@@ -431,6 +499,7 @@ export default defineSchema({
     objectiveAchieved: v.optional(v.boolean()),   // réponse de la fiche de validation
     completionNote:    v.optional(v.string()),    // description fournie à la validation
     completedAt:       v.optional(v.string()),    // date de validation (→ Historique après 5 j)
+    archivedAt:        v.optional(v.string()),    // archivage explicite → Historique immédiat (indép. de la date de validation)
     order:           v.optional(v.number()),   // tri manuel (drag & drop) — plus grand = plus haut
     comments:        v.optional(v.array(v.object({ authorType: v.string(), authorId: v.string(), authorName: v.optional(v.string()), authorAvatar: v.optional(v.string()), text: v.string(), at: v.string() }))),
     createdBy:       v.string(),
@@ -596,6 +665,10 @@ export default defineSchema({
     followUpReason: v.optional(v.string()),   // texte libre — raison "À suivre" (devient un chip sur la carte)
     followUpAt:     v.optional(v.string()),    // date d'entrée dans la colonne "À suivre" (ISO)
     internalLead:   v.optional(v.boolean()),  // lead poussé depuis une fiche contact ("Leads interne") — card teal, interdite de retour en "Leads à traiter"
+    // Lead devenu interne PARCE QU'IL A BOOKÉ un RDV (deck outbound → iClosed), et non parce
+    // qu'on l'a envoyé à la main depuis sa fiche. Il n'est plus à convertir mais à CADRER avant
+    // le rendez-vous → chip « Cadrage » sur la carte pour le distinguer des internes classiques.
+    cadrage:        v.optional(v.boolean()),
     status:         v.string(),               // active | handoff | lost
     isDemo:         v.optional(v.boolean()),
     createdAt:      v.string(),
@@ -630,9 +703,13 @@ export default defineSchema({
   // Seuils d'objectif du cockpit Prospection (vert/orange/rouge). 1 doc par workspace.
   prospection_objectives: defineTable({
     workspaceId:   v.string(),
-    leadsR1:       v.optional(v.number()),  // % Leads → R1
-    tauxShow:      v.optional(v.number()),  // % taux de show
+    leadsR1:       v.optional(v.number()),  // % Total leads → R1
+    leadsR2:       v.optional(v.number()),  // % Total leads → R2
+    tauxShow:      v.optional(v.number()),  // % taux de show (R1)
+    tauxShowR2:    v.optional(v.number()),  // % taux de show R2
     tauxClose:     v.optional(v.number()),  // % taux de close
+    tauxReponse:   v.optional(v.number()),  // % taux de réponse (outbound)
+    cpl:           v.optional(v.number()),  // CHF — cible CPL Meta
     ca:            v.optional(v.number()),  // € chiffre d'affaires
     roi:           v.optional(v.number()),  // × ROI
     ventes:        v.optional(v.number()),  // nb total ventes
@@ -680,16 +757,93 @@ export default defineSchema({
     bioMarkdown:    v.optional(v.string()),    // bio "brief de bras-droit" générée par l'agent Operations
     bioGeneratedAt: v.optional(v.string()),
     bioBy:          v.optional(v.string()),    // auteur du brief : 'agent-operations' | 'manual' (marque de passage)
-    externalId:     v.optional(v.string()),    // id iClosed eventCall (dédup du sync)
+    externalId:     v.optional(v.string()),    // id iClosed eventCall (dédup du sync) OU booking:<id> pour le booking natif
     meetLink:       v.optional(v.string()),    // lien Google Meet / visio du RDV
-    quizJson:       v.optional(v.string()),    // réponses captées au booking iClosed : JSON [{q,a}]
-    calendarLabel:  v.optional(v.string()),    // calendrier iClosed (nom de l'event), ex: "Audit IA offert"
-    calendarSlug:   v.optional(v.string()),    // slug de booking iClosed, ex: "audit-out" (donne inbound/outbound)
-    calendarColor:  v.optional(v.string()),    // couleur iClosed du calendrier (ex: #f07b0a)
+    quizJson:       v.optional(v.string()),    // réponses captées au booking : JSON [{q,a}]
+    calendarLabel:  v.optional(v.string()),    // calendrier (nom de l'event), ex: "Audit IA offert"
+    calendarSlug:   v.optional(v.string()),    // slug de booking, ex: "audit-out" (donne inbound/outbound)
+    calendarColor:  v.optional(v.string()),    // couleur du calendrier (ex: #f07b0a)
+    // ── Booking natif (remplace iClosed) ──────────────────────────────────
+    closerUserId:   v.optional(v.string()),    // clerkUserId du closer assigné (round-robin)
+    bookingLinkId:  v.optional(v.id("booking_links")), // lien de réservation d'origine
+    googleEventId:  v.optional(v.string()),    // id de l'event Google Calendar créé (pour reschedule/cancel)
+    durationMin:    v.optional(v.number()),    // durée du RDV (min) — sert au calcul d'occupation
+    manageToken:    v.optional(v.string()),    // token opaque : annulation par le prospect (/book/manage/<token>)
     createdBy:   v.string(),
     createdAt:   v.string(),
     updatedAt:   v.string(),
-  }).index("by_workspace", ["workspaceId"]).index("by_contact", ["contactId"]).index("by_external", ["externalId"]),
+  }).index("by_workspace", ["workspaceId"]).index("by_contact", ["contactId"]).index("by_external", ["externalId"]).index("by_closer", ["closerUserId"]).index("by_manage", ["manageToken"]),
+
+  // Liens de réservation type Calendly/iClosed (booking natif). Un lien = une page
+  // publique /book/<slug> : le prospect choisit un créneau, entre ses coordonnées,
+  // le système assigne un closer en round-robin et crée l'event Google Meet + le RDV.
+  booking_links: defineTable({
+    slug:          v.string(),               // segment d'URL unique (ex: "audit-ia")
+    title:         v.string(),               // titre affiché sur la page publique
+    description:   v.optional(v.string()),
+    durationMin:   v.number(),               // durée d'un RDV en minutes
+    bufferMin:     v.optional(v.number()),   // marge après chaque RDV (min)
+    minNoticeHours:v.optional(v.number()),   // délai minimum avant réservation (h)
+    maxDaysAhead:  v.optional(v.number()),   // horizon max de réservation (jours)
+    timezone:      v.string(),               // ex: "Europe/Zurich"
+    stage:         v.optional(v.string()),   // "R1" | "R2" (étape pipeline créée)
+    hosts:         v.array(v.string()),      // clerkUserIds éligibles au round-robin
+    // Disponibilités hebdo : jour (0=dim … 6=sam), start/end en minutes depuis minuit (heure locale du lien)
+    availability:  v.array(v.object({ day: v.number(), start: v.number(), end: v.number() })),
+    // Questions de qualification optionnelles posées au prospect
+    questions:     v.optional(v.array(v.object({ key: v.string(), label: v.string(), required: v.optional(v.boolean()) }))),
+    active:        v.boolean(),
+    rrCursor:      v.optional(v.number()),   // curseur round-robin persistant
+    accentColor:   v.optional(v.string()),   // couleur d'accent de la page publique
+    // Round-robin PONDÉRÉ : poids par clerkUserId (absent = 1). Jonathan 2 / Thomas 1
+    // → Jonathan reçoit ~2 RDV sur 3. Modifiable à volonté depuis /reservations.
+    weights:       v.optional(v.record(v.string(), v.number())),
+    // Questions rattachées depuis la banque commune (booking_questions), avec le
+    // flag "requis" propre à CE lien. Remplace `questions` (conservé en legacy).
+    questionRefs:  v.optional(v.array(v.object({ qid: v.id("booking_questions"), required: v.optional(v.boolean()) }))),
+    createdBy:     v.string(),
+    createdAt:     v.string(),
+    updatedAt:     v.optional(v.string()),
+  }).index("by_slug", ["slug"]),
+
+  // Banque COMMUNE de questions de qualification : une question créée sur un lien
+  // reste réutilisable par tous les autres (toggle on/off par lien via questionRefs).
+  booking_questions: defineTable({
+    label:     v.string(),
+    archived:  v.optional(v.boolean()),
+    createdBy: v.string(),
+    createdAt: v.string(),
+  }),
+
+  // Trace de CAPTURE des funnels : une ligne par fiche soumise sur /book/<slug>,
+  // AVANT même le choix du créneau. Zéro lead perdu : si le prospect abandonne au
+  // calendrier, la fiche + provenance + parcours horodaté restent exploitables
+  // par les setters (« À rappeler »). status: captured → booked | assigned | cancelled.
+  booking_captures: defineTable({
+    workspaceId: v.string(),
+    linkId:      v.optional(v.id("booking_links")),
+    slug:        v.string(),
+    firstName:   v.string(),
+    lastName:    v.optional(v.string()),
+    email:       v.string(),
+    phone:       v.optional(v.string()),
+    contactId:   v.optional(v.string()),
+    leadId:      v.optional(v.string()),
+    status:      v.string(),                 // captured | booked | assigned | cancelled
+    salesCallId: v.optional(v.id("os_sales_calls")),
+    closerUserId:v.optional(v.string()),
+    assignedTo:  v.optional(v.string()),     // setter assigné (nom/id) quand status=assigned
+    funnel:      v.optional(v.string()),     // identifiant du funnel source (quiz-croissance…)
+    utmSource:   v.optional(v.string()),
+    utmMedium:   v.optional(v.string()),
+    utmCampaign: v.optional(v.string()),
+    quizJson:    v.optional(v.string()),     // réponses de qualification JSON [{q,a}]
+    // Parcours horodaté (borné à 20 étapes) : fiche soumise, calendrier affiché,
+    // créneau choisi, RDV confirmé, annulation…
+    timeline:    v.array(v.object({ t: v.string(), e: v.string() })),
+    createdAt:   v.string(),
+    updatedAt:   v.string(),
+  }).index("by_workspace", ["workspaceId"]).index("by_status", ["status"]).index("by_email", ["email"]),
 
   // Outreach — séquences/messages de prospection (liés contact/lead)
   os_outreach: defineTable({
@@ -801,6 +955,13 @@ export default defineSchema({
     raw:               v.optional(v.any()),     // payload brut (résilience si le form change)
     answersJson:       v.optional(v.string()),  // questionnaire complet (toutes Q/R, libres comprises) : JSON [{q,a}]
     source:            v.optional(v.string()),  // 'confirmation-form' | 'diagnostic' | ...
+    // Signal de présence : le prospect a cliqué « Ajouter à mon agenda » sur la page de confirmation.
+    // Bon prédicteur de présence au R1 — affiché au closer sur la fiche.
+    addedToCalendar:   v.optional(v.boolean()),
+    // Id du RDV iClosed quand la page de confirmation a pu le relayer (rattachement exact).
+    iclosedExternalId: v.optional(v.string()),
+    // Comment la soumission a été rattachée au contact : 'email' | 'rdv-recent' | 'nom' | 'iclosed-id' | null
+    matchedBy:         v.optional(v.string()),
     createdAt:         v.string(),
   })
     .index("by_workspace", ["workspaceId"])
@@ -892,6 +1053,30 @@ export default defineSchema({
 
   // Créas Meta synchronisées AVEC leurs visuels (photo + vidéo) — accessibles depuis le Data OS,
   // analysables par l'agent Media Buyer (vision). 1 ligne / annonce (adId).
+  // ── Cockpit Media Buyer : décisions homme + agent ─────────────────────────
+  // Chaque ligne = UN verdict sur UNE entité pub (créa/adset/campagne) : qui l'a
+  // proposé, la raison chiffrée, l'action, et ce que l'humain en a fait. C'est la
+  // colonne vertébrale du cockpit : l'agent propose, l'humain tranche, tout reste
+  // tracé. Les actions automatiques (V2) liront ce même historique.
+  os_ads_decisions: defineTable({
+    workspaceId: v.string(),
+    scope: v.union(v.literal("ad"), v.literal("adset"), v.literal("campaign")),
+    refId: v.string(),          // id plateforme (ad_id Meta…)
+    refName: v.string(),
+    verdict: v.union(v.literal("scale"), v.literal("kill"), v.literal("watch"), v.literal("variant")),
+    reason: v.string(),         // TOUJOURS chiffrée, jamais un avis vague
+    action: v.string(),         // l'action proposée, éditable par l'humain
+    status: v.union(v.literal("proposed"), v.literal("approved"), v.literal("rejected"), v.literal("modified")),
+    proposedBy: v.string(),     // "engine" | "agent" | nom humain
+    decidedBy: v.optional(v.string()),
+    decidedAt: v.optional(v.number()),
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId", "createdAt"])
+    .index("by_ws_status", ["workspaceId", "status"])
+    .index("by_ws_ref", ["workspaceId", "refId"]),
+
   meta_creatives: defineTable({
     workspaceId:  v.string(),
     adId:         v.string(),

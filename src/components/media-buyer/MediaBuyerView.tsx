@@ -17,6 +17,7 @@ const MetaLeadsChart = dynamic(() => import('./MetaLeadsChart'), { ssr: false })
 const MetaConnectModal = dynamic(() => import('./MetaConnectModal'), { ssr: false })
 const MetaLeadsModal = dynamic(() => import('./MetaLeadsModal'), { ssr: false })
 const MetaGuide = dynamic(() => import('./MetaGuide'), { ssr: false })
+const CreativeIntelligence = dynamic(() => import('./CreativeIntelligence'), { ssr: false })
 
 type Delta = { pct: number; dir: 'up' | 'down'; good: boolean } | null
 type Kpi = { value: number; delta: Delta }
@@ -132,7 +133,7 @@ export default function MediaBuyerView() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="px-7 pt-5 pb-4 flex items-center justify-between flex-shrink-0 gap-4 flex-wrap sticky top-0 z-20 bg-soren-app">
+      <div className="px-4 md:px-7 pt-4 md:pt-5 pb-4 flex items-center justify-start md:justify-between flex-shrink-0 gap-2 md:gap-4 flex-wrap sticky top-0 z-20 bg-soren-app">
         {/* Onglets Performance / Guide */}
         <div className="flex bg-soren-elevated border border-soren-border rounded-full p-[3px] text-[11.5px] font-medium">
           {([['perf', 'Performance'], ['guide', 'Guide de connexion']] as const).map(([k, label]) => (
@@ -145,7 +146,7 @@ export default function MediaBuyerView() {
             <button
               onClick={isAdmin ? () => { if (confirm('Déconnecter le compte Meta Business ?')) disconnect({}) } : undefined}
               title={isAdmin ? (conn.accountId ? `Compte ${conn.accountId} — cliquer pour déconnecter` : 'Cliquer pour déconnecter') : `Compte société${conn.accountId ? ` ${conn.accountId}` : ''} (géré par un admin)`}
-              className={`group inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1.5 rounded-full transition-colors ${isAdmin ? 'hover:border-emerald-500/50' : 'cursor-default'}`}
+              className={`group inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold text-emerald-600 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1.5 rounded-full transition-colors ${isAdmin ? 'hover:border-emerald-500/50' : 'cursor-default'}`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               Connecté{conn.accountName ? ` · ${conn.accountName}` : ''}
@@ -153,12 +154,12 @@ export default function MediaBuyerView() {
           ) : isAdmin ? (
             <button
               onClick={() => setConnectOpen(true)}
-              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-soren-accent bg-soren-accent/10 border border-soren-accent/25 px-2.5 py-1.5 rounded-full hover:bg-soren-accent/15 transition-colors"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold text-soren-accent bg-soren-accent/10 border border-soren-accent/25 px-2.5 py-1.5 rounded-full hover:bg-soren-accent/15 transition-colors"
             >
               <MetaLogo size={13} />Connecter Meta Ads
             </button>
           ) : (
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-soren-muted bg-soren-card border border-soren-border px-2.5 py-1.5 rounded-full cursor-default" title="Compte société — connexion réservée à un admin">
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium text-soren-muted bg-soren-card border border-soren-border px-2.5 py-1.5 rounded-full cursor-default" title="Compte société — connexion réservée à un admin">
               <MetaLogo size={13} />Meta Ads non connecté
             </span>
           )}
@@ -186,7 +187,7 @@ export default function MediaBuyerView() {
               />
             )}
           </div>
-          {isAdmin && conn?.connected && <button onClick={syncMeta} disabled={syncing} className="inline-flex items-center gap-1.5 text-[11px] font-medium text-soren-muted bg-soren-card border border-soren-border rounded-full px-2.5 py-1.5 hover:text-soren-text transition-colors disabled:opacity-60"><RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />{syncing ? 'Sync…' : 'Sync Meta'}</button>}
+          {isAdmin && conn?.connected && <button onClick={syncMeta} disabled={syncing} className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium text-soren-muted bg-soren-card border border-soren-border rounded-full px-2.5 py-1.5 hover:text-soren-text transition-colors disabled:opacity-60"><RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />{syncing ? 'Sync…' : 'Sync Meta'}</button>}
         </div>
       </div>
       {connectOpen && <MetaConnectModal onClose={() => setConnectOpen(false)} />}
@@ -254,7 +255,7 @@ export default function MediaBuyerView() {
                     <td className="px-3 py-3 text-right tabular-nums">{nf(r.leads)}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{cpl(r.cpl)}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{pct(r.ctr)}</td>
-                    <td className="px-5 py-3 text-right"><span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full ${PERF[r.perf].cls}`}><span className="w-[6px] h-[6px] rounded-full bg-current" />{PERF[r.perf].label}</span></td>
+                    <td className="px-5 py-3 text-right"><span className={`inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold px-2.5 py-1 rounded-full ${PERF[r.perf].cls}`}><span className="w-[6px] h-[6px] rounded-full bg-current" />{PERF[r.perf].label}</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -264,8 +265,8 @@ export default function MediaBuyerView() {
 
         {/* Détail par niveau */}
         <div className="bg-soren-card border border-soren-border rounded-2xl overflow-hidden">
-          <div className="px-5 pt-4 pb-3 flex items-center justify-between">
-            <h3 className="text-[13px] font-semibold text-soren-text tracking-tight">Détail par {level === 'campaign' ? 'campagne' : level === 'creative' ? 'publicité' : 'adset'}</h3>
+          <div className="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-[13px] font-semibold text-soren-text tracking-tight whitespace-nowrap">Détail par {level === 'campaign' ? 'campagne' : level === 'creative' ? 'publicité' : 'adset'}</h3>
             <div className="flex bg-soren-elevated border border-soren-border rounded-full p-[3px] text-[11px] font-medium">
               {LEVELS.map(l => <button key={l.k} onClick={() => setLevel(l.k)} className={`px-2.5 py-1 rounded-full transition-colors ${level === l.k ? 'bg-soren-accent text-white' : 'text-soren-muted hover:text-soren-text'}`}>{l.label}</button>)}
             </div>
@@ -301,6 +302,7 @@ export default function MediaBuyerView() {
             </table>
           </div>
         </div>
+        <CreativeIntelligence />
         <div className="h-4" />
         </>)}
       </div>
