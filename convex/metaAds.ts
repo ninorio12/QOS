@@ -26,7 +26,9 @@ export const creatives = action({
   handler: async (ctx, a): Promise<any> => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const conn: any = await ctx.runQuery(internal.mediaBuyer._connection, {})
-    if (!conn?.token || !conn?.accountId) return { connected: false, creatives: [] }
+    // Plus de connexion Meta directe (token mort ou jamais posé) : Zernio prend
+    // le relais s'il a un compte Facebook connecté. Même contrat de sortie.
+    if (!conn?.token || !conn?.accountId) return await ctx.runAction(internal.zernioAds.creatives, a)
     let act = String(conn.accountId).trim(); if (!act.startsWith("act_")) act = `act_${act.replace(/^act_?/, "")}`
     const token: string = conn.token
     const preset = a.datePreset ?? "last_14d"
@@ -42,7 +44,12 @@ export const creatives = action({
     const ads: any[] = []
     for (let i = 0; i < 5 && url; i++) {
       const res = await fetch(url); const json: any = await res.json()
-      if (json.error) throw new Error(`Meta API: ${json.error.message ?? "erreur"}`)
+      if (json.error) {
+        // Token direct invalide/expiré : on retente par Zernio avant d'abandonner.
+        const viaZernio: any = await ctx.runAction(internal.zernioAds.creatives, a)
+        if (viaZernio?.connected) return viaZernio
+        throw new Error(`Meta API: ${json.error.message ?? "erreur"}`)
+      }
       if (Array.isArray(json.data)) ads.push(...json.data)
       url = json.paging?.next ?? null
     }
