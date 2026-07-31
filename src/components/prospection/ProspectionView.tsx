@@ -78,7 +78,7 @@ const JOURNEY_STEPS: Record<string, { label: string; bg: string; fg: string; hin
   formulaire:  { label: 'Quiz non commencé', bg: '#F3F4F6', fg: '#4B5563', hint: "A laissé ses coordonnées mais n'a jamais ouvert le quiz" },
   quiz_ouvert: { label: 'Quiz non terminé',  bg: '#FEF3C7', fg: '#92400E', hint: 'A commencé le quiz et l\'a abandonné en route' },
   quiz_termine:{ label: 'Quiz terminé',      bg: '#DBEAFE', fg: '#1D4ED8', hint: 'A terminé le quiz mais n\'a pas réservé d\'appel' },
-  rdv_pris:    { label: 'RDV booké',         bg: '#10A066', fg: '#FFFFFF', hint: 'A réservé son appel sur iClosed : rien à relancer', iclosed: true },
+  rdv_pris:    { label: 'RDV booké',         bg: '#1E293B', fg: '#FFFFFF', hint: 'A réservé son appel sur iClosed : rien à relancer', iclosed: true },
 }
 const telHref = (p?: string) => (p ? `tel:${p.replace(/[^+0-9]/g, '')}` : undefined)
 const initialsOf = (n?: string) => (n?.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2) || '?').toUpperCase()
@@ -114,13 +114,13 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
         {r.contact.phone
           ? <a href={tel} onClick={e => e.stopPropagation()} title={`Appeler ${r.contact.phone}`}
               className="flex-none inline-flex items-center gap-1 text-[10px] md:text-[11px] font-medium text-soren-text hover:text-[#FF4D00] transition-colors">
-              <Phone size={9} className="text-[#FF4D00] flex-shrink-0" /><span className="hidden md:inline">{r.contact.phone}</span>
+              <Phone size={9} className="text-[#FF4D00] flex-shrink-0" /><span>{r.contact.phone}</span>
             </a>
-          : <span className="hidden md:inline flex-none text-[9.5px] md:text-[10.5px] text-soren-subtle">Pas de n°</span>}
+          : <span className="flex-none text-[9.5px] md:text-[10.5px] text-soren-subtle">Pas de n°</span>}
         {r.contact.companyName && (
           <>
-            <span className="flex-none w-[3px] h-[3px] rounded-full bg-soren-border" />
-            <span className="flex items-center gap-1 min-w-0 text-[9px] md:text-[10.5px] text-soren-subtle"><Building2 size={8} className="flex-shrink-0 md:w-[9px] md:h-[9px]" /><span className="truncate">{r.contact.companyName}</span></span>
+            <span className="hidden sm:block flex-none w-[3px] h-[3px] rounded-full bg-soren-border" />
+            <span className="hidden sm:flex items-center gap-1 min-w-0 text-[9px] md:text-[10.5px] text-soren-subtle"><Building2 size={8} className="flex-shrink-0 md:w-[9px] md:h-[9px]" /><span className="truncate">{r.contact.companyName}</span></span>
           </>
         )}
       </div>
@@ -245,7 +245,7 @@ function Column({ col, records, onOpen, wasDragged, onMove, colIndex = 0, colCou
   // AUCUNE surbrillance — elle reste dans son état normal (juste un curseur « interdit »).
   const accent = blocked ? { label: baseAccent.label, zone: `${baseAccent.zone} cursor-not-allowed` } : baseAccent
   return (
-    <div className="flex flex-col w-[290px] flex-shrink-0 h-full">
+    <div className="flex flex-col w-[82vw] max-w-[300px] md:w-[260px] flex-shrink-0 h-full">
       <div className="flex items-center gap-2 px-1 pb-2 flex-shrink-0">
         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: col.color }} />
         <span className={`text-[11px] font-semibold truncate flex-1 ${accent.label}`}>{col.label}</span>
