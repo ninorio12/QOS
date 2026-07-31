@@ -34,6 +34,7 @@ export const get = query({
       ventes:        doc?.ventes        ?? DEFAULTS.ventes,
       cashContracte: doc?.cashContracte ?? DEFAULTS.cashContracte,
       panierMoyen:   doc?.panierMoyen   ?? DEFAULTS.panierMoyen,
+      link:          doc?.link          ?? null,
     }
   },
 })
@@ -41,6 +42,7 @@ export const get = query({
 export const set = mutation({
   args: {
     funnel:        v.optional(v.string()),
+    link:          v.optional(v.string()),
     leadsR1:       v.optional(v.number()),
     leadsR2:       v.optional(v.number()),
     tauxShow:      v.optional(v.number()),

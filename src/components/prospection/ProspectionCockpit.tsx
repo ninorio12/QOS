@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { Modal } from '@/components/ui/Modal'
-import { Target, Calendar, Eye, DollarSign, TrendingUp, Users, CalendarCheck, Phone, Trophy, Banknote, BarChart3, Megaphone, PhoneCall, Handshake, Sparkles, ArrowUpRight, X, Mail, Send, MessageSquare } from 'lucide-react'
+import { Target, Calendar, Eye, DollarSign, TrendingUp, Users, CalendarCheck, Phone, Trophy, Banknote, BarChart3, Megaphone, PhoneCall, Handshake, Sparkles, ArrowUpRight, X, Mail, Send, MessageSquare, Pencil, Link as LinkIcon } from 'lucide-react'
 
 // ── Période ───────────────────────────────────────────────────────────────
 const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -407,6 +407,48 @@ function TeamCard({ name, color, card }: { name: string; color: string; card?: T
     </div>
   )
 }
+// Lien de redirection du parcours : la page qui reçoit le trafic (quiz, VSL…).
+// Cliquer l'ouvre, le crayon permet de le coller ou de le corriger.
+function FunnelLink({ url, label, onSave }: { url: string | null; label: string; onSave: (url: string) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(url ?? '')
+  useEffect(() => { setDraft(url ?? '') }, [url])
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1.5 bg-soren-card border border-soren-border rounded-xl px-2.5 py-2">
+        <input autoFocus value={draft} onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { onSave(draft.trim()); setEditing(false) } if (e.key === 'Escape') setEditing(false) }}
+          placeholder="https://…"
+          className="flex-1 min-w-0 text-[11.5px] bg-transparent text-soren-text outline-none" />
+        <button onClick={() => { onSave(draft.trim()); setEditing(false) }} className="text-[11px] font-semibold text-soren-accent flex-shrink-0">Enregistrer</button>
+      </div>
+    )
+  }
+  if (!url) {
+    return (
+      <button onClick={() => setEditing(true)}
+        className="flex items-center gap-1.5 text-[11px] text-soren-subtle hover:text-soren-muted border border-dashed border-soren-border rounded-xl px-2.5 py-2 transition-colors">
+        <LinkIcon size={11} /> Ajouter le lien de redirection du parcours {label}
+      </button>
+    )
+  }
+  return (
+    <div className="group flex items-center gap-2 bg-soren-card border border-soren-border rounded-xl px-2.5 py-2">
+      <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 min-w-0 flex-1">
+        <span className="w-5 h-5 rounded-md bg-soren-elevated border border-soren-border flex items-center justify-center flex-shrink-0">
+          <ArrowUpRight size={11} className="text-soren-accent" />
+        </span>
+        <span className="text-[11.5px] text-soren-muted truncate group-hover:text-soren-text transition-colors">{url.replace(/^https?:\/\//, '')}</span>
+      </a>
+      <button onClick={() => setEditing(true)} title="Modifier le lien"
+        className="text-soren-subtle hover:text-soren-text opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        <Pencil size={11} />
+      </button>
+    </div>
+  )
+}
+
 function FunnelStep({ Icon, label, val, w, color, sub, subTitle }: { Icon: Lucide; label: string; val: number; w: number; color: string; sub?: ReactNode; subTitle?: string }) {
   return (
     <div className="rounded-xl flex items-center justify-between px-3 py-1.5 border" style={{ width: `${w}%`, background: color + '0d', borderColor: color + '33' }}>
