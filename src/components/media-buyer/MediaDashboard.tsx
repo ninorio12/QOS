@@ -17,7 +17,6 @@ import { Target, SlidersHorizontal } from 'lucide-react'
 const OBJECTIVES: { key: string; label: string; suffix: string; gauge?: boolean; max?: number; step?: number }[] = [
   { key: 'budgetPerDay', label: 'Budget / jour',          suffix: 'CHF',   gauge: true, max: 100, step: 1 },
   { key: 'leadsWeekly',  label: 'Objectif leads / semaine', suffix: 'leads', step: 1 },
-  { key: 'ctrFloor',     label: 'Plancher CTR',           suffix: '%',     step: 0.1 },
 ]
 
 const fmtWhen = (t: number) => {
