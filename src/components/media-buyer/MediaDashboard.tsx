@@ -64,13 +64,19 @@ export default function MediaDashboard() {
             </div>
 
             {o.gauge ? (
-              <input
-                type="range" min={0} max={o.max ?? 100} step={o.step ?? 1}
-                value={value ?? 0}
-                onChange={(e) => setDrafts((d) => ({ ...d, [o.key]: Number(e.target.value) }))}
-                onPointerUp={(e) => commit(o.key, Number((e.target as HTMLInputElement).value), state?.value)}
-                className="w-full accent-soren-accent"
-              />
+              <div className="flex flex-col gap-1">
+                <input
+                  type="range" min={0} max={o.max ?? 100} step={o.step ?? 1}
+                  value={value ?? 0}
+                  onChange={(e) => setDrafts((d) => ({ ...d, [o.key]: Number(e.target.value) }))}
+                  onPointerUp={(e) => commit(o.key, Number((e.target as HTMLInputElement).value), state?.value)}
+                  className="vf-range"
+                  style={{ ['--pct' as string]: `${Math.round(((value ?? 0) / (o.max ?? 100)) * 100)}%` }}
+                />
+                <div className="flex justify-between text-[9px] text-soren-subtle tabular-nums">
+                  <span>0</span><span>{o.max ?? 100} {o.suffix}</span>
+                </div>
+              </div>
             ) : (
               <div className="flex items-center gap-2">
                 <input
