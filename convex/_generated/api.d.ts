@@ -32,6 +32,7 @@ import type * as crm_contacts from "../crm_contacts.js";
 import type * as crm_leads from "../crm_leads.js";
 import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
+import type * as demoOrigin from "../demoOrigin.js";
 import type * as devis from "../devis.js";
 import type * as externalPayments from "../externalPayments.js";
 import type * as files from "../files.js";
@@ -121,6 +122,7 @@ declare const fullApi: ApiFromModules<{
   crm_leads: typeof crm_leads;
   crons: typeof crons;
   dashboard: typeof dashboard;
+  demoOrigin: typeof demoOrigin;
   devis: typeof devis;
   externalPayments: typeof externalPayments;
   files: typeof files;
