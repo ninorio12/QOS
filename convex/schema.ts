@@ -711,11 +711,29 @@ export default defineSchema({
     tauxReponse:   v.optional(v.number()),  // % taux de réponse (outbound)
     cpl:           v.optional(v.number()),  // CHF — cible CPL Meta
     ca:            v.optional(v.number()),  // € chiffre d'affaires
-    roi:           v.optional(v.number()),  // × ROI
+    roi:           v.optional(v.number()),  // × ROI (retiré du cockpit, gardé pour l'historique)
+    coutParVente:  v.optional(v.number()),  // CHF — plafond de coût par vente (dépense pub ÷ ventes)
     ventes:        v.optional(v.number()),  // nb total ventes
     cashContracte: v.optional(v.number()),  // € cash contracté
     panierMoyen:   v.optional(v.number()),  // € panier moyen
     updatedAt:     v.optional(v.string()),
+  }).index("by_workspace", ["workspaceId"]),
+
+  // Module Budget : chaque poste de dépense, saisi et modifiable à la main.
+  // Remplace la liste codée en dur du composant : les montants bougent, les
+  // abonnements changent, et personne ne doit passer par un déploiement pour ça.
+  budget_items: defineTable({
+    workspaceId: v.string(),
+    label:       v.string(),
+    details:     v.optional(v.string()),
+    amount:      v.number(),                 // montant dans sa devise d'origine
+    currency:    v.string(),                 // "CHF" | "USD"
+    recurrence:  v.string(),                 // "mensuel" | "ponctuel"
+    date:        v.optional(v.string()),     // ISO, pour une dépense ponctuelle
+    color:       v.optional(v.string()),
+    order:       v.optional(v.number()),
+    updatedBy:   v.optional(v.string()),
+    updatedAt:   v.string(),
   }).index("by_workspace", ["workspaceId"]),
 
   // Snapshot quotidien du Score Santé Business (pour Évolution 7j / 30j).

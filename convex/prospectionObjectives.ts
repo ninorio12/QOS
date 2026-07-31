@@ -4,7 +4,7 @@ import { WORKSPACE } from "./osLib"
 
 // Seuils d'objectif du cockpit Prospection. Valeurs par défaut si rien n'est encore saisi.
 const DEFAULTS = {
-  leadsR1: 50, leadsR2: 25, tauxShow: 75, tauxShowR2: 75, tauxClose: 30, ca: 30000, roi: 5,
+  leadsR1: 50, leadsR2: 25, tauxShow: 75, tauxShowR2: 75, tauxClose: 30, ca: 30000, roi: 5, coutParVente: 500,
   ventes: 30, cashContracte: 30000, panierMoyen: 2000, tauxReponse: 30, cpl: 30,
 }
 
@@ -25,6 +25,7 @@ export const get = query({
       cpl:           doc?.cpl           ?? DEFAULTS.cpl,
       ca:            doc?.ca            ?? DEFAULTS.ca,
       roi:           doc?.roi           ?? DEFAULTS.roi,
+      coutParVente:  doc?.coutParVente  ?? DEFAULTS.coutParVente,
       ventes:        doc?.ventes        ?? DEFAULTS.ventes,
       cashContracte: doc?.cashContracte ?? DEFAULTS.cashContracte,
       panierMoyen:   doc?.panierMoyen   ?? DEFAULTS.panierMoyen,
@@ -43,6 +44,7 @@ export const set = mutation({
     cpl:           v.optional(v.number()),
     ca:            v.optional(v.number()),
     roi:           v.optional(v.number()),
+    coutParVente:  v.optional(v.number()),
     ventes:        v.optional(v.number()),
     cashContracte: v.optional(v.number()),
     panierMoyen:   v.optional(v.number()),

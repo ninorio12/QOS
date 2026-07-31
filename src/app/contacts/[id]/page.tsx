@@ -32,6 +32,10 @@ type ConvexContact = {
   canton?: string | null
   metier?: string | null
   niche?: string | null
+  dealStartDate?: string | null
+  dealEndDate?: string | null
+  dealDurationMonths?: number | null
+  paymentType?: string | null
   tags?: string[]
   createdAt: string
   updatedAt?: string | null
@@ -58,6 +62,10 @@ function mapContact(ct: ConvexContact): GHLContact {
     niche:       ct.niche       ?? null,
     statut:      ct.statut      ?? null,
     canton:      ct.canton      ?? null,
+    dealStartDate:      ct.dealStartDate      ?? null,
+    dealEndDate:        ct.dealEndDate        ?? null,
+    dealDurationMonths: ct.dealDurationMonths ?? null,
+    paymentType:        ct.paymentType        ?? null,
   }
 }
 

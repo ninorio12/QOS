@@ -3,11 +3,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, Pencil, X, Check, Loader2, Bot, User, ChevronDown } from 'lucide-react'
+import { ChevronLeft, Pencil, X, Save, Loader2, Bot, User, ChevronDown } from 'lucide-react'
 import { type GHLContact, type GHLOpportunity, type GHLPipeline } from '@/lib/ghl'
 import { fetchJSON } from '@/lib/fetchJSON'
 import { regionConfig, regionDisplay, COUNTRIES } from '@/lib/regions'
 import { getAvatarColor, type ContactAttribution } from './types'
+import { useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
 
 const BOT_COLORS: Record<string, string> = {
   Mia: '#8B5CF6', Kai: '#3462EE', Luc: '#F97316', Eva: '#EC4899',
@@ -46,13 +48,16 @@ type EditableFields = {
   lastName:    string
   email:       string
   phone:       string
-  companyName: string
   address1:    string
   city:        string
   postalCode:  string
   country:     string
   canton:      string
-  website:     string
+  // Deal (accompagnement) — durée saisie en mois (string côté formulaire, number côté Convex)
+  dealStartDate:      string
+  dealEndDate:        string
+  dealDurationMonths: string
+  paymentType:        string
 }
 
 function Field({
@@ -88,7 +93,7 @@ function Field({
           type={type}
           value={value}
           onChange={e => onChange(name, e.target.value)}
-          className="flex-1 text-sm text-soren-text bg-[#F9F9F7] border border-soren-border rounded-lg px-3 py-1.5 outline-none focus:border-[#3462EE] transition-colors"
+          className="flex-1 text-sm text-soren-text bg-[#FAFAF8] border border-soren-border rounded-lg px-3 py-1.5 outline-none focus:border-[#3462EE] transition-colors"
         />
       ) : href ? (
         <a href={href} className="text-sm text-[#3462EE] hover:underline break-all pt-1.5">{value}</a>
@@ -125,7 +130,7 @@ function RegionField({ country, value, editing, onChange }: {
             value={value}
             onChange={e => onChange(e.target.value)}
             placeholder="Canton, région…"
-            className="flex-1 text-sm text-soren-text bg-[#F9F9F7] border border-soren-border rounded-lg px-3 py-1.5 outline-none focus:border-[#3462EE] transition-colors"
+            className="flex-1 text-sm text-soren-text bg-[#FAFAF8] border border-soren-border rounded-lg px-3 py-1.5 outline-none focus:border-[#3462EE] transition-colors"
           />
         )
       ) : (
@@ -224,7 +229,7 @@ function CustomSelect({ value, onChange, options, placeholder = '— Choisir —
               className={`w-full text-left px-3 py-2.5 text-sm transition-colors flex items-center gap-2 ${
                 opt.value === value
                   ? 'bg-soren-elevated text-soren-text font-medium'
-                  : 'text-[#374151] hover:bg-[#F9F9F7]'
+                  : 'text-[#374151] hover:bg-[#FAFAF8]'
               }`}
             >
               {opt.value === value && <span className="w-1.5 h-1.5 rounded-full bg-[#3462EE] flex-shrink-0" />}
@@ -383,6 +388,12 @@ export default function ContactDetailPage({
   const [tags,     setTags]     = useState<string[]>(contact.tags ?? [])
   const [tagInput, setTagInput] = useState('')
 
+  // Infos deal dérivées (montant pipeline_clients, plan Paiement, prochain RDV) — lecture seule.
+  const dealMetaInfo = useQuery(api.crm_contacts.dealMeta, { contactId: contact.id as never }) as {
+    totalAmount?: number; installments?: number; perInstallment?: number
+    nextDueDate?: string; nextDueAmount?: number; nextCallDate?: string; nextCallTitle?: string
+  } | null | undefined
+
   function addTag(val: string) {
     const t = val.trim().toLowerCase()
     if (t && !tags.includes(t)) setTags(prev => [...prev, t])
@@ -394,13 +405,15 @@ export default function ContactDetailPage({
     lastName:    contact.lastName    ?? '',
     email:       contact.email       ?? '',
     phone:       contact.phone       ?? '',
-    companyName: contact.companyName ?? '',
     address1:    contact.address1    ?? '',
     city:        contact.city        ?? '',
     postalCode:  contact.postalCode  ?? '',
     country:     contact.country     ?? '',
     canton:      contact.canton      ?? '',
-    website:     contact.website     ?? '',
+    dealStartDate:      contact.dealStartDate ?? '',
+    dealEndDate:        contact.dealEndDate   ?? '',
+    dealDurationMonths: contact.dealDurationMonths ? String(contact.dealDurationMonths) : '',
+    paymentType:        contact.paymentType   ?? '',
   })
 
   const [original] = useState<EditableFields>({ ...fields })
@@ -419,10 +432,13 @@ export default function ContactDetailPage({
     setSaving(true)
     setError(null)
     try {
+      // dealDurationMonths est saisi en texte mais validé v.number() côté Convex.
+      const { dealDurationMonths, ...rest } = fields
+      const months = parseInt(dealDurationMonths, 10)
       await fetchJSON(`/api/contact/${contact.id}`, {
         method:  'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ ...fields, tags }),
+        body:    JSON.stringify({ ...rest, dealDurationMonths: Number.isFinite(months) && months > 0 ? months : undefined, tags }),
       })
       // Synchronise le KanbanBoard et toutes les vues qui affichent ce contact
       const bc = new BroadcastChannel('soren-opp-updates')
@@ -455,7 +471,7 @@ export default function ContactDetailPage({
 
   return (
     <div className="h-full overflow-y-auto bg-soren-app p-6">
-      <div className="max-w-2xl mx-auto">
+      <div className="fiche-contact-fields max-w-2xl mx-auto">
 
         {/* Back */}
         <div className="flex items-center justify-between mb-6">
@@ -489,7 +505,7 @@ export default function ContactDetailPage({
                 disabled={saving}
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-soren-sidebar hover:bg-[#222222] disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
               >
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 Sauvegarder
               </button>
             </div>
@@ -507,9 +523,6 @@ export default function ContactDetailPage({
           <Avatar contact={contact} />
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-black text-soren-text leading-tight">{displayName}</h1>
-            {fields.companyName && (
-              <p className="text-sm text-soren-muted mt-0.5">{fields.companyName}</p>
-            )}
             <div className="flex flex-wrap items-center gap-2 mt-3">
               {tags.map(t => (
                 <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-soren-elevated text-soren-muted border border-soren-border">
@@ -545,8 +558,6 @@ export default function ContactDetailPage({
           <Field label="Nom"        name="lastName"    value={fields.lastName}    editing={editing} onChange={handleChange} />
           <Field label="Email"      name="email"       value={fields.email}       editing={editing} onChange={handleChange} type="email" href={!editing && fields.email ? `mailto:${fields.email}` : undefined} />
           <Field label="Téléphone"  name="phone"       value={fields.phone}       editing={editing} onChange={handleChange} type="tel"   href={!editing && fields.phone ? `tel:${fields.phone}` : undefined} />
-          <Field label="Entreprise" name="companyName" value={fields.companyName} editing={editing} onChange={handleChange} />
-          <Field label="Site web"   name="website"     value={fields.website}     editing={editing} onChange={handleChange} href={!editing && fields.website ? fields.website : undefined} />
           {!editing && (
             <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
               <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">Ajouté le</p>
@@ -566,6 +577,49 @@ export default function ContactDetailPage({
           <CountryField value={fields.country} editing={editing} onChange={v => { if (v !== fields.country) handleChange('canton', ''); handleChange('country', v) }} />
           <RegionField country={fields.country} value={fields.canton} editing={editing} onChange={v => handleChange('canton', v)} />
         </div>
+
+        {/* Deal — montants, mensualités, échéance & RDV dérivés des sources de vérité
+            (pipeline_clients, module Paiement, RDV) via crm_contacts.dealMeta. */}
+        {dealMetaInfo && (dealMetaInfo.totalAmount !== undefined || dealMetaInfo.installments !== undefined || dealMetaInfo.nextDueDate || dealMetaInfo.nextCallDate) && (
+          <div className="bg-soren-card rounded-2xl px-6 pt-4 pb-2 mb-4">
+            <h3 className="text-[10px] font-bold text-soren-subtle uppercase tracking-widest mb-1">Deal</h3>
+            <>
+              {dealMetaInfo.totalAmount !== undefined && (
+                <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
+                  <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">Montant total</p>
+                  <p className="text-sm font-semibold text-soren-text">CHF {dealMetaInfo.totalAmount.toLocaleString('fr-CH')}</p>
+                </div>
+              )}
+              {dealMetaInfo.installments !== undefined && (
+                <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
+                  <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">Mensualités</p>
+                  <p className="text-sm text-soren-text">
+                    {dealMetaInfo.installments}×{dealMetaInfo.perInstallment ? ` · CHF ${dealMetaInfo.perInstallment.toLocaleString('fr-CH')} / mensualité` : ''}
+                  </p>
+                </div>
+              )}
+              {dealMetaInfo.nextDueDate && (
+                <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
+                  <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">Proch. échéance</p>
+                  <p className="text-sm text-soren-text">
+                    {new Date(dealMetaInfo.nextDueDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {dealMetaInfo.nextDueAmount ? ` · CHF ${dealMetaInfo.nextDueAmount.toLocaleString('fr-CH')}` : ''}
+                  </p>
+                </div>
+              )}
+              {dealMetaInfo.nextCallDate && (
+                <div className="flex items-start gap-3 py-3 border-b border-[#F0F0EE] last:border-0">
+                  <p className="text-[11px] font-semibold text-soren-subtle uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">Proch. RDV</p>
+                  <p className="text-sm text-soren-text">
+                    {new Date(dealMetaInfo.nextCallDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                    {' à '}{new Date(dealMetaInfo.nextCallDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    {dealMetaInfo.nextCallTitle ? ` · ${dealMetaInfo.nextCallTitle}` : ''}
+                  </p>
+                </div>
+              )}
+            </>
+          </div>
+        )}
 
         {/* Pipeline / Opportunités */}
         {opportunities.length > 0 && (

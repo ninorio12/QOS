@@ -4,7 +4,9 @@
 
 const isServerless = !!process.env.AWS_LAMBDA_FUNCTION_VERSION || !!process.env.VERCEL
 
-export async function generatePdfBuffer(html: string): Promise<Buffer> {
+// opts.cssPageSize=true → respecte les @page CSS (taille + orientation mixte portrait/paysage),
+// nécessaire pour le livrable Profit Map. Sinon A4 plein cadre (contrats).
+export async function generatePdfBuffer(html: string, opts?: { cssPageSize?: boolean }): Promise<Buffer> {
   let browser: { newPage: () => Promise<unknown>; close: () => Promise<void> } & Record<string, unknown>
 
   if (isServerless) {
@@ -32,11 +34,11 @@ export async function generatePdfBuffer(html: string): Promise<Buffer> {
       pdf: (o: object) => Promise<Uint8Array>
     }
     await page.setContent(html, { waitUntil: 'networkidle0' })
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: 0, bottom: 0, left: 0, right: 0 },
-    })
+    const pdf = await page.pdf(
+      opts?.cssPageSize
+        ? { printBackground: true, preferCSSPageSize: true }
+        : { format: 'A4', printBackground: true, margin: { top: 0, bottom: 0, left: 0, right: 0 } }
+    )
     return Buffer.from(pdf)
   } finally {
     await browser.close()

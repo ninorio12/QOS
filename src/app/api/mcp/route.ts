@@ -227,7 +227,10 @@ const TOOLS: Tool[] = [
   // ───────────── Tâches ─────────────
   { name: 'tasks_list', description: 'Liste les tâches (filtre status optionnel).', inputSchema: obj({ status: Sx.string }), run: (a) => cx().query(api.osTasks.list, { status: a.status }) },
   { name: 'tasks_create', description: 'Crée une tâche. title requis + description, priority, assigneeType, assigneeId, source, linkedClientId.', inputSchema: obj({ title: Sx.string, description: Sx.string, priority: Sx.string, assigneeType: Sx.string, assigneeId: Sx.string, source: Sx.string, linkedClientId: Sx.string }, ['title']), run: (a, actor) => cx().mutation(api.osTasks.create, { ...a, source: a.source ?? 'system', createdBy: actor }) },
-  { name: 'tasks_update', description: 'Met à jour une tâche (status, priority, assigneeType, assigneeId, blockerReason). id requis.', inputSchema: obj({ id: Sx.string, status: Sx.string, priority: Sx.string, assigneeType: Sx.string, assigneeId: Sx.string, blockerReason: Sx.string }, ['id']), run: (a, actor) => cx().mutation(api.osTasks.update, { ...a, updatedBy: actor }) },
+  { name: 'tasks_update', description: 'Met à jour une tâche. Champs: title, description, objective, status (todo|in_progress|urgent|done|cancelled), priority, assigneeType, assigneeId, blockerReason, linkedClientId, order, completionNote, objectiveAchieved (bool), completedAt (ISO). id requis. NB: pour basculer une tâche dans la colonne « Historique », utilise tasks_archive (pas un status).', inputSchema: obj({ id: Sx.string, title: Sx.string, description: Sx.string, objective: Sx.string, status: Sx.string, priority: Sx.string, assigneeType: Sx.string, assigneeId: Sx.string, blockerReason: Sx.string, linkedClientId: Sx.string, order: Sx.number, completionNote: Sx.string, objectiveAchieved: Sx.bool, completedAt: Sx.string }, ['id']), run: (a, actor) => cx().mutation(api.osTasks.update, { ...a, updatedBy: actor }) },
+  { name: 'tasks_archive', description: 'Archive une tâche → elle passe dans la colonne « Historique » de l\'UI immédiatement (si elle est encore ouverte, elle est aussi marquée terminée). id requis.', inputSchema: obj({ id: Sx.string }, ['id']), run: (a, actor) => cx().mutation(api.osTasks.archive, { id: a.id, by: actor }) },
+  { name: 'tasks_unarchive', description: 'Sort une tâche de l\'Historique et la remet sur le board (status par défaut: todo). id requis ; status optionnel.', inputSchema: obj({ id: Sx.string, status: Sx.string }, ['id']), run: (a, actor) => cx().mutation(api.osTasks.unarchive, { id: a.id, status: a.status, by: actor }) },
+  { name: 'tasks_delete', description: 'Supprime DÉFINITIVEMENT une tâche (irréversible). Préférer tasks_archive pour simplement la sortir du board. id requis.', inputSchema: obj({ id: Sx.string }, ['id']), run: (a, actor) => cx().mutation(api.osTasks.remove, { id: a.id, by: actor }) },
   { name: 'tasks_comment', description: 'Commente une tâche. id + text requis.', inputSchema: obj({ id: Sx.string, text: Sx.string }, ['id', 'text']), run: (a, actor) => cx().mutation(api.osTasks.addComment, { id: a.id, authorType: 'agent', authorId: actor, text: a.text }) },
 
   // ───────────── Activités ─────────────
@@ -440,7 +443,7 @@ const TOOLS: Tool[] = [
   },
 
   // ───────────── Closing (cockpit closer — bio + appels) ─────────────
-  { name: 'closing_calls', description: "Liste les appels R1/R2 à préparer (file closer) avec contact, quiz, objections, synthèse R1, bio.", inputSchema: obj({}), run: () => cx().query(api.closing.upcomingCalls, {}) },
+  { name: 'closing_calls', description: "Liste les appels R1/R2 à préparer (file closer) : contact, source/funnel, objections, bio, et les éléments du brief. R2 → r1Synthesis (transcript du R1 via tl;dv/Fathom). R1 → PAS de transcript : rédiger le brief à partir de quizAnswers (quizz de confirmation) + metaAdsAnswers (quizz Meta Ads, présent si isMetaAds).", inputSchema: obj({}), run: () => cx().query(api.closing.upcomingCalls, {}) },
   {
     name: 'closing_save_bio', description: "Écrit la BIO 'brief de bras-droit' générée sur un appel. id (os_sales_calls) + bioMarkdown requis.",
     inputSchema: obj({ id: Sx.string, bioMarkdown: Sx.string }, ['id', 'bioMarkdown']),
@@ -635,6 +638,95 @@ const TOOLS: Tool[] = [
       }
     },
   },
+
+  // ───────────── Tableau de bord & analytics ─────────────
+  { name: 'dashboard_metrics', description: "Métriques du tableau de bord (CA, leads, conversions…) sur une période. from + to requis (YYYY-MM-DD) ; tzOffset, cumulative, cumulativeTimeline optionnels.", inputSchema: obj({ from: Sx.string, to: Sx.string, tzOffset: Sx.number, cumulative: Sx.bool, cumulativeTimeline: Sx.bool }, ['from', 'to']), run: (a) => cx().query(api.dashboard.getMetrics, a) },
+  { name: 'analytics_realtime', description: "Analytics temps réel (activité récente). days optionnel.", inputSchema: obj({ days: Sx.number }), run: (a) => cx().query(api.analytics.getRealTimeAnalytics, a) },
+  { name: 'company_settings_get', description: "Paramètres de la société (devise, infos légales, etc.).", inputSchema: obj({}), run: () => cx().query(api.companySettings.get, {}) },
+  { name: 'integrations_list', description: "Liste les intégrations connectées (statut par intégration).", inputSchema: obj({}), run: () => cx().query(api.integrations.list, {}) },
+  { name: 'fx_rates', description: "Taux de change actuels (map devise→taux) pour les conversions CHF/EUR/USD…", inputSchema: obj({}), run: () => cx().query(api.fx.map, {}) },
+  { name: 'fx_sync', description: "Rafraîchit les taux de change depuis la source externe.", inputSchema: obj({}), run: () => cx().action(api.fx.syncRates, {}) },
+
+  // ───────────── Paiements (Stripe + Revolut + manuels) ─────────────
+  { name: 'stripe_connection_status', description: "État de la connexion Stripe (compte, livemode).", inputSchema: obj({}), run: () => cx().query(api.stripePayments.connectionStatus, {}) },
+  { name: 'stripe_recent_payments', description: "Derniers paiements Stripe synchronisés. limit optionnel.", inputSchema: obj({ limit: Sx.number }), run: (a) => cx().query(api.stripePayments.recent, a) },
+  { name: 'external_payments_list', description: "Virements/paiements hors Stripe (Revolut + manuels).", inputSchema: obj({}), run: () => cx().query(api.externalPayments.list, {}) },
+  { name: 'revolut_status', description: "État Revolut (nombre de virements importés).", inputSchema: obj({}), run: () => cx().query(api.externalPayments.revolutStatus, {}) },
+  { name: 'external_payment_create', description: "Enregistre un virement manuel. amount requis ; currency, counterparty, reference, date, method, contactId, note optionnels.", inputSchema: obj({ amount: Sx.number, currency: Sx.string, counterparty: Sx.string, reference: Sx.string, date: Sx.string, method: Sx.string, contactId: Sx.string, note: Sx.string }, ['amount']), run: (a) => cx().mutation(api.externalPayments.createManual, a) },
+  { name: 'external_payment_record_revolut', description: "Enregistre un virement Revolut. externalId + amount + date requis.", inputSchema: obj({ externalId: Sx.string, amount: Sx.number, currency: Sx.string, counterparty: Sx.string, reference: Sx.string, date: Sx.string, state: Sx.string }, ['externalId', 'amount', 'date']), run: (a) => cx().mutation(api.externalPayments.recordRevolut, a) },
+  { name: 'external_payment_delete', description: "Supprime un virement externe. id requis.", inputSchema: obj({ id: Sx.string }, ['id']), run: (a) => cx().mutation(api.externalPayments.remove, { id: a.id }) },
+
+  // ───────────── Pipeline / leads (compléments) ─────────────
+  { name: 'lead_stage_count', description: "Nombre de leads passés par une étape sur une période. stageId + from + to requis.", inputSchema: obj({ stageId: Sx.string, from: Sx.string, to: Sx.string }, ['stageId', 'from', 'to']), run: (a) => cx().query(api.lead_stage_history.countByStageInPeriod, a) },
+  { name: 'leads_delete', description: "Supprime DÉFINITIVEMENT un lead (préférer leads_mark_lost). id requis.", inputSchema: obj({ id: Sx.string }, ['id']), run: (a) => cx().mutation(api.crm_leads.remove, { id: a.id }) },
+  { name: 'pipeline_config_get', description: "Configuration d'un pipeline (étapes/colonnes) par type. type requis (ex: leads|clients).", inputSchema: obj({ type: Sx.string }, ['type']), run: (a) => cx().query(api.pipeline_config.getByType, a) },
+
+  // ───────────── Contacts (compléments) ─────────────
+  { name: 'contacts_commercial_stages', description: "Étape commerciale (lead/client/perdu…) de tous les contacts.", inputSchema: obj({}), run: () => cx().query(api.crm_contacts.commercialStagesAll, {}) },
+  { name: 'contacts_metiers_niches', description: "Liste distincte des métiers/niches présents dans les contacts (pour normaliser).", inputSchema: obj({}), run: () => cx().query(api.crm_contacts.distinctMetiersNiches, {}) },
+  { name: 'contacts_ingest_inbound', description: "Crée un contact lead inbound. firstName requis ; lastName, email, phone, companyName, notes, tags[], temperature optionnels.", inputSchema: obj({ firstName: Sx.string, lastName: Sx.string, email: Sx.string, phone: Sx.string, companyName: Sx.string, notes: Sx.string, tags: Sx.strArr, temperature: Sx.string }, ['firstName']), run: (a, actor) => cx().mutation(api.crm_contacts.ingestInboundLead, { ...a, createdBy: actor }) },
+  { name: 'contacts_delete', description: "Supprime DÉFINITIVEMENT un contact (cascade). Préférer contacts_delete_or_archive (non destructif). id requis.", inputSchema: obj({ id: Sx.string }, ['id']), run: (a) => cx().mutation(api.crm_contacts.remove, { id: a.id }) },
+  { name: 'contact_meta_get', description: "Métadonnées (source, statut, canton) pour plusieurs contacts. ghl_contact_ids[] requis.", inputSchema: obj({ ghl_contact_ids: Sx.strArr }, ['ghl_contact_ids']), run: (a) => cx().query(api.contact_meta.getMany, a) },
+  { name: 'contact_meta_set', description: "Définit source/statut/canton d'un contact. ghl_contact_id requis.", inputSchema: obj({ ghl_contact_id: Sx.string, source: Sx.string, statut: Sx.string, canton: Sx.string }, ['ghl_contact_id']), run: (a) => cx().mutation(api.contact_meta.upsert, a) },
+
+  // ───────────── Clients (compléments) ─────────────
+  { name: 'pipeline_client_by_contact', description: "Fiche client (board onboarding) liée à un contact. contactId requis.", inputSchema: obj({ contactId: Sx.string }, ['contactId']), run: (a) => cx().query(api.pipeline_clients.getByContact, a) },
+  { name: 'pipeline_client_delete', description: "Supprime un client du board. id requis.", inputSchema: obj({ id: Sx.string }, ['id']), run: (a) => cx().mutation(api.pipeline_clients.remove, { id: a.id }) },
+
+  // ───────────── Closing (compléments) ─────────────
+  { name: 'closing_record_outcome', description: "Enregistre l'issue d'un appel R1/R2. outcome requis (valide|gagne|perdu|no_show|reprogrammer). callId OU (contactId+stage) ; dealValue, amountTbd, wonObjection, lostReason, newDate optionnels.", inputSchema: obj({ callId: Sx.string, contactId: Sx.string, stage: Sx.string, outcome: Sx.string, dealValue: Sx.number, amountTbd: Sx.bool, wonObjection: Sx.string, lostReason: Sx.string, newDate: Sx.string }, ['outcome']), run: (a, actor) => cx().mutation(api.closing.recordOutcome, { ...a, by: actor }) },
+  { name: 'closing_save_bio_for_contact', description: "Enregistre le brief closer (bio markdown) sur un contact. contactId + bioMarkdown requis.", inputSchema: obj({ contactId: Sx.string, bioMarkdown: Sx.string }, ['contactId', 'bioMarkdown']), run: (a, actor) => cx().mutation(api.closing.saveBioForContact, { ...a, by: actor }) },
+  { name: 'closing_calendar_events', description: "RDV de closing (R1/R2) sur une période. from/to optionnels (ISO).", inputSchema: obj({ from: Sx.string, to: Sx.string }), run: (a) => cx().query(api.closing.calendarEvents, a) },
+  { name: 'closing_iclosed_status', description: "État de la synchronisation iClosed (closing).", inputSchema: obj({}), run: () => cx().query(api.closing.iclosedStatus, {}) },
+  { name: 'closing_remove_call', description: "Supprime un appel de closing. id requis.", inputSchema: obj({ id: Sx.string }, ['id']), run: (a) => cx().mutation(api.closing.removeCall, { id: a.id }) },
+
+  // ───────────── Onboarding (complément) ─────────────
+  { name: 'onboarding_kickoff_calendar', description: "Kickoffs planifiés (onboarding) sur une période. from + to requis.", inputSchema: obj({ from: Sx.string, to: Sx.string }, ['from', 'to']), run: (a) => cx().query(api.onboarding.kickoffCalendarEvents, a) },
+
+  // ───────────── Prospection (compléments) ─────────────
+  { name: 'prospection_get', description: "Détail d'une carte de prospection. id requis.", inputSchema: obj({ id: Sx.string }, ['id']), run: (a) => cx().query(api.osProspection.get, a) },
+  { name: 'prospection_events', description: "Historique d'événements d'une carte de prospection. recordId requis.", inputSchema: obj({ recordId: Sx.string }, ['recordId']), run: (a) => cx().query(api.osProspection.events, a) },
+  { name: 'prospection_add_note', description: "Ajoute une note à une carte de prospection. id + note requis.", inputSchema: obj({ id: Sx.string, note: Sx.string }, ['id', 'note']), run: (a) => cx().mutation(api.osProspection.addNote, a) },
+  { name: 'prospection_set_column', description: "Déplace une carte de prospection vers une colonne. id + column requis ; lostReason, followUpReason optionnels.", inputSchema: obj({ id: Sx.string, column: Sx.string, lostReason: Sx.string, followUpReason: Sx.string }, ['id', 'column']), run: (a) => cx().mutation(api.osProspection.setColumn, a) },
+  { name: 'prospection_goal_today', description: "Objectif de prospection du jour (cibles vs réalisé).", inputSchema: obj({}), run: () => cx().query(api.osProspection.goalToday, {}) },
+  { name: 'prospection_set_goal', description: "Définit les cibles quotidiennes de prospection : targetCalls, targetMessages, targetFollowUps, targetR1Booked (tous optionnels).", inputSchema: obj({ targetCalls: Sx.number, targetMessages: Sx.number, targetFollowUps: Sx.number, targetR1Booked: Sx.number }), run: (a) => cx().mutation(api.osProspection.setGoal, a) },
+  { name: 'prospection_cockpit_health', description: "Score de santé prospection (4 KPI vs objectifs). from + to requis ; tzOffset optionnel.", inputSchema: obj({ from: Sx.string, to: Sx.string, tzOffset: Sx.number }, ['from', 'to']), run: (a) => cx().query(api.prospectionCockpit.healthScore, a) },
+  { name: 'prospection_cockpit_heatmap', description: "Heatmap d'activité prospection. from + to requis ; tzOffset optionnel.", inputSchema: obj({ from: Sx.string, to: Sx.string, tzOffset: Sx.number }, ['from', 'to']), run: (a) => cx().query(api.prospectionCockpit.heatmap, a) },
+  { name: 'prospection_cockpit_scorecards', description: "Scorecards par membre d'équipe (prospection). from + to requis ; tzOffset optionnel.", inputSchema: obj({ from: Sx.string, to: Sx.string, tzOffset: Sx.number }, ['from', 'to']), run: (a) => cx().query(api.prospectionCockpit.teamScorecards, a) },
+  { name: 'prospection_objectives_get', description: "Objectifs cibles du cockpit prospection (leadsR1, tauxShow, cpl, ca, roi…).", inputSchema: obj({}), run: () => cx().query(api.prospectionObjectives.get, {}) },
+  { name: 'prospection_objectives_set', description: "Définit les objectifs cibles du cockpit prospection (tous optionnels) : leadsR1, leadsR2, tauxShow, tauxShowR2, tauxClose, tauxReponse, cpl, ca, roi, ventes, cashContracte.", inputSchema: obj({ leadsR1: Sx.number, leadsR2: Sx.number, tauxShow: Sx.number, tauxShowR2: Sx.number, tauxClose: Sx.number, tauxReponse: Sx.number, cpl: Sx.number, ca: Sx.number, roi: Sx.number, ventes: Sx.number, cashContracte: Sx.number }), run: (a) => cx().mutation(api.prospectionObjectives.set, a) },
+
+  // ───────────── Performance setter (compléments) ─────────────
+  { name: 'performance_funnel', description: "Funnel de prospection (leads→R1→show→close). setter, from, to, channel, tzOffset optionnels.", inputSchema: obj({ setter: Sx.string, from: Sx.string, to: Sx.string, channel: Sx.string, tzOffset: Sx.number }), run: (a) => cx().query(api.performance.funnel, a) },
+  { name: 'performance_objectives_range', description: "Objectifs quotidiens du setter sur une plage. from + to requis ; setter, tzOffset optionnels.", inputSchema: obj({ setter: Sx.string, from: Sx.string, to: Sx.string, tzOffset: Sx.number }, ['from', 'to']), run: (a) => cx().query(api.performance.objectivesForRange, a) },
+  { name: 'performance_daily_task_delete', description: "Supprime un objectif quotidien du setter. id requis.", inputSchema: obj({ id: Sx.string }, ['id']), run: (a) => cx().mutation(api.performance.dailyTasksRemove, { id: a.id }) },
+
+  // ───────────── Meta Ads / Media buyer (compléments) ─────────────
+  { name: 'media_buyer_dashboard', description: "Dashboard Meta Ads (dépense, leads, CPL, CTR…). from/to ou days ; level (campaign|adset|creative) optionnels.", inputSchema: obj({ from: Sx.string, to: Sx.string, days: Sx.number, level: Sx.string }), run: (a) => cx().query(api.mediaBuyer.dashboard, a) },
+  { name: 'media_buyer_summary', description: "Résumé Meta Ads sur la période. from/to ou days optionnels.", inputSchema: obj({ from: Sx.string, to: Sx.string, days: Sx.number }), run: (a) => cx().query(api.mediaBuyer.summary, a) },
+  { name: 'media_buyer_connection_status', description: "État de la connexion au compte Meta Business.", inputSchema: obj({}), run: () => cx().query(api.mediaBuyer.connectionStatus, {}) },
+  { name: 'media_buyer_inbound_contacts', description: "Contacts inbound générés par Meta Ads.", inputSchema: obj({}), run: () => cx().query(api.mediaBuyer.metaInboundContacts, {}) },
+  { name: 'media_buyer_sync', description: "Synchronise les insights Meta Ads. days optionnel.", inputSchema: obj({ days: Sx.number }), run: (a) => cx().action(api.mediaBuyer.syncInsights, a) },
+
+  // ───────────── Outbound (compléments) ─────────────
+  { name: 'outbound_mark_replied', description: "Marque un lead outbound comme ayant répondu (ou non). id + replied (bool) requis ; date optionnelle.", inputSchema: obj({ id: Sx.string, replied: Sx.bool, date: Sx.string }, ['id', 'replied']), run: (a) => cx().mutation(api.outboundLeads.markReplied, a) },
+  { name: 'outbound_mark_replied_email', description: "Marque comme répondu le lead outbound correspondant à un email. email requis ; date optionnelle.", inputSchema: obj({ email: Sx.string, date: Sx.string }, ['email']), run: (a) => cx().mutation(api.outboundLeads.markRepliedByEmail, a) },
+
+  // ───────────── iClosed (sync) ─────────────
+  { name: 'iclosed_sync_recent', description: "Importe les RDV iClosed récents (R1/R2, no-show, annulations) dans le Data OS.", inputSchema: obj({}), run: () => cx().action(api.iclosed.syncRecent, {}) },
+  { name: 'iclosed_sync_kickoffs', description: "Importe les kickoffs iClosed dans l'onboarding.", inputSchema: obj({}), run: () => cx().action(api.iclosed.syncKickoffs, {}) },
+
+  // ───────────── Connaissance (compléments) ─────────────
+  { name: 'knowledge_update', description: "Met à jour une entrée de connaissance. id requis ; title, body, kind, status, tags[] optionnels.", inputSchema: obj({ id: Sx.string, title: Sx.string, body: Sx.string, kind: Sx.string, status: Sx.string, tags: Sx.strArr }, ['id']), run: (a) => cx().mutation(api.osKnowledge.update, a) },
+  { name: 'knowledge_archive', description: "Archive une entrée de connaissance. id requis.", inputSchema: obj({ id: Sx.string }, ['id']), run: (a) => cx().mutation(api.osKnowledge.archive, { id: a.id }) },
+  { name: 'knowledge_delete', description: "Supprime DÉFINITIVEMENT une entrée de connaissance. id requis.", inputSchema: obj({ id: Sx.string }, ['id']), run: (a) => cx().mutation(api.osKnowledge.remove, { id: a.id }) },
+
+  // ───────────── Agents (lecture + état) ─────────────
+  { name: 'agents_get_detail', description: "Détail d'un agent (scopes, santé, dernière activité). id requis.", inputSchema: obj({ id: Sx.string }, ['id']), run: (a) => cx().query(api.agents.getDetail, a) },
+  { name: 'agents_pending_approvals', description: "Approbations agent en attente (file COO).", inputSchema: obj({}), run: () => cx().query(api.agents.pendingApprovals, {}) },
+  { name: 'agents_set_status', description: "Change le statut d'un agent (actif/pause…). id + status requis.", inputSchema: obj({ id: Sx.string, status: Sx.string }, ['id', 'status']), run: (a) => cx().mutation(api.agents.setStatus, a) },
+  { name: 'agent_brains_list', description: "Liste les cerveaux (SOUL) des agents synchronisés depuis le VPS.", inputSchema: obj({}), run: () => cx().query(api.agentBrains.list, {}) },
+  { name: 'agent_brain_get', description: "Cerveau (SOUL) d'un agent par slug. slug requis.", inputSchema: obj({ slug: Sx.string }, ['slug']), run: (a) => cx().query(api.agentBrains.get, a) },
 ]
 
 // ── Auth par agent (token Bearer → identité + scopes) ───────────────────────

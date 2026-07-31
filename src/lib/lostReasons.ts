@@ -16,7 +16,7 @@ export const LOST_REASONS: { code: LostReasonCode; label: string; icon: LucideIc
 // ─── Pipeline R1/R2 : raisons de NON-VENTE ───
 export const NONVENTE_REASONS: { code: string; label: string; desc: string; icon: LucideIcon }[] = [
   { code: 'non_qualifie',     label: 'Non qualifié',              desc: 'Le contact était faible',             icon: UserX },
-  { code: 'non_presentation', label: 'Non-présentation',          desc: "Ne s'est pas présenté à l'appel",     icon: UserMinus },
+  { code: 'non_presentation', label: 'No-show',                    desc: "Ne s'est pas présenté à l'appel",     icon: UserMinus },
   { code: 'annulation_admin', label: 'Annulation administrative', desc: "L'appel a été annulé de votre côté",  icon: CalendarX },
   { code: 'contact_annule',   label: 'Contact annulé',            desc: "Le contact a annulé l'appel",         icon: PhoneOff },
 ]

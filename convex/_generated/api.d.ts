@@ -18,6 +18,7 @@ import type * as agents from "../agents.js";
 import type * as analytics from "../analytics.js";
 import type * as backfillLeadSource from "../backfillLeadSource.js";
 import type * as booking from "../booking.js";
+import type * as budget from "../budget.js";
 import type * as calendarTypes from "../calendarTypes.js";
 import type * as cardThreads from "../cardThreads.js";
 import type * as clients from "../clients.js";
@@ -103,6 +104,7 @@ declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
   backfillLeadSource: typeof backfillLeadSource;
   booking: typeof booking;
+  budget: typeof budget;
   calendarTypes: typeof calendarTypes;
   cardThreads: typeof cardThreads;
   clients: typeof clients;

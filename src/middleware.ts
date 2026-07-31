@@ -6,6 +6,9 @@ const isPublic = createRouteMatcher([
   '/login(.*)',
   '/inscription(.*)',
   '/formulaire(.*)',
+  '/signer(.*)',
+  '/audit-synthese(.*)',
+  '/book(.*)',
 ])
 
 // Routes /api/* qui exposent / modifient des données métier (CRM, dashboard,

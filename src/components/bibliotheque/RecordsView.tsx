@@ -7,6 +7,7 @@ import { api } from '../../../convex/_generated/api'
 import { FileText, RefreshCw, AlertCircle, X, Save, Trash2, Pencil, ArrowUpRight, Check, Mic, Users, CalendarDays, Search, ListChecks, Link2, Plus, Briefcase } from 'lucide-react'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { MotionStagger, MotionItem } from '@/components/ui/Motion'
+import { AGENT_PROFILES } from '@/components/agentic/agentProfiles'
 
 type RecordSource = 'tldv' | 'fathom'
 
@@ -26,17 +27,12 @@ type TldvRecord = {
 type Meta = { synthesis: string; tags: string[]; name: string; linkedContactId: string; linkedLeadId: string; synthesisBy?: string; synthesisAt?: string }
 
 // Preuve « synthèse faite par l'agent » : slug auteur (ex "agent:agent-kb") → avatar rond + libellé.
-const AGENT_AVATARS: Record<string, string> = {
-  'agent-kb': 'kb', 'agent-support-client': 'support', 'agent-operations': 'operations',
-  'agent-analyse': 'analyse', 'agent-media-buyer': 'media-buyer', 'agent-debug': 'debug', 'coo': 'coo',
-}
-const AGENT_LABELS: Record<string, string> = {
-  'agent-kb': 'Agent KB', 'agent-support-client': 'Agent CSM', 'agent-operations': 'Agent Operations',
-  'agent-analyse': 'Agent Analyse', 'agent-media-buyer': 'Agent Media Buyer', 'agent-debug': 'Agent Debug', 'coo': 'COO',
-}
+// La photo ET le nom viennent d'AGENT_PROFILES (même source de vérité que la page Équipe IA),
+// pour que la signature dans Records corresponde exactement à ce qui est affiché dans l'équipe.
 const synthSlug = (by?: string) => (by ?? '').replace(/^agent:/, '')
-const synthAvatar = (by?: string) => { const f = AGENT_AVATARS[synthSlug(by)]; return f ? `/agents/${f}.png` : null }
-const agentLabel = (by?: string) => AGENT_LABELS[synthSlug(by)] ?? 'un agent'
+const synthProfile = (by?: string) => AGENT_PROFILES.find(p => p.id === synthSlug(by))
+const synthAvatar = (by?: string) => synthProfile(by)?.avatar ?? null
+const agentLabel = (by?: string) => synthProfile(by)?.name ?? 'un agent'
 type TranscriptSegment = { speaker: string; text: string; time: string }
 
 // Identité visuelle par source : bleu = tl;dv, gris = Fathom.
@@ -239,11 +235,11 @@ function RecordDetail({ record, onClose }: { record: TldvRecord; onClose: () => 
 
   if (typeof document === 'undefined') return null
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-soren-card rounded-3xl shadow-2xl w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden"
+      <div className="relative bg-soren-card rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-4xl h-[94vh] sm:h-auto sm:max-h-[88vh] flex flex-col overflow-hidden"
            style={{ animation: 'fadeSlideUp 200ms ease-out both' }}>
-        <div className="px-6 py-4 border-b border-soren-border flex-shrink-0 flex flex-col gap-2.5">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-soren-border flex-shrink-0 flex flex-col gap-2.5">
           <div className="flex items-center justify-between gap-3">
             <input
               value={name} onChange={e => setName(e.target.value)} onBlur={saveName}
@@ -279,7 +275,7 @@ function RecordDetail({ record, onClose }: { record: TldvRecord; onClose: () => 
           <CrmLink recordId={record.id} meta={meta} />
         </div>
 
-        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-soren-border overflow-hidden">
+        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 grid-rows-2 md:grid-rows-1 divide-y md:divide-y-0 md:divide-x divide-soren-border overflow-hidden">
           <div className="flex flex-col min-h-0 overflow-hidden">
             <div className="px-5 pt-4 pb-2 flex items-center gap-1.5 flex-shrink-0">
               <FileText size={12} className="text-soren-muted" />
@@ -389,8 +385,8 @@ function RecordCard({ record, meta, onOpen }: { record: TldvRecord; meta?: Meta;
           {record.participants ? <><Users size={10} className="flex-shrink-0" /> {record.participants}</> : <span className="text-soren-subtle">{record.date}</span>}
         </p>
       </div>
-      {/* Source de l'enregistrement (tl;dv / fathom) */}
-      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap"
+      {/* Source de l'enregistrement (tl;dv / fathom) — masqué sur mobile (visible dans le détail) */}
+      <span className="hidden sm:inline-block text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap"
         style={{ background: src.color + '1A', color: src.color }}>
         {src.label}
       </span>
@@ -402,14 +398,14 @@ function RecordCard({ record, meta, onOpen }: { record: TldvRecord; meta?: Meta;
       {record.videoUrl && (
         <a href={record.videoUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}
            title={`Ouvrir la vidéo sur ${src.label}`}
-           className="w-8 h-8 rounded-full flex items-center justify-center text-soren-muted hover:text-[#FF4D00] hover:bg-soren-elevated transition-colors flex-shrink-0">
+           className="hidden sm:flex w-8 h-8 rounded-full items-center justify-center text-soren-muted hover:text-[#FF4D00] hover:bg-soren-elevated transition-colors flex-shrink-0">
           <ArrowUpRight size={16} />
         </a>
       )}
       {/* Preuve : QUI a rédigé la synthèse (avatar + nom + coche verte) */}
       {avatarSrc && (
         <span onClick={e => e.stopPropagation()} title={`Synthèse rédigée par ${agentLabel(meta?.synthesisBy)}${meta?.synthesisAt ? ' le ' + new Date(meta.synthesisAt).toLocaleDateString('fr-FR') : ''}`}
-          className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-soren-elevated flex-shrink-0">
+          className="hidden sm:flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-soren-elevated flex-shrink-0">
           <span className="relative flex-shrink-0">
             <img src={avatarSrc} alt="" className="w-5 h-5 rounded-full object-cover" />
             <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#16A34A] border border-soren-elevated flex items-center justify-center">
@@ -420,9 +416,11 @@ function RecordCard({ record, meta, onOpen }: { record: TldvRecord; meta?: Meta;
         </span>
       )}
       <button onClick={e => { e.stopPropagation(); onOpen() }}
-        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soren-elevated text-[11px] font-semibold text-soren-text hover:bg-[#FF4D00] hover:text-white transition-colors flex-shrink-0">
+        className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soren-elevated text-[11px] font-semibold text-soren-text hover:bg-[#FF4D00] hover:text-white transition-colors flex-shrink-0">
         <FileText size={12} /> Synthèse
       </button>
+      {/* Mobile : chevron d'ouverture (la carte entière est tappable) */}
+      <ArrowUpRight size={16} className="sm:hidden text-soren-subtle flex-shrink-0 rotate-45" />
     </div>
   )
 }
@@ -506,7 +504,7 @@ export default function RecordsView() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="px-6 pt-5 pb-3 flex-shrink-0 flex items-center justify-between gap-3 flex-wrap">
+      <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 flex-shrink-0 flex items-center justify-between gap-2 sm:gap-3 flex-wrap">
         <div className="flex items-center gap-1.5 flex-wrap">
           {TAGS.map(t => {
             const on = activeTags.includes(t.id)
@@ -556,11 +554,11 @@ export default function RecordsView() {
             )
           })}
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="relative">
+        <div className="flex items-center gap-2 flex-1 sm:flex-initial sm:flex-shrink-0 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-initial">
             <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-soren-subtle pointer-events-none" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher…"
-              className="w-44 bg-soren-card border border-soren-border rounded-full pl-8 pr-3 py-1.5 text-[12px] text-soren-text placeholder-soren-subtle outline-none focus:ring-2 focus:ring-[#FF4D00]/30 focus:border-[#FF4D00] transition-all" />
+              className="w-full sm:w-44 bg-soren-card border border-soren-border rounded-full pl-8 pr-3 py-1.5 text-[12px] text-soren-text placeholder-soren-subtle outline-none focus:ring-2 focus:ring-[#FF4D00]/30 focus:border-[#FF4D00] transition-all" />
             {search && (
               <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-soren-subtle hover:text-soren-text"><X size={12} /></button>
             )}
@@ -572,7 +570,7 @@ export default function RecordsView() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-6">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-6">
         {loading ? (
           <div className="flex flex-col gap-2.5">{[1,2,3,4,5,6].map(i => <div key={i} className="h-16 rounded-2xl bg-soren-elevated animate-pulse" />)}</div>
         ) : error?.includes('TLDV_API_KEY not set') ? (

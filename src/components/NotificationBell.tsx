@@ -14,15 +14,18 @@ type Activity = {
 
 const SEEN_KEY = 'dataos:notif:lastSeen'
 
-// Événements à faible signal — exclus de l'historique « important » de la cloche.
-const NOISE = new Set([
-  'memory.update', 'heartbeat', 'task.comment',
-  'performance.task_updated', 'performance.task_created',
+// LISTE BLANCHE : on ne notifie QUE les vrais événements métier (rares, à forte valeur).
+// Tout le reste (tasks.write, activities.write, task.updated/created, contacts.write,
+// call.outcome, prospection.*, heartbeat…) est du bruit technique → PAS de notification.
+// C'est ce qui faisait afficher « 9+ » en permanence pour rien.
+const IMPORTANT = new Set([
+  'lead.created',          // nouveau lead
+  'lead.lost', 'perdu',    // lead perdu
+  'lead.converted',        // client gagné
+  'r1_booke', 'r1.booked', // R1 booké
+  'knowledge',             // nouvelle connaissance
 ])
-// On ne notifie QUE les événements métier (lead créé/perdu, R1 booké, connaissance…).
-// La cadence prospection à fort volume (appels, NRP, température, leads interne…) est exclue :
-// c'est elle qui faisait afficher « 9+ » en permanence pour rien.
-const isImportant = (ev: string) => !NOISE.has(ev) && !ev.startsWith('prospection.')
+const isImportant = (ev: string) => IMPORTANT.has(ev)
 
 // Libellés/couleurs lisibles pour les événements métier (sinon fallback doctrine).
 const EVENT_LABELS: Record<string, { label: string; color: string }> = {

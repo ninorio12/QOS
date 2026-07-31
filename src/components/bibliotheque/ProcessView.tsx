@@ -2,16 +2,16 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useQuery, useMutation } from 'convex/react'
 import { DndContext, DragOverlay, useDraggable, useDroppable, pointerWithin, defaultDropAnimationSideEffects, type DragEndEvent, type DragStartEvent, type DropAnimation } from '@dnd-kit/core'
 import { useKanbanSensors } from '@/hooks/useKanbanSensors'
 import { api } from '../../../convex/_generated/api'
 import { Modal } from '@/components/ui/Modal'
 import {
-  Plus, ArrowLeft, ArrowUpRight, Trash2, X, Image as ImageIcon, Camera, RefreshCw, Search, Link2, ChevronDown, FolderPlus, Check, Maximize2, Pencil, Copy,
+  Plus, ArrowLeft, ArrowUpRight, Trash2, X, Image as ImageIcon, Camera, RefreshCw, Search, Link2, ChevronDown, ChevronRight, FolderPlus, Check, Maximize2, Pencil, Copy,
   Workflow, GitMerge, Target, Rocket, Users, FileText, Settings, Zap, Layers,
-  CheckSquare, MessageSquare, TrendingUp, Calendar, Database, CreditCard, Mail, Folder, Star, Flag,
+  CheckSquare, MessageSquare, TrendingUp, Calendar, Database, CreditCard, Mail, Folder, Star, Flag, Home,
   type LucideIcon,
 } from 'lucide-react'
 import DocEditor from './DocEditor'
@@ -433,7 +433,7 @@ function ProcessDetail({ proc, categories, subfolderOptions, clients, users, onB
   return (
     <>
     <div className="h-full overflow-y-auto">
-      <div className="px-6 py-6 flex flex-col gap-3 max-w-4xl">
+      <div className="px-4 md:px-6 py-5 md:py-6 flex flex-col gap-3 max-w-4xl">
         <div className="flex items-center justify-between gap-2">
           <button onClick={onBack} className="flex items-center gap-1.5 text-[12px] font-semibold text-soren-muted hover:text-soren-text transition-colors"><ArrowLeft size={14} /> Process</button>
           {!cannotEdit && (editing ? (
@@ -612,7 +612,6 @@ function ProcessDetail({ proc, categories, subfolderOptions, clients, users, onB
 
 export default function ProcessView() {
   const sp = useSearchParams()
-  const router = useRouter()
   const clientFilter = sp?.get('client') || sp?.get('contact') || ''
   const clientName = sp?.get('name') ? decodeURIComponent(sp.get('name')!) : ''
 
@@ -629,17 +628,31 @@ export default function ProcessView() {
 
   const create = useMutation(api.processes.create)
   const updateProc = useMutation(api.processes.update)
+  const createClient = useMutation(api.pipeline_clients.create)
+  const [creatingClient, setCreatingClient] = useState(false)
+  // Crée un vrai client CRM (visible dans Pipeline Clients) puis ouvre son scope.
+  async function addNewClient(name: string) {
+    const n = name.trim()
+    if (!n || creatingClient) return
+    setCreatingClient(true)
+    try {
+      const id = await createClient({ name: n, value: 0, stageId: 'nouveau-client', initials: initials(n), createdAt: new Date().toISOString() })
+      setScope(id as unknown as string)
+      setAddingClient(false); setClientQuery('')
+    } finally { setCreatingClient(false) }
+  }
   const dndSensors = useKanbanSensors()
   const [draggingId, setDraggingId] = useState<string | null>(null)
   function handleDragEnd(e: DragEndEvent) {
     setDraggingId(null)
     const procId = String(e.active.id)
-    const d = e.over?.data?.current as { category: string; subfolder: string } | undefined
+    const d = e.over?.data?.current as { category: string; subfolder: string; clientId?: string } | undefined
     if (!d) return
     const p = items.find(x => x.id === procId)
     if (!p) return
-    if ((p.category || 'Process internes') === d.category && (p.subfolder || '') === (d.subfolder || '')) return
-    void updateProc({ id: procId as never, category: d.category, subfolder: d.subfolder || '' })
+    const targetClient = d.clientId ?? ''
+    if ((p.category || 'Process internes') === d.category && (p.subfolder || '') === (d.subfolder || '') && (p.linkedClientId || '') === targetClient) return
+    void updateProc({ id: procId as never, category: d.category, subfolder: d.subfolder || '', linkedClientId: targetClient })
   }
   const persistedCats = (useQuery(api.processCategories.list) ?? []) as { id: string; name: string }[]
   const createCat = useMutation(api.processCategories.create)
@@ -647,11 +660,19 @@ export default function ProcessView() {
   const subfolders = useMemo(() => subfoldersRaw ?? [], [subfoldersRaw])
   const createSubfolder = useMutation(api.processSubfolders.create)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Scope de navigation : 'internes' (process sans client) ou l'id d'un client.
+  const [scope, setScope] = useState<string>(clientFilter || 'internes')
+  useEffect(() => { if (clientFilter) setScope(clientFilter) }, [clientFilter])
   const [query, setQuery] = useState('')
   const [addingCat, setAddingCat] = useState(false)
   const [catName, setCatName] = useState('')
   const [addingSubFor, setAddingSubFor] = useState<string | null>(null) // catégorie cible
   const [subName, setSubName] = useState('')
+  // Sous-dossiers repliés par défaut : on clique pour dérouler. `expandedSubs` = clés ouvertes.
+  const [expandedSubs, setExpandedSubs] = useState<Set<string>>(new Set())
+  const toggleSub = (key: string) => setExpandedSubs(s => { const n = new Set(s); if (n.has(key)) n.delete(key); else n.add(key); return n })
+  const [addingClient, setAddingClient] = useState(false)
+  const [clientQuery, setClientQuery] = useState('')
 
   // Auto-création des sous-dossiers SOPs + Playbooks sous « Process internes » (une fois).
   const seededRef = useRef(false)
@@ -669,26 +690,49 @@ export default function ProcessView() {
     return Array.from(set)
   }, [items, persistedCats])
 
-  const filtered = useMemo(() => {
+  // Clients ayant au moins un process (entrées du rail), avec compteur.
+  const clientScopes = useMemo(() => {
+    const m = new Map<string, number>()
+    items.forEach(p => { if (p.linkedClientId) m.set(p.linkedClientId, (m.get(p.linkedClientId) ?? 0) + 1) })
+    return Array.from(m.entries())
+      .map(([id, count]) => ({ id, name: clientNameOf[id] ?? 'Client', count }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [items, clientNameOf])
+  const internesCount = useMemo(() => items.filter(p => !p.linkedClientId).length, [items])
+  // Le scope courant figure toujours dans le rail, même sans process (client fraîchement ouvert).
+  const railClients = useMemo(() => {
+    if (scope === 'internes' || clientScopes.some(c => c.id === scope)) return clientScopes
+    return [{ id: scope, name: clientNameOf[scope] ?? clientName ?? 'Client', count: 0 }, ...clientScopes]
+  }, [clientScopes, scope, clientNameOf, clientName])
+
+  // Items du scope courant, filtrés par la recherche.
+  const scoped = useMemo(() => {
     const q = query.toLowerCase().trim()
     return items.filter(p =>
-      (!clientFilter || p.linkedClientId === clientFilter) &&
+      (scope === 'internes' ? !p.linkedClientId : p.linkedClientId === scope) &&
       (!q || p.title.toLowerCase().includes(q))
     )
-  }, [items, query, clientFilter])
+  }, [items, scope, query])
 
-  const byCat = useMemo(() => { const m: Record<string, Process[]> = {}; filtered.forEach(p => { (m[p.category || 'Process internes'] ??= []).push(p) }); return m }, [filtered])
+  // Scope internes : groupé par catégorie + sous-dossier (hors bucket "Process clients").
+  const byCat = useMemo(() => { const m: Record<string, Process[]> = {}; scoped.forEach(p => { (m[p.category || 'Process internes'] ??= []).push(p) }); return m }, [scoped])
   const visibleCats = useMemo(() => {
-    // Les catégories vides ne s'affichent que pour l'admin (qui peut y ajouter des process).
-    const showEmpty = !query.trim() && !clientFilter && isAdmin
-    return categories.filter(c => (byCat[c]?.length ?? 0) > 0 || showEmpty)
-  }, [categories, byCat, query, clientFilter, isAdmin])
+    const showEmpty = !query.trim() && isAdmin
+    return categories.filter(c => c !== 'Process clients').filter(c => (byCat[c]?.length ?? 0) > 0 || showEmpty)
+  }, [categories, byCat, query, isAdmin])
+
+  // Scope client : groupé par sous-dossier uniquement.
+  const clientDirect = useMemo(() => scoped.filter(p => !p.subfolder), [scoped])
+  const clientSubs = useMemo(() => Array.from(new Set([
+    ...subfolders.filter(s => s.category === 'Process clients').map(s => s.name),
+    ...scoped.map(p => p.subfolder).filter(Boolean),
+  ])), [subfolders, scoped])
 
   const selected = items.find(p => p.id === selectedId) ?? null
 
   async function addProcess() {
-    const id = await create(clientFilter
-      ? { title: 'Nouveau process', category: 'Process clients', linkedClientId: clientFilter }
+    const id = await create(scope !== 'internes'
+      ? { title: 'Nouveau process', category: 'Process clients', linkedClientId: scope }
       : { title: 'Nouveau process' })
     setSelectedId(id as unknown as string)
   }
@@ -702,9 +746,29 @@ export default function ProcessView() {
     return <ProcessDetail key={selected.id} proc={selected} categories={categories} subfolderOptions={subOpts} clients={clients} users={users} onBack={() => setSelectedId(null)} cannotEdit={!isAdmin} />
   }
 
-  function DropZone({ category, subfolder, children, className }: { category: string; subfolder: string; children: React.ReactNode; className?: string }) {
-    const { setNodeRef, isOver } = useDroppable({ id: `move:${category}:${subfolder}`, data: { category, subfolder } })
+  function DropZone({ category, subfolder, clientId = '', children, className }: { category: string; subfolder: string; clientId?: string; children: React.ReactNode; className?: string }) {
+    const { setNodeRef, isOver } = useDroppable({ id: `move:${clientId}:${category}:${subfolder}`, data: { category, subfolder, clientId } })
     return <div ref={setNodeRef} className={`${className ?? ''} rounded-xl transition-all ${isOver ? 'ring-2 ring-[#FF4D00]/60 bg-[#FF4D00]/5' : ''}`}>{children}</div>
+  }
+
+  // Entrée du rail gauche (Internes ou un client).
+  function RailItem({ active, onClick, icon, label, count }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; count: number }) {
+    return (
+      <button onClick={onClick} className={`flex-shrink-0 md:w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] whitespace-nowrap transition-colors ${active ? 'bg-[#FF4D00]/10 text-[#FF4D00] font-semibold' : 'text-soren-muted hover:bg-soren-elevated hover:text-soren-text'}`}>
+        <span className="flex-shrink-0">{icon}</span>
+        <span className="md:flex-1 md:truncate text-left">{label}</span>
+        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${active ? 'bg-[#FF4D00]/15 text-[#FF4D00]' : 'bg-soren-card border border-soren-border text-soren-subtle'}`}>{count}</span>
+      </button>
+    )
+  }
+
+  function EmptyState() {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+        <div className="w-12 h-12 rounded-2xl bg-soren-elevated flex items-center justify-center"><Workflow size={20} className="text-soren-muted" /></div>
+        <p className="text-[12px] text-soren-subtle">{query ? 'Aucun process trouvé.' : scope !== 'internes' ? (isAdmin ? 'Aucun process pour ce client. Clique « Ajouter un process ».' : 'Aucun process.') : isAdmin ? 'Aucun process. Clique « Ajouter un process ».' : 'Aucun process ne t’est assigné pour le moment.'}</p>
+      </div>
+    )
   }
 
   // Visuel pur (réutilisé par la carte ET le DragOverlay) — pas de hook DnD ici.
@@ -750,36 +814,47 @@ export default function ProcessView() {
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="px-6 pt-5 pb-3 flex-shrink-0 flex items-center justify-between gap-3 flex-wrap">
+    <div className="h-full flex flex-col md:flex-row overflow-hidden">
+      {/* Rail gauche (desktop) / barre horizontale scrollable (mobile) : Internes + un dossier par client */}
+      <aside className="w-full md:w-48 flex-shrink-0 border-b md:border-b-0 md:border-r border-soren-border flex flex-col overflow-hidden md:overflow-y-auto">
+        <div className="hidden md:block px-4 pt-5 pb-2"><span className="text-[11px] font-black uppercase tracking-wide text-soren-muted">Process</span></div>
+        <nav className="flex flex-row md:flex-col gap-1 md:gap-0.5 px-2 py-2 md:pt-0 md:pb-4 overflow-x-auto md:overflow-visible">
+          <RailItem active={scope === 'internes'} onClick={() => setScope('internes')} icon={<Home size={13} />} label="Internes" count={internesCount} />
+          <div className="hidden md:block px-2 pt-3 pb-1 text-[9px] font-bold uppercase tracking-wide text-soren-subtle">Clients</div>
+          {railClients.map(c => <RailItem key={c.id} active={scope === c.id} onClick={() => setScope(c.id)} icon={<Users size={13} />} label={c.name} count={c.count} />)}
+          {railClients.length === 0 && <p className="px-2 py-1 text-[10px] text-soren-subtle italic">Aucun client lié</p>}
+          {isAdmin && (
+            <button onClick={() => { setAddingClient(true); setClientQuery('') }} className="flex-shrink-0 whitespace-nowrap md:mt-2 md:mx-1 flex items-center gap-1.5 text-[11px] font-semibold text-soren-muted hover:text-soren-text bg-soren-card border border-soren-border rounded-lg px-2.5 py-1.5 transition-colors">
+              <Plus size={12} className="text-soren-subtle flex-shrink-0" /> Ajouter un client
+            </button>
+          )}
+        </nav>
+      </aside>
+
+      {/* Colonne droite : contenu du scope */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-4 md:px-6 pt-4 md:pt-5 pb-3 flex-shrink-0 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-md bg-soren-card border border-soren-border rounded-full px-3.5 py-2">
           <Search size={13} className="text-soren-subtle flex-shrink-0" />
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un process…" className="flex-1 bg-transparent text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none" />
         </div>
         <div className="flex items-center gap-2">
-          {clientFilter && (
-            <button onClick={() => router.push('/bibliotheque/process')} className="flex items-center gap-1 text-[11px] font-semibold text-soren-muted hover:text-soren-text bg-soren-card border border-soren-border rounded-full px-3 py-1.5">
-              <X size={12} /> {clientName || clientNameOf[clientFilter] || 'Client'}
-            </button>
-          )}
-          {isAdmin && <button onClick={() => setAddingCat(true)} className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-[11px] font-semibold px-3 py-1.5 rounded-full hover:text-soren-text transition-colors"><FolderPlus size={12} /> Ajouter une catégorie</button>}
+          {isAdmin && scope === 'internes' && <button onClick={() => setAddingCat(true)} className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-[11px] font-semibold px-3 py-1.5 rounded-full hover:text-soren-text transition-colors"><FolderPlus size={12} /> Catégorie</button>}
+          {isAdmin && scope !== 'internes' && <button onClick={() => { setAddingSubFor('Process clients'); setSubName('') }} className="flex items-center gap-1.5 bg-soren-card border border-soren-border text-soren-muted text-[11px] font-semibold px-3 py-1.5 rounded-full hover:text-soren-text transition-colors"><FolderPlus size={12} /> Sous-dossier</button>}
           {isAdmin && <button onClick={addProcess} className="flex items-center gap-1.5 bg-[#FF4D00] text-white text-[11px] font-semibold px-3 py-1.5 rounded-full hover:bg-[#e64500] transition-colors"><Plus size={12} /> Ajouter un process</button>}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-6">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-6">
         {procs === undefined ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">{[1,2,3].map(i => <div key={i} className="h-28 rounded-2xl bg-soren-elevated animate-pulse" />)}</div>
-        ) : visibleCats.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-soren-elevated flex items-center justify-center"><Workflow size={20} className="text-soren-muted" /></div>
-            <p className="text-[12px] text-soren-subtle">{query || clientFilter ? 'Aucun process trouvé.' : isAdmin ? 'Aucun process. Clique « Ajouter un process ».' : 'Aucun process ne t’est assigné pour le moment.'}</p>
-          </div>
         ) : (
           <DndContext sensors={dndSensors} collisionDetection={pointerWithin}
             onDragStart={(e: DragStartEvent) => setDraggingId(String(e.active.id))}
             onDragEnd={handleDragEnd} onDragCancel={() => setDraggingId(null)}>
-          <div className="flex flex-col gap-6">
+          {scope === 'internes' ? (
+            visibleCats.length === 0 ? <EmptyState /> : (
+            <div className="flex flex-col gap-6">
             {visibleCats.map(cat => {
               const all    = byCat[cat] ?? []
               const direct = all.filter(p => !p.subfolder)
@@ -795,26 +870,29 @@ export default function ProcessView() {
                     {isAdmin && <button onClick={() => { setAddingSubFor(cat); setSubName('') }} className="inline-flex items-center gap-1 text-[10px] font-semibold text-soren-subtle hover:text-soren-text"><FolderPlus size={11} /> Sous-dossier</button>}
                   </div>
 
-                  {/* Zone catégorie (sans sous-dossier) — droppable */}
+                  {/* Zone catégorie (sans sous-dossier), droppable */}
                   <DropZone category={cat} subfolder="">
                     {direct.length > 0
-                      ? <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5" data-stagger>{direct.map(p => <Card key={p.id} p={p} />)}</div>
+                      ? <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">{direct.map(p => <Card key={p.id} p={p} />)}</div>
                       : isAdmin ? <p className="text-[10px] text-soren-subtle px-1 py-3">Glisse un process ici</p> : null}
                   </DropZone>
 
                   {subs.map(sub => {
                     const subProcs = all.filter(p => p.subfolder === sub)
+                    const key = `internes|${cat}|${sub}`
+                    const open = expandedSubs.has(key)
                     return (
                       <DropZone key={sub} category={cat} subfolder={sub} className="pl-3 ml-0.5 border-l-2 border-soren-border">
                         <div className="flex flex-col gap-2 py-1">
-                          <div className="flex items-center gap-1.5">
+                          <button onClick={() => toggleSub(key)} className="flex items-center gap-1.5 w-fit group">
+                            {open ? <ChevronDown size={12} className="text-soren-subtle" /> : <ChevronRight size={12} className="text-soren-subtle" />}
                             <Folder size={12} className="text-[#FF4D00]" />
-                            <span className="text-[11px] font-semibold text-soren-text">{sub}</span>
+                            <span className="text-[11px] font-semibold text-soren-text group-hover:text-[#FF4D00] transition-colors">{sub}</span>
                             <span className="text-[9px] font-bold bg-soren-card border border-soren-border text-soren-subtle px-1.5 py-0.5 rounded-full">{subProcs.length}</span>
-                          </div>
-                          {subProcs.length > 0
-                            ? <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5" data-stagger>{subProcs.map(p => <Card key={p.id} p={p} />)}</div>
-                            : <p className="text-[10px] text-soren-subtle pl-0.5 py-1">Dossier vide — glisse un process ici</p>}
+                          </button>
+                          {open && (subProcs.length > 0
+                            ? <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">{subProcs.map(p => <Card key={p.id} p={p} />)}</div>
+                            : <p className="text-[10px] text-soren-subtle pl-0.5 py-1">Dossier vide : glisse un process ici</p>)}
                         </div>
                       </DropZone>
                     )
@@ -822,12 +900,45 @@ export default function ProcessView() {
                 </div>
               )
             })}
-          </div>
+            </div>
+            )
+          ) : (
+            scoped.length === 0 ? <EmptyState /> : (
+            <div className="flex flex-col gap-2.5">
+              <DropZone category="Process clients" subfolder="" clientId={scope}>
+                {clientDirect.length > 0
+                  ? <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">{clientDirect.map(p => <Card key={p.id} p={p} />)}</div>
+                  : isAdmin ? <p className="text-[10px] text-soren-subtle px-1 py-3">Glisse un process ici</p> : null}
+              </DropZone>
+              {clientSubs.map(sub => {
+                const subProcs = scoped.filter(p => p.subfolder === sub)
+                const key = `${scope}|${sub}`
+                const open = expandedSubs.has(key)
+                return (
+                  <DropZone key={sub} category="Process clients" subfolder={sub} clientId={scope} className="pl-3 ml-0.5 border-l-2 border-soren-border">
+                    <div className="flex flex-col gap-2 py-1">
+                      <button onClick={() => toggleSub(key)} className="flex items-center gap-1.5 w-fit group">
+                        {open ? <ChevronDown size={12} className="text-soren-subtle" /> : <ChevronRight size={12} className="text-soren-subtle" />}
+                        <Folder size={12} className="text-[#FF4D00]" />
+                        <span className="text-[11px] font-semibold text-soren-text group-hover:text-[#FF4D00] transition-colors">{sub}</span>
+                        <span className="text-[9px] font-bold bg-soren-card border border-soren-border text-soren-subtle px-1.5 py-0.5 rounded-full">{subProcs.length}</span>
+                      </button>
+                      {open && (subProcs.length > 0
+                        ? <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">{subProcs.map(p => <Card key={p.id} p={p} />)}</div>
+                        : <p className="text-[10px] text-soren-subtle pl-0.5 py-1">Dossier vide : glisse un process ici</p>)}
+                    </div>
+                  </DropZone>
+                )
+              })}
+            </div>
+            )
+          )}
           <DragOverlay dropAnimation={PROCESS_DROP_ANIM}>
             {draggingId ? (() => { const dp = items.find(p => p.id === draggingId); return dp ? <div className="w-[200px]"><CardVisual p={dp} overlay /></div> : null })() : null}
           </DragOverlay>
           </DndContext>
         )}
+      </div>
       </div>
 
       {addingCat && (
@@ -859,6 +970,57 @@ export default function ProcessView() {
               className="w-full bg-soren-elevated border-0 rounded-2xl px-4 py-3 text-sm text-soren-text placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#FF4D00]/40" />
             <button onClick={() => { if (subName.trim()) { createSubfolder({ category: addingSubFor, name: subName.trim() }); setSubName(''); setAddingSubFor(null) } }} disabled={!subName.trim()}
               className="w-full bg-[#FF4D00] hover:bg-[#e64500] disabled:opacity-50 text-white font-semibold rounded-full py-3 text-sm transition-colors">Créer le sous-dossier</button>
+          </div>
+        </Modal>
+      )}
+
+      {addingClient && (
+        <Modal onClose={() => setAddingClient(false)}>
+          <div className="relative bg-soren-card rounded-3xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-black text-soren-text">Ajouter un client</h2>
+              <button onClick={() => setAddingClient(false)} className="w-8 h-8 rounded-full bg-soren-elevated flex items-center justify-center hover:bg-[#E5E7EB]"><X size={14} className="text-soren-muted" /></button>
+            </div>
+            <p className="text-[11px] text-soren-subtle -mt-2">Choisis un client existant, ou tape un nom pour en créer un nouveau.</p>
+            <div className="flex items-center gap-2 bg-soren-elevated rounded-full px-3.5 py-2">
+              <Search size={13} className="text-soren-subtle flex-shrink-0" />
+              <input autoFocus value={clientQuery} onChange={e => setClientQuery(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { const q = clientQuery.trim(); const exact = clients.find(c => c.name.toLowerCase() === q.toLowerCase()); if (exact) { setScope(exact.ghl_contact_id ?? exact._id); setAddingClient(false) } else if (q) void addNewClient(q) } }}
+                placeholder="Rechercher ou nommer un client…" className="flex-1 bg-transparent text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none" />
+            </div>
+            <div className="max-h-72 overflow-y-auto flex flex-col gap-0.5">
+              {(() => {
+                const q = clientQuery.trim()
+                const avail = clients
+                  .filter(c => !railClients.some(rc => rc.id === (c.ghl_contact_id ?? c._id)))
+                  .filter(c => !q || c.name.toLowerCase().includes(q.toLowerCase()))
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                const exactExists = q && clients.some(c => c.name.toLowerCase() === q.toLowerCase())
+                return (
+                  <>
+                    {q && !exactExists && (
+                      <button onClick={() => void addNewClient(q)} disabled={creatingClient}
+                        className="w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-xl bg-[#FF4D00]/8 hover:bg-[#FF4D00]/15 transition-colors disabled:opacity-50">
+                        <span className="w-7 h-7 rounded-full bg-[#FF4D00] flex items-center justify-center flex-shrink-0">{creatingClient ? <RefreshCw size={13} className="text-white animate-spin" /> : <Plus size={13} className="text-white" />}</span>
+                        <span className="flex-1 truncate text-[12.5px] text-soren-text font-semibold">Créer le client « {q} »</span>
+                      </button>
+                    )}
+                    {avail.map(c => {
+                      const id = c.ghl_contact_id ?? c._id
+                      return (
+                        <button key={id} onClick={() => { setScope(id); setAddingClient(false) }} className="w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-xl hover:bg-soren-elevated transition-colors">
+                          <span className="w-7 h-7 rounded-full bg-[#FF4D00]/10 flex items-center justify-center flex-shrink-0"><Users size={13} className="text-[#FF4D00]" /></span>
+                          <span className="flex-1 truncate text-[12.5px] text-soren-text font-medium">{c.name}</span>
+                          <ArrowUpRight size={13} className="text-soren-subtle flex-shrink-0" />
+                        </button>
+                      )
+                    })}
+                    {avail.length === 0 && !q && <p className="text-[12px] text-soren-subtle py-6 text-center">Tape un nom pour créer ton premier client.</p>}
+                    {avail.length === 0 && q && exactExists && <p className="text-[12px] text-soren-subtle py-6 text-center">Ce client est déjà listé.</p>}
+                  </>
+                )
+              })()}
+            </div>
           </div>
         </Modal>
       )}

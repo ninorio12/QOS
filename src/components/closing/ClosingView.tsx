@@ -1,11 +1,12 @@
 'use client'
 
-import { useMemo, useState, useEffect, type ReactNode } from 'react'
+import { useMemo, useState, useEffect, useRef, type ReactNode } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { Save, Phone, FileText, ShieldAlert, MessageSquareQuote, List, CalendarDays, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Search, Check, Trophy, XCircle, UserMinus, CalendarClock } from 'lucide-react'
-import { NONVENTE_REASONS } from '@/lib/lostReasons'
+import { Save, Phone, FileText, ShieldAlert, MessageSquareQuote, List, CalendarDays, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Search, Check, XCircle, CalendarClock, Video } from 'lucide-react'
+import { NONVENTE_REASONS, NONVENTE_OBJECTIONS } from '@/lib/lostReasons'
+import { IClosedBookingModal, ICLOSED_R2_BOOKING_URL } from '@/components/shared/IClosedBookingModal'
 
 // Date du RDV : « 25 juin » ou « 25 juin 14:30 » si l'heure est présente.
 function fmtRdv(d?: string | null): string {
@@ -17,6 +18,21 @@ function fmtRdv(d?: string | null): string {
   return hasTime ? `${date} ${dt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` : date
 }
 
+// Distance au rendez-vous, en clair. Un closer doit voir « aujourd'hui » sans calculer.
+function relRdv(d?: string | null): string {
+  if (!d) return ''
+  const t = new Date(d).getTime()
+  if (isNaN(t)) return ''
+  const diff = t - Date.now()
+  const j = Math.round(diff / 86400000)
+  if (diff < 0) return j === 0 ? "aujourd'hui" : j === -1 ? 'hier' : `il y a ${-j} jours`
+  const h = Math.round(diff / 3600000)
+  if (h < 1) return 'dans moins d\'une heure'
+  if (h < 24) return `dans ${h} h`
+  if (j === 1) return 'demain'
+  return `dans ${j} jours`
+}
+
 type Intake = {
   companyType?: string; headcount?: string; monthlyRevenue?: string; costliestFunction?: string
   repetitiveCost?: string; whyNow?: string; timing?: string; budget?: string; createdAt?: string
@@ -25,10 +41,13 @@ type Call = {
   id: string; title?: string; date?: string | null; kind: string; name: string
   company?: string | null; initials: string; prepReady: boolean
   contactId?: string | null
+  callId?: string | null          // id du RDV iClosed accroché (null si fiche pilotée par le lead, RDV pas encore booké)
+  pipelineStage?: string | null   // étape courante du lead (r1 | r2 | nouveau-client | …)
   contact?: { id: string; fullName: string; company?: string; email?: string; phone?: string; role?: string; niche?: string; canton?: string } | null
   intake?: Intake | null; notes?: string | null
   objections?: string[]; wonObjection?: string | null; r1Synthesis?: string | null
   bioMarkdown?: string | null; bioGeneratedAt?: string | null; bioBy?: string | null
+  meetLink?: string | null
   bookingAnswers?: { q: string; a: string }[]
   quizAnswers?: { q: string; a: string }[]
   calendarLabel?: string | null; calendarSlug?: string | null; calendarColor?: string | null
@@ -36,11 +55,16 @@ type Call = {
 
 // Grille de Q/R (questionnaire) : question en gris, réponse(s) en puces/texte léger, codes humanisés.
 // Jeux de questions canoniques de chaque quiz (affichés en entier, même sans réponse).
+// Questions RÉELLES de quiz.vividflow.co (relevées sur la page en ligne le 28/07/2026).
+// Toute question modifiée sur la page doit être reportée ici, sinon la réponse bascule
+// dans le bloc « Autres réponses captées » plus bas (filet de sécurité).
 const QUIZ_DIAGNOSTIC = [
-  "Dans quel secteur évolue ton entreprise ?",
-  "Quel est ton chiffre d'affaires mensuel ?",
-  "Quel est ton rôle dans l'entreprise ?",
-  "À quelle échéance souhaitez-vous engager ce type de transformation dans votre entreprise ?",
+  "Quel département vous demande le plus de temps ?",
+  "Avez-vous identifié les processus de votre entreprise qui pourraient être automatisés ?",
+  "Utilisez-vous déjà des outils intégrant de l'intelligence artificielle ?",
+  "Vos données sont-elles structurées et accessibles ?",
+  "Quel est le niveau d'implication de votre direction dans les projets de transformation digitale ?",
+  "Vos équipes sont-elles formées ou sensibilisées à l'IA ?",
 ]
 const QUIZ_CONFIRMATION = [
   "Quel type d'entreprise dirigez-vous ?",
@@ -54,11 +78,16 @@ const QUIZ_CONFIRMATION = [
   "Votre nom complet",
   "Votre société",
 ]
+// Formulaire de réservation iClosed « Audit IA offert » (iclosed.io/vividflow/audit-out),
+// relevé sur les réservations réelles le 28/07/2026. Les anciennes questions orientées
+// agences immobilières (mandats exclusifs, agents commerciaux) ont été retirées du formulaire.
 const QUIZ_BOOKING = [
-  "Quel est votre activité ?",
-  "Aujourd'hui, comment trouvez-vous vos nouveaux clients ?",
-  "Combien de mandats exclusifs votre agence signe-t-elle en moyenne par mois ?",
-  "Combien d'agents commerciaux ou de collaborateurs travaillent actuellement dans votre agence ?",
+  "Quel est le nom de votre entreprise ?",
+  "Quel est votre rôle dans l\u2019entreprise ?",
+  "Comment avez-vous entendu parler de VividFlow ?",
+  "Phone Number",
+  "First Name",
+  "Last Name",
 ]
 // Normalise une question pour matcher réponse captée <-> question canonique.
 const normQ = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '')
@@ -78,17 +107,27 @@ function QuizAccordion({ title, color, questions, answerMap, defaultOpen = false
 }) {
   const [open, setOpen] = useState(defaultOpen)
   const answered = questions.filter(q => answerMap.get(normQ(q))).length
+  // Bloc BLANC dès qu'au moins une réponse est captée, beige effacé s'il est vide :
+  // le closer voit d'un coup d'œil quels questionnaires le prospect a réellement remplis.
   return (
-    <div className="border border-soren-border rounded-2xl mt-3 overflow-hidden">
+    <div className={`border rounded-2xl mt-3 overflow-hidden ${answered
+      ? 'bg-soren-card border-soren-border shadow-sm'
+      : 'bg-transparent border-soren-border/60'}`}>
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-soren-elevated/50 transition-colors">
         <span className="flex items-center gap-2 font-semibold text-[12.5px] text-soren-text"><span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />{title}</span>
-        <span className="flex items-center gap-2 text-[11px] text-soren-subtle">{answered}/{questions.length} répondu{answered > 1 ? 's' : ''}{open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</span>
+        <span className={`flex items-center gap-2 text-[11px] ${answered ? 'text-soren-muted font-semibold' : 'text-soren-subtle'}`}>{answered}/{questions.length} répondu{answered > 1 ? 's' : ''}{open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</span>
       </button>
       {open && (
+        // Carte BLANCHE dès qu'il y a une réponse, beige effacé sinon : le closer
+        // distingue au premier regard ce qui est rempli de ce qui manque.
         <div className="px-4 pb-4 pt-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {questions.map((q, i) => (
-            <div key={i} className="bg-soren-elevated/40 border border-soren-border rounded-xl p-3 flex flex-col h-full">
-              <div className="text-[10.5px] text-soren-subtle leading-snug mb-1.5">{q}</div>
+            <div key={i} className={`border rounded-xl p-3 flex flex-col h-full ${answerMap.get(normQ(q))
+              ? 'bg-soren-card border-soren-border shadow-sm'
+              : 'bg-soren-elevated/30 border-soren-border/60'}`}>
+              {/* Question en clair quand elle a une réponse, effacée sinon : le closer repère
+                  d'un coup d'œil ce que le prospect a réellement rempli. */}
+              <div className={`text-[10.5px] leading-snug mb-1.5 ${answerMap.get(normQ(q)) ? 'text-soren-text font-medium' : 'text-soren-subtle'}`}>{q}</div>
               <div className="leading-snug min-h-[18px] mt-auto pt-1.5 border-t border-soren-border/60"><AnswerValue a={answerMap.get(normQ(q))} /></div>
             </div>
           ))}
@@ -130,26 +169,45 @@ function parseBrief(md: string): Record<string, string> {
   return out
 }
 
-function EditableBrief({ callId, md, name }: { callId: string; md: string; name: string }) {
+// Textarea qui grandit toujours pour afficher tout son texte (pas de scroll interne, pas de hauteur figée).
+function AutoTextarea({ value, onChange, onBlur, placeholder, className }: {
+  value: string; onChange: (v: string) => void; onBlur: () => void; placeholder?: string; className?: string
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  const resize = () => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px` }
+  useEffect(() => { resize() }, [value])
+  return (
+    <textarea
+      ref={ref} value={value} rows={1} placeholder={placeholder}
+      onChange={e => { onChange(e.target.value); resize() }}
+      onBlur={onBlur}
+      className={className} />
+  )
+}
+
+function EditableBrief({ callId, contactId, md, name }: { callId: string | null; contactId: string | null; md: string; name: string }) {
   const saveBio = useMutation(api.closing.saveBio)
+  const saveBioForContact = useMutation(api.closing.saveBioForContact)
   const firstName = ((name || '').trim().split(/\s+/)[0] || name || 'ce lead').replace(/\[.*\]/, '').trim()
   const [vals, setVals] = useState<Record<string, string>>(() => parseBrief(md))
-  useEffect(() => { setVals(parseBrief(md)) }, [callId]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setVals(parseBrief(md)) }, [callId, contactId]) // eslint-disable-line react-hooks/exhaustive-deps
   const persist = (next: Record<string, string>) => {
     const newMd = BRIEF_KEYS.map(k => `## ${briefTitle(k.key, firstName)}\n${(next[k.key] || '').trim()}`).join('\n\n')
-    saveBio({ id: callId as never, bioMarkdown: newMd, by: 'manual' })
+    // RDV booké → sur l'appel ; sinon → sur le contact (repli affiché tant qu'aucun appel n'a de bio).
+    if (callId) saveBio({ id: callId as never, bioMarkdown: newMd, by: 'manual' })
+    else if (contactId) saveBioForContact({ contactId: contactId as never, bioMarkdown: newMd, by: 'manual' })
   }
   return (
-    <div className="flex flex-col gap-3.5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 items-stretch">
       {BRIEF_KEYS.map(k => (
-        <div key={k.key} className="rounded-2xl border border-soren-border bg-soren-card p-4 focus-within:border-[#C8CBD0] transition-colors">
-          <div className="text-[13px] font-bold text-soren-text mb-2">{briefTitle(k.key, firstName)}</div>
-          <textarea
+        <div key={k.key} className="rounded-lg border border-soren-border bg-soren-card px-2.5 py-1.5 focus-within:border-[#C8CBD0] transition-colors">
+          <div className="text-[10.5px] font-bold text-soren-text mb-0.5">{briefTitle(k.key, firstName)}</div>
+          <AutoTextarea
             value={vals[k.key] ?? ''}
-            onChange={e => setVals(v => ({ ...v, [k.key]: e.target.value }))}
+            onChange={val => setVals(v => ({ ...v, [k.key]: val }))}
             onBlur={() => persist(vals)}
             placeholder="- À compléter…"
-            className="w-full bg-transparent text-[12.5px] leading-[1.8] text-soren-text resize-y outline-none min-h-[110px] placeholder:text-soren-subtle" />
+            className="w-full bg-transparent text-[11px] leading-[1.45] text-soren-text resize-none overflow-hidden outline-none min-h-[34px] placeholder:text-soren-subtle placeholder:text-[9px] sm:placeholder:text-[11px]" />
         </div>
       ))}
     </div>
@@ -185,7 +243,7 @@ function CalendarAgenda({ calls, onPick }: { calls: Call[]; onPick: (id: string)
   const btn = "w-8 h-8 rounded-lg border border-soren-border bg-soren-card flex items-center justify-center text-soren-muted hover:border-[#C8CBD0]"
 
   return (
-    <div className="p-6">
+    <div className="p-3 md:p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="text-[15px] font-bold capitalize">{monthLabel}</div>
@@ -223,22 +281,34 @@ function CalendarAgenda({ calls, onPick }: { calls: Call[]; onPick: (id: string)
   )
 }
 
-// Issue de l'appel (clôture R1/R2) : 4 boutons. Gagné ouvre le mini-form montant (même garde que le pipeline),
-// Perdu un select de raison (mêmes raisons de non-vente que le reste du repo), No-show une confirmation simple,
-// Reprogrammer un champ date. Réutilise la mutation Convex closing.recordOutcome.
+// Issue de l'appel : flux Valider / Pas validé selon l'étape, + No-show / Reprogrammer en secondaire.
+//  • Valider R1 → la carte avance en R2 (outcome 'valide'). Valider R2 → gagné (montant requis, outcome 'gagne').
+//  • Pas validé → carte en Perdu + raison. La question « objection surmontée » est posée au moment de valider.
+// Réutilise la mutation Convex closing.recordOutcome.
+const STAGE_LABEL: Record<string, string> = { 'nouveau-lead': 'Nouveau lead', conversation: 'Conversation', r1: 'R1', r2: 'R2', 'nouveau-client': 'Client' }
 function OutcomePanel({ call }: { call: Call }) {
   const recordOutcome = useMutation(api.closing.recordOutcome)
-  const [mode, setMode] = useState<null | 'gagne' | 'perdu' | 'reprogrammer'>(null)
+  const isR2 = call.kind === 'R2'
+  const [mode, setMode] = useState<null | 'valide' | 'pasvalide' | 'reprogrammer' | 'noshow'>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   // Gagné
   const [dealValue, setDealValue] = useState('')
   const [amountTbd, setAmountTbd] = useState(false)
-  const [wonObjection, setWonObjection] = useState('')
+  // Objections surmontées : sélection par chips (codes), pas de saisie libre.
+  const [objCodes, setObjCodes] = useState<string[]>([])
   // Reprogrammer
   const [newDate, setNewDate] = useState('')
+  // Après confirmation du passage R1 → R2 : ouvrir la réservation iClosed du R2.
+  const [showBooking, setShowBooking] = useState(false)
 
-  const reset = () => { setMode(null); setErr(''); setDealValue(''); setAmountTbd(false); setWonObjection(''); setNewDate('') }
+  const reset = () => { setMode(null); setErr(''); setDealValue(''); setAmountTbd(false); setObjCodes([]); setNewDate('') }
+
+  const hasCall = !!call.callId   // RDV iClosed réellement booké (sinon fiche pilotée par le lead)
+  // Cible de l'issue : le RDV s'il existe, sinon le lead/contact (callId null) + son étape.
+  const base = { callId: (call.callId ?? undefined) as never, contactId: call.contactId ?? undefined, stage: call.kind }
+  const toggleObj = (code: string) => setObjCodes(cs => cs.includes(code) ? cs.filter(c => c !== code) : [...cs, code])
+  const wonObjection = objCodes.map(c => NONVENTE_OBJECTIONS.find(o => o.code === c)?.label ?? c).join(', ')
 
   async function submit(args: Parameters<typeof recordOutcome>[0]) {
     setBusy(true); setErr('')
@@ -247,80 +317,143 @@ function OutcomePanel({ call }: { call: Call }) {
     finally { setBusy(false) }
   }
 
-  function confirmGagne() {
+  // Valider : R1 → avance la carte en R2 (pas de montant) ; R2 → gagné (montant requis, garde anti "0 CHF").
+  async function confirmValide() {
+    // Objection obligatoire : on doit sélectionner au moins une objection levée avant de confirmer.
+    if (objCodes.length === 0) { setErr('Sélectionne au moins une objection levée.'); return }
+    if (!isR2) {
+      // R1 → R2 : on enregistre l'issue, PUIS on ouvre la réservation iClosed du R2.
+      setBusy(true); setErr('')
+      try { await recordOutcome({ ...base, outcome: 'valide', wonObjection: wonObjection || undefined }); setShowBooking(true) }
+      catch (e) { setErr(e instanceof Error ? e.message : "Erreur : issue non enregistrée.") }
+      finally { setBusy(false) }
+      return
+    }
     const raw = dealValue.replace(',', '.').trim()
     const parsed = parseFloat(raw)
     const hasValue = raw !== '' && Number.isFinite(parsed) && parsed > 0
-    // Anti "client à 0 CHF" : montant > 0 OBLIGATOIRE sauf si « Montant à définir » coché. On n'envoie jamais 0 muet.
     if (!hasValue && !amountTbd) { setErr('Indiquez un montant supérieur à 0 CHF, ou cochez « Montant à définir ».'); return }
-    submit({ callId: call.id as never, outcome: 'gagne', dealValue: hasValue ? parsed : undefined, amountTbd, wonObjection: wonObjection || undefined })
+    submit({ ...base, outcome: 'gagne', dealValue: hasValue ? parsed : undefined, amountTbd, wonObjection: wonObjection || undefined })
   }
 
-  const btn = (active: boolean, color: string) =>
-    `flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold border transition-colors ${active ? `${color} text-white border-transparent` : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text hover:border-[#C8CBD0]'}`
+  // Boutons sobres : fond neutre, l'icône porte la couleur. Actif = léger fond élevé + bord marqué.
+  const btn = (active: boolean) =>
+    `flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-medium border transition-colors ${active ? 'bg-soren-elevated border-soren-text/40 text-soren-text' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text hover:border-soren-text/25'}`
 
   return (
     <div className="mt-6">
-      <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide text-soren-muted mb-3">Issue de l&apos;appel<span className="flex-1 h-px bg-soren-border" /></div>
-      <div className="flex gap-2">
-        <button disabled={busy} onClick={() => { setErr(''); setMode(m => m === 'gagne' ? null : 'gagne') }} className={btn(mode === 'gagne', 'bg-[#16A34A]')}><Trophy size={14} />Gagné</button>
-        <button disabled={busy} onClick={() => { setErr(''); setMode(m => m === 'perdu' ? null : 'perdu') }} className={btn(mode === 'perdu', 'bg-[#DC2626]')}><XCircle size={14} />Perdu</button>
-        <button disabled={busy} onClick={() => submit({ callId: call.id as never, outcome: 'no_show' })} className={btn(false, '')}><UserMinus size={14} />No-show</button>
-        <button disabled={busy} onClick={() => { setErr(''); setMode(m => m === 'reprogrammer' ? null : 'reprogrammer') }} className={btn(mode === 'reprogrammer', 'bg-[#2563EB]')}><CalendarClock size={14} />Reprogrammer</button>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <span className="text-[12px] font-semibold uppercase tracking-wide text-soren-muted">Issue de l&apos;appel</span>
+        <span className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-soren-elevated border border-soren-border text-soren-muted whitespace-nowrap">Pipeline : <span className="text-soren-text font-semibold">{call.pipelineStage ? (STAGE_LABEL[call.pipelineStage] ?? call.pipelineStage) : (call.kind || '—')}</span></span>
       </div>
-
-      {err && <div className="mt-3 text-[12px] font-medium text-[#DC2626] bg-[#FEE2E2]/50 border border-[#FECACA] rounded-lg px-3 py-2">{err}</div>}
-
-      {mode === 'gagne' && (
-        <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4 flex flex-col gap-3">
-          <div>
-            <label className="block text-[11px] font-semibold text-soren-muted mb-1.5">Montant du deal (CHF)</label>
-            <input type="number" autoFocus placeholder="ex: 3500" value={dealValue} disabled={amountTbd}
-              onChange={e => setDealValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && confirmGagne()}
-              className="w-full bg-soren-card border border-soren-border rounded-xl px-3 py-2.5 text-[15px] font-bold text-soren-text outline-none focus:border-[#16A34A] disabled:opacity-40" />
-            <label className="mt-2 flex items-center gap-2 text-[12px] font-medium text-soren-text cursor-pointer select-none">
-              <input type="checkbox" checked={amountTbd} onChange={e => { setAmountTbd(e.target.checked); if (e.target.checked) setDealValue('') }} className="w-4 h-4 rounded accent-[#16A34A]" />
-              Montant à définir
-            </label>
-          </div>
-          <div>
-            <label className="block text-[11px] font-semibold text-soren-muted mb-1.5">Objection surmontée (optionnel)</label>
-            <input type="text" placeholder="ex: argent, partenaire…" value={wonObjection} onChange={e => setWonObjection(e.target.value)}
-              className="w-full bg-soren-card border border-soren-border rounded-xl px-3 py-2.5 text-[13px] text-soren-text outline-none focus:border-[#16A34A]" />
-          </div>
-          <button disabled={busy} onClick={confirmGagne} className="w-full py-2.5 rounded-xl bg-[#16A34A] hover:brightness-110 text-white text-[13px] font-bold transition-colors">Clôturer : gagné</button>
+      <div className="flex gap-2">
+        <button disabled={busy} onClick={() => { setErr(''); setMode(m => m === 'valide' ? null : 'valide') }} className={btn(mode === 'valide')}><Check size={14} className="text-emerald-600" />{isR2 ? 'Signé' : 'Passer au R2'}</button>
+        <button disabled={busy} onClick={() => { setErr(''); setMode(m => m === 'pasvalide' ? null : 'pasvalide') }} className={btn(mode === 'pasvalide')}><XCircle size={14} className="text-red-500" />Perdu</button>
+      </div>
+      {/* No-show récupérable : toujours dispo (la carte reste en pipeline). Reprogrammer : seulement si RDV booké. */}
+      {/* Reprogrammer : seulement si un vrai RDV iClosed est booké. Le No-show est une raison sous « Perdu ». */}
+      {hasCall && (
+        <div className="flex gap-2 mt-2">
+          <button disabled={busy} onClick={() => { setErr(''); setMode(m => m === 'reprogrammer' ? null : 'reprogrammer') }} className={btn(mode === 'reprogrammer')}><CalendarClock size={14} className="text-soren-subtle" />Reprogrammer</button>
         </div>
       )}
 
-      {mode === 'perdu' && (
-        <div className="mt-3 rounded-2xl border border-red-200 bg-red-50/40 p-4 flex flex-col gap-2">
-          <div className="text-[11px] font-semibold text-soren-muted mb-0.5">Raison de la non-vente</div>
-          {NONVENTE_REASONS.map(r => {
-            const Icon = r.icon
-            return (
-              <button key={r.code} disabled={busy} onClick={() => submit({ callId: call.id as never, outcome: 'perdu', lostReason: r.code })}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl border border-soren-border bg-soren-card text-left hover:border-[#DC2626] hover:bg-[#FEE2E2]/40 transition-colors">
-                <Icon size={16} className="text-[#DC2626] flex-shrink-0" />
-                <span className="min-w-0">
-                  <span className="block text-[12.5px] font-semibold text-soren-text">{r.label}</span>
-                  <span className="block text-[10.5px] text-soren-muted truncate">{r.desc}</span>
-                </span>
+      {err && <div className="mt-3 text-[12px] font-medium text-[#DC2626] bg-[#FEE2E2]/50 border border-[#FECACA] rounded-lg px-3 py-2">{err}</div>}
+
+      {mode === 'noshow' && (
+        <div className="mt-3 rounded-xl border border-soren-border bg-soren-elevated/40 p-4 flex flex-col gap-3">
+          <p className="text-[12.5px] font-medium text-soren-text">Vas-tu organiser un 2e rendez-vous ?</p>
+          <div className="flex gap-2">
+            <button disabled={busy} onClick={() => submit({ ...base, outcome: 'no_show' })} className="flex-1 py-2 rounded-lg border border-soren-text/30 bg-soren-card text-soren-text text-[12px] font-medium hover:bg-soren-elevated transition-colors">Oui : reste en pipeline</button>
+            <button disabled={busy} onClick={() => submit({ ...base, outcome: 'perdu', lostReason: 'non_presentation' })} className="flex-1 py-2 rounded-lg border border-red-300 bg-soren-card text-[#DC2626] text-[12px] font-medium hover:bg-[#FEE2E2]/40 transition-colors">Non : perdu</button>
+          </div>
+        </div>
+      )}
+
+      {mode === 'valide' && (
+        <div className={`mt-3 rounded-2xl border p-4 flex flex-col gap-4 ${isR2 ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-soren-border bg-soren-elevated/40'}`}>
+          {isR2 && (
+            <div className="flex flex-col gap-2">
+              <label className="text-[11.5px] font-semibold text-soren-text">Montant du deal</label>
+              <div className={`relative ${amountTbd ? 'opacity-40 pointer-events-none' : ''}`}>
+                <input type="number" autoFocus={!amountTbd} placeholder="3 500" value={dealValue} disabled={amountTbd}
+                  onChange={e => setDealValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && confirmValide()}
+                  className="w-full bg-soren-card border border-soren-border rounded-xl pl-4 pr-14 py-3 text-[18px] font-bold text-soren-text outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/15 transition-shadow" />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-soren-subtle pointer-events-none">CHF</span>
+              </div>
+              <button type="button" onClick={() => { const n = !amountTbd; setAmountTbd(n); if (n) setDealValue('') }}
+                className={`self-start inline-flex items-center gap-1.5 text-[11.5px] font-medium px-2.5 py-1 rounded-full border transition-colors ${amountTbd ? 'bg-soren-text/10 border-soren-text/30 text-soren-text' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text'}`}>
+                {amountTbd && <Check size={12} />} Montant à définir plus tard
               </button>
-            )
-          })}
+            </div>
+          )}
+          <div className="flex flex-col gap-2">
+            <label className="text-[11.5px] font-semibold text-soren-text">{isR2 ? 'Quelles objections as-tu levées ?' : 'Objections levées au R1'} <span className="text-soren-subtle font-normal">· au moins une</span></label>
+            <div className="flex flex-wrap gap-1.5">
+              {NONVENTE_OBJECTIONS.map(o => {
+                const Icon = o.icon
+                const on = objCodes.includes(o.code)
+                return (
+                  <button key={o.code} type="button" onClick={() => toggleObj(o.code)} title={o.desc}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium border transition-colors ${on ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-700' : 'bg-soren-card border-soren-border text-soren-muted hover:text-soren-text hover:border-soren-text/25'}`}>
+                    <Icon size={13} className={on ? 'text-emerald-600' : 'text-soren-subtle'} />{o.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <button disabled={busy} onClick={confirmValide}
+            className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-600/90 text-white text-[12px] font-medium tracking-tight shadow-sm hover:bg-emerald-600 transition-colors disabled:opacity-50">
+            <Check size={13} className="opacity-90" /> {isR2 ? 'Marquer comme signé' : 'Confirmer le passage au R2'}
+          </button>
+        </div>
+      )}
+
+      {mode === 'pasvalide' && (
+        <div className="mt-3 rounded-xl border border-soren-border bg-soren-elevated/40 p-4 flex flex-col gap-2">
+          <div className="text-[11px] font-medium text-soren-muted mb-1.5">Raison de la perte <span className="text-soren-subtle">: choisis une raison</span></div>
+          {/* Chips rouges (même rendu que les objections, en rouge). No-show (non_presentation) : ne clôt
+              pas direct → ouvre la question « 2e RDV ? » (Oui reste / Non perdu). */}
+          <div className="flex flex-wrap gap-1.5">
+            {NONVENTE_REASONS.map(r => {
+              const Icon = r.icon
+              const onPick = () => r.code === 'non_presentation'
+                ? (setErr(''), setMode('noshow'))
+                : submit({ ...base, outcome: 'perdu', lostReason: r.code })
+              return (
+                <button key={r.code} disabled={busy} onClick={onPick} title={r.desc}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium border bg-red-500/8 border-red-500/30 text-red-700 hover:bg-red-500/15 hover:border-red-500/50 transition-colors disabled:opacity-50">
+                  <Icon size={13} className="text-red-500" />{r.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
 
       {mode === 'reprogrammer' && (
-        <div className="mt-3 rounded-2xl border border-blue-200 bg-blue-50/40 p-4 flex flex-col gap-3">
+        <div className="mt-3 rounded-xl border border-soren-border bg-soren-elevated/40 p-4 flex flex-col gap-3">
           <div>
-            <label className="block text-[11px] font-semibold text-soren-muted mb-1.5">Nouvelle date</label>
+            <label className="block text-[11px] font-medium text-soren-muted mb-1.5">Nouvelle date</label>
             <input type="datetime-local" value={newDate} onChange={e => setNewDate(e.target.value)}
-              className="w-full bg-soren-card border border-soren-border rounded-xl px-3 py-2.5 text-[13px] font-semibold text-soren-text outline-none focus:border-[#2563EB]" />
+              className="w-full bg-soren-card border border-soren-border rounded-lg px-3 py-2.5 text-[13px] font-medium text-soren-text outline-none focus:border-soren-text/40" />
           </div>
-          <button disabled={busy || !newDate} onClick={() => submit({ callId: call.id as never, outcome: 'reprogrammer', newDate })}
-            className="w-full py-2.5 rounded-xl bg-[#2563EB] hover:brightness-110 text-white text-[13px] font-bold transition-colors disabled:opacity-40">Reprogrammer l&apos;appel</button>
+          <button disabled={busy || !newDate} onClick={() => submit({ ...base, outcome: 'reprogrammer', newDate })}
+            className="w-full py-2.5 rounded-lg bg-soren-text text-soren-card text-[13px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-40">Reprogrammer l&apos;appel</button>
         </div>
+      )}
+
+      {/* Passage R1 → R2 confirmé : réservation du R2 sur iClosed (nom/email/téléphone pré-remplis). */}
+      {showBooking && (
+        <IClosedBookingModal
+          label="R2"
+          bookingUrl={ICLOSED_R2_BOOKING_URL}
+          fullName={call.contact?.fullName ?? call.name}
+          email={call.contact?.email}
+          phone={call.contact?.phone}
+          onConfirm={() => { setShowBooking(false); reset() }}
+          onCancel={() => { setShowBooking(false); reset() }}
+        />
       )}
     </div>
   )
@@ -348,7 +481,9 @@ export default function ClosingView() {
   const loading = calls === null
   const [view, setView] = useState<'liste' | 'agenda'>('liste')
   const [search, setSearch] = useState('')
+  const [kindFilter, setKindFilter] = useState<'all' | 'R1' | 'R2'>('all')
   const filteredCalls = (calls ?? []).filter(c => {
+    if (kindFilter !== 'all' && c.kind !== kindFilter) return false
     const t = search.trim().toLowerCase()
     return !t || `${c.name} ${c.company ?? ''}`.toLowerCase().includes(t)
   })
@@ -362,29 +497,40 @@ export default function ClosingView() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* Onglets Liste / Calendrier — toujours visibles en tête du module Closing. */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3 flex-shrink-0">
-        {viewToggle}
-        <span className="text-[12px] text-soren-muted">{loading ? 'Chargement…' : (() => {
-          const all = calls ?? []
-          const nR2 = all.filter(c => c.kind === 'R2').length
-          return `${all.length} call${all.length > 1 ? 's' : ''}${all.length ? ` · ${all.length - nR2} R1 · ${nR2} R2` : ''}`
-        })()}</span>
-      </div>
-
       {view === 'agenda' ? (
+        <>
+        {/* Onglets Liste / Calendrier — en tête de la vue agenda. */}
+        <div className="flex items-center gap-3 px-4 pt-4 pb-3 flex-shrink-0">
+          {viewToggle}
+          <span className="text-[12px] text-soren-muted">{loading ? 'Chargement…' : (() => {
+            const all = calls ?? []
+            const nR2 = all.filter(c => c.kind === 'R2').length
+            return `${all.length} call${all.length > 1 ? 's' : ''}${all.length ? ` · ${all.length - nR2} R1 · ${nR2} R2` : ''}`
+          })()}</span>
+        </div>
         <div className="flex-1 overflow-y-auto">
           <CalendarAgenda calls={calls ?? []} onPick={(id) => { setOpenId(id); setView('liste') }} />
         </div>
+        </>
       ) : (
-      <div className="flex-1 grid grid-cols-[300px_1fr] overflow-hidden">
-        {/* liste des appels */}
-        <div className="border-r border-soren-border overflow-y-auto p-3.5 bg-soren-elevated/40">
+      <div className="flex-1 flex md:grid md:grid-cols-[248px_1fr] overflow-hidden">
+        {/* liste des appels — mobile : cachée quand une fiche est ouverte (master-détail) */}
+        <div className={`border-r border-soren-border flex-col overflow-hidden bg-soren-elevated/40 w-full md:w-auto ${openId ? 'hidden md:flex' : 'flex'}`}>
+          {/* En-tête colonne : onglets Liste / Calendrier, alignés avec la fiche de droite */}
+          <div className="flex items-center px-3.5 pt-4 pb-3 flex-shrink-0">{viewToggle}</div>
+          <div className="overflow-y-auto px-3.5 pb-3.5 flex-1">
+          {/* Filtre R1 / R2 : segmenté sobre, au-dessus de la recherche */}
+          <div className="flex bg-soren-elevated border border-soren-border rounded-lg p-[2px] text-[10px] font-medium mb-2">
+            {([['all', 'Tous'], ['R1', 'R1'], ['R2', 'R2']] as const).map(([k, label]) => (
+              <button key={k} onClick={() => setKindFilter(k)}
+                className={`flex-1 px-1.5 py-1 rounded-md transition-colors ${kindFilter === k ? 'bg-soren-card text-soren-text shadow-sm' : 'text-soren-muted hover:text-soren-text'}`}>{label}</button>
+            ))}
+          </div>
           {/* Recherche contact */}
-          <div className="flex items-center gap-2 bg-soren-elevated border border-soren-border rounded-xl px-3 py-2 mb-2.5">
-            <Search size={13} className="text-soren-subtle flex-shrink-0" />
+          <div className="flex items-center gap-2 bg-soren-elevated border border-soren-border rounded-lg px-2.5 py-1.5 mb-2">
+            <Search size={12} className="text-soren-subtle flex-shrink-0" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un contact…"
-              className="flex-1 bg-transparent text-[12px] text-soren-text placeholder-[#9CA3AF] outline-none" />
+              className="flex-1 bg-transparent text-[11px] text-soren-text placeholder-[#9CA3AF] outline-none" />
           </div>
           <div className="text-[11px] font-semibold uppercase tracking-wider text-soren-subtle px-2 pb-2.5">
             {loading ? 'Chargement…' : `${filteredCalls.length} appel${filteredCalls.length > 1 ? 's' : ''}`}
@@ -399,19 +545,20 @@ export default function ClosingView() {
             const sub = [c.company, c.date ? `Rendez-vous ${fmtRdv(c.date)}` : null].filter(Boolean).join(' · ')
             return (
               <div key={c.id} role="button" tabIndex={0} onClick={() => setOpenId(c.id)}
-                className={`cursor-pointer text-left px-3 py-2 rounded-xl mb-1.5 transition-colors ${sel ? 'bg-[#FF4D00] text-white' : 'hover:bg-soren-elevated text-soren-text'}`}>
+                className={`cursor-pointer text-left px-2.5 py-1.5 rounded-lg mb-1 transition-colors ${sel ? 'bg-[#FF4D00] text-white' : 'hover:bg-soren-elevated text-soren-text'}`}>
                 <div className="flex items-center gap-1.5">
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 ${sel ? 'bg-white/25 text-white' : c.kind === 'R2' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{c.kind}</span>
-                  <span className="font-semibold text-[12px] truncate flex-1 min-w-0">{c.name}</span>
+                  <span className={`text-[8.5px] font-bold px-1 py-0.5 rounded flex-shrink-0 ${sel ? 'bg-white/25 text-white' : c.kind === 'R2' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{c.kind}</span>
+                  <span className="font-semibold text-[11px] truncate flex-1 min-w-0">{c.name}</span>
                 </div>
-                <div className={`text-[10px] mt-0.5 truncate ${sel ? 'text-white/70' : 'text-soren-subtle'}`}>{sub || 'Sans date'}</div>
+                <div className={`text-[9px] mt-0.5 truncate ${sel ? 'text-white/70' : 'text-soren-subtle'}`}>{sub || 'Sans date'}</div>
               </div>
             )
           })}
+          </div>
         </div>
 
-        {/* fiche de prep */}
-        <div className="overflow-y-auto p-6">
+        {/* fiche de prep — mobile : affichée seulement quand une fiche est ouverte */}
+        <div className={`overflow-y-auto px-4 md:px-6 pt-4 pb-6 w-full md:w-auto flex-1 ${openId ? 'block' : 'hidden md:block'}`}>
           {!selected ? (
             <div className="h-full flex flex-col items-center justify-center text-soren-muted gap-3">
               <Phone size={30} className="opacity-40" />
@@ -419,12 +566,16 @@ export default function ClosingView() {
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-[13px] bg-soren-elevated border border-soren-border flex items-center justify-center font-bold text-[17px] text-soren-accent">{selected.initials}</div>
+              {/* Retour à la liste — mobile uniquement */}
+              <button onClick={() => setOpenId(null)} className="md:hidden inline-flex items-center gap-1 text-[12px] font-semibold text-soren-muted mb-3 -ml-1">
+                <ChevronLeft size={16} /> Retour aux appels
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-[11px] bg-soren-elevated border border-soren-border flex items-center justify-center font-bold text-[14px] text-soren-accent">{selected.initials}</div>
                 <div>
-                  <h2 className="text-[19px] font-bold tracking-tight">{selected.name}</h2>
-                  <div className="flex items-center flex-wrap gap-2 mt-1 text-[13px] text-soren-muted">
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${selected.kind === 'R2' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{selected.kind}</span>
+                  <h2 className="text-[16px] font-bold tracking-tight">{selected.name}</h2>
+                  <div className="flex items-center flex-wrap gap-1.5 mt-0.5 text-[12px] text-soren-muted">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${selected.kind === 'R2' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{selected.kind}</span>
                     {selected.calendarSlug && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                         style={/out/i.test(selected.calendarSlug)
@@ -441,10 +592,27 @@ export default function ClosingView() {
                       </span>
                     )}
                     {selected.company && <span>{selected.company}</span>}
-                    {selected.date && <span>· Rendez-vous {fmtRdv(selected.date)}</span>}
                   </div>
                 </div>
               </div>
+
+              {/* Le rendez-vous : information la plus utile de la fiche, elle était noyée
+                  en fin de ligne dans du gris 12px. Bloc dédié + compte à rebours + visio. */}
+              {selected.date && (
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-soren-border bg-soren-elevated/50 px-3.5 py-2.5">
+                  <span className="flex items-center gap-2">
+                    <CalendarClock size={16} className="text-soren-accent flex-shrink-0" />
+                    <span className="text-[15px] font-bold tracking-tight text-soren-text">{fmtRdv(selected.date)}</span>
+                  </span>
+                  <span className="text-[11.5px] font-semibold px-2 py-0.5 rounded-full bg-soren-card border border-soren-border text-soren-muted">{relRdv(selected.date)}</span>
+                  {selected.meetLink && (
+                    <a href={selected.meetLink} target="_blank" rel="noreferrer"
+                      className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] font-semibold bg-[#FF4D00] text-white hover:brightness-110">
+                      <Video size={13} />Rejoindre
+                    </a>
+                  )}
+                </div>
+              )}
 
               {/* Brief closer : 4 cards persona éditables + marque de passage de l'agent */}
               <div className="flex items-center gap-2 mt-5 mb-3">
@@ -464,15 +632,18 @@ export default function ClosingView() {
                 )}
                 <span className="flex-1 h-px bg-soren-border" />
               </div>
-              <EditableBrief callId={selected.id} md={selected.bioMarkdown ?? ''} name={selected.name} />
+              {(selected.callId || selected.contactId)
+                ? <EditableBrief callId={selected.callId ?? null} contactId={selected.contactId ?? null} md={selected.bioMarkdown ?? ''} name={selected.name} />
+                : <p className="text-[12px] text-soren-subtle italic">Aucun contact lié : le brief ne peut pas être préparé.</p>}
 
-              {/* Objections déjà surmontées (R2) */}
+              {/* Objections déjà surmontées au R1 (rappel sur la fiche R2) */}
               {(selected.kind === 'R2' && (selected.wonObjection || (selected.objections?.length ?? 0) > 0)) && (
                 <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5">
-                  <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-700 mb-2"><ShieldAlert size={13} /> Au R1 : déjà traité (ne pas rouvrir)</div>
+                  <div className="flex items-center gap-1.5 mb-1"><ShieldAlert size={14} className="text-emerald-600" /><span className="text-[12.5px] font-bold text-emerald-800">Objections surmontées au R1</span></div>
+                  <p className="text-[10.5px] text-emerald-700/80 mb-2.5">Déjà levées au premier appel : pas besoin d&apos;y revenir.</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {selected.wonObjection && <span className="text-[11.5px] font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-800">surmonté : {selected.wonObjection}</span>}
-                    {(selected.objections ?? []).map((o, i) => <span key={i} className="text-[11.5px] font-medium px-2 py-1 rounded-full bg-emerald-100/70 text-emerald-700">{o}</span>)}
+                    {selected.wonObjection && <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-800"><Check size={11} /> {selected.wonObjection}</span>}
+                    {(selected.objections ?? []).map((o, i) => <span key={i} className="inline-flex items-center gap-1 text-[11.5px] font-medium px-2 py-1 rounded-full bg-emerald-100/70 text-emerald-700"><Check size={11} /> {o}</span>)}
                   </div>
                 </div>
               )}
@@ -497,25 +668,37 @@ export default function ClosingView() {
                     <QuizAccordion title="Quiz Meta Ads (diagnostic)" color="#1877F2" questions={QUIZ_DIAGNOSTIC} answerMap={answerMap} />
                     <QuizAccordion title="Quiz confirmation" color="#FF4D00" questions={QUIZ_CONFIRMATION} answerMap={answerMap} />
                     <QuizAccordion title="Réservation iClosed (Audit IA offert)" color="#10B981" questions={QUIZ_BOOKING} answerMap={answerMap} defaultOpen />
+                    {/* Filet de sécurité : toute réponse captée dont la question n'est dans AUCUNE
+                        des trois listes ci-dessus. Sans ça, modifier un libellé sur un formulaire
+                        faisait disparaître la réponse de la fiche, sans que personne le voie. */}
+                    {(() => {
+                      const connues = new Set([...QUIZ_DIAGNOSTIC, ...QUIZ_CONFIRMATION, ...QUIZ_BOOKING].map(normQ))
+                      const autres = [...answerMap.entries()].filter(([k]) => !connues.has(k))
+                      if (!autres.length) return null
+                      const libelle = new Map<string, string>()
+                      for (const qa of [...(selected.bookingAnswers ?? []), ...(selected.quizAnswers ?? [])]) libelle.set(normQ(qa.q), qa.q)
+                      return <QuizAccordion title="Autres réponses captées" color="#6B7280"
+                        questions={autres.map(([k]) => libelle.get(k) ?? k)} answerMap={answerMap} />
+                    })()}
                   </>
                 )
               })()}
 
-              <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide text-soren-muted mt-6 mb-3">Notes du closer · retour après appel<span className="flex-1 h-px bg-soren-border" /></div>
-              <textarea value={note} onChange={e => setNote(e.target.value)}
-                onBlur={() => selected && saveNote({ id: selected.id as never, notes: note })}
-                placeholder="Retour après l'appel : ce qui a été dit, objections rencontrées, prochaine étape…"
-                className="w-full bg-soren-card border border-soren-border rounded-[13px] p-3.5 text-[13px] min-h-[100px] outline-none focus:border-soren-accent resize-y" />
-              <div className="flex justify-end gap-2 mt-3">
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-soren-muted mt-5 mb-2">Notes du closer · retour après appel<span className="flex-1 h-px bg-soren-border" /></div>
+              <textarea value={note} onChange={e => setNote(e.target.value)} disabled={!selected.callId}
+                onBlur={() => selected?.callId && saveNote({ id: selected.callId as never, notes: note })}
+                placeholder={selected.callId ? "Retour après l'appel : ce qui a été dit, objections rencontrées, prochaine étape…" : "Notes disponibles une fois le RDV iClosed booké."}
+                className="w-full bg-soren-card border border-soren-border rounded-lg p-2.5 text-[11.5px] leading-[1.45] min-h-[64px] outline-none focus:border-soren-accent resize-y disabled:opacity-50" />
+              {/* Issue de l'appel : clôture R1/R2 (gagné / perdu / no-show / reprogrammer). Placée au-dessus de la ligne Fiche contact / Enregistrer. */}
+              <OutcomePanel key={selected.id} call={selected} />
+
+              <div className="flex justify-end gap-2 mt-6">
                 {selected.contact && (
                   <a href={`/contacts?c=${encodeURIComponent(selected.contact.id)}`} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] font-semibold border border-soren-border bg-soren-card text-soren-muted hover:text-soren-text"><FileText size={12} />Fiche contact</a>
                 )}
-                <button onClick={() => selected && saveNote({ id: selected.id as never, notes: note })}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] font-semibold bg-[#FF4D00] text-white hover:brightness-110"><Save size={12} />Enregistrer</button>
+                <button disabled={!selected.callId} onClick={() => selected?.callId && saveNote({ id: selected.callId as never, notes: note })}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] font-semibold bg-[#FF4D00] text-white hover:brightness-110 disabled:opacity-50"><Save size={12} />Enregistrer</button>
               </div>
-
-              {/* Issue de l'appel : clôture R1/R2 (gagné / perdu / no-show / reprogrammer). */}
-              <OutcomePanel key={selected.id} call={selected} />
               <div className="h-6" />
             </>
           )}

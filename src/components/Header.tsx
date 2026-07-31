@@ -140,7 +140,7 @@ export default function Header() {
   }, [])
 
   return (
-    <header className="fixed top-0 left-56 right-0 h-12 bg-soren-app border-b border-soren-border/50 flex items-center px-5 gap-4 z-40">
+    <header className="vf-header-offset fixed top-0 right-0 h-12 bg-soren-app border-b border-soren-border/50 flex items-center px-5 gap-4 z-40">
       {/* Breadcrumb */}
       <div className="flex items-center gap-1.5 flex-1 min-w-0">
         <span className="text-xs font-semibold uppercase tracking-wider text-soren-subtle">VividFlow</span>
@@ -227,13 +227,20 @@ export default function Header() {
 
         <NotificationBell />
 
-        {/* Theme toggle */}
+        {/* Theme toggle — interrupteur clair / sombre */}
         <button
           onClick={toggleTheme}
-          aria-label="Basculer le thème"
-          className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full text-soren-muted hover:text-soren-text hover:bg-soren-elevated transition-all"
+          role="switch"
+          aria-checked={mounted && theme === 'dark'}
+          aria-label="Basculer le thème clair ou sombre"
+          title={mounted && theme === 'dark' ? 'Passer en clair' : 'Passer en sombre'}
+          className={`relative w-[46px] h-[24px] flex-shrink-0 rounded-full border transition-colors ${mounted && theme === 'dark' ? 'bg-soren-sidebar border-soren-sidebar' : 'bg-soren-elevated border-soren-border'}`}
         >
-          {mounted && theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+          <span
+            className={`absolute top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full bg-soren-card shadow-sm flex items-center justify-center transition-all duration-200 ${mounted && theme === 'dark' ? 'left-[24px]' : 'left-[3px]'}`}
+          >
+            {mounted && theme === 'dark' ? <Moon size={11} className="text-soren-text" /> : <Sun size={11} className="text-amber-500" />}
+          </span>
         </button>
       </div>
     </header>

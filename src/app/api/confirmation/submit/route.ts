@@ -34,22 +34,34 @@ export async function POST(req: NextRequest) {
     if (!url) return NextResponse.json({ error: 'config manquante' }, { status: 500, headers: CORS })
     const cx = new ConvexHttpClient(url)
 
-    // 1) Créer (ou dédupliquer) la fiche contact : nouveau lead INBOUND (quiz = acquisition Meta).
-    //    crm_contacts.create déduplique par email/téléphone, donc idempotent.
+    // 1) Fiche contact. ⚠️ On ne crée QUE si le prospect est inconnu : un lead OUTBOUND
+    //    qui remplit ce questionnaire ne doit pas voir sa source basculer en inbound
+    //    (l'attribution de la campagne serait perdue).
     const fullName = (str(b.fullName) || str(b.email) || 'Prospect').trim()
     const [firstName, ...rest] = fullName.split(/\s+/)
+    const nrm = (v?: string) => (v ?? '').trim().toLowerCase()
+    const digits = (v?: string) => (v ?? '').replace(/\D/g, '')
     try {
-      await cx.mutation(api.crm_contacts.create, {
-        firstName: firstName || 'Prospect',
-        lastName: rest.join(' ') || undefined,
-        email: str(b.email) || undefined,
-        phone: str(b.phone) || undefined,
-        companyName: str(b.company) || undefined,
-        source: 'inbound',
-        statut: 'lead',
-      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const contacts: any[] = await cx.query(api.crm_contacts.list, {})
+      const em = nrm(str(b.email)), ph = digits(str(b.phone)), nm = nrm(fullName)
+      const known = contacts.find((c) =>
+        (em && nrm(c.email) === em) ||
+        (ph.length >= 9 && digits(c.phone) === ph) ||
+        (nm && nrm([c.firstName, c.lastName].filter(Boolean).join(' ')) === nm))
+      if (!known) {
+        await cx.mutation(api.crm_contacts.create, {
+          firstName: firstName || 'Prospect',
+          lastName: rest.join(' ') || undefined,
+          email: str(b.email) || undefined,
+          phone: str(b.phone) || undefined,
+          companyName: str(b.company) || undefined,
+          source: 'inbound',
+          statut: 'lead',
+        })
+      }
     } catch (e) {
-      console.error('[confirmation/submit] contact create', e)
+      console.error('[confirmation/submit] contact lookup/create', e)
     }
 
     // 2) Enregistrer les réponses (auto-liées au contact par email).
@@ -67,6 +79,8 @@ export async function POST(req: NextRequest) {
       budget:            str(b.budget) || undefined,
       answersJson,
       raw:               b,
+      addedToCalendar:   typeof b.addedToCalendar === 'boolean' ? b.addedToCalendar : undefined,
+      iclosedExternalId: str(b.iclosedExternalId) || str(b.iclosedId) || undefined,
     })
     return NextResponse.json({ ok: true, id }, { headers: CORS })
   } catch (err) {
