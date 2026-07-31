@@ -204,6 +204,38 @@ export default function ProspectionCockpit() {
           </div>
         </div>
 
+        {/* Choix du parcours : des mots, pas des boutons. L'actif passe en gras et se souligne. */}
+        <div className="flex items-center gap-5 mb-4 flex-wrap border-b border-soren-border/60">
+          {FUNNEL_CONFIGS.map((c) => {
+            const active = c.id === cfg.id
+            return (
+              <button key={c.id} onClick={() => pickConfig(c.id)} title={c.tagline}
+                className={`relative text-[12px] pb-2 -mb-px transition-colors ${
+                  active ? 'font-bold text-soren-text' : 'font-medium text-soren-subtle hover:text-soren-muted'
+                }`}>
+                {c.label}
+                {active && <span className="absolute left-0 right-0 -bottom-px h-[2px] bg-soren-text rounded-full" />}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* ===== Performance (fusionné) ===== */}
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2.5">
+          <h2 className="text-[15px] font-bold tracking-tight text-soren-text">Performance Équipe</h2>
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1 bg-soren-card border border-soren-border rounded-full p-0.5">
+              {PERIODS.map(p => (
+                <button key={p.key} onClick={() => setPreset(p.key)}
+                  className={`text-[11.5px] font-semibold px-3 py-1 rounded-full transition-colors ${preset === p.key ? 'bg-soren-sidebar text-white' : 'text-soren-muted hover:text-soren-text'}`}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => { setObjScope('all'); setObjOpen(true) }} className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-white bg-[#FF4D00] px-3 py-1.5 rounded-full shadow-sm"><Target size={12} /> Objectif</button>
+          </div>
+        </div>
+
         {/* Choix du parcours : même squelette, autres noms d'étapes */}
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           {FUNNEL_CONFIGS.map((c) => (
