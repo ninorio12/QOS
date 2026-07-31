@@ -209,37 +209,6 @@ export default function ProspectionCockpit() {
           })}
         </div>
 
-        {/* ===== Performance (fusionné) ===== */}
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-2.5">
-          <h2 className="text-[15px] font-bold tracking-tight text-soren-text">Performance Équipe</h2>
-          <div className="flex items-center gap-2.5">
-            <div className="flex items-center gap-1 bg-soren-card border border-soren-border rounded-full p-0.5">
-              {PERIODS.map(p => (
-                <button key={p.key} onClick={() => setPreset(p.key)}
-                  className={`text-[11.5px] font-semibold px-3 py-1 rounded-full transition-colors ${preset === p.key ? 'bg-soren-sidebar text-white' : 'text-soren-muted hover:text-soren-text'}`}>
-                  {p.label}
-                </button>
-              ))}
-            </div>
-            <button onClick={() => { setObjScope('all'); setObjOpen(true) }} className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-white bg-[#FF4D00] px-3 py-1.5 rounded-full shadow-sm"><Target size={12} /> Objectif</button>
-          </div>
-        </div>
-
-        {/* Choix du parcours : même squelette, autres noms d'étapes */}
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          {FUNNEL_CONFIGS.map((c) => (
-            <button key={c.id} onClick={() => pickConfig(c.id)} title={c.tagline}
-              className={`text-[12px] font-semibold px-3.5 py-1.5 rounded-full border transition-colors ${
-                c.id === cfg.id
-                  ? 'bg-soren-sidebar text-white border-transparent'
-                  : 'bg-soren-card text-soren-muted border-soren-border hover:text-soren-text'
-              }`}>
-              {c.label}
-            </button>
-          ))}
-          <span className="text-[10.5px] text-soren-subtle ml-1">{cfg.tagline}</span>
-        </div>
-
 
         {/* Ligne 1 : Funnel (grand) + 6 cards 2×2 */}
         <div className={`grid grid-cols-1 lg:grid-cols-12 gap-5 mb-5 items-stretch transition-opacity duration-300 ${refreshing ? 'opacity-50' : 'opacity-100'}`}>
@@ -286,7 +255,9 @@ export default function ProspectionCockpit() {
         </div>
 
         {/* Ligne 2 : métiers (anneau de score + diagnostic) */}
-        <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
+        {/* La grille suit le NOMBRE de cartes du parcours : trois en social (sans
+            emailing), quatre ailleurs. Sinon la dernière colonne reste vide. */}
+        <div className={`grid md:grid-cols-2 gap-4 mb-5 ${cfg.id === 'social' ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
           <RoleCard title={cfg.roles.media.title} score={scorecards?.publicite}
             rows={cfg.roles.media.rows.map(r => [r.label, pubEmpty && (r.key === 'cpl' || r.key === 'coutParAbonne') ? 'N/A' : roleValue(r.key)] as [string, string])} />
           <RoleCard title={cfg.roles.setting.title} score={scorecards?.setters}
