@@ -36,7 +36,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <MobileNav />
 
       {/* Main content */}
-      <main className="vf-main-offset pt-14 md:pt-12 pb-28 md:pb-0 md:h-screen md:overflow-y-auto">
+      <main className="vf-main-offset vf-main-top md:pt-12 pb-28 md:pb-0 md:h-screen md:overflow-y-auto">
         <PageTransition>{children}</PageTransition>
       </main>
     </div>

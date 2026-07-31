@@ -35,6 +35,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // Indispensable en mode application installée : sans lui, iOS ne renseigne pas
+  // les zones de sécurité et la barre du bas passe sous l'indicateur d'accueil.
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({

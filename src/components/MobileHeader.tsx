@@ -65,7 +65,7 @@ export default function MobileHeader() {
   }, [])
 
   return (
-    <header className="vf-mobile-header flex md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-soren-app border-b border-soren-border items-center justify-between px-4">
+    <header className="vf-mobile-header flex md:hidden fixed top-0 left-0 right-0 z-40 h-14 pt-safe box-content bg-soren-app border-b border-soren-border items-center justify-between px-4">
       <div className="flex items-center gap-2 min-w-0">
         <Link href="/modules" aria-label="Tous les modules" className="w-9 h-9 -ml-1 flex items-center justify-center rounded-full text-soren-text active:bg-soren-elevated transition-colors">
           <LayoutGrid size={19} />
