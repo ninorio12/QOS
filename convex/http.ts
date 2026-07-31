@@ -46,7 +46,7 @@ http.route({
     try {
       if (event.type === "charge.succeeded") {
         const c = event.data.object
-        await ctx.runMutation(api.stripePayments.upsertFromStripe, {
+        await ctx.runMutation(internal.stripePayments.upsertFromStripe, {
           stripeId: c.id, type: "payment", status: "succeeded",
           amount: toMajor(c.amount, c.currency), currency: c.currency,
           customerId: typeof c.customer === "string" ? c.customer : undefined,
@@ -58,7 +58,7 @@ http.route({
       } else if (event.type === "charge.refunded") {
         const c = event.data.object
         for (const r of c.refunds?.data ?? []) {
-          await ctx.runMutation(api.stripePayments.upsertFromStripe, {
+          await ctx.runMutation(internal.stripePayments.upsertFromStripe, {
             stripeId: r.id, type: "refund", status: r.status === "succeeded" ? "succeeded" : (r.status ?? "pending"),
             amount: toMajor(r.amount, r.currency), currency: r.currency,
             customerId: typeof c.customer === "string" ? c.customer : undefined,
@@ -71,7 +71,7 @@ http.route({
       } else if (event.type === "charge.pending") {
         // Paiement en cours (prélèvement bancaire qui met quelques jours…) → status 'pending'.
         const c = event.data.object
-        await ctx.runMutation(api.stripePayments.upsertFromStripe, {
+        await ctx.runMutation(internal.stripePayments.upsertFromStripe, {
           stripeId: c.id, type: "payment", status: "pending",
           amount: toMajor(c.amount, c.currency), currency: c.currency,
           customerId: typeof c.customer === "string" ? c.customer : undefined,
@@ -83,7 +83,7 @@ http.route({
       } else if (event.type === "charge.failed") {
         // Paiement échoué (carte refusée…) → enregistré en status 'failed' (relances possibles).
         const c = event.data.object
-        await ctx.runMutation(api.stripePayments.upsertFromStripe, {
+        await ctx.runMutation(internal.stripePayments.upsertFromStripe, {
           stripeId: c.id, type: "payment", status: "failed",
           amount: toMajor(c.amount, c.currency), currency: c.currency,
           customerId: typeof c.customer === "string" ? c.customer : undefined,
@@ -95,7 +95,7 @@ http.route({
       } else if (event.type === "charge.dispute.created" || event.type === "charge.dispute.closed") {
         // Litige / chargeback → type 'dispute', status open|won|lost (argent à risque).
         const d = event.data.object
-        await ctx.runMutation(api.stripePayments.upsertFromStripe, {
+        await ctx.runMutation(internal.stripePayments.upsertFromStripe, {
           stripeId: d.id, type: "dispute",
           status: event.type === "charge.dispute.created" ? "open" : (d.status ?? "closed"),
           amount: toMajor(d.amount, d.currency), currency: d.currency,
@@ -107,6 +107,68 @@ http.route({
       return new Response("OK", { status: 200 })
     } catch (err) {
       console.error("[Stripe] webhook erreur:", err)
+      return new Response("Erreur", { status: 500 })
+    }
+  }),
+})
+
+// ─── Webhook iClosed (temps réel) ───────────────────────────────────────────
+// iClosed signe ses payloads mais sans schéma public documenté → on n'exploite PAS le corps.
+// Le webhook n'est qu'un DÉCLENCHEUR : on re-synchronise la donnée autoritaire via l'API eventCalls
+// (api.iclosed.syncRecent). Conséquence sécu : un appel forgé ne peut au pire que relancer un sync
+// d'un vrai RDV iClosed (aucune donnée fabriquée ne peut être injectée). Défense en profondeur :
+// secret partagé requis (env ICLOSED_WEBHOOK_SECRET) via header `x-iclosed-secret` ou query `?secret=`.
+http.route({
+  path: "/iclosed/webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const secret = process.env.ICLOSED_WEBHOOK_SECRET
+    if (!secret) return new Response("iClosed webhook non configuré", { status: 400 })
+    const provided = request.headers.get("x-iclosed-secret") ?? new URL(request.url).searchParams.get("secret")
+    if (provided !== secret) return new Response("Non autorisé", { status: 401 })
+    try {
+      // 1) Ingestion DIRECTE du payload du webhook : le RDV est créé même si la clé API
+      //    iClosed est révoquée (vécu le 28/07/2026 : plus aucun RDV ne remontait alors que
+      //    les bookings continuaient). Le webhook porte déjà tout ce dont on a besoin.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let ingested: any = null
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const body: any = await request.clone().json()
+        const c = body?.data?.eventCall ?? body?.eventCall ?? body?.data ?? body
+        const ev = c?.event ?? {}
+        const externalId = String(c?.id ?? c?.callId ?? "")
+        const email = c?.inviteeEmail ?? c?.invitee?.email
+        const startRaw = c?.dateTimeUTC ?? c?.dateTime ?? c?.startTime
+        const evName = String(ev?.name ?? "").toLowerCase()
+        const evSlug = String(ev?.linkPrefix ?? "").toLowerCase()
+        if (externalId && (email || c?.inviteeName)) {
+          if (c?.cancelReason) {
+            ingested = await ctx.runMutation(api.closing.cancelCallByExternalId, { externalId })
+          } else if (!evName.includes("kick") && !evSlug.includes("kick") && startRaw) {
+            ingested = await ctx.runMutation(api.closing.scheduleCall, {
+              title: `R1 · ${c?.inviteeName ?? email}`,
+              email: email ?? undefined,
+              stage: "R1",
+              date: new Date(String(startRaw)).toISOString(),
+              externalId,
+              meetLink: c?.meetingUrl ?? c?.location ?? undefined,
+              calendarLabel: ev?.name ?? undefined,
+              calendarSlug: ev?.linkPrefix ?? undefined,
+            })
+          }
+        }
+      } catch (e) {
+        console.error("[iClosed] ingestion directe impossible:", e)
+      }
+      // 2) Puis le sync complet en filet (rattrape les kickoffs, annulations, reschedules).
+      //    S'il échoue (clé révoquée), l'ingestion directe a déjà fait le travail.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let sync: any = null
+      try { sync = await ctx.runAction(api.iclosed.syncRecent, {}) } catch (e) { sync = { ok: false, error: String(e).slice(0, 200) } }
+      return new Response(JSON.stringify({ ingested, sync }), { status: 200, headers: { "content-type": "application/json" } })
+    } catch (err) {
+      console.error("[iClosed] webhook erreur:", err)
       return new Response("Erreur", { status: 500 })
     }
   }),

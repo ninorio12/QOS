@@ -1,5 +1,98 @@
 import { mutation } from "./_generated/server"
 
+// Seed : insère LE SOP simple d'install Hermes (1 VPS / client, sans Docker) dans le module Process. Idempotent.
+export const seedSopHermes = mutation({
+  handler: async (ctx) => {
+    const all = await ctx.db.query("processes").collect()
+    // Nettoyage des anciennes versions (titres remplacés ; plus de fiche Docker/multi-tenant)
+    const obsoletes = [
+      "SOP — Déployer Hermes sur un VPS client (neuf, mémoire vierge)",
+      "SOP — Hermes UNI-TENANT (1 VPS par client, sur l'hôte, sans Docker)",
+      "SOP — Hermes MULTI-TENANT (Docker, N clients sur infra partagée)",
+    ]
+    for (const p of all) { if (obsoletes.includes(p.title)) await ctx.db.delete(p._id) }
+
+    const title = "Installer Hermes sur le VPS d'un client"
+    const sop = [
+      "<p><strong>But : installer un assistant IA (Hermes) sur le serveur d'un client, avec une mémoire qui se souvient de tout, et une page web pour lui parler. Tout reste sur SON serveur, et sa mémoire démarre VIDE (aucune de nos données).</strong></p>",
+      "<p><br></p>",
+      "<p><strong>Avant de commencer, il te faut :</strong></p>",
+      "<ul><li>l'adresse (IP) du serveur du client et son mot de passe root</li><li>le compte ChatGPT Pro (Codex) à connecter sur cet agent</li></ul>",
+      "<p><br></p>",
+      "<p><strong>Étape 1 : se connecter au serveur du client</strong></p>",
+      "<p>Tape : <strong>ssh root@IP_DU_CLIENT</strong> (puis le mot de passe).</p>",
+      "<p>Ça fait : tu es maintenant DANS le serveur du client.</p>",
+      "<p>Vérifie : tu vois une ligne qui ressemble à root@serveur:~#</p>",
+      "<p><br></p>",
+      "<p><strong>Étape 2 : installer les petits outils de base</strong></p>",
+      "<p>Tape : <strong>apt update && apt install -y unzip git curl</strong></p>",
+      "<p>Ça fait : installe des outils dont la suite a besoin.</p>",
+      "<p>Vérifie : pas de message d'erreur rouge à la fin.</p>",
+      "<p><br></p>",
+      "<p><strong>Étape 3 : installer Hermes (l'agent qui parle)</strong></p>",
+      "<p>Tape : <strong>curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash --skip-setup</strong></p>",
+      "<p>Ça fait : installe l'agent Hermes sur le serveur.</p>",
+      "<p>Vérifie : tape <strong>hermes --version</strong>, tu dois voir v0.17.</p>",
+      "<p><br></p>",
+      "<p><strong>Étape 4 : choisir le modèle (Codex via ChatGPT Pro) et se connecter</strong></p>",
+      "<p>Tape ces 2 lignes :</p>",
+      "<ul><li>hermes config set model.provider openai-codex</li><li>hermes config set display.tool_progress off</li></ul>",
+      "<p>Puis connecte le compte ChatGPT Pro : <strong>hermes auth add openai-codex</strong> et suis le lien de connexion qui s'affiche.</p>",
+      "<p>Ça fait : l'agent réfléchit avec Codex via l'abonnement ChatGPT Pro (pas de facturation au token).</p>",
+      "<p>Vérifie : tape <strong>hermes -z \"dis OK\"</strong>, il doit répondre OK.</p>",
+      "<p><br></p>",
+      "<p><strong>Étape 5 : installer la mémoire qui se souvient (GBrain)</strong></p>",
+      "<p>5a. Le moteur qui range les souvenirs (Ollama) : <strong>curl -fsSL https://ollama.com/install.sh | sh</strong> puis <strong>ollama pull nomic-embed-text</strong></p>",
+      "<p>5b. L'outil bun : <strong>curl -fsSL https://bun.sh/install | bash</strong> puis recharge le terminal (ou tape : export PATH=\"$HOME/.bun/bin:$PATH\").</p>",
+      "<p>5c. GBrain : <strong>git clone https://github.com/garrytan/gbrain.git ~/gbrain</strong> puis <strong>cd ~/gbrain && bun install && bun link</strong></p>",
+      "<p>5d. Créer la mémoire VIDE : <strong>gbrain init --pglite --embedding-model ollama:nomic-embed-text</strong></p>",
+      "<p>Ça fait : l'agent a maintenant une mémoire à long terme.</p>",
+      "<p>Vérifie : tape <strong>gbrain doctor</strong>, tu dois voir une ligne verte \"embedding_provider ... DB aligned\".</p>",
+      "<p>Attention : prends bien <strong>nomic-embed-text</strong> (et pas all-minilm), sinon la mémoire refuse de marcher.</p>",
+      "<p><br></p>",
+      "<p><strong>Étape 6 : brancher la mémoire à l'agent (pour qu'il s'en serve tout seul)</strong></p>",
+      "<p>Mets le petit script <strong>brain-recall</strong> dans le dossier ~/.hermes/agent-hooks/ (il lit la question, cherche dans la mémoire, et renvoie ce qu'il trouve).</p>",
+      "<p>Puis ajoute ce bloc tout en bas du fichier ~/.hermes/config.yaml (respecte bien les espaces) :</p>",
+      "<p>hooks:<br>&nbsp;&nbsp;pre_llm_call:<br>&nbsp;&nbsp;&nbsp;&nbsp;- command: /root/.hermes/agent-hooks/brain-recall<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;timeout: 30<br>hooks_auto_accept: true</p>",
+      "<p>Ça fait : à CHAQUE message, l'agent regarde d'abord dans sa mémoire avant de répondre.</p>",
+      "<p>Vérifie : tape <strong>hermes hooks list</strong>, tu vois le hook pre_llm_call.</p>",
+      "<p><br></p>",
+      "<p><strong>Étape 7 : lui apprendre à retenir tout seul</strong></p>",
+      "<p>Mets un fichier ~/.hermes/SOUL.md qui lui dit : \"quand tu apprends un fait important (un client, une décision, un chiffre), écris-le avec gbrain put\".</p>",
+      "<p>Ajoute le ménage de nuit : tape <strong>crontab -e</strong> et ajoute la ligne : <strong>0 4 * * * /root/.bun/bin/gbrain dream --json</strong></p>",
+      "<p>Ça fait : chaque nuit, l'agent range et consolide sa mémoire, tout seul.</p>",
+      "<p>Vérifie : tape <strong>crontab -l</strong>, tu vois la ligne.</p>",
+      "<p>Attention : ne lance JAMAIS \"gbrain serve\" ou \"gbrain autopilot\" en continu : ils verrouillent la mémoire (un seul programme à la fois) et le reste arrête de marcher.</p>",
+      "<p><br></p>",
+      "<p><strong>Étape 8 : ouvrir la page web pour lui parler (Control Room)</strong></p>",
+      "<p>D'abord choisis un identifiant et un mot de passe pour la page (sinon elle refuse de s'ouvrir). Ensuite lance : <strong>hermes dashboard --host 0.0.0.0 --port 9119 --no-open</strong></p>",
+      "<p>Ça fait : une page web pour discuter avec l'agent et le surveiller.</p>",
+      "<p>Vérifie : ouvre <strong>http://IP_DU_CLIENT:9119</strong> dans ton navigateur, ça demande le mot de passe.</p>",
+      "<p><br></p>",
+      "<p><strong>Étape 9 : vérifier que tout marche, puis vider la mémoire</strong></p>",
+      "<p>Mets une fausse info dans la mémoire, pose la question à l'agent, vérifie qu'il répond avec, PUIS efface cette info (la mémoire du client doit repartir VIDE). Vérifie aussi qu'il ne reste aucune de NOS données ou clés.</p>",
+      "<p><br></p>",
+      "<p><br></p>",
+      "<p><strong>Étape 10 (optionnel) : parler à l'agent depuis Telegram</strong></p>",
+      "<p>1. Sur Telegram, écris à <strong>@BotFather</strong>, envoie <strong>/newbot</strong>, donne un nom puis un username finissant par bot. Il te renvoie un token (du genre 8123456789:AAH...xyz).</p>",
+      "<p>2. Sur le serveur, colle le token : <strong>echo \"TELEGRAM_BOT_TOKEN=LE_TOKEN\" &gt;&gt; ~/.hermes/.env</strong></p>",
+      "<p>3. Lance le service qui écoute Telegram : <strong>hermes gateway setup</strong> (choisis Telegram), puis <strong>hermes gateway install && hermes gateway start</strong>.</p>",
+      "<p>4. Autorise-toi : envoie un message au bot ; si besoin valide avec le code de pairing (<strong>hermes pairing</strong>).</p>",
+      "<p>Ça fait : tu discutes avec ton agent (et toute sa mémoire) directement depuis Telegram, sans ouvrir la page web.</p>",
+      "<p>Vérifie : envoie un message au bot sur Telegram, il te répond.</p>",
+      "<p><br></p>",
+      "<p><strong>Si quelque chose ne marche pas :</strong></p>",
+      "<ul><li>La page web refuse de s'ouvrir : tu as oublié de mettre le mot de passe AVANT de la lancer (étape 8).</li><li>Message \"PGLite lock / timeout\" : un \"gbrain serve\" tourne en fond, arrête-le avec <strong>pkill -f \"gbrain serve\"</strong>.</li><li>gbrain doctor parle de \"768 vs 384\" : tu as pris all-minilm au lieu de nomic-embed-text, refais l'étape 5d.</li><li>Ollama doit tourner avant gbrain (normalement il démarre tout seul comme service).</li></ul>",
+      "<p><strong>À retenir :</strong> 1 client = 1 serveur, sans Docker. Pour que la page reste ouverte même après un redémarrage du serveur, transforme la commande du dashboard en service systemd.</p>",
+    ].join("\n")
+
+    const existing = all.find(p => p.title === title)
+    const doc = { title, icon: "gitMerge", category: "Process internes", subfolder: "SOPs", blocks: [{ type: "doc", text: sop }], updatedAt: new Date().toISOString() }
+    if (existing) { await ctx.db.patch(existing._id, doc); return { updated: title } }
+    await ctx.db.insert("processes", doc); return { created: title }
+  },
+})
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Seed DÉMO autonome : remplit toute la base d'instance démo avec des fausses
 // données cohérentes (contacts ↔ 3 pipelines ↔ onboarding/paiements + agentique).

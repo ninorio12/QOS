@@ -160,6 +160,15 @@ export const creatives = internalAction({
         thumbnailUrl: cr.thumbnailUrl ?? cr.thumbnail_url ?? null,
         videoSource: cr.videoUrl ?? cr.video_url ?? null,
         videoThumb: cr.videoThumbnailUrl ?? cr.video_thumbnail_url ?? null,
+        // Zernio ne livre pas le fichier vidéo : on reconstruit le lien de la
+        // publication (page Facebook + id vidéo, sinon le post d'origine), que
+        // le board ouvre dans le lecteur Facebook intégré.
+        videoLien:
+          (cr.videoId ?? cr.video_id) && (cr.pageId ?? cr.page_id)
+            ? `https://www.facebook.com/${cr.pageId ?? cr.page_id}/videos/${cr.videoId ?? cr.video_id}`
+            : meta?.effectiveObjectStoryId
+              ? `https://www.facebook.com/${String(meta.effectiveObjectStoryId).replace("_", "/posts/")}`
+              : cr.permalinkUrl ?? cr.permalink_url ?? null,
         spend: r2(spend), impressions: imp,
         reach: parseFloat(r.reach ?? "0") || 0,
         ctr: parseFloat(r.ctr ?? "0") || 0,

@@ -1,5 +1,6 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
+import { Id } from "./_generated/dataModel"
 import { WORKSPACE, logActivity } from "./osLib"
 import { convertToClientLogic } from "./sync"
 import { markLost } from "./leadSync"
@@ -38,6 +39,13 @@ export const upcomingCalls = query({
     const byContactId = new Map<string, any>(); const byEmail = new Map<string, any>()
     for (const it of intakes) { if (it.contactId) byContactId.set(String(it.contactId), it); if (it.email) byEmail.set(norm(it.email), it) }
 
+    // Position actuelle dans la pipeline leads (stageId du lead du contact) → affichée en bas de fiche.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const leads = await ctx.db.query("crm_leads").collect()
+    const stageByContact = new Map<string, string>()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const l of leads as any[]) { if (l.contactId) stageByContact.set(String(l.contactId), l.stageId) }
+
     // Synthèse du R1 par contact (déjà captée par tl;dv/Fathom → record_notes, taggée r1).
     const r1SynthByContact = new Map<string, string>()
     for (const r of recNotes) {
@@ -47,14 +55,31 @@ export const upcomingCalls = query({
       }
     }
 
-    return calls.map((c: any) => {
-      const contact = c.contactId ? contacts.find((x: any) => String(x._id) === String(c.contactId)) : null
-      const intake = (c.contactId && byContactId.get(String(c.contactId))) || (contact?.email && byEmail.get(norm(contact.email))) || null
-      const name = (contact ? fullNameOf(contact) : "") || c.title || "Prospect"
-      const kind = (c.stage as string) || (/r2|closing/i.test(c.title ?? "") ? "R2" : "R1")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contactById = new Map<string, any>(contacts.map((c: any) => [String(c._id), c]))
+    // RDV iClosed planifiés indexés par contact+étape → accrochés au lead correspondant.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const callByKey = new Map<string, any>()
+    for (const c of calls as any[]) {
+      if (!c.contactId) continue
+      const k = String(c.contactId) + "|" + (String(c.stage).toUpperCase() === "R2" ? "R2" : "R1")
+      if (!callByKey.has(k)) callByKey.set(k, c)
+    }
+
+    // Fabrique une fiche Closing. `call` = RDV iClosed accroché (null si pas encore booké → « RDV à programmer »).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const entryFor = (contact: any, kind: string, call: any, id: string, pipelineStage: string | null) => {
+      const cid = contact ? String(contact._id) : (call?.contactId ? String(call.contactId) : null)
+      const intake = (cid && byContactId.get(cid)) || (contact?.email && byEmail.get(norm(contact.email))) || null
+      const name = (contact ? fullNameOf(contact) : "") || call?.title || "Prospect"
+      // Funnel Meta Ads : le lead a rempli le formulaire Meta → réponses captées dans contact.notes,
+      // marqueur tag « Meta Ads ». Sert au brief R1 (pas de transcript) avec le quizz de confirmation.
+      const tagsLc = (contact?.tags ?? []).map((t: any) => String(t).toLowerCase())
+      const isMetaAds = tagsLc.includes("meta ads")
       return {
-        id: c._id, title: c.title, date: c.date ?? null, kind,
-        contactId: c.contactId ?? null,
+        id, callId: call?._id ?? null,
+        title: call?.title ?? (contact ? `${kind} · ${fullNameOf(contact)}` : kind),
+        date: call?.date ?? null, kind, contactId: cid, pipelineStage,
         contact: contact ? {
           id: contact._id, fullName: fullNameOf(contact), company: contact.companyName ?? null,
           email: contact.email ?? null, phone: contact.phone ?? null,
@@ -62,21 +87,54 @@ export const upcomingCalls = query({
         } : null,
         name, company: contact?.companyName ?? intake?.company ?? null, initials: initials(name),
         prepReady: !!intake, intake: intake ?? null,
-        objections: (c.objections ?? []) as string[],
+        objections: (call?.objections ?? []) as string[],
         wonObjection: contact?.wonObjection ?? null,
-        r1Synthesis: c.contactId ? (r1SynthByContact.get(String(c.contactId)) ?? null) : null,
-        bioMarkdown: c.bioMarkdown ?? null,
-        bioGeneratedAt: c.bioGeneratedAt ?? null,
-        bioBy: c.bioBy ?? null,
-        meetLink: c.meetLink ?? null,
-        bookingAnswers: parseQuiz(c.quizJson),
+        r1Synthesis: cid ? (r1SynthByContact.get(cid) ?? null) : null,
+        // Bio de l'appel si bookée, sinon repli sur le brief rédigé en amont sur le contact.
+        bioMarkdown: call?.bioMarkdown ?? contact?.bioMarkdown ?? null,
+        bioGeneratedAt: call?.bioGeneratedAt ?? contact?.bioGeneratedAt ?? null,
+        bioBy: call?.bioBy ?? contact?.bioBy ?? null,
+        meetLink: call?.meetLink ?? null,
+        bookingAnswers: parseQuiz(call?.quizJson),
         quizAnswers: parseQuiz((intake as { answersJson?: string } | null)?.answersJson),
-        calendarLabel: c.calendarLabel ?? null,
-        calendarSlug: c.calendarSlug ?? null,
-        calendarColor: c.calendarColor ?? null,
-        notes: c.notes ?? null,
+        // Signal de présence : le prospect a mis le RDV dans son agenda depuis la page de confirmation.
+        addedToCalendar: (intake as { addedToCalendar?: boolean } | null)?.addedToCalendar ?? null,
+        // Comment le questionnaire a été rattaché à ce contact (traçabilité du rapprochement).
+        intakeMatchedBy: (intake as { matchedBy?: string } | null)?.matchedBy ?? null,
+        // Funnel + quizz Meta Ads (R1 sans transcript : le brief se construit sur ces éléments).
+        source: contact?.source ?? null,
+        isMetaAds,
+        metaAdsAnswers: isMetaAds ? (contact?.notes ?? null) : null,
+        calendarLabel: call?.calendarLabel ?? null, calendarSlug: call?.calendarSlug ?? null, calendarColor: call?.calendarColor ?? null,
+        notes: call?.notes ?? null,
       }
-    })
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const entries: any[] = []
+    const usedCallIds = new Set<string>()
+    // 1) SOURCE = la pipeline : tout lead OUVERT en R1/R2 apparaît dans Closing (avec son RDV iClosed s'il existe).
+    for (const l of leads as any[]) {
+      if (l.status !== "open" || (l.stageId !== "r1" && l.stageId !== "r2")) continue
+      const cid = l.contactId ? String(l.contactId) : null
+      if (!cid) continue
+      const kind = l.stageId === "r2" ? "R2" : "R1"
+      const call = callByKey.get(cid + "|" + kind) ?? null
+      if (call) usedCallIds.add(String(call._id))
+      entries.push(entryFor(contactById.get(cid) ?? null, kind, call, call ? String(call._id) : `lead:${l._id}`, l.stageId))
+    }
+    // 2) Appels iClosed orphelins (contact pas/plus lead R1/R2, ex. email inconnu du CRM) : conservés, rien ne se perd.
+    for (const c of calls as any[]) {
+      if (usedCallIds.has(String(c._id))) continue
+      const cid = c.contactId ? String(c.contactId) : null
+      const contact = cid ? (contactById.get(cid) ?? null) : null
+      const kind = String(c.stage).toUpperCase() === "R2" ? "R2" : "R1"
+      const ps = cid ? (stageByContact.get(cid) ?? (contact?.statut === "client" ? "nouveau-client" : null)) : null
+      entries.push(entryFor(contact, kind, c, String(c._id), ps))
+    }
+    // Tri : RDV datés en premier (chronologique), puis les « à programmer ».
+    entries.sort((a, b) => (!!a.date !== !!b.date) ? (a.date ? -1 : 1) : String(a.date ?? "").localeCompare(String(b.date ?? "")))
+    return entries
   },
 })
 
@@ -116,12 +174,24 @@ export const saveBio = mutation({
   },
 })
 
+// Brief écrit AVANT qu'un RDV iClosed existe (fiche pilotée par le lead, pas d'os_sales_calls).
+// On le stocke sur le CONTACT → repli affiché par upcomingCalls tant qu'aucun appel ne porte de bio.
+// Évite de créer un appel placeholder (qui ferait doublon quand le vrai RDV iClosed arrive).
+export const saveBioForContact = mutation({
+  args: { contactId: v.id("crm_contacts"), bioMarkdown: v.string(), by: v.optional(v.string()) },
+  handler: async (ctx, { contactId, bioMarkdown, by }) => {
+    const now = new Date().toISOString()
+    await ctx.db.patch(contactId, { bioMarkdown, bioGeneratedAt: now, bioBy: by ?? "manual", updatedAt: now })
+    return { ok: true }
+  },
+})
+
 // COHÉRENCE iClosed ⇄ pipeline : un R1/R2 booké (Closing) fait avancer le LEAD à la même étape
 // (r1/r2) dans la pipeline + le funnel, et matérialise la carte Prospection en « RDV booké » (R1).
 // → les R1 du Closing == les R1 du pipeline ; les R2 du Closing == les R2 du pipeline. Jamais en arrière.
 const CALL_STAGE_RANK: Record<string, number> = { "nouveau-lead": 0, "conversation": 1, "r1": 2, "r2": 3, "nouveau-client": 4 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function advanceForCall(ctx: any, contactId: string | undefined, stage: string) {
+export async function advanceForCall(ctx: any, contactId: string | undefined, stage: string) {
   if (!contactId || (stage !== "R1" && stage !== "R2")) return
   const target = stage === "R2" ? "r2" : "r1"
   // 1) Lead pipeline → r1/r2 (source unique du funnel). Jamais de régression.
@@ -131,27 +201,60 @@ async function advanceForCall(ctx: any, contactId: string | undefined, stage: st
     await ctx.db.patch(lead._id, { stageId: target })
     await ctx.db.insert("lead_stage_history", { leadId: lead._id, stageId: target, stageName: stage, enteredAt: new Date().toISOString().slice(0, 10) })
   }
-  // 2) R1 → carte Prospection en « RDV booké » (status handoff). R2 = post-handoff, pas de changement prospection.
+  // 2) R1 → côté SETTING la carte passe en « Leads interne » avec le marqueur CADRAGE.
+  //    Décision produit (Thomas, 28/07) : un lead qui a booké n'est plus à convertir, il est à
+  //    CADRER avant le rendez-vous. Il rejoint donc les internes, mais la chip « Cadrage » le
+  //    distingue de ceux qu'on envoie à la main depuis leur fiche.
+  //    Côté PIPELINE, il est déjà passé en « RDV booké » au point 1 (stageId = r1).
+  //    R2 = post-handoff, pas de changement côté prospection.
   if (target === "r1") {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rec = (await ctx.db.query("prospection_records").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect())
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .find((r: any) => r.contactId === contactId && r.status !== "archived" && r.status !== "lost")
-    if (rec && rec.status !== "handoff") {
-      await ctx.db.patch(rec._id, { boardColumn: "rdv_booke", status: "handoff", updatedAt: new Date().toISOString() })
+    if (rec && rec.boardColumn !== "leads_interne") {
+      await ctx.db.patch(rec._id, {
+        boardColumn: "leads_interne", internalLead: true, cadrage: true,
+        status: "active", updatedAt: new Date().toISOString(),
+      })
     }
   }
 }
 
 // Crée un appel R1/R2 planifié (porte serveur : webhook iClosed, seed, agent).
+// `email` (optionnel) : résolu en contactId si non fourni (cas webhook iClosed → on n'a que l'email de l'invité).
 export const scheduleCall = mutation({
   args: {
-    title: v.string(), contactId: v.optional(v.string()), stage: v.string(), date: v.optional(v.string()),
+    title: v.string(), contactId: v.optional(v.string()), email: v.optional(v.string()), stage: v.string(), date: v.optional(v.string()),
     externalId: v.optional(v.string()), meetLink: v.optional(v.string()), quizJson: v.optional(v.string()),
     calendarLabel: v.optional(v.string()), calendarSlug: v.optional(v.string()), calendarColor: v.optional(v.string()),
   },
   handler: async (ctx, a) => {
     const now = new Date().toISOString()
+    // Résolution email → contactId (même logique que scheduleKickoff) si le webhook ne donne que l'email.
+    let contactId = a.contactId
+    if (!contactId && a.email) {
+      const e = a.email.trim()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const c = (await ctx.db.query("crm_contacts").withIndex("by_email", (q: any) => q.eq("email", e)).first())
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ?? (await ctx.db.query("crm_contacts").withIndex("by_email", (q: any) => q.eq("email", e.toLowerCase())).first())
+      contactId = c?._id.toString()
+    }
+    // Repli par NOM : un lead outbound réserve souvent avec une autre adresse que celle qu'on
+    // a en base. Sans ce repli, la carte ne passe jamais en « RDV booké » et la fiche R1 reste
+    // orpheline. Le titre iClosed est de la forme « R1 · Prénom Nom ».
+    if (!contactId) {
+      const nm = (s?: string) => (s ?? "").trim().toLowerCase().replace(/\s+/g, " ")
+      const who = nm(a.title.replace(/^R[12]\s*[·.\-]\s*/i, ""))
+      if (who && who.includes(" ")) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const all: any[] = await ctx.db.query("crm_contacts").collect()
+        const hit = all.find((c: any) => nm([c.firstName, c.lastName].filter(Boolean).join(" ")) === who)
+        if (hit) contactId = String(hit._id)
+      }
+    }
+    a = { ...a, contactId }
     // Dédup par externalId (iClosed eventCall) : un même RDV n'est jamais dupliqué.
     if (a.externalId) {
       const existing = await ctx.db.query("os_sales_calls").withIndex("by_external", q => q.eq("externalId", a.externalId)).first()
@@ -183,7 +286,40 @@ export const removeCall = mutation({
   handler: async (ctx, { id }) => { await ctx.db.delete(id); return { ok: true } },
 })
 
+// Annulation iClosed (webhook call.cancelled) : marque l'appel en `cancelled` via son externalId.
+// status !== 'planned' → il disparaît du calendrier (calendarEvents filtre sur 'planned').
+// Conservateur : on N'avance NI ne régresse la pipeline ici (décision humaine), on retire juste le RDV.
+export const cancelCallByExternalId = mutation({
+  args: { externalId: v.string() },
+  handler: async (ctx, { externalId }) => {
+    const call = await ctx.db.query("os_sales_calls").withIndex("by_external", q => q.eq("externalId", externalId)).first()
+    if (!call) return { ok: false, reason: "introuvable" }
+    await ctx.db.patch(call._id, { status: "cancelled", updatedAt: new Date().toISOString() })
+    // Le RDV saute → le lead n'est plus « à cadrer ». On lève le marqueur CADRAGE et on le
+    // renvoie au setting normal. On ne touche PAS aux internes envoyés à la main depuis leur
+    // fiche (internalLead sans cadrage) : eux restent internes, ils n'ont jamais eu de RDV.
+    // La pipeline n'est ni avancée ni régressée ici : c'est une décision humaine.
+    if (call.contactId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rec = (await ctx.db.query("prospection_records").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect())
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .find((r: any) => r.contactId === String(call.contactId) && r.cadrage)
+      if (rec) {
+        await ctx.db.patch(rec._id, {
+          cadrage: undefined, internalLead: undefined,
+          boardColumn: "leads_a_traiter", status: "active",
+          updatedAt: new Date().toISOString(),
+        })
+      }
+    }
+    return { ok: true, id: call._id }
+  },
+})
+
 // Statut de la connexion iClosed (pour le badge vert "connecté" du Calendrier).
+// ⚠️ Ne dit PAS si la connexion iClosed fonctionne : compte seulement les RDV déjà importés.
+// Une clé API révoquée laissait le badge au vert pendant des semaines (constaté le 28/07/2026).
+// La santé réelle est portée par `lastSyncAt` / `lastSyncError`, écrits par le sync lui-même.
 export const iclosedStatus = query({
   args: {},
   handler: async (ctx) => {
@@ -191,7 +327,19 @@ export const iclosedStatus = query({
     const calls = await ctx.db.query("os_sales_calls").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const synced = calls.filter((c: any) => c.externalId || c.createdBy === "iclosed")
-    return { connected: synced.length > 0, count: synced.length }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const health: any = await ctx.db.query("integrations").withIndex("by_key", (q: any) => q.eq("key", "iclosed")).first()
+    const lastAt = health?.lastSyncAt ?? null
+    const lastErr = health?.lastSyncError ?? null
+    // Vert UNIQUEMENT si le dernier sync a réussi il y a moins de 24 h.
+    const fresh = !!lastAt && (Date.now() - Date.parse(lastAt)) < 24 * 3600 * 1000
+    return {
+      connected: fresh && !lastErr,
+      count: synced.length,
+      lastSyncAt: lastAt,
+      lastSyncError: lastErr,
+      stale: !fresh,
+    }
   },
 })
 
@@ -223,8 +371,10 @@ export const saveCallNote = mutation({
 //  - "reprogrammer": appel re-daté (newDate), status reste 'planned'. Ne clôt rien d'autre.
 export const recordOutcome = mutation({
   args: {
-    callId:       v.id("os_sales_calls"),
-    outcome:      v.string(),               // gagne | perdu | no_show | reprogrammer
+    callId:       v.optional(v.id("os_sales_calls")),  // RDV iClosed s'il existe ; sinon fiche pilotée par le lead
+    contactId:    v.optional(v.string()),              // repli quand pas d'appel (fiche = lead R1/R2)
+    stage:        v.optional(v.string()),              // 'R1' | 'R2' de la fiche (repli sans appel)
+    outcome:      v.string(),                          // valide | gagne | perdu | no_show | reprogrammer
     dealValue:    v.optional(v.number()),
     amountTbd:    v.optional(v.boolean()),
     wonObjection: v.optional(v.string()),
@@ -233,43 +383,69 @@ export const recordOutcome = mutation({
     by:           v.optional(v.string()),
   },
   handler: async (ctx, a) => {
-    const call = await ctx.db.get(a.callId)
-    if (!call) throw new Error("Appel introuvable.")
-    const contactId = call.contactId
+    const call = a.callId ? await ctx.db.get(a.callId) : null
+    const contactId = (call?.contactId ?? a.contactId) as string | undefined
     const by = a.by ?? "human:thomas"
     const now = new Date().toISOString()
-    const lostStage = String(call.stage ?? "").toUpperCase() === "R2" ? "r2" : "r1"
+    const lostStage = String(call?.stage ?? a.stage ?? "").toUpperCase() === "R2" ? "r2" : "r1"
+    const entId = call ? String(call._id) : (contactId ?? "lead")
+    // L'appel n'est patché que s'il existe (fiche sans RDV booké = action sur le lead/contact seulement).
+    const patchCall = async (patch: Record<string, unknown>) => { if (call) await ctx.db.patch(call._id, patch) }
+    const log = (summary: string) => logActivity(ctx, { actorType: by.startsWith("agent") ? "agent" : "human", actorId: by, eventType: "call.outcome", summary, entityType: "call", entityId: entId, source: "closing" })
+
+    if (a.outcome === "valide") {
+      // Validation d'un R1 : la carte AVANCE en R2 dans la pipeline (pas de conversion client ici).
+      // L'objection surmontée au R1 est notée sur le contact → le brief R2 la retrouve.
+      if (!contactId) throw new Error("Fiche sans contact lié.")
+      await advanceForCall(ctx, contactId, "R2")
+      if (a.wonObjection) await ctx.db.patch(contactId as Id<"crm_contacts">, { wonObjection: a.wonObjection })
+      await patchCall({ status: "done", outcome: "valide", updatedAt: now })
+      await log(`R1 validé : carte avancée en R2`)
+      return { ok: true, outcome: "valide" }
+    }
 
     if (a.outcome === "gagne") {
-      if (!contactId) throw new Error("Appel sans contact lié : impossible de convertir en client.")
+      if (!contactId) throw new Error("Fiche sans contact lié : impossible de convertir en client.")
       // La garde montant (rejet si pas de montant ni amountTbd) s'applique dans convertToClientLogic.
       await convertToClientLogic(ctx, { contactId, dealValue: a.dealValue, amountTbd: a.amountTbd, wonObjection: a.wonObjection, by })
-      await ctx.db.patch(a.callId, { status: "done", outcome: "gagne", updatedAt: now })
-      await logActivity(ctx, { actorType: by.startsWith("agent") ? "agent" : "human", actorId: by, eventType: "call.outcome", summary: `Appel ${lostStage.toUpperCase()} clôturé : gagné`, entityType: "call", entityId: String(a.callId), source: "closing" })
+      await patchCall({ status: "done", outcome: "gagne", updatedAt: now })
+      await log(`Appel ${lostStage.toUpperCase()} clôturé : gagné`)
       return { ok: true, outcome: "gagne" }
     }
 
     if (a.outcome === "perdu") {
-      // Chemin perdu le plus complet (lead + contact + record prospection + event), avec l'étape réelle de l'appel.
+      // Chemin perdu le plus complet (lead + contact + record prospection + event), avec l'étape réelle.
       if (contactId) await markLost(ctx, contactId, { reason: a.lostReason ?? "autre", stage: lostStage, by })
-      await ctx.db.patch(a.callId, { status: "done", outcome: "perdu", updatedAt: now })
-      await logActivity(ctx, { actorType: by.startsWith("agent") ? "agent" : "human", actorId: by, eventType: "call.outcome", summary: `Appel ${lostStage.toUpperCase()} clôturé : perdu`, entityType: "call", entityId: String(a.callId), source: "closing" })
+      await patchCall({ status: "done", outcome: "perdu", updatedAt: now })
+      await log(`Appel ${lostStage.toUpperCase()} clôturé : perdu`)
       return { ok: true, outcome: "perdu" }
     }
 
     if (a.outcome === "no_show") {
-      // Non-présentation : on marque l'appel, on NE touche PAS au lead (pas de régression d'étape).
-      await ctx.db.patch(a.callId, { status: "no_show", outcome: "no_show", updatedAt: now })
-      await logActivity(ctx, { actorType: by.startsWith("agent") ? "agent" : "human", actorId: by, eventType: "call.outcome", summary: `Appel ${lostStage.toUpperCase()} : non-présentation`, entityType: "call", entityId: String(a.callId), source: "closing" })
+      // No-show RÉCUPÉRABLE : on NE marque PAS le lead perdu → la carte RESTE dans la pipeline (R1/R2)
+      // avec son chip rouge. Si un RDV iClosed existe, on le passe no_show ; sinon on matérialise un
+      // appel no_show (pour le chip pipeline + le taux no-show), le lead ne bouge pas d'étape.
+      if (call) {
+        await patchCall({ status: "no_show", outcome: "no_show", updatedAt: now })
+      } else {
+        if (!contactId) throw new Error("Fiche sans contact lié.")
+        await ctx.db.insert("os_sales_calls", {
+          workspaceId: WORKSPACE, title: `${lostStage.toUpperCase()} · no-show`, contactId,
+          stage: lostStage === "r2" ? "R2" : "R1", status: "no_show", outcome: "no_show",
+          createdBy: "closing", createdAt: now, updatedAt: now,
+        })
+      }
+      await log(`Appel ${lostStage.toUpperCase()} : no-show`)
       return { ok: true, outcome: "no_show" }
     }
 
     if (a.outcome === "reprogrammer") {
-      // Reprogrammé : nouvelle date, l'appel reste planifié. Ne clôt rien d'autre.
+      // Reprogrammé : exige un vrai RDV (on re-date l'appel). Ne clôt rien d'autre.
+      if (!call) throw new Error("Pas de RDV booké à reprogrammer.")
       const patch: Record<string, unknown> = { status: "planned", outcome: "reprogramme", updatedAt: now }
       if (a.newDate) patch.date = a.newDate
-      await ctx.db.patch(a.callId, patch)
-      await logActivity(ctx, { actorType: by.startsWith("agent") ? "agent" : "human", actorId: by, eventType: "call.outcome", summary: `Appel ${lostStage.toUpperCase()} reprogrammé${a.newDate ? " au " + a.newDate : ""}`, entityType: "call", entityId: String(a.callId), source: "closing" })
+      await patchCall(patch)
+      await log(`Appel ${lostStage.toUpperCase()} reprogrammé${a.newDate ? " au " + a.newDate : ""}`)
       return { ok: true, outcome: "reprogramme" }
     }
 

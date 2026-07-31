@@ -1123,6 +1123,9 @@ export default defineSchema({
     thumbnailUrl: v.optional(v.string()),
     videoSource:  v.optional(v.string()),   // 🎬 URL de la vidéo
     videoThumb:   v.optional(v.string()),
+    videoLien:    v.optional(v.string()),   // lien pour VOIR la vidéo quand son fichier n'est pas accessible
+    tempsMoyenVideo: v.optional(v.number()),
+    tauxCompletion:  v.optional(v.number()),
     spend:        v.optional(v.number()),
     impressions:  v.optional(v.number()),
     reach:        v.optional(v.number()),

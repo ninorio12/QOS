@@ -34,10 +34,10 @@ export const creatives = action({
     const preset = a.datePreset ?? "last_14d"
     const limit = Math.min(a.limit ?? 30, 100)
     const fields = [
-      "name", "effective_status",
+      "name", "effective_status", "preview_shareable_link",
       "campaign{name}", "adset{name}",
       "creative{id,image_url,thumbnail_url,video_id,object_story_spec}",
-      `insights.date_preset(${preset}){spend,impressions,reach,clicks,ctr,cpc,cpm,frequency,inline_link_clicks,actions,action_values,video_play_actions,video_thruplay_watched_actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}`,
+      `insights.date_preset(${preset}){spend,impressions,reach,clicks,ctr,cpc,cpm,frequency,inline_link_clicks,actions,action_values,video_play_actions,video_thruplay_watched_actions,video_avg_time_watched_actions,video_p100_watched_actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}`,
     ].join(",")
     let url: string | null = `${GRAPH}/${META_API_VERSION}/${act}/ads?fields=${encodeURIComponent(fields)}&limit=${limit}&access_token=${encodeURIComponent(token)}`
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -53,20 +53,52 @@ export const creatives = action({
       if (Array.isArray(json.data)) ads.push(...json.data)
       url = json.paging?.next ?? null
     }
+    // Les créations par annonce, lues sur l'edge du COMPTE. Quand le jeton n'a que
+    // `ads_read`, Meta retire `creative{...}` de la réponse SANS erreur : cette
+    // porte-là répond quand même, et rend les visuels que l'autre chemin perd.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const creasParAd = new Map<string, any>()
+    try {
+      const cu = `${GRAPH}/${META_API_VERSION}/${act}/adcreatives?fields=${encodeURIComponent("id,video_id,thumbnail_url,image_url,object_story_spec")}&limit=100&access_token=${encodeURIComponent(token)}`
+      const cres = await fetch(cu)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const cj: any = await cres.json()
+      for (const c of cj.data ?? []) {
+        const vv = c.video_id ?? c.object_story_spec?.video_data?.video_id ?? null
+        if (vv || c.thumbnail_url || c.image_url) {
+          creasParAd.set(c.id, { video_id: vv, thumbnail_url: c.thumbnail_url, image_url: c.image_url, page_id: c.object_story_spec?.page_id })
+        }
+      }
+    } catch { /* on continue sans : les statistiques restent justes */ }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const out: any[] = []
     for (const ad of ads) {
       if (a.activeOnly === true && ad.effective_status !== "ACTIVE") continue
       const cr = ad.creative ?? {}
-      let videoSource: string | null = null, videoThumb: string | null = null
-      // video_id peut être direct OU dans object_story_spec.video_data
-      const vid = cr.video_id ?? cr.object_story_spec?.video_data?.video_id ?? null
+      const crea = creasParAd.get(cr.id)
+      let videoSource: string | null = null, videoThumb: string | null = null, videoLien: string | null = null
+      // video_id à trois endroits : sur la création, dans object_story_spec, ou
+      // via l'edge adcreatives du compte quand le jeton est limité à `ads_read`.
+      const vid = cr.video_id ?? cr.object_story_spec?.video_data?.video_id ?? crea?.video_id ?? null
       if (vid) {
         try {
-          const vr = await fetch(`${GRAPH}/${META_API_VERSION}/${vid}?fields=source,picture&access_token=${encodeURIComponent(token)}`)
-          const vj: any = await vr.json(); videoSource = vj.source ?? null; videoThumb = vj.picture ?? null
+          const vr = await fetch(`${GRAPH}/${META_API_VERSION}/${vid}?fields=source,picture,permalink_url&access_token=${encodeURIComponent(token)}`)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const vj: any = await vr.json()
+          videoSource = vj.source ?? null
+          videoThumb = vj.picture ?? null
+          // `source` (le fichier lisible) demande ads_management. `permalink_url`
+          // passe avec ads_read : il ouvre la vidéo là où elle est publiée, ce qui
+          // vaut mieux qu'une vignette morte.
+          if (vj.permalink_url) videoLien = `https://www.facebook.com${vj.permalink_url}`
+          // Dernier repli de lien : la page de la vidéo reconstruite depuis la page Facebook.
+          const pageId = cr.object_story_spec?.page_id ?? crea?.page_id
+          if (!videoLien && pageId) videoLien = `https://www.facebook.com/${pageId}/videos/${vid}`
         } catch { /* vidéo inaccessible — on garde le reste */ }
       }
+      // Dernier recours : l'aperçu partageable de l'annonce, toujours disponible.
+      if (!videoSource && !videoLien && ad.preview_shareable_link) videoLien = ad.preview_shareable_link
       const ins = ad.insights?.data?.[0] ?? {}
       const imp = parseFloat(ins.impressions ?? "0") || 0
       const spend = parseFloat(ins.spend ?? "0") || 0
@@ -85,9 +117,9 @@ export const creatives = action({
       out.push({
         adId: ad.id, name: ad.name, status: ad.effective_status,
         campaign: ad.campaign?.name ?? null, adset: ad.adset?.name ?? null,
-        imageUrl: cr.image_url ?? cr.thumbnail_url ?? null,
-        thumbnailUrl: cr.thumbnail_url ?? null,
-        videoSource, videoThumb,
+        imageUrl: cr.image_url ?? cr.thumbnail_url ?? crea?.image_url ?? crea?.thumbnail_url ?? null,
+        thumbnailUrl: cr.thumbnail_url ?? crea?.thumbnail_url ?? null,
+        videoSource, videoThumb, videoLien,
         spend: r2(spend), impressions: imp,
         reach: parseFloat(ins.reach ?? "0") || 0,
         ctr: parseFloat(ins.ctr ?? "0") || 0,                    // CTR total (tous clics)
@@ -99,6 +131,8 @@ export const creatives = action({
         cvr: clicks > 0 && results ? r2((results / clicks) * 100) : null, // taux de conversion (résultat / clic)
         leads, purchases, results, cpa: results > 0 ? r2(spend / results) : null,
         roas: revenue > 0 && spend > 0 ? r2(revenue / spend) : null,
+        tempsMoyenVideo: actionVal(ins.video_avg_time_watched_actions, ["video_view"]) || null,
+        tauxCompletion: v3 ? r2((actionVal(ins.video_p100_watched_actions, ["video_view"]) / v3) * 100) : null,
         qualityRanking: ins.quality_ranking ?? null,
         engagementRanking: ins.engagement_rate_ranking ?? null,
         conversionRanking: ins.conversion_rate_ranking ?? null,
@@ -129,6 +163,8 @@ export const _upsertOne = internalMutation({
     campaign: v.optional(v.string()), adset: v.optional(v.string()),
     imageUrl: v.optional(v.union(v.string(), v.null())), thumbnailUrl: v.optional(v.union(v.string(), v.null())),
     videoSource: v.optional(v.union(v.string(), v.null())), videoThumb: v.optional(v.union(v.string(), v.null())),
+    videoLien: v.optional(v.union(v.string(), v.null())),
+    tempsMoyenVideo: numOrU, tauxCompletion: numOrU,
     spend: v.optional(v.number()), impressions: v.optional(v.number()), reach: v.optional(v.number()),
     ctr: v.optional(v.number()), ctrOutbound: numOrU, cpm: numOrU,
     frequency: v.optional(v.number()), hookRate: numOrU, holdRate: numOrU, cvr: numOrU,
@@ -145,6 +181,9 @@ export const _upsertOne = internalMutation({
       campaign: a.campaign, adset: a.adset,
       imageUrl: u(a.imageUrl) as string | undefined, thumbnailUrl: u(a.thumbnailUrl) as string | undefined,
       videoSource: u(a.videoSource) as string | undefined, videoThumb: u(a.videoThumb) as string | undefined,
+      videoLien: u(a.videoLien) as string | undefined,
+      tempsMoyenVideo: u(a.tempsMoyenVideo) as number | undefined,
+      tauxCompletion: u(a.tauxCompletion) as number | undefined,
       spend: a.spend, impressions: a.impressions, reach: a.reach, ctr: a.ctr,
       ctrOutbound: u(a.ctrOutbound) as number | undefined, cpm: u(a.cpm) as number | undefined,
       frequency: a.frequency,

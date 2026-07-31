@@ -256,6 +256,8 @@ export const dashboard = query({
           ...m,
           imageUrl: v?.imageUrl ?? null, thumbnailUrl: v?.thumbnailUrl ?? null,
           videoSource: v?.videoSource ?? null, videoThumb: v?.videoThumb ?? null,
+        videoLien: v?.videoLien ?? null,
+        tempsMoyenVideo: v?.tempsMoyenVideo ?? null, tauxCompletion: v?.tauxCompletion ?? null,
         }
       })
     }

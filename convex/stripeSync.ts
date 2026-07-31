@@ -29,7 +29,7 @@ export const syncStripe = action({
     try {
       for await (const c of stripe.charges.list({ created: { gte }, limit: 100, expand: ["data.refunds"] })) {
         if (c.status === "succeeded") {
-          await ctx.runMutation(api.stripePayments.upsertFromStripe, {
+          await ctx.runMutation(internal.stripePayments.upsertFromStripe, {
             stripeId: c.id, type: "payment", status: "succeeded",
             amount: toMajor(c.amount, c.currency), currency: c.currency,
             customerId: typeof c.customer === "string" ? c.customer : c.customer?.id,
@@ -41,7 +41,7 @@ export const syncStripe = action({
           payments++
         }
         for (const r of c.refunds?.data ?? []) {
-          await ctx.runMutation(api.stripePayments.upsertFromStripe, {
+          await ctx.runMutation(internal.stripePayments.upsertFromStripe, {
             stripeId: r.id, type: "refund", status: r.status === "succeeded" ? "succeeded" : (r.status ?? "pending"),
             amount: toMajor(r.amount, r.currency), currency: r.currency,
             customerId: typeof c.customer === "string" ? c.customer : c.customer?.id,

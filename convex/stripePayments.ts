@@ -1,9 +1,10 @@
 import { v } from "convex/values"
-import { mutation, query } from "./_generated/server"
+import { mutation, internalMutation, query } from "./_generated/server"
 
 // Upsert d'un paiement/remboursement Stripe (dédup par stripeId). Matche le contact
-// par email si trouvé. Appelé par le webhook Next + le backfill.
-export const upsertFromStripe = mutation({
+// par email si trouvé. INTERNE : appelée uniquement par le webhook signé (http.ts) + le backfill
+// (stripeSync). Jamais exposée au client → impossible d'injecter un faux CA via l'URL Convex.
+export const upsertFromStripe = internalMutation({
   args: {
     stripeId: v.string(),
     type: v.string(),                 // 'payment' | 'refund'

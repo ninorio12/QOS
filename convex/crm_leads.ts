@@ -47,6 +47,8 @@ export const create = mutation({
       stageId:   args.stageId,
       stageName: stageName ?? args.stageId,
       enteredAt: new Date().toISOString().split('T')[0],
+      source:    rest.source,
+      contactId: args.contactId,
     })
     return id
   },
@@ -64,6 +66,8 @@ export const updateStage = mutation({
         stageId:   args.stageId,
         stageName: args.stageName ?? args.stageId,
         enteredAt: new Date().toISOString().split('T')[0],
+        source:    lead.source,
+        contactId: lead.contactId,
       })
     }
     // Reverse sync Pipeline → Prospection : miroir de la colonne / record (idempotent)
@@ -107,4 +111,25 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("crm_leads") },
   handler: async (ctx, args) => ctx.db.delete(args.id),
+})
+
+// Backfill one-shot : remplit source + contactId des lignes lead_stage_history existantes
+// à partir du lead encore vivant. Les leads convertis (supprimés) restent sans source : on ne
+// peut pas les reconstituer. Idempotent (skip les lignes déjà renseignées). Cf. funnel FLUX.
+export const backfillStageHistoryMeta = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("lead_stage_history").collect()
+    let updated = 0, orphans = 0
+    for (const r of rows) {
+      if (r.source !== undefined && r.contactId !== undefined) continue
+      const lead = await ctx.db.get(r.leadId)
+      if (!lead) { orphans++; continue }
+      const patch: Record<string, unknown> = {}
+      if (r.source === undefined && lead.source !== undefined) patch.source = lead.source
+      if (r.contactId === undefined && lead.contactId !== undefined) patch.contactId = lead.contactId
+      if (Object.keys(patch).length) { await ctx.db.patch(r._id, patch); updated++ }
+    }
+    return { rows: rows.length, updated, orphans }
+  },
 })

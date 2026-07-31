@@ -4,7 +4,23 @@ import { type Id } from "./_generated/dataModel"
 
 export const list = query({
   handler: async (ctx) => {
-    return await ctx.db.query("pipeline_clients").order("desc").collect()
+    const rows = await ctx.db.query("pipeline_clients").order("desc").collect()
+    // La fiche contact (crm_contacts) est la source de vérité : on surcharge les
+    // champs dénormalisés (name/company/email/phone) par ceux du contact lié afin
+    // que toute modif dans la fiche se reflète partout (onboarding, contrat, board…).
+    return await Promise.all(rows.map(async (r) => {
+      if (!r.contactId) return r
+      const c = await ctx.db.get(r.contactId)
+      if (!c) return r
+      const fullName = [c.firstName, c.lastName].filter(Boolean).join(" ").trim()
+      return {
+        ...r,
+        name: fullName || r.name,
+        company: c.companyName ?? r.company,
+        email: c.email ?? r.email,
+        phone: c.phone ?? r.phone,
+      }
+    }))
   },
 })
 

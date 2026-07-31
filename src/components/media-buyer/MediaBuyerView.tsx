@@ -28,9 +28,9 @@ type Row = {
   id: string; name: string; campaign: string | null; adset: string | null
   spend: number; impressions: number; clicks: number; leads: number
   cpl: number; ctr: number; cr: number; perf: 'excellent' | 'moyen' | 'optimiser'
-  imageUrl?: string | null; thumbnailUrl?: string | null; videoSource?: string | null; videoThumb?: string | null
+  imageUrl?: string | null; thumbnailUrl?: string | null; videoSource?: string | null; videoThumb?: string | null; videoLien?: string | null
 }
-type MediaView = { src: string; isVideo: boolean; name: string }
+type MediaView = { src: string; isVideo: boolean; name: string; integre?: boolean }
 type Dash = {
   from: string; to: string; level: string; connected: boolean; currency: string; lastSyncAt: string | null
   kpis: { spend: Kpi; impressions: Kpi; clicks: Kpi; leads: Kpi; cpl: Kpi; ctr: Kpi; cr: Kpi }
@@ -343,7 +343,19 @@ export default function MediaBuyerView() {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setMedia(null)} />
           <div className="relative max-w-3xl w-full flex flex-col items-center gap-3">
             <button onClick={() => setMedia(null)} className="absolute -top-3 -right-3 w-9 h-9 rounded-full bg-white shadow-lg flex items-center justify-center z-10 hover:bg-soren-elevated" aria-label="Fermer"><X size={16} className="text-soren-text" /></button>
-            {media.isVideo
+            {/* Trois cas : le fichier vidéo quand Meta le donne, sinon son lecteur
+                intégré (aucune fenêtre extérieure), sinon une image. Le lecteur est
+                cadré en 9/16 : ce sont des reels, et Meta les pose sinon dans un
+                carré où la vidéo flotte entre deux bandes noires. */}
+            {media.integre
+              ? <iframe
+                  src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(media.src)}&show_text=false&autoplay=true&width=480&height=854`}
+                  className="h-[80vh] aspect-[9/16] max-w-full rounded-2xl bg-black border-0"
+                  allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                  allowFullScreen
+                  title={media.name}
+                />
+              : media.isVideo
               ? <video src={media.src} controls autoPlay className="max-h-[80vh] w-auto rounded-2xl bg-black" />
               : /* eslint-disable-next-line @next/next/no-img-element */ <img src={media.src} alt={media.name} className="max-h-[80vh] w-auto rounded-2xl object-contain" />}
             <p className="text-[12px] font-medium text-white text-center max-w-lg">{media.name}</p>
@@ -358,8 +370,25 @@ export default function MediaBuyerView() {
 // Vignette cliquable d'une créa (photo, ou vidéo avec play) — ouvre la lightbox.
 function CreaThumb({ r, onOpen }: { r: Row; onOpen: (m: MediaView) => void }) {
   const poster = r.videoThumb || r.thumbnailUrl || r.imageUrl || null
-  const isVideo = !!r.videoSource
+  const isVideo = !!r.videoSource || !!r.videoLien
   const src = r.videoSource || r.imageUrl || r.thumbnailUrl || null
+  // Meta ne livre le FICHIER vidéo qu'avec l'autorisation `ads_management`. Sans
+  // elle, on ouvre la vidéo là où elle est publiée : un lecteur qui marche vaut
+  // mieux qu'une vignette morte. Le lecteur interne sert dès que le fichier est là.
+  if (!r.videoSource && r.videoLien) {
+    return (
+      <button
+        onClick={(e) => { e.stopPropagation(); onOpen({ src: r.videoLien!, isVideo: true, integre: true, name: r.name }) }}
+        className="relative w-10 h-10 rounded-lg overflow-hidden bg-soren-elevated flex-shrink-0 ring-1 ring-soren-border hover:ring-soren-accent/60 transition block"
+        title="Voir la vidéo"
+      >
+        {poster
+          ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={poster} alt={r.name} className="w-full h-full object-cover" />
+          : null}
+        <span className="absolute inset-0 flex items-center justify-center bg-black/35"><Play size={12} className="text-white" fill="white" /></span>
+      </button>
+    )
+  }
   if (!src) return <div className="w-10 h-10 rounded-lg bg-soren-elevated flex-shrink-0" />
   return (
     <button

@@ -23,15 +23,58 @@ export const create = mutation({
     budget:            v.optional(v.string()),
     answersJson:       v.optional(v.string()),
     raw:               v.optional(v.any()),
+    addedToCalendar:   v.optional(v.boolean()),
+    iclosedExternalId: v.optional(v.string()),
   },
   handler: async (ctx, a) => {
-    // Auto-lien à la fiche contact par email (best-effort).
+    // ── Cascade de rattachement à la fiche contact ────────────────────────────
+    // Le prospect a saisi ses coordonnées chez iClosed, pas dans ce questionnaire :
+    // on ne lui redemande rien, on le retrouve. Du plus fiable au moins fiable.
     let contactId: string | undefined
-    if (a.email) {
+    let matchedBy: string | undefined
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contacts: any[] = await ctx.db.query("crm_contacts").collect()
+
+    // 1) Id du RDV iClosed relayé par la page → rattachement exact.
+    if (a.iclosedExternalId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const call: any = (await ctx.db.query("os_sales_calls")
+        .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect())
+        .find((c: any) => c.externalId === a.iclosedExternalId)
+      if (call?.contactId) { contactId = String(call.contactId); matchedBy = "iclosed-id" }
+    }
+
+    // 2) Email (si le formulaire ou l'URL en fournit un).
+    if (!contactId && a.email) {
       const target = norm(a.email)
-      const contacts = await ctx.db.query("crm_contacts").collect()
       const match = contacts.find((c: any) => norm(c.email) === target)
-      if (match) contactId = match._id
+      if (match) { contactId = match._id; matchedBy = "email" }
+    }
+
+    // 3) RDV réservé dans les 90 dernières minutes portant le même nom.
+    //    Discriminant fort : celui qui remplit ce questionnaire vient de réserver.
+    if (!contactId && a.fullName) {
+      const who = norm(a.fullName)
+      const since = Date.now() - 90 * 60 * 1000
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const recent: any[] = (await ctx.db.query("os_sales_calls")
+        .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect())
+        .filter((c: any) => c._creationTime >= since && c.contactId)
+        .sort((x: any, y: any) => y._creationTime - x._creationTime)
+      const hit = recent.find((c: any) => {
+        const ct = contacts.find((k: any) => String(k._id) === String(c.contactId))
+        const full = norm([ct?.firstName, ct?.lastName].filter(Boolean).join(" "))
+        return (full && (full === who || full.includes(who) || who.includes(full)))
+            || norm(c.title).includes(who)
+      })
+      if (hit) { contactId = String(hit.contactId); matchedBy = "rdv-recent" }
+    }
+
+    // 4) Nom complet rapproché d'une fiche contact (dernier recours).
+    if (!contactId && a.fullName) {
+      const who = norm(a.fullName)
+      const match = contacts.find((c: any) => norm([c.firstName, c.lastName].filter(Boolean).join(" ")) === who)
+      if (match) { contactId = match._id; matchedBy = "nom" }
     }
     const id = await ctx.db.insert("confirmation_intake", {
       workspaceId: WORKSPACE,
@@ -50,9 +93,12 @@ export const create = mutation({
       answersJson: a.answersJson,
       raw: a.raw,
       source: "confirmation-form",
+      addedToCalendar: a.addedToCalendar,
+      iclosedExternalId: a.iclosedExternalId,
+      matchedBy,
       createdAt: new Date().toISOString(),
     })
-    return { ok: true, id, linked: !!contactId }
+    return { ok: true, id, linked: !!contactId, matchedBy: matchedBy ?? null }
   },
 })
 

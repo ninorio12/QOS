@@ -97,7 +97,8 @@ export const setColumn = mutation({
     if (!(BOARD_COLUMNS as readonly string[]).includes(column)) throw new Error(`colonne inconnue: ${column}`)
     const rec = await ctx.db.get(id)
     if (!rec) throw new Error("record introuvable")
-    // Règles métier de déplacement :
+    // Règles métier de déplacement (mouvement libre pour corriger une erreur de drop — retour possible
+    // depuis n'importe quelle colonne, NRP/Perdu/RDV inclus). Seuls 2 garde-fous d'intégrité de TYPE :
     //  • un lead interne ne peut JAMAIS (re)tomber dans "Leads à traiter" (entrée réservée aux leads bruts) ;
     //  • "Leads interne" est réservé aux contacts envoyés depuis leur fiche → on n'y glisse pas un lead normal.
     if (rec.internalLead && column === "leads_a_traiter") throw new Error("Un lead interne ne peut pas être remis dans « Leads à traiter »")
@@ -132,6 +133,26 @@ export const setColumn = mutation({
       }
       if (wasLost) await ctx.db.patch(rec.contactId as Id<"crm_contacts">, { statut: "lead", lostStage: undefined, lostReason: undefined, lostObjection: undefined, updatedAt: now() })
     }
+
+    // KPIs Suivi Setting (alimentés par les ÉVÉNEMENTS) : le simple drag d'une carte doit logguer
+    // l'événement correspondant, sinon les compteurs ne le voient pas. Les KPIs comptent des leads
+    // DISTINCTS → un éventuel doublon d'événement n'inflate rien.
+    const prevCol = boardColumnOf(rec)   // rec est pré-patch
+    if (col !== prevCol) {
+      // Mapping colonne → événement métier. Chaque déplacement = une action loggée, donc visible
+      // dans les KPIs (Contactés / Réponses / R1 / À rappeler / Perdus). leads DISTINCTS → pas d'inflation.
+      const evFor = (c: string): { type: string; notes?: string } | null => {
+        if (c === "rdv_booke") return { type: "r1_booke" }                       // R1 booké + réponse
+        if (c === "perdu")     return { type: "perdu", notes: lostReason ?? rec.lostReason }
+        if (c === "a_suivre")  return { type: "a_rappeler" }                       // à relancer (contacté)
+        if (c === "nrp1" || c === "nrp2" || c === "nrp3" || c === "nrp4") return { type: "pas_repondu" } // tentative sans réponse = contacté
+        return null   // leads_a_traiter / leads_interne : pas une action de contact
+      }
+      const ev = evFor(col)
+      if (ev) {
+        await ctx.db.insert("prospection_events", { workspaceId: WORKSPACE, prospectionRecordId: id, contactId: rec.contactId, eventType: ev.type, phase: rec.phase, notes: ev.notes ?? undefined, createdBy: "human:thomas", createdAt: now() })
+      }
+    }
     return { ok: true, column: col }
   },
 })
@@ -139,6 +160,46 @@ export const setColumn = mutation({
 export const events = query({
   args: { recordId: v.string() },
   handler: async (ctx, { recordId }) => (await ctx.db.query("prospection_events").withIndex("by_record", q => q.eq("prospectionRecordId", recordId)).collect()).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)),
+})
+
+// Backfill one-shot : crée les événements r1_booke / perdu manquants pour les cartes déjà en
+// « RDV booké » / « Perdu » (déplacées AVANT que moveColumn ne logue les événements). Idempotent :
+// ne recrée pas un événement déjà présent. Daté à la dernière action de la carte (bon jour).
+export const backfillBoardEvents = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const recs = await ctx.db.query("prospection_records").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const evs = await ctx.db.query("prospection_events").withIndex("by_workspace_created", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const has = new Set(evs.map((e: any) => `${e.prospectionRecordId}|${e.eventType}`))
+    let r1 = 0, lost = 0, contact = 0, rappel = 0
+    for (const r of recs) {
+      const col = boardColumnOf(r)
+      const when = r.lastActionAt ?? r.updatedAt ?? r.createdAt ?? now()
+      if (col === "rdv_booke" && !has.has(`${r._id}|r1_booke`)) {
+        await ctx.db.insert("prospection_events", { workspaceId: WORKSPACE, prospectionRecordId: r._id, contactId: r.contactId, eventType: "r1_booke", createdBy: "human:thomas", createdAt: when })
+        r1++
+      }
+      if (col === "perdu" && !has.has(`${r._id}|perdu`)) {
+        await ctx.db.insert("prospection_events", { workspaceId: WORKSPACE, prospectionRecordId: r._id, contactId: r.contactId, eventType: "perdu", notes: r.lostReason ?? undefined, createdBy: "human:thomas", createdAt: when })
+        lost++
+      }
+      // NRP = tentative sans réponse (contacté) ; À suivre = à rappeler. On ne crée que si AUCUN
+      // événement de contact n'existe déjà pour ce lead (sinon il est déjà compté comme contacté).
+      const contactTypes = ["appele", "message_laisse", "pas_repondu", "repondu", "a_rappeler", "interesse"]
+      const alreadyContacted = contactTypes.some(t => has.has(`${r._id}|${t}`))
+      if ((col === "nrp1" || col === "nrp2" || col === "nrp3" || col === "nrp4") && !alreadyContacted) {
+        await ctx.db.insert("prospection_events", { workspaceId: WORKSPACE, prospectionRecordId: r._id, contactId: r.contactId, eventType: "pas_repondu", createdBy: "human:thomas", createdAt: when })
+        contact++
+      }
+      if (col === "a_suivre" && !has.has(`${r._id}|a_rappeler`)) {
+        await ctx.db.insert("prospection_events", { workspaceId: WORKSPACE, prospectionRecordId: r._id, contactId: r.contactId, eventType: "a_rappeler", createdBy: "human:thomas", createdAt: when })
+        rappel++
+      }
+    }
+    return { r1, lost, contact, rappel, recs: recs.length }
+  },
 })
 
 // Crée un lead via dédup contact (utilisé par le MCP). Contacts = source de vérité.

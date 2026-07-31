@@ -69,9 +69,13 @@ export const kickoffCalendarEvents = query({
     const nameById = new Map(contacts.map((c: any) => [c._id.toString(), `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || 'Client']))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const out: any[] = []
+    // Bornes comparées en INSTANTS (Date.parse), pas en texte : sinon '+02:00' vs 'Z' fausse l'inclusion
+    // aux limites de fenêtre (même modèle que closing.calendarEvents).
+    const fromMs = Date.parse(from), toMs = Date.parse(to)
     for (const ob of obs) {
       const k = (ob as { kickoffAt?: string }).kickoffAt
-      if (!k || k < from || k > to) continue
+      const km = k ? Date.parse(k) : NaN
+      if (Number.isNaN(km) || km < fromMs || km > toMs) continue
       out.push({ id: ob._id.toString(), contactName: nameById.get(ob.contactId) ?? 'Client', startTime: k })
     }
     return out
@@ -91,7 +95,9 @@ export const paymentsOverview = query({
     const contacts       = await ctx.db.query("crm_contacts").collect()
     const stripePayments = await ctx.db.query("stripe_payments").withIndex("by_created").collect()
     const externalPayments = await ctx.db.query("external_payments").collect()
-    const money = reconcileMoney({ obs, clients, contacts, stripePayments, externalPayments, from, to, tzOffset: args.tzOffset })
+    const fxRows = await ctx.db.query("fx_rates").collect()
+    const fxToChf: Record<string, number> = { chf: 1 }; for (const r of fxRows) fxToChf[r.currency] = r.rate
+    const money = reconcileMoney({ obs, clients, contacts, stripePayments, externalPayments, from, to, tzOffset: args.tzOffset, fxToChf })
     return { encaisse: money.encaisse, attente: money.attente, rembourse: money.rembourse, net: money.encaisse - money.rembourse, transactions: money.transactions }
   },
 })
@@ -235,6 +241,14 @@ export const patch = mutation({
     form:            v.optional(v.any()),
     contractGenerated: v.optional(v.boolean()),
     kickoffEventId:  v.optional(v.string()),
+    auditSynthesis:  v.optional(v.object({
+      sheetUrl:    v.optional(v.string()),
+      mappingUrl:  v.optional(v.string()),
+      recordId:    v.optional(v.string()),
+      generatedAt: v.optional(v.string()),
+      sentAt:      v.optional(v.string()),
+      finalPdf:    v.optional(v.object({ fileName: v.string(), storageId: v.string(), uploadedAt: v.string() })),
+    })),
   },
   handler: async (ctx, args) => {
     const { contactId, ...rest } = args

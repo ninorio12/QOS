@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as adsIntel from "../adsIntel.js";
 import type * as agentAccessSync from "../agentAccessSync.js";
 import type * as agentApi from "../agentApi.js";
 import type * as agentBrains from "../agentBrains.js";
@@ -16,13 +17,16 @@ import type * as agentPermissions from "../agentPermissions.js";
 import type * as agents from "../agents.js";
 import type * as analytics from "../analytics.js";
 import type * as backfillLeadSource from "../backfillLeadSource.js";
+import type * as booking from "../booking.js";
 import type * as calendarTypes from "../calendarTypes.js";
+import type * as cardThreads from "../cardThreads.js";
 import type * as clients from "../clients.js";
 import type * as closing from "../closing.js";
 import type * as companySettings from "../companySettings.js";
 import type * as confirmationIntake from "../confirmationIntake.js";
 import type * as contactDedup from "../contactDedup.js";
 import type * as contact_meta from "../contact_meta.js";
+import type * as contractSignatures from "../contractSignatures.js";
 import type * as crm_contacts from "../crm_contacts.js";
 import type * as crm_leads from "../crm_leads.js";
 import type * as crons from "../crons.js";
@@ -31,6 +35,7 @@ import type * as devis from "../devis.js";
 import type * as externalPayments from "../externalPayments.js";
 import type * as files from "../files.js";
 import type * as funnelCohort from "../funnelCohort.js";
+import type * as fx from "../fx.js";
 import type * as googleAccounts from "../googleAccounts.js";
 import type * as http from "../http.js";
 import type * as iclosed from "../iclosed.js";
@@ -76,8 +81,10 @@ import type * as stripe from "../stripe.js";
 import type * as stripePayments from "../stripePayments.js";
 import type * as stripeSync from "../stripeSync.js";
 import type * as sync from "../sync.js";
+import type * as synthese from "../synthese.js";
 import type * as timeLib from "../timeLib.js";
 import type * as users from "../users.js";
+import type * as zernioAds from "../zernioAds.js";
 
 import type {
   ApiFromModules,
@@ -86,6 +93,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  adsIntel: typeof adsIntel;
   agentAccessSync: typeof agentAccessSync;
   agentApi: typeof agentApi;
   agentBrains: typeof agentBrains;
@@ -94,13 +102,16 @@ declare const fullApi: ApiFromModules<{
   agents: typeof agents;
   analytics: typeof analytics;
   backfillLeadSource: typeof backfillLeadSource;
+  booking: typeof booking;
   calendarTypes: typeof calendarTypes;
+  cardThreads: typeof cardThreads;
   clients: typeof clients;
   closing: typeof closing;
   companySettings: typeof companySettings;
   confirmationIntake: typeof confirmationIntake;
   contactDedup: typeof contactDedup;
   contact_meta: typeof contact_meta;
+  contractSignatures: typeof contractSignatures;
   crm_contacts: typeof crm_contacts;
   crm_leads: typeof crm_leads;
   crons: typeof crons;
@@ -109,6 +120,7 @@ declare const fullApi: ApiFromModules<{
   externalPayments: typeof externalPayments;
   files: typeof files;
   funnelCohort: typeof funnelCohort;
+  fx: typeof fx;
   googleAccounts: typeof googleAccounts;
   http: typeof http;
   iclosed: typeof iclosed;
@@ -154,8 +166,10 @@ declare const fullApi: ApiFromModules<{
   stripePayments: typeof stripePayments;
   stripeSync: typeof stripeSync;
   sync: typeof sync;
+  synthese: typeof synthese;
   timeLib: typeof timeLib;
   users: typeof users;
+  zernioAds: typeof zernioAds;
 }>;
 
 /**
