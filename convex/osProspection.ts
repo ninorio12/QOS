@@ -73,8 +73,27 @@ export const list = query({
     if (f.temperature) rows = rows.filter(r => r.temperature === f.temperature)
     if (f.channel) rows = rows.filter(r => r.channel === f.channel)
     if (f.ownerUserId) rows = rows.filter(r => r.ownerUserId === f.ownerUserId)
+    // Contacts : UNE lecture pour tout le monde. Avant, chaque carte déclenchait
+    // son propre `db.get` (152 cartes = 152 allers-retours) et le module mettait
+    // plusieurs secondes à s'ouvrir. La table tient en une requête.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const allContacts: any[] = await ctx.db.query("crm_contacts").collect()
+    const contactById = new Map<string, any>(allContacts.map((c: any) => [String(c._id), c]))
+    const cardOf = (contactId: string) => {
+      const c = contactById.get(String(contactId))
+      if (!c) return { contactId, fullName: "—" }
+      return {
+        contactId,
+        fullName: `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() || "—",
+        companyName: c.companyName ?? "", phone: c.phone ?? "", email: c.email ?? "",
+        linkedinUrl: c.linkedinUrl ?? "", source: c.source ?? "", niche: c.niche ?? "",
+        canton: c.canton ?? "", statut: c.statut ?? "", temperature: c.temperature ?? "",
+      }
+    }
+
     // Étape atteinte dans le tunnel (formulaire, quiz, rendez-vous) : le setter
     // doit savoir où en est la personne avant de décrocher son téléphone.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const journeys = await ctx.db.query("os_lead_journey").withIndex("by_ws", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
     const stepByContact = new Map<string, string>()
     for (const j of journeys) {
@@ -82,7 +101,7 @@ export const list = query({
       const last = j.steps[j.steps.length - 1]
       if (last) stepByContact.set(j.contactId, last.step)
     }
-    const out = await Promise.all(rows.map(async r => ({ ...r, id: r._id, column: boardColumnOf(r), journeyStep: stepByContact.get(String(r.contactId)) ?? undefined, contact: await contactCard(ctx, r.contactId) })))
+    const out = rows.map(r => ({ ...r, id: r._id, column: boardColumnOf(r), journeyStep: stepByContact.get(String(r.contactId)) ?? undefined, contact: cardOf(r.contactId) }))
     // Un lead converti en client (statut contact = "client") quitte la prospection :
     // il ne doit plus apparaître dans RDV booké (ni ailleurs), comme il quitte R1 du pipeline.
     const visible = out.filter(o => o.contact.statut !== "client")
