@@ -101,10 +101,10 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
       {/* Ligne 1 : nom (gras) + puce niche alignée à droite */}
       <div className="flex items-center gap-1.5 min-w-0">
         <p className="flex-1 min-w-0 text-[10.5px] md:text-[12px] font-semibold text-soren-text leading-tight truncate">{r.contact.fullName}</p>
-        {/* Niche — desktop : à droite du nom */}
+        {/* Niche — en haut à droite du nom, sur tous les écrans */}
         {r.contact.niche && (
           <span title={`Niche : ${r.contact.niche}`}
-            className="hidden md:inline-flex flex-none items-center gap-1 max-w-[92px] text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#3462EE] dark:bg-blue-500/15 dark:text-blue-400">
+            className="inline-flex flex-none items-center gap-1 max-w-[80px] md:max-w-[92px] text-[9px] font-semibold px-1.5 py-[1px] leading-tight rounded-full bg-[#EEF2FF] text-[#3462EE] dark:bg-blue-500/15 dark:text-blue-400">
             <Tag size={8} className="flex-shrink-0" /><span className="truncate">{nicheKeyword(r.contact.niche)}</span>
           </span>
         )}
@@ -176,13 +176,6 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
             </span>
           )}
         </div>
-      )}
-      {/* Niche — mobile : en bas de la card, plus petite (laisse toute la largeur au nom) */}
-      {r.contact.niche && (
-        <span title={`Niche : ${r.contact.niche}`}
-          className="md:hidden self-start inline-flex items-center gap-0.5 max-w-full text-[9px] font-semibold px-1.5 py-[1px] rounded-full leading-tight bg-[#EEF2FF] text-[#3462EE] dark:bg-blue-500/15 dark:text-blue-400">
-          <Tag size={7} className="flex-shrink-0" /><span className="truncate">{nicheKeyword(r.contact.niche)}</span>
-        </span>
       )}
     </div>
   )
