@@ -70,7 +70,7 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
   const ReasonIcon = r.column === 'perdu' && r.lostReason ? lostReasonIcon(r.lostReason) : null
   const internal = r.internalLead
   return (
-    <div className={`border rounded-lg px-2.5 py-1.5 flex flex-col gap-1 select-none transition-all ${
+    <div className={`border rounded-lg px-3 py-2 flex flex-col gap-1.5 select-none transition-all ${
       dragging
         ? internal
           ? 'bg-[#FF4D00]/15 backdrop-blur-sm border-[#FF4D00] shadow-[0_0_0_1px_#FF4D00,0_4px_16px_rgba(0,0,0,0.12)] rotate-1 cursor-grabbing'
@@ -81,11 +81,11 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
     }`}>
       {/* Ligne 1 : nom (gras) + puce niche alignée à droite */}
       <div className="flex items-center gap-1.5 min-w-0">
-        <p className="flex-1 min-w-0 text-[10px] md:text-[11.5px] font-semibold text-soren-text leading-tight truncate">{r.contact.fullName}</p>
+        <p className="flex-1 min-w-0 text-[10.5px] md:text-[12.5px] font-semibold text-soren-text leading-tight truncate">{r.contact.fullName}</p>
         {/* Niche — desktop : à droite du nom */}
         {r.contact.niche && (
           <span title={`Niche : ${r.contact.niche}`}
-            className="hidden md:inline-flex flex-none items-center gap-1 max-w-[88px] text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#3462EE] dark:bg-blue-500/15 dark:text-blue-400">
+            className="hidden md:inline-flex flex-none items-center gap-1 max-w-[104px] text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#3462EE] dark:bg-blue-500/15 dark:text-blue-400">
             <Tag size={8} className="flex-shrink-0" /><span className="truncate">{r.contact.niche}</span>
           </span>
         )}
@@ -94,14 +94,14 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
       <div className="flex items-center gap-1.5 min-w-0">
         {r.contact.phone
           ? <a href={tel} onClick={e => e.stopPropagation()} title={`Appeler ${r.contact.phone}`}
-              className="flex-none inline-flex items-center gap-1 text-[9.5px] md:text-[10.5px] font-medium text-soren-text hover:text-[#FF4D00] transition-colors">
+              className="flex-none inline-flex items-center gap-1 text-[10px] md:text-[11px] font-medium text-soren-text hover:text-[#FF4D00] transition-colors">
               <Phone size={9} className="text-[#FF4D00] flex-shrink-0" /><span className="hidden md:inline">{r.contact.phone}</span>
             </a>
           : <span className="hidden md:inline flex-none text-[9.5px] md:text-[10.5px] text-soren-subtle">Pas de n°</span>}
         {r.contact.companyName && (
           <>
             <span className="flex-none w-[3px] h-[3px] rounded-full bg-soren-border" />
-            <span className="flex items-center gap-1 min-w-0 text-[8px] md:text-[10px] text-soren-subtle"><Building2 size={8} className="flex-shrink-0 md:w-[9px] md:h-[9px]" /><span className="truncate">{r.contact.companyName}</span></span>
+            <span className="flex items-center gap-1 min-w-0 text-[9px] md:text-[10.5px] text-soren-subtle"><Building2 size={8} className="flex-shrink-0 md:w-[9px] md:h-[9px]" /><span className="truncate">{r.contact.companyName}</span></span>
           </>
         )}
       </div>
@@ -205,7 +205,7 @@ function Column({ col, records, onOpen, wasDragged, onMove, colIndex = 0, colCou
   // AUCUNE surbrillance — elle reste dans son état normal (juste un curseur « interdit »).
   const accent = blocked ? { label: baseAccent.label, zone: `${baseAccent.zone} cursor-not-allowed` } : baseAccent
   return (
-    <div className="flex flex-col w-[200px] flex-shrink-0 h-full">
+    <div className="flex flex-col w-[250px] flex-shrink-0 h-full">
       <div className="flex items-center gap-2 px-1 pb-2 flex-shrink-0">
         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: col.color }} />
         <span className={`text-[11px] font-semibold truncate flex-1 ${accent.label}`}>{col.label}</span>
