@@ -126,6 +126,9 @@ http.route({
     if (!secret) return new Response("iClosed webhook non configuré", { status: 400 })
     const provided = request.headers.get("x-iclosed-secret") ?? new URL(request.url).searchParams.get("secret")
     if (provided !== secret) return new Response("Non autorisé", { status: 401 })
+    // Trace d'appel : sans elle, impossible de savoir si iClosed déclenche
+    // vraiment le temps réel ou si seul le filet périodique fait le travail.
+    try { await ctx.runMutation(api.iclosed.recordWebhookPing, {}) } catch { /* la trace ne doit rien bloquer */ }
     try {
       // 1) Ingestion DIRECTE du payload du webhook : le RDV est créé même si la clé API
       //    iClosed est révoquée (vécu le 28/07/2026 : plus aucun RDV ne remontait alors que

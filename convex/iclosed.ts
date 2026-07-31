@@ -98,6 +98,17 @@ export const syncRecent = action({
   },
 })
 
+/** Horodate le dernier appel reçu d'iClosed : preuve que le temps réel fonctionne. */
+export const recordWebhookPing = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = new Date().toISOString()
+    const row = await ctx.db.query("integrations").withIndex("by_key", (q) => q.eq("key", "iclosed")).first()
+    if (row) await ctx.db.patch(row._id, { lastWebhookAt: now, updatedAt: now })
+    else await ctx.db.insert("integrations", { key: "iclosed", status: "connected", lastWebhookAt: now, updatedAt: now })
+  },
+})
+
 // Trace la santé du dernier sync (succès daté ou erreur) — lue par le badge du Calendrier.
 export const recordSyncHealth = mutation({
   args: { error: v.optional(v.string()) },

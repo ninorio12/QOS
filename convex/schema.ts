@@ -349,6 +349,8 @@ export default defineSchema({
     lastSyncAt:    v.optional(v.string()),   // ISO du dernier sync RÉUSSI
     lastSyncError: v.optional(v.string()),   // message de la dernière erreur (null si tout va bien)
     updatedAt: v.string(),
+    // Dernier appel reçu du service (webhook temps réel), distinct de la synchro périodique.
+    lastWebhookAt: v.optional(v.string()),
   }).index("by_key", ["key"]),
 
   // Stripe — paiements réels (charges/payment_intents) + remboursements, alimentés par
