@@ -185,6 +185,11 @@ export default defineSchema({
     stageId:    v.string(),
     value:      v.number(),
     source:     v.optional(v.string()),  // 'inbound' | 'outbound'
+    // Parcours d'origine, écrit UNE FOIS à la création : quiz | vsl | social | emailing.
+    // Jamais recalculé ensuite, sinon un lead changerait de famille en cours de route.
+    funnel:     v.optional(v.string()),
+    origin:     v.optional(v.string()),  // étiquette d'origine affichée : facebook, instagram…
+    token:      v.optional(v.string()),  // jeton de parcours (os_lead_journey)
     status:     v.string(),              // 'open' | 'lost' | 'won'
     initials:   v.string(),
     isDemo:     v.optional(v.boolean()),
@@ -723,6 +728,38 @@ export default defineSchema({
     panierMoyen:   v.optional(v.number()),  // € panier moyen
     updatedAt:     v.optional(v.string()),
   }).index("by_workspace", ["workspaceId"]),
+
+  // Parcours d'un lead entrant, étape par étape. Un jeton unique le suit du
+  // formulaire Facebook jusqu'à la vente : quiz, rendez-vous, quiz de fin.
+  // C'est ce jeton qui circule dans les liens, l'email servant de filet de secours
+  // quand un outil externe ne nous le renvoie pas.
+  os_lead_journey: defineTable({
+    workspaceId: v.string(),
+    token:       v.string(),                 // jeton court, celui qui voyage dans les liens
+    contactId:   v.optional(v.string()),
+    leadId:      v.optional(v.string()),
+    funnel:      v.string(),                 // quiz | vsl | social | emailing
+    email:       v.optional(v.string()),
+    phone:       v.optional(v.string()),
+    name:        v.optional(v.string()),
+    // Provenance Meta, pour rattacher un lead à sa publicité.
+    leadgenId:   v.optional(v.string()),     // identifiant Meta de la soumission (clé de dédoublonnage)
+    formId:      v.optional(v.string()),
+    adId:        v.optional(v.string()),
+    adsetId:     v.optional(v.string()),
+    campaignId:  v.optional(v.string()),
+    isOrganic:   v.optional(v.boolean()),
+    fieldsJson:  v.optional(v.string()),     // réponses brutes du formulaire
+    // Étapes franchies, horodatées : formulaire, quiz ouvert, quiz terminé,
+    // rendez-vous pris, quiz de fin. Une étape ne s'écrit qu'une fois.
+    steps:       v.array(v.object({ step: v.string(), at: v.string(), meta: v.optional(v.string()) })),
+    createdAt:   v.string(),
+    updatedAt:   v.string(),
+  })
+    .index("by_token", ["token"])
+    .index("by_leadgen", ["leadgenId"])
+    .index("by_email", ["email"])
+    .index("by_ws", ["workspaceId", "createdAt"]),
 
   // Module Budget : chaque poste de dépense, saisi et modifiable à la main.
   // Remplace la liste codée en dur du composant : les montants bougent, les

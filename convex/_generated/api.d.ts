@@ -42,6 +42,7 @@ import type * as http from "../http.js";
 import type * as iclosed from "../iclosed.js";
 import type * as integrations from "../integrations.js";
 import type * as integrityCleanup from "../integrityCleanup.js";
+import type * as leadIngest from "../leadIngest.js";
 import type * as leadSync from "../leadSync.js";
 import type * as lead_stage_history from "../lead_stage_history.js";
 import type * as lib_agentEnums from "../lib/agentEnums.js";
@@ -128,6 +129,7 @@ declare const fullApi: ApiFromModules<{
   iclosed: typeof iclosed;
   integrations: typeof integrations;
   integrityCleanup: typeof integrityCleanup;
+  leadIngest: typeof leadIngest;
   leadSync: typeof leadSync;
   lead_stage_history: typeof lead_stage_history;
   "lib/agentEnums": typeof lib_agentEnums;

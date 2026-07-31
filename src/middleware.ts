@@ -12,6 +12,8 @@ const isPublic = createRouteMatcher([
   // Exigée par Meta pour les formulaires de génération de leads : doit être
   // lisible sans aucune connexion, sinon la création du formulaire est refusée.
   '/confidentialite',
+  // Redirection traçante du parcours : c'est un prospect qui clique, sans session.
+  '/go(.*)',
 ])
 
 // Routes /api/* qui exposent / modifient des données métier (CRM, dashboard,

@@ -174,4 +174,55 @@ http.route({
   }),
 })
 
+/**
+ * Leads de formulaire Facebook, poussés par Zernio (événement `lead.received`).
+ *
+ * Zernio est abonné au webhook `leadgen` de la page Meta : chaque soumission
+ * arrive ici en temps réel. On vérifie la signature quand un secret est posé,
+ * puis on crée contact, lead et parcours. Toujours répondre 200 après
+ * validation : un 500 ferait retenter Zernio et, au bout de dix échecs, il
+ * désactiverait le webhook.
+ */
+http.route({
+  path: "/zernio/leads",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const raw = await request.text()
+    const secret = process.env.ZERNIO_WEBHOOK_SECRET
+    if (secret) {
+      const sig = request.headers.get("x-zernio-signature") ?? request.headers.get("x-signature") ?? ""
+      const enc = new TextEncoder()
+      const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
+      const mac = await crypto.subtle.sign("HMAC", key, enc.encode(raw))
+      const expected = [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, "0")).join("")
+      if (!sig.toLowerCase().includes(expected)) return new Response("Signature invalide", { status: 401 })
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let evt: any
+    try { evt = JSON.parse(raw) } catch { return new Response("Bad payload", { status: 400 }) }
+    if (evt?.event !== "lead.received" || !evt?.lead?.leadgenId) return new Response("ok", { status: 200 })
+
+    try {
+      const l = evt.lead
+      await ctx.runMutation(internal.leadIngest.fromLeadForm, {
+        leadgenId: String(l.leadgenId),
+        formId: l.formId ? String(l.formId) : undefined,
+        formName: l.formName ?? undefined,
+        adId: l.adId ?? undefined,
+        adsetId: l.adsetId ?? undefined,
+        campaignId: l.campaignId ?? undefined,
+        isOrganic: Boolean(l.isOrganic),
+        fields: l.fields ?? {},
+        createdAt: l.createdAt ?? undefined,
+        funnel: "quiz",
+        origin: "facebook",
+      })
+    } catch (err) {
+      console.error("[zernio/leads] erreur:", err)
+    }
+    return new Response("ok", { status: 200 })
+  }),
+})
+
 export default http
