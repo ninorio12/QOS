@@ -12,6 +12,8 @@ import { DateRangePicker, getPresetRange } from '@/components/shared/DateRangePi
 const StripeConnectModal = dynamic(() => import('./StripeConnectModal'), { ssr: false })
 
 function fmt(n: number) { return `${Number.isFinite(n) ? Math.round(Math.abs(n)).toLocaleString('fr-FR') : '0'} CHF` }
+// Le bénéfice, lui, garde son signe : une perte doit se lire comme une perte.
+function fmtSigned(n: number) { return `${Number.isFinite(n) ? Math.round(n).toLocaleString('fr-FR') : '0'} CHF` }
 function localDate(d: Date) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
 
 type Txn = { contactId: string; client: string; company: string; label: string; amount: number; date: string; type: 'payment' | 'refund'; status: 'encaissé' | 'attente'; source?: 'stripe' | 'revolut' | 'manual' }
@@ -181,38 +183,15 @@ export default function PaiementView() {
         <Card label="Remboursé" value={fmt(ov.rembourse)} variant="amber" icon={Undo2} />
       </div>
 
-      {/* Bénéfice = encaissé, moins les remboursements, moins les dépenses de la période */}
-      <div className="px-6 grid grid-cols-1 md:grid-cols-3 gap-3 flex-shrink-0 mt-3">
-        <div className="bg-soren-card border border-soren-border rounded-2xl p-4 shadow-sm md:col-span-1">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] font-medium text-soren-muted uppercase tracking-wide">Bénéfice</span>
-            <span className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: (ov.benefice ?? 0) >= 0 ? '#16A34A18' : '#DC262618', color: (ov.benefice ?? 0) >= 0 ? '#16A34A' : '#DC2626' }}>
-              <TrendingUp size={13} />
-            </span>
-          </div>
-          <div className="text-[18px] font-bold leading-none tabular-nums mt-1.5" style={{ color: (ov.benefice ?? 0) >= 0 ? '#16A34A' : '#DC2626' }}>
-            {fmt(ov.benefice ?? 0)}
-          </div>
-          <p className="text-[9.5px] text-soren-subtle mt-1">
-            Encaissé moins remboursements et dépenses
-            {ov.marge != null && <> · marge <span className="font-semibold text-soren-muted tabular-nums">{ov.marge} %</span></>}
-          </p>
-        </div>
-        <div className="bg-soren-card border border-soren-border rounded-2xl p-4 shadow-sm md:col-span-2 flex flex-col justify-center gap-1.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-medium text-soren-muted uppercase tracking-wide">Dépenses de la période</span>
-            <span className="text-[14px] font-bold text-soren-text tabular-nums">{fmt(ov.depenses?.total ?? 0)}</span>
-          </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-1 text-[10.5px] text-soren-subtle">
-            <span>Publicité <span className="font-semibold text-soren-muted tabular-nums">{fmt(ov.depenses?.publicite ?? 0)}</span></span>
-            <span>Abonnements <span className="font-semibold text-soren-muted tabular-nums">{fmt(ov.depenses?.abonnements ?? 0)}</span></span>
-            <span>Ponctuelles <span className="font-semibold text-soren-muted tabular-nums">{fmt(ov.depenses?.ponctuelles ?? 0)}</span></span>
-          </div>
-        </div>
-      </div>
-
-      {/* États spéciaux des paiements */}
-      <div className="px-6 grid grid-cols-1 sm:grid-cols-2 gap-3 flex-shrink-0 mt-3">
+      {/* Bénéfice + états de paiement */}
+      <div className="px-6 grid grid-cols-2 md:grid-cols-3 gap-3 flex-shrink-0 mt-3">
+        <Card
+          label="Bénéfice"
+          value={fmtSigned(ov.benefice ?? 0)}
+          variant={(ov.benefice ?? 0) >= 0 ? 'green' : 'red'}
+          icon={TrendingUp}
+          hint={`Après ${fmt(ov.depenses?.total ?? 0)} de dépenses${ov.marge != null ? ` · marge ${ov.marge} %` : ''}`}
+        />
         <Card label="En cours de paiement" value={fmt(ov.pending)} variant="blue" icon={Hourglass} />
         <Card label="Paiements échoués" value={fmt(ov.failed)} variant="red" icon={AlertCircle} />
       </div>
