@@ -32,7 +32,11 @@ export const creatives = action({
     let act = String(conn.accountId).trim(); if (!act.startsWith("act_")) act = `act_${act.replace(/^act_?/, "")}`
     const token: string = conn.token
     const preset = a.datePreset ?? "last_14d"
-    const limit = Math.min(a.limit ?? 30, 100)
+    // Meta refuse les grandes pages dès qu'on demande créations ET insights
+    // ensemble (« Please reduce the amount of data you're asking for ») : on
+    // pagine par petites tranches plutôt que de tomber en repli Zernio.
+    const wanted = Math.min(a.limit ?? 30, 200)
+    const limit = Math.min(wanted, 10)
     const fields = [
       "name", "effective_status", "preview_shareable_link",
       "campaign{name}", "adset{name}",
@@ -42,7 +46,7 @@ export const creatives = action({
     let url: string | null = `${GRAPH}/${META_API_VERSION}/${act}/ads?fields=${encodeURIComponent(fields)}&limit=${limit}&access_token=${encodeURIComponent(token)}`
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ads: any[] = []
-    for (let i = 0; i < 5 && url; i++) {
+    for (let i = 0; i < 25 && url && ads.length < wanted; i++) {
       const res = await fetch(url); const json: any = await res.json()
       if (json.error) {
         // Token direct invalide/expiré : on retente par Zernio avant d'abandonner.
@@ -97,8 +101,10 @@ export const creatives = action({
           if (!videoLien && pageId) videoLien = `https://www.facebook.com/${pageId}/videos/${vid}`
         } catch { /* vidéo inaccessible — on garde le reste */ }
       }
-      // Dernier recours : l'aperçu partageable de l'annonce, toujours disponible.
-      if (!videoSource && !videoLien && ad.preview_shareable_link) videoLien = ad.preview_shareable_link
+      // Dernier recours, RÉSERVÉ AUX VIDÉOS : l'aperçu partageable de l'annonce.
+      // Une créa statique ne doit jamais recevoir de lien vidéo, sinon le board
+      // lui colle un bouton lecture sur une image fixe.
+      if (vid && !videoSource && !videoLien && ad.preview_shareable_link) videoLien = ad.preview_shareable_link
       const ins = ad.insights?.data?.[0] ?? {}
       const imp = parseFloat(ins.impressions ?? "0") || 0
       const spend = parseFloat(ins.spend ?? "0") || 0
