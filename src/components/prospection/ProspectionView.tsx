@@ -15,6 +15,7 @@ import { Search, Plus, X, Phone, Mail, Building2, ExternalLink, CalendarCheck, U
 import { useKanbanSensors } from '@/hooks/useKanbanSensors'
 import { type GHLContact } from '@/lib/ghl'
 import { LOST_REASONS, lostReasonLabel, lostReasonIcon } from '@/lib/lostReasons'
+import { nicheKeyword } from '@/lib/nicheKeyword'
 
 // Event iClosed de booking R1 (le widget gère date/heure/closer ; email pré-rempli).
 // iClosed interdit l'iframe (x-frame-options: DENY) → on ouvre dans un nouvel onglet.
@@ -103,8 +104,8 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
         {/* Niche — desktop : à droite du nom */}
         {r.contact.niche && (
           <span title={`Niche : ${r.contact.niche}`}
-            className="hidden md:inline-flex flex-none items-center gap-1 max-w-[104px] text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#3462EE] dark:bg-blue-500/15 dark:text-blue-400">
-            <Tag size={8} className="flex-shrink-0" /><span className="truncate">{r.contact.niche}</span>
+            className="hidden md:inline-flex flex-none items-center gap-1 max-w-[92px] text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#3462EE] dark:bg-blue-500/15 dark:text-blue-400">
+            <Tag size={8} className="flex-shrink-0" /><span className="truncate">{nicheKeyword(r.contact.niche)}</span>
           </span>
         )}
       </div>
