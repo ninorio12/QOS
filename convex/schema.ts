@@ -670,6 +670,7 @@ export default defineSchema({
     followUpReason: v.optional(v.string()),   // texte libre — raison "À suivre" (devient un chip sur la carte)
     followUpAt:     v.optional(v.string()),    // date d'entrée dans la colonne "À suivre" (ISO)
     internalLead:   v.optional(v.boolean()),  // lead poussé depuis une fiche contact ("Leads interne") — card teal, interdite de retour en "Leads à traiter"
+    origin:         v.optional(v.string()),   // canal d'arrivée affiché sur la carte : facebook, emailing…
     // Lead devenu interne PARCE QU'IL A BOOKÉ un RDV (deck outbound → iClosed), et non parce
     // qu'on l'a envoyé à la main depuis sa fiche. Il n'est plus à convertir mais à CADRER avant
     // le rendez-vous → chip « Cadrage » sur la carte pour le distinguer des internes classiques.

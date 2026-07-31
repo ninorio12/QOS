@@ -109,6 +109,24 @@ export const fromLeadForm = internalMutation({
       createdAt: now(),
     }))
 
+    // Le lead entre directement dans « Leads interne » du board prospection : il
+    // n'est pas à convertir mais à rappeler, comme un lead qui a booké. La puce
+    // « Appel de clarté » le signale, la puce d'origine dit d'où il vient.
+    await ctx.db.insert("prospection_records", {
+      workspaceId: WORKSPACE,
+      contactId,
+      leadId,
+      boardColumn: "leads_interne",
+      phase: "phase1",
+      internalLead: true,
+      cadrage: true,
+      origin,
+      temperature: "tiede",
+      status: "active",
+      createdAt: now(),
+      updatedAt: now(),
+    })
+
     await ctx.db.insert("os_lead_journey", {
       workspaceId: WORKSPACE, token, contactId, leadId, funnel,
       email, phone, name,

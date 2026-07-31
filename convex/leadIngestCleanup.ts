@@ -25,6 +25,12 @@ export const purgeTestLead = internalMutation({
       const lead = await ctx.db.get(row.leadId as never)
       if (lead) { await ctx.db.delete(row.leadId as never); removed++ }
     }
+    // La carte du board de prospection vit dans sa propre table : sans ça, le
+    // lead de test restait affiché alors que son contact avait disparu.
+    if (row.contactId) {
+      const recs = await ctx.db.query("prospection_records").withIndex("by_contact", (q) => q.eq("contactId", row.contactId!)).collect()
+      for (const rec of recs) { await ctx.db.delete(rec._id); removed++ }
+    }
     if (row.contactId) {
       const contact = await ctx.db.get(row.contactId as never)
       if (contact) { await ctx.db.delete(row.contactId as never); removed++ }
