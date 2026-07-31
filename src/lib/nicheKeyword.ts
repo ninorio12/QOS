@@ -11,6 +11,12 @@
 
 // Ordre important : la première correspondance gagne, donc le plus spécifique d'abord.
 const RULES: { test: RegExp; keyword: string }[] = [
+  // Hors cible d'abord : c'est l'information qui compte, pas le métier.
+  { test: /hors cible/i, keyword: 'Hors cible' },
+  // Métiers MIXTES : quand deux activités cibles cohabitent, ranger sous la
+  // première serait faux. Une fiduciaire qui fait de la gérance immobilière ne
+  // se pilote pas comme une fiduciaire : c'est l'activité qui distingue qui gagne.
+  { test: /fiduciaire.*(immobil|gérance|gerance|régie|regie)/i, keyword: 'Immobilier' },
   { test: /notari/i, keyword: 'Notaire' },
   { test: /avocat|juridique|contentieux|arbitrage/i, keyword: 'Avocats' },
   { test: /fiduciaire|comptab|audit/i, keyword: 'Fiduciaire' },
