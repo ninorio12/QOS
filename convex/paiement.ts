@@ -24,6 +24,29 @@ export const overview = query({
     const money = reconcileMoney({ obs, clients, contacts, stripePayments, externalPayments, from, to, tzOffset: args.tzOffset, fxToChf })
     const { encaisse, attente, rembourse, enRetard, pending, failed, disputes, transactions } = money
 
+    // ── Dépenses de la période : abonnements du module Budget + dépense publicitaire ──
+    // Bénéfice = encaissé net des remboursements, moins ce que l'activité a coûté.
+    // Un abonnement mensuel est proratisé sur la fenêtre (sinon un mois complet
+    // s'imputerait sur une semaine), une dépense ponctuelle compte le jour où elle tombe.
+    const USD_TO_CHF = 0.7961   // même taux que le module Budget
+    const budgetItems = await ctx.db.query("budget_items").collect()
+    const jours = Math.max(1, Math.round((Date.parse(to) - Date.parse(from)) / 86400_000) + 1)
+    let coutsFixes = 0, coutsPonctuels = 0
+    for (const it of budgetItems) {
+      const montant = it.currency === "USD" ? it.amount * USD_TO_CHF : it.amount
+      if (it.recurrence === "ponctuel") {
+        if (it.date && dOf(it.date) >= from && dOf(it.date) <= to) coutsPonctuels += montant
+      } else {
+        coutsFixes += (montant / 30) * jours
+      }
+    }
+    const metaRows = await ctx.db.query("meta_daily").collect()
+    const depensePub = metaRows
+      .filter((r) => r.date >= from && r.date <= to)
+      .reduce((s, r) => s + (r.spend ?? 0), 0)
+    const depenses = Math.round(coutsFixes + coutsPonctuels + depensePub)
+    const benefice = Math.round(encaisse - rembourse - depenses)
+
     // ── États (cumulatif ≤ to, définition CRM — identique au dashboard) ──
     const contactStatut = new Map(contacts.map(c => [c._id.toString(), c.statut]))
     const statutOf = (cl: typeof clients[number]) => contactStatut.get((cl.contactId ?? cl.ghl_contact_id)?.toString() ?? '')
@@ -53,6 +76,14 @@ export const overview = query({
 
     return {
       encaisse, attente, rembourse, enRetard, pending, failed, disputes, net: encaisse - rembourse, transactions,
+      benefice,
+      depenses: {
+        total: depenses,
+        abonnements: Math.round(coutsFixes),
+        ponctuelles: Math.round(coutsPonctuels),
+        publicite: Math.round(depensePub),
+      },
+      marge: encaisse > 0 ? Math.round((benefice / encaisse) * 100) : null,
       clientsCount, caTotal, leadsCount,
       conversions: { global: convGlobal, inbound: convInbound, outbound: convOutbound, recommandation: convReco },
     }

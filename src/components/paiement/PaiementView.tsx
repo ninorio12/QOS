@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic'
 import { useSearchParams } from 'next/navigation'
 import { useQuery, useAction, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { CalendarDays, X, Search, CreditCard, RefreshCw, ArrowDownToLine, Clock, Undo2, Hourglass, AlertCircle, Plus, Landmark, type LucideIcon } from 'lucide-react'
+import { CalendarDays, X, Search, CreditCard, RefreshCw, ArrowDownToLine, Clock, Undo2, Hourglass, AlertCircle, Plus, Landmark, type LucideIcon, TrendingUp } from 'lucide-react'
 import { DateRangePicker, getPresetRange } from '@/components/shared/DateRangePicker'
 
 const StripeConnectModal = dynamic(() => import('./StripeConnectModal'), { ssr: false })
@@ -32,6 +32,8 @@ function SourceBadge({ source }: { source?: string }) {
 type Conv = { clients: number; total: number; pct: number }
 type Overview = {
   encaisse: number; attente: number; rembourse: number; net: number; transactions: Txn[]
+  benefice?: number; marge?: number | null
+  depenses?: { total: number; abonnements: number; ponctuelles: number; publicite: number }
   pending: number; failed: number; disputes: number
   clientsCount: number; caTotal: number; leadsCount: number
   conversions: { global: Conv; inbound: Conv; outbound: Conv }
@@ -78,7 +80,7 @@ export default function PaiementView() {
   }
   const tzOffset = new Date().getTimezoneOffset()
   const data = useQuery(api.paiement.overview, { from: range.from, to: range.to, tzOffset }) as Overview | undefined
-  const ov = data ?? { encaisse: 0, attente: 0, rembourse: 0, net: 0, pending: 0, failed: 0, disputes: 0, transactions: [], clientsCount: 0, caTotal: 0, leadsCount: 0, conversions: { global: { clients: 0, total: 0, pct: 0 }, inbound: { clients: 0, total: 0, pct: 0 }, outbound: { clients: 0, total: 0, pct: 0 } } }
+  const ov = data ?? { encaisse: 0, attente: 0, rembourse: 0, net: 0, benefice: 0, marge: null, depenses: { total: 0, abonnements: 0, ponctuelles: 0, publicite: 0 }, pending: 0, failed: 0, disputes: 0, transactions: [], clientsCount: 0, caTotal: 0, leadsCount: 0, conversions: { global: { clients: 0, total: 0, pct: 0 }, inbound: { clients: 0, total: 0, pct: 0 }, outbound: { clients: 0, total: 0, pct: 0 } } }
 
   const txns = useMemo(() => {
     let t = filterContact ? ov.transactions.filter(x => x.contactId === filterContact) : ov.transactions
@@ -177,6 +179,36 @@ export default function PaiementView() {
         <Card label="Encaissé" value={fmt(filtEncaisse)} variant="green" icon={ArrowDownToLine} />
         <Card label="À collecter" value={fmt(filtAttente)} variant="slate" icon={Clock} />
         <Card label="Remboursé" value={fmt(ov.rembourse)} variant="amber" icon={Undo2} />
+      </div>
+
+      {/* Bénéfice = encaissé, moins les remboursements, moins les dépenses de la période */}
+      <div className="px-6 grid grid-cols-1 md:grid-cols-3 gap-3 flex-shrink-0 mt-3">
+        <div className="bg-soren-card border border-soren-border rounded-2xl p-4 shadow-sm md:col-span-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-medium text-soren-muted uppercase tracking-wide">Bénéfice</span>
+            <span className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: (ov.benefice ?? 0) >= 0 ? '#16A34A18' : '#DC262618', color: (ov.benefice ?? 0) >= 0 ? '#16A34A' : '#DC2626' }}>
+              <TrendingUp size={13} />
+            </span>
+          </div>
+          <div className="text-[18px] font-bold leading-none tabular-nums mt-1.5" style={{ color: (ov.benefice ?? 0) >= 0 ? '#16A34A' : '#DC2626' }}>
+            {fmt(ov.benefice ?? 0)}
+          </div>
+          <p className="text-[9.5px] text-soren-subtle mt-1">
+            Encaissé moins remboursements et dépenses
+            {ov.marge != null && <> · marge <span className="font-semibold text-soren-muted tabular-nums">{ov.marge} %</span></>}
+          </p>
+        </div>
+        <div className="bg-soren-card border border-soren-border rounded-2xl p-4 shadow-sm md:col-span-2 flex flex-col justify-center gap-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-medium text-soren-muted uppercase tracking-wide">Dépenses de la période</span>
+            <span className="text-[14px] font-bold text-soren-text tabular-nums">{fmt(ov.depenses?.total ?? 0)}</span>
+          </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-1 text-[10.5px] text-soren-subtle">
+            <span>Publicité <span className="font-semibold text-soren-muted tabular-nums">{fmt(ov.depenses?.publicite ?? 0)}</span></span>
+            <span>Abonnements <span className="font-semibold text-soren-muted tabular-nums">{fmt(ov.depenses?.abonnements ?? 0)}</span></span>
+            <span>Ponctuelles <span className="font-semibold text-soren-muted tabular-nums">{fmt(ov.depenses?.ponctuelles ?? 0)}</span></span>
+          </div>
+        </div>
       </div>
 
       {/* États spéciaux des paiements */}
