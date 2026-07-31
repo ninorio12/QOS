@@ -120,6 +120,14 @@ export default function ProspectionCockpit() {
     window.history.replaceState(null, '', url.toString())
   }
 
+  // Le trait sous l'onglet actif glisse : on mesure la position du bouton courant.
+  const famRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const [ind, setInd] = useState({ left: 0, width: 0 })
+  useEffect(() => {
+    const el = famRefs.current[cfg.family]
+    if (el) setInd({ left: el.offsetLeft, width: el.offsetWidth })
+  }, [cfg.family])
+
   const [objOpen, setObjOpen] = useState(false)
   const [objScope, setObjScope] = useState<'commerciale' | 'globale' | 'all'>('all')
   const [repliesOpen, setRepliesOpen] = useState(false)
@@ -193,33 +201,46 @@ export default function ProspectionCockpit() {
           </div>
         </div>
 
-        {/* Deux niveaux : la famille en haut, le détail du direct response en dessous. */}
-        <div className="flex items-center gap-5 mb-3 flex-wrap border-b border-soren-border/60">
+        {/* Deux étages : la famille en onglets soulignés, le détail en pastilles.
+            Le trait glisse d'un onglet à l'autre, la rangée de pastilles se déplie. */}
+        <div className="relative flex items-center gap-6 flex-wrap border-b border-soren-border/60">
           {FAMILIES.map((fam) => {
             const active = cfg.family === fam.id
             return (
-              <button key={fam.id} onClick={() => pickConfig(fam.defaultConfig)}
-                className={`relative text-[12.5px] pb-2 -mb-px transition-colors ${
+              <button key={fam.id} ref={(el) => { famRefs.current[fam.id] = el }}
+                onClick={() => pickConfig(fam.defaultConfig)}
+                className={`text-[12.5px] pb-2.5 transition-colors duration-200 ${
                   active ? 'font-bold text-soren-text' : 'font-medium text-soren-subtle hover:text-soren-muted'
                 }`}>
                 {fam.label}
-                {active && <span className="absolute left-0 right-0 -bottom-px h-[2px] bg-soren-text rounded-full" />}
               </button>
             )
           })}
+          <span
+            className="absolute bottom-[-1px] h-[2px] bg-soren-text rounded-full transition-all duration-300 ease-out"
+            style={{ left: ind.left, width: ind.width, opacity: ind.width ? 1 : 0 }}
+          />
         </div>
-        {cfg.family === 'direct' && (
-          <div className="flex items-center gap-4 mb-4 flex-wrap">
-            {FUNNEL_CONFIGS.filter(c => c.family === 'direct').map((c) => (
-              <button key={c.id} onClick={() => pickConfig(c.id)} title={c.tagline}
-                className={`text-[11.5px] transition-colors ${
-                  c.id === cfg.id ? 'font-bold text-soren-text underline underline-offset-4' : 'font-medium text-soren-subtle hover:text-soren-muted'
-                }`}>
-                {c.label}
-              </button>
-            ))}
+
+        <div className={`overflow-hidden transition-all duration-300 ease-out ${
+          cfg.family === 'direct' ? 'max-h-16 opacity-100 mt-3 mb-4' : 'max-h-0 opacity-0 mt-0 mb-4'
+        }`}>
+          <div className="flex items-center gap-1.5">
+            {FUNNEL_CONFIGS.filter((c) => c.family === 'direct').map((c) => {
+              const on = c.id === cfg.id
+              return (
+                <button key={c.id} onClick={() => pickConfig(c.id)} title={c.tagline}
+                  className={`text-[11px] font-semibold rounded-full px-3 py-1.5 border transition-all duration-200 ease-out ${
+                    on
+                      ? 'bg-soren-sidebar text-white border-transparent shadow-sm'
+                      : 'bg-soren-elevated text-soren-muted border-soren-border hover:text-soren-text hover:border-soren-border'
+                  }`}>
+                  {c.label}
+                </button>
+              )
+            })}
           </div>
-        )}
+        </div>
 
         {/* Ligne 1 : Funnel (grand) + 6 cards 2×2 */}
         <div className={`grid grid-cols-1 lg:grid-cols-12 gap-5 mb-5 items-stretch transition-opacity duration-300 ${refreshing ? 'opacity-50' : 'opacity-100'}`}>
