@@ -1,13 +1,19 @@
+'use client'
+
 /**
- * Provenance concrète d'un lead, sous la rangée Source.
+ * Provenance réelle d'un lead, sous la rangée Source.
  *
- * « Inbound » et « Outbound » disent la famille, pas le canal. Cette étiquette
- * dit par où la personne est réellement arrivée : le formulaire Facebook pour
- * l'entrant, l'emailing pour le sortant. Les logos sont dessinés en SVG (traces
- * officielles Simple Icons, CC0) : aucun appel réseau, aucune image à charger.
+ * « Inbound » et « Outbound » disent la famille, pas le canal. Cette zone dit par
+ * où la personne est arrivée, et quand on le sait, PAR QUELLE PUBLICITÉ : le
+ * parcours porte l'identifiant de l'annonce, la table des créas porte son nom.
+ * Les logos sont dessinés en SVG (traces officielles Simple Icons, CC0) : aucun
+ * appel réseau, aucune image à charger.
  */
 
-function MetaLogo({ size = 13 }: { size?: number }) {
+import { useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
+
+function MetaLogo({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
       <path
@@ -18,7 +24,7 @@ function MetaLogo({ size = 13 }: { size?: number }) {
   )
 }
 
-function GmailLogo({ size = 13 }: { size?: number }) {
+function GmailLogo({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
       <path fill="#EA4335" d="M1.636 5.455 12 13.09l10.364-7.636A1.64 1.64 0 0 0 20.727 4.5H3.273a1.64 1.64 0 0 0-1.637.955Z" />
@@ -29,18 +35,44 @@ function GmailLogo({ size = 13 }: { size?: number }) {
   )
 }
 
-const ORIGINS: Record<string, { label: string; Logo: (p: { size?: number }) => React.ReactElement }> = {
-  inbound: { label: 'Formulaire Facebook', Logo: MetaLogo },
-  outbound: { label: 'Emailing', Logo: GmailLogo },
-}
+type Origin = {
+  funnel: string
+  formName: string | null
+  adId: string | null
+  adName: string | null
+  campaignName: string | null
+  isOrganic: boolean | null
+} | null
 
-export default function OriginBadge({ source }: { source: string | null | undefined }) {
-  const o = source ? ORIGINS[source] : undefined
-  if (!o) return null
+export default function OriginBadge({ source, contactId }: { source: string | null | undefined; contactId?: string }) {
+  const origin = useQuery(api.leadIngest.originFor, contactId ? { contactId } : 'skip') as Origin | undefined
+
+  if (!source) return null
+  const isInbound = source === 'inbound'
+  const isOutbound = source === 'outbound'
+  if (!isInbound && !isOutbound) return null
+
+  const Logo = isInbound ? MetaLogo : GmailLogo
+  const canal = isInbound ? 'Formulaire Facebook' : 'Emailing'
+
   return (
-    <div className="flex items-center gap-1.5 mt-0.5">
-      <o.Logo size={13} />
-      <span className="text-[11px] font-medium text-soren-muted">{o.label}</span>
+    <div className="flex items-start gap-2.5 mt-1 px-3 py-2.5 rounded-xl bg-soren-elevated border border-soren-border">
+      <span className="w-8 h-8 rounded-lg bg-soren-card border border-soren-border flex items-center justify-center flex-shrink-0">
+        <Logo size={18} />
+      </span>
+      <div className="min-w-0 flex flex-col gap-0.5">
+        <span className="text-[12.5px] font-semibold text-soren-text leading-none">{canal}</span>
+        {origin?.adName ? (
+          <span className="text-[10.5px] text-soren-muted truncate">
+            Publicité <span className="font-medium text-soren-text">{origin.adName}</span>
+            {origin.campaignName && <> · {origin.campaignName}</>}
+          </span>
+        ) : origin?.isOrganic ? (
+          <span className="text-[10.5px] text-soren-subtle">Arrivé sans publicité (organique)</span>
+        ) : (
+          <span className="text-[10.5px] text-soren-subtle">Publicité d&apos;origine non identifiée</span>
+        )}
+      </div>
     </div>
   )
 }

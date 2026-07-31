@@ -156,6 +156,47 @@ export const journey = query({
   },
 })
 
+/**
+ * Origine complète d'un contact : par où il est entré ET quelle publicité l'a
+ * amené. Le parcours porte l'identifiant de l'annonce, la table des créas porte
+ * son nom : c'est la jointure qui rend l'information lisible sur la fiche.
+ */
+export const originFor = query({
+  args: { contactId: v.optional(v.string()), email: v.optional(v.string()) },
+  handler: async (ctx, a) => {
+    if (!a.contactId && !a.email) return null
+    const rows = await ctx.db
+      .query("os_lead_journey")
+      .withIndex("by_ws", (q) => q.eq("workspaceId", WORKSPACE))
+      .collect()
+    const row = a.contactId
+      ? rows.find((r) => r.contactId === a.contactId)
+      : rows.find((r) => r.email?.toLowerCase() === a.email!.toLowerCase())
+    if (!row) return null
+
+    // Nom de la créa : on cherche l'annonce dans les créas synchronisées.
+    let adName: string | null = null
+    let campaignName: string | null = null
+    if (row.adId) {
+      const crea = await ctx.db
+        .query("meta_creatives")
+        .withIndex("by_ws_ad", (q) => q.eq("workspaceId", WORKSPACE).eq("adId", row.adId!))
+        .first()
+      adName = crea?.name ?? null
+      campaignName = crea?.campaign ?? null
+    }
+    return {
+      funnel: row.funnel,
+      formName: row.steps.find((st) => st.step === "formulaire")?.meta ?? null,
+      adId: row.adId ?? null,
+      adName, campaignName,
+      isOrganic: row.isOrganic ?? null,
+      steps: row.steps,
+      token: row.token,
+    }
+  },
+})
+
 /** Les parcours de la période, pour compter les étapes du parcours Quiz. */
 export const list = query({
   args: { funnel: v.optional(v.string()), limit: v.optional(v.number()) },
