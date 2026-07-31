@@ -29,7 +29,7 @@ const dropAnimation: DropAnimation = {
 const NewContactModal = dynamic(() => import('../contacts/NewContactModal'), { ssr: false })
 
 type Contact = { contactId: string; fullName: string; companyName?: string; phone?: string; email?: string; source?: string; niche?: string }
-type ProspRecord = { id: string; contactId: string; column: string; shortNote?: string; status: string; updatedAt: string; lostReason?: string; followUpReason?: string; followUpAt?: string; internalLead?: boolean; cadrage?: boolean; origin?: string; contact: Contact }
+type ProspRecord = { id: string; contactId: string; column: string; shortNote?: string; status: string; updatedAt: string; lostReason?: string; followUpReason?: string; followUpAt?: string; internalLead?: boolean; cadrage?: boolean; origin?: string; journeyStep?: string; contact: Contact }
 const fmtFollowUp = (iso?: string) => { if (!iso) return ''; const d = new Date(iso); return isNaN(d.getTime()) ? '' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) }
 
 // Règles métier de déplacement :
@@ -61,6 +61,14 @@ const COLUMNS: { id: string; label: string; color: string }[] = [
   { id: 'a_suivre',        label: 'À suivre',                color: '#8B5CF6' },
 ]
 const COLUMN_IDS = COLUMNS.map(c => c.id)
+
+// Étapes du tunnel entrant, dans l'ordre. La dernière franchie s'affiche sur la carte.
+const JOURNEY_STEPS: Record<string, { label: string; bg: string; fg: string; hint: string }> = {
+  formulaire:  { label: 'Formulaire rempli', bg: '#F3F4F6', fg: '#4B5563', hint: "A laissé ses coordonnées, n'a pas encore ouvert le quiz" },
+  quiz_ouvert: { label: 'Quiz ouvert',       bg: '#FEF3C7', fg: '#92400E', hint: 'A ouvert le quiz, pas encore de rendez-vous' },
+  quiz_termine:{ label: 'Quiz terminé',      bg: '#DBEAFE', fg: '#1D4ED8', hint: 'A terminé le quiz, pas encore de rendez-vous' },
+  rdv_pris:    { label: 'Rendez-vous pris',  bg: '#10A066', fg: '#FFFFFF', hint: 'A réservé son appel : rien à relancer' },
+}
 const telHref = (p?: string) => (p ? `tel:${p.replace(/[^+0-9]/g, '')}` : undefined)
 const initialsOf = (n?: string) => (n?.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2) || '?').toUpperCase()
 
@@ -120,6 +128,15 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
             <span title="À rappeler pour clarifier le besoin avant l'appel"
               className="w-fit max-w-full inline-flex items-center gap-1 text-[8.5px] md:text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#D1FAE5] text-[#047857] dark:bg-emerald-500/15 dark:text-emerald-400">
               <ClipboardCheck size={9} className="flex-shrink-0" /><span className="truncate">Appel de clarté</span>
+            </span>
+          )}
+          {/* Étape atteinte : c'est ce qui dit au setter quoi raconter au téléphone.
+              Le rendez-vous pris est en vert plein, le reste en gris progressif. */}
+          {r.journeyStep && JOURNEY_STEPS[r.journeyStep] && (
+            <span title={JOURNEY_STEPS[r.journeyStep].hint}
+              className="w-fit inline-flex items-center gap-1 text-[8.5px] md:text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+              style={{ background: JOURNEY_STEPS[r.journeyStep].bg, color: JOURNEY_STEPS[r.journeyStep].fg }}>
+              {JOURNEY_STEPS[r.journeyStep].label}
             </span>
           )}
           {r.origin === 'facebook' && (

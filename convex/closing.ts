@@ -255,6 +255,21 @@ export const scheduleCall = mutation({
       }
     }
     a = { ...a, contactId }
+
+    // Parcours du lead : le rendez-vous est la dernière étape visible du tunnel.
+    // Sans cette trace, le setter voit qu'un lead vient de Facebook mais ignore
+    // s'il a déjà réservé, donc il rappelle pour rien ou avec le mauvais discours.
+    try {
+      const journeys = await ctx.db.query("os_lead_journey").withIndex("by_ws", (q) => q.eq("workspaceId", WORKSPACE)).collect()
+      const row = journeys.find((j) => (contactId && j.contactId === contactId) || (a.email && j.email?.toLowerCase() === a.email.trim().toLowerCase()))
+      if (row && !row.steps.some((st) => st.step === "rdv_pris")) {
+        await ctx.db.patch(row._id, {
+          steps: [...row.steps, { step: "rdv_pris", at: now, meta: a.stage }],
+          updatedAt: now,
+        })
+      }
+    } catch { /* la trace ne doit jamais empêcher la création du rendez-vous */ }
+
     // Dédup par externalId (iClosed eventCall) : un même RDV n'est jamais dupliqué.
     if (a.externalId) {
       const existing = await ctx.db.query("os_sales_calls").withIndex("by_external", q => q.eq("externalId", a.externalId)).first()
