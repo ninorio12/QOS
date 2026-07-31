@@ -72,6 +72,7 @@ export const fromLeadForm = internalMutation({
     // Contact : on complète l'existant plutôt que d'en créer un doublon.
     const contacts = await ctx.db.query("crm_contacts").collect()
     const dup = email ? contacts.find((c) => c.email?.toLowerCase() === email) : undefined
+    let contactRef: typeof contacts[number]["_id"]
     let contactId: string
     if (dup) {
       await ctx.db.patch(dup._id, {
@@ -83,14 +84,16 @@ export const fromLeadForm = internalMutation({
         source: dup.source ?? "inbound",
         updatedAt: now(),
       })
+      contactRef = dup._id
       contactId = String(dup._id)
     } else {
-      contactId = String(await ctx.db.insert("crm_contacts", {
+      contactRef = await ctx.db.insert("crm_contacts", {
         firstName: first, lastName: last, email, phone,
         source: "inbound", statut: "lead", leadStatus: "active", temperature: "tiede",
         tags: [`origine:${origin}`, `funnel:${funnel}`],
         createdAt: now(),
-      }))
+      })
+      contactId = String(contactRef)
     }
 
     // Lead du pipeline, avec son parcours et son étiquette d'origine.
@@ -98,7 +101,7 @@ export const fromLeadForm = internalMutation({
     const pipelineId = String(pipelines[0]?._id ?? "leads")
     const name = [first, last].filter(Boolean).join(" ") || email || "Lead Facebook"
     const leadId = String(await ctx.db.insert("crm_leads", {
-      contactId: dup?._id, name, email, phone,
+      contactId: contactRef, name, email, phone,
       pipelineId, stageId: "nouveau-lead", value: 0,
       source: "inbound", funnel, origin, token,
       status: "open",
