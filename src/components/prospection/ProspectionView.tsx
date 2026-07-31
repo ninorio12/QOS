@@ -119,8 +119,8 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
           : <span className="flex-none text-[9.5px] md:text-[10.5px] text-soren-subtle">Pas de n°</span>}
         {r.contact.companyName && (
           <>
-            <span className="hidden sm:block flex-none w-[3px] h-[3px] rounded-full bg-soren-border" />
-            <span className="hidden sm:flex items-center gap-1 min-w-0 text-[9px] md:text-[10.5px] text-soren-subtle"><Building2 size={8} className="flex-shrink-0 md:w-[9px] md:h-[9px]" /><span className="truncate">{r.contact.companyName}</span></span>
+            <span className="flex-none w-[3px] h-[3px] rounded-full bg-soren-border" />
+            <span className="flex items-center gap-1 min-w-0 text-[9.5px] md:text-[10.5px] text-soren-subtle"><Building2 size={8} className="flex-shrink-0 md:w-[9px] md:h-[9px]" /><span className="truncate">{r.contact.companyName}</span></span>
           </>
         )}
       </div>
