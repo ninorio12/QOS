@@ -287,7 +287,7 @@ function Fiche({ r, onClose, onEdit, onMove }: { r: ProspRecord; onClose: () => 
   return (
     <Overlay onClose={onClose}>
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-md" onClick={onClose} />
       <div className="relative w-full max-w-[380px] bg-soren-card rounded-2xl shadow-2xl flex flex-col overflow-hidden">
         {/* Header — avatar discret, nom, société, statut courant */}
         <div className="flex items-start gap-3 md:gap-3.5 px-4 md:px-5 pt-4 md:pt-5 pb-3 md:pb-4">
@@ -375,7 +375,7 @@ function IClosedBookingModal({ rec, onConfirm, onCancel }: { rec: ProspRecord; o
   return (
     <Overlay onClose={onCancel}>
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={onCancel} />
       <div className="relative w-full max-w-sm bg-soren-card rounded-2xl shadow-2xl p-6 flex flex-col items-center gap-4 text-center">
         <span className="w-12 h-12 rounded-full bg-[#16A34A]/12 flex items-center justify-center"><CalendarCheck size={22} className="text-[#16A34A]" /></span>
         <div>
@@ -400,7 +400,7 @@ function LostReasonModal({ rec, onConfirm, onCancel }: { rec: ProspRecord; onCon
   return (
     <Overlay onClose={onCancel}>
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-md" onClick={onCancel} />
       <div className="relative w-full max-w-sm bg-soren-card rounded-2xl shadow-2xl p-6 flex flex-col gap-4">
         <div className="flex flex-col items-center text-center gap-2">
           <span className="w-12 h-12 rounded-full bg-soren-elevated flex items-center justify-center"><UserMinus size={22} className="text-soren-subtle" /></span>
@@ -438,7 +438,7 @@ function FollowUpReasonModal({ rec, onConfirm, onCancel }: { rec: ProspRecord; o
   return (
     <Overlay onClose={onCancel}>
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-md" onClick={onCancel} />
       <div className="relative w-full max-w-sm bg-soren-card rounded-2xl shadow-2xl p-6 flex flex-col gap-4">
         <div className="flex flex-col items-center text-center gap-2">
           <span className="w-12 h-12 rounded-full bg-[#EDE9FE] flex items-center justify-center"><Bookmark size={22} className="text-[#7C3AED]" /></span>

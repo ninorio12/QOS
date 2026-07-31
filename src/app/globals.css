@@ -453,7 +453,12 @@ select:focus {
 /* Modale prospection ouverte (Overlay porté dans <body>, z-100) : on masque le
    header mobile (fixed, z-40, opaque) qui sinon resterait visible en transparence
    sous le fond flouté et donnerait l'impression d'être « devant » la fiche. */
-html.vf-modal-open .vf-mobile-header { display: none; }
+/* Fenêtre ouverte sur mobile : le header et la barre du bas restent VISIBLES,
+   mais passent derrière le voile flouté de la fenêtre. Ils étaient masqués
+   auparavant, ce qui faisait disparaître l'interface d'un coup. Leur niveau
+   d'empilement descend sous celui du voile pour qu'il les recouvre vraiment. */
+html.vf-modal-open .vf-mobile-header { z-index: 10; }
+html.vf-modal-open nav.md\:hidden { z-index: 10; }
 @media (min-width: 768px) {
   .vf-main-offset { margin-left: 14rem; transition: margin-left 300ms cubic-bezier(0.22,1,0.36,1); }
   .vf-header-offset { left: 14rem; transition: left 300ms cubic-bezier(0.22,1,0.36,1); }
