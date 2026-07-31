@@ -1,22 +1,21 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { configById, FUNNEL_CONFIGS } from '@/lib/funnelConfigs'
+import { configById, FUNNEL_CONFIGS, type FunnelConfig } from '@/lib/funnelConfigs'
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { Modal } from '@/components/ui/Modal'
-import {
-  Target, Calendar, Eye, DollarSign, TrendingUp, Users, CalendarCheck,
-  Phone, Trophy, Banknote, BarChart3, Megaphone, PhoneCall, Handshake, Sparkles,
-  ArrowUpRight, X, Mail,
-} from 'lucide-react'
+import { Target, Calendar, Eye, DollarSign, TrendingUp, Users, CalendarCheck, Phone, Trophy, Banknote, BarChart3, Megaphone, PhoneCall, Handshake, Sparkles, ArrowUpRight, X, Mail, Send, MessageSquare } from 'lucide-react'
 
 // ── Période ───────────────────────────────────────────────────────────────
 const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 // 3 périodes fixes (plus de calendrier libre). « Depuis le début » = tous les contacts jamais acquis,
 // pour réconcilier le total de leads avec la pipeline actuelle (les convertis/perdus ont quitté la pipeline).
 type Preset = '7j' | '30j' | 'all'
+// Icônes des étapes, référencées par nom depuis les configurations de parcours.
+const STEP_ICONS = { users: Users, message: Send, chat: MessageSquare, calendar: CalendarCheck, phone: Phone, trophy: Trophy } as const
+
 const PERIODS: { key: Preset; label: string }[] = [
   { key: '7j',  label: '7 jours' },
   { key: '30j', label: '30 jours' },
@@ -152,26 +151,42 @@ export default function ProspectionCockpit() {
   // « Leads » (haut du funnel) = TOUS les leads actifs du Data OS, tous canaux (inbound + outbound). (déf. Thomas 2026-06-22)
   // 100% Data OS : on ne compte JAMAIS une source externe (Meta) ni un Google Sheet — uniquement crm_leads.
   const leadsATraiterTotal = f.leadsTotal ?? 0
+
+  // Toutes les valeurs du parcours à plat : les étapes, les taux et les cartes
+  // de rôles y puisent. `abonnes` reste null tant que personne ne l'enregistre :
+  // le cockpit affiche N/A plutôt qu'un nombre emprunté à une autre étape.
+  const D: Record<string, number | null> = {
+    leads: leadsATraiterTotal,
+    contactes: summary?.contactes ?? 0,
+    reponses: summary?.reponses ?? 0,
+    r1: f.r1Booked, showsR1: f.showsR1, noShowsR1: f.noShowsR1,
+    r2: f.r2Booked, showsR2: f.showsR2, noShowsR2: f.noShowsR2,
+    ventes: f.ventes,
+    abonnes: null, abonnesOrganiques: null, coutParAbonne: null,
+    spend, impressions: media?.kpis?.impressions?.value ?? 0, clicks: media?.kpis?.clicks?.value ?? 0,
+    metaLeads: media?.kpis?.leads?.value ?? 0, cpl: media?.kpis?.cpl?.value ?? 0,
+    tauxReponse: summary?.tauxReponse ?? 0, conversionR1: summary?.conversionR1 ?? 0,
+    tauxClose: f.tauxClose,
+  }
+  // Un taux se recalcule à partir des deux étapes qu'il relie : si l'une manque, il manque aussi.
+  const rateOf = (from: string, to: string): number | null => {
+    const a = D[from], b = D[to]
+    if (a == null || b == null || a === 0) return null
+    return Math.round((b / a) * 1000) / 10
+  }
+  // Format d'une ligne de carte de rôle : monnaie, pourcentage ou nombre.
+  const roleValue = (key: string): string => {
+    const val = D[key]
+    if (val == null) return 'N/A'
+    if (key === 'spend' || key === 'cpl' || key === 'coutParAbonne') return `${fmt(val)} CHF`
+    if (key.startsWith('taux') || key === 'conversionR1') return `${pct1(val)}%`
+    return fmt(val)
+  }
   const tauxLeadsR1Total = leadsATraiterTotal > 0 ? Math.round((f.r1Booked / leadsATraiterTotal) * 1000) / 10 : 0
 
   return (
     <div className="flex-1 overflow-y-auto bg-soren-app px-6 py-6">
       <div className="max-w-[1180px] mx-auto">
-
-        {/* Choix du parcours : même squelette, autres noms d'étapes */}
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          {FUNNEL_CONFIGS.map((c) => (
-            <button key={c.id} onClick={() => pickConfig(c.id)} title={c.tagline}
-              className={`text-[12px] font-semibold px-3.5 py-1.5 rounded-full border transition-colors ${
-                c.id === cfg.id
-                  ? 'bg-soren-sidebar text-white border-transparent'
-                  : 'bg-soren-card text-soren-muted border-soren-border hover:text-soren-text'
-              }`}>
-              {c.label}
-            </button>
-          ))}
-          <span className="text-[10.5px] text-soren-subtle ml-1">{cfg.tagline}</span>
-        </div>
 
         {/* ===== Performance (fusionné) ===== */}
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2.5">
@@ -189,34 +204,62 @@ export default function ProspectionCockpit() {
           </div>
         </div>
 
+        {/* Choix du parcours : même squelette, autres noms d'étapes */}
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          {FUNNEL_CONFIGS.map((c) => (
+            <button key={c.id} onClick={() => pickConfig(c.id)} title={c.tagline}
+              className={`text-[12px] font-semibold px-3.5 py-1.5 rounded-full border transition-colors ${
+                c.id === cfg.id
+                  ? 'bg-soren-sidebar text-white border-transparent'
+                  : 'bg-soren-card text-soren-muted border-soren-border hover:text-soren-text'
+              }`}>
+              {c.label}
+            </button>
+          ))}
+          <span className="text-[10.5px] text-soren-subtle ml-1">{cfg.tagline}</span>
+        </div>
+
+
         {/* Ligne 1 : Funnel (grand) + 6 cards 2×2 */}
         <div className={`grid grid-cols-1 lg:grid-cols-12 gap-5 mb-5 items-stretch transition-opacity duration-300 ${refreshing ? 'opacity-50' : 'opacity-100'}`}>
           <div className="lg:col-span-7 bg-soren-card border border-soren-border/60 rounded-2xl p-3.5 shadow-sm flex flex-col">
             <h3 className="text-[10.5px] uppercase tracking-wide text-soren-muted font-semibold mb-2">Funnel de conversion</h3>
             <div className="flex flex-col items-center gap-0 flex-1 justify-center">
-              <FunnelStep Icon={Users} label={cfg.steps.leads} val={leadsATraiterTotal} w={100} color="#6B7280"
-                subTitle="Contacts acquis sur la période (Data OS uniquement, ni Meta ni Google Sheet)."
-                sub={<>Inbound <span className="font-semibold text-soren-muted">{f.leadsInbound}</span> · Outbound <span className="font-semibold text-soren-muted">{f.leadsOutbound}</span></>} />
-              <div className="h-1.5" />
-              <FunnelConv pct={tauxLeadsR1Total} note={cfg.rates.leadsToR1} ok={tauxLeadsR1Total >= o.leadsR1} />
-              <FunnelStep Icon={CalendarCheck} label={cfg.steps.r1} val={f.r1Booked} w={88} color={stepColor(tauxLeadsR1Total, o.leadsR1)} />
-              <FunnelConv pct={f.tauxShowR1} note={cfg.rates.showR1} ok={f.tauxShowR1 >= o.tauxShow} />
-              <FunnelStep Icon={Phone} label={cfg.steps.showsR1} val={f.showsR1} w={74} color={stepColor(f.tauxShowR1, o.tauxShow)} />
-              <FunnelConv pct={f.tauxR1R2} note={cfg.rates.r1ToR2} ok={f.tauxR1R2 >= o.leadsR2} />
-              <FunnelStep Icon={CalendarCheck} label={cfg.steps.r2} val={f.r2Booked} w={62} color={stepColor(f.tauxR1ToR2, o.leadsR2)} />
-              <FunnelConv pct={f.tauxShowR2} note={cfg.rates.showR2} ok={f.tauxShowR2 >= o.tauxShowR2} />
-              <FunnelStep Icon={Phone} label={cfg.steps.showsR2} val={f.showsR2} w={52} color={stepColor(f.tauxShowR2, o.tauxShowR2)} />
-              <FunnelConv pct={f.tauxClose} note={cfg.rates.close} ok={f.tauxClose >= o.tauxClose} />
-              <FunnelStep Icon={Trophy} label={cfg.steps.ventes} val={f.ventes} w={42} color={stepColor(f.tauxClose, o.tauxClose)} />
+              {cfg.steps.map((st, i) => {
+                const rate = i > 0 ? cfg.rates.find(r => r.to === st.key) : null
+                const target = rate ? (o[rate.obj] as number) : 0
+                const val = rateOf(rate?.from ?? '', st.key)
+                const w = 100 - i * (58 / Math.max(1, cfg.steps.length - 1))
+                return (
+                  <div key={st.key} className="w-full flex flex-col items-center">
+                    {rate && <FunnelConv pct={val ?? 0} note={rate.label} ok={(val ?? 0) >= target} />}
+                    <FunnelStep
+                      Icon={STEP_ICONS[st.icon]} label={st.label}
+                      val={D[st.key] ?? 0} w={w}
+                      color={D[st.key] == null ? '#9CA3AF' : rate ? stepColor(val ?? 0, target) : '#6B7280'}
+                      sub={D[st.key] == null
+                        ? <span className="text-soren-subtle">Pas encore mesuré</span>
+                        : i === 0 && st.key === 'leads'
+                          ? <>Inbound <span className="font-semibold text-soren-muted">{f.leadsInbound}</span> · Outbound <span className="font-semibold text-soren-muted">{f.leadsOutbound}</span></>
+                          : undefined}
+                    />
+                  </div>
+                )
+              })}
               <div className="mt-3 text-center text-[11px] text-soren-subtle">Résultat : <span className="font-bold text-soren-text">{fmt(ca)}</span> <span className="text-[9px] text-soren-muted font-semibold">CHF</span></div>
             </div>
           </div>
-          <div className="lg:col-span-5 grid grid-cols-2 grid-rows-4 gap-2">
-            <KpiCard label={cfg.rates.leadsToR1} value={pct1(tauxLeadsR1Total)} suffix="%" gap={ptsGap(tauxLeadsR1Total, o.leadsR1)} gapOk={tauxLeadsR1Total >= o.leadsR1} icon={CalendarCheck} color="#3462EE" />
-            <KpiCard label={cfg.rates.showR1} value={pct1(f.tauxShowR1)} suffix="%" gap={ptsGap(f.tauxShowR1, o.tauxShow)} gapOk={f.tauxShowR1 >= o.tauxShow} icon={Eye} color="#0EA5E9" />
-            <KpiCard label={cfg.rates.r1ToR2} value={pct1(f.tauxR1ToR2)} suffix="%" gap={ptsGap(f.tauxR1ToR2, o.leadsR2)} gapOk={f.tauxR1ToR2 >= o.leadsR2} icon={ArrowUpRight} color="#3462EE" />
-            <KpiCard label={cfg.rates.showR2} value={pct1(f.tauxShowR2)} suffix="%" gap={ptsGap(f.tauxShowR2, o.tauxShowR2)} gapOk={f.tauxShowR2 >= o.tauxShowR2} icon={Eye} color="#0EA5E9" />
-            <KpiCard label={cfg.rates.close} value={pct1(f.tauxClose)} suffix="%" gap={ptsGap(f.tauxClose, o.tauxClose)} gapOk={f.tauxClose >= o.tauxClose} icon={Trophy} color="#16A34A" />
+          <div className="lg:col-span-5 grid grid-cols-2 auto-rows-fr gap-2">
+            {cfg.rates.map((r) => {
+              const val = rateOf(r.from, r.to)
+              const target = o[r.obj] as number
+              return (
+                <KpiCard key={r.label} label={r.label}
+                  value={val == null ? 'N/A' : pct1(val)} suffix={val == null ? undefined : '%'}
+                  gap={val == null ? '—' : ptsGap(val, target)} gapOk={(val ?? 0) >= target}
+                  icon={CalendarCheck} color="#3462EE" />
+              )
+            })}
             <KpiCard label="Encaissé" value={fmt(ca)} suffix="CHF" gap={pctGap(ca, o.ca)} gapOk={ca >= o.ca} icon={Banknote} color="#16A34A" />
             <KpiCard label="Coût par vente" value={cpvStr} suffix="CHF" gap={coutParVente === null ? '—' : `${cpvOk ? '▼' : '▲'} ${Math.round((coutParVente / (o.coutParVente || 1)) * 100)}%`} gapOk={cpvOk} icon={TrendingUp} color="#16A34A" />
             <KpiCard label="Panier moyen" value={fmt(panier)} suffix="CHF" gap={pctGap(panier, o.panierMoyen)} gapOk={panier >= o.panierMoyen} icon={DollarSign} color="#FF4D00" />
@@ -225,27 +268,12 @@ export default function ProspectionCockpit() {
 
         {/* Ligne 2 : métiers (anneau de score + diagnostic) */}
         <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
-          <RoleCard title="Media Buying" score={scorecards?.publicite} rows={[
-            ['Dépenses totales', `${fmt(spend)} CHF`],
-            ['Impressions', fmt(media?.kpis?.impressions?.value ?? 0)],
-            ['Clics', fmt(media?.kpis?.clicks?.value ?? 0)],
-            ['Leads générés', fmt(media?.kpis?.leads?.value ?? 0)],
-            ['Coût par lead', pubEmpty ? 'N/A' : `${fmt(media?.kpis?.cpl?.value ?? 0)} CHF`, pubEmpty ? undefined : '#16A34A'],
-          ]} />
-          <RoleCard title={cfg.setting.title} score={scorecards?.setters} rows={[
-            [cfg.setting.contactes, fmt(summary?.contactes ?? 0)],
-            [cfg.setting.reponses, fmt(summary?.reponses ?? 0)],
-            [cfg.setting.tauxReponse, setEmpty ? 'N/A' : `${summary?.tauxReponse ?? 0}%`, setEmpty ? undefined : '#16A34A'],
-            [cfg.setting.r1, fmt(summary?.r1Booked ?? 0)],
-            [cfg.setting.conversion, setEmpty ? 'N/A' : `${summary?.conversionR1 ?? 0}%`, setEmpty ? undefined : '#16A34A'],
-          ]} />
-          <RoleCard title="Closing" score={scorecards?.closers} rows={[
-            ['Appels prévus (R2)', fmt(f.r2Booked)],
-            ['Shows (R2)', fmt(f.showsR2), closeEmpty ? undefined : '#D97706'],
-            ['No-shows (R2)', fmt(f.noShowsR2), closeEmpty ? undefined : '#DC2626'],
-            ['Ventes', fmt(f.ventes), closeEmpty ? undefined : '#16A34A'],
-            ['Taux de closing', closeEmpty ? 'N/A' : `${pct1(f.tauxClose)}%`, closeEmpty ? undefined : '#16A34A'],
-          ]} />
+          <RoleCard title={cfg.roles.media.title} score={scorecards?.publicite}
+            rows={cfg.roles.media.rows.map(r => [r.label, pubEmpty && (r.key === 'cpl' || r.key === 'coutParAbonne') ? 'N/A' : roleValue(r.key)] as [string, string])} />
+          <RoleCard title={cfg.roles.setting.title} score={scorecards?.setters}
+            rows={cfg.roles.setting.rows.map(r => [r.label, setEmpty && r.key.startsWith('taux') ? 'N/A' : roleValue(r.key)] as [string, string])} />
+          <RoleCard title={cfg.roles.closing.title} score={scorecards?.closers}
+            rows={cfg.roles.closing.rows.map(r => [r.label, closeEmpty && r.key.startsWith('taux') ? 'N/A' : roleValue(r.key)] as [string, string])} />
           <RoleCard title="Emailing Outbound" onExpand={() => setRepliesOpen(true)} score={outbound ? { score: outbound.score, tone: outbound.tone, diagnostic: outbound.diagnostic, charge: null, metrics: [] } : undefined} rows={[
             ['Leads sourcés', fmt(outbound?.sourced ?? 0)],
             ['Decks générés', fmt(outbound?.decks ?? 0)],
@@ -258,7 +286,7 @@ export default function ProspectionCockpit() {
 
       </div>
 
-      {objOpen && <ObjModal obj={o} scope={objScope} onClose={() => setObjOpen(false)} onSave={async (vals) => { await setObj(vals); setObjOpen(false) }} />}
+      {objOpen && <ObjModal obj={o} cfg={cfg} onClose={() => setObjOpen(false)} onSave={async (vals) => { await setObj(vals); setObjOpen(false) }} />}
 
       {repliesOpen && (
         <Modal onClose={() => setRepliesOpen(false)}>
@@ -397,33 +425,23 @@ function FinCard({ label, Icon, color, value, obj, ok, gap, unit }: { label: str
 }
 
 type Obj = { leadsR1: number; leadsR2: number; tauxShow: number; tauxShowR2: number; tauxClose: number; tauxReponse: number; cpl: number; ca: number; roi: number; coutParVente: number; ventes: number; cashContracte: number; panierMoyen: number }
-function ObjModal({ obj, scope, onClose, onSave }: { obj: Obj; scope: 'commerciale' | 'globale' | 'all'; onClose: () => void; onSave: (v: Partial<Obj>) => void }) {
+function ObjModal({ obj, cfg, onClose, onSave }: { obj: Obj; cfg: FunnelConfig; onClose: () => void; onSave: (v: Partial<Obj>) => void }) {
   const [v, setV] = useState<Obj>(obj)
   const field = (key: keyof Obj, label: string, unit: string) => (
     <div key={key}><p className="text-[11px] text-soren-muted mb-1">{label} ({unit})</p>
       <input value={v[key]} inputMode="decimal" onChange={e => setV({ ...v, [key]: parseFloat(e.target.value.replace(',', '.').replace(/[^\d.]/g, '')) || 0 })}
         className="w-full bg-soren-elevated border border-soren-border rounded-lg px-3 py-2 text-[14px] font-semibold tabular-nums text-soren-text outline-none focus:border-[#FF4D00]" /></div>
   )
-  const showComm = scope === 'commerciale' || scope === 'all'
-  const showFin = scope === 'globale' || scope === 'all'
-  const title = scope === 'all' ? 'tous les objectifs' : scope === 'commerciale' ? 'Performance commerciale' : 'Performance financière'
   return (
     <Modal onClose={onClose}>
       <div className="relative bg-soren-card rounded-2xl shadow-2xl w-full max-w-[480px] max-h-[88vh] overflow-y-auto p-6">
-        <div className="flex items-center gap-2 mb-4"><span className="w-7 h-7 rounded-lg bg-[#FF4D00]/10 flex items-center justify-center"><Target size={15} className="text-[#FF4D00]" /></span><p className="text-[15px] font-bold text-soren-text">Objectifs · {title}</p></div>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="w-7 h-7 rounded-lg bg-[#FF4D00]/10 flex items-center justify-center"><Target size={15} className="text-[#FF4D00]" /></span>
+          <p className="text-[15px] font-bold text-soren-text">Mes objectifs · {cfg.label}</p>
+        </div>
+        <p className="text-[11px] text-soren-subtle mb-4">Définit les seuils vert, orange et rouge de ce parcours.</p>
         <div className="grid grid-cols-2 gap-3">
-          {showComm && <>
-            {scope === 'all' && <div className="col-span-2 text-[10.5px] font-bold uppercase tracking-wide text-[#FF4D00]">Score card (santé)</div>}
-            {field('leadsR1', 'Taux conversion leads → R1', '%')}{field('tauxReponse', 'Taux de réponse', '%')}
-            {field('tauxClose', 'Taux de closing', '%')}{field('cpl', 'CPL Meta', 'CHF')}
-            {scope === 'all' && <div className="col-span-2 text-[10.5px] font-bold uppercase tracking-wide text-soren-subtle mt-1">Performance commerciale</div>}
-            {field('leadsR2', 'Taux conversion R1 → R2', '%')}{field('tauxShow', 'Taux de show R1', '%')}
-            {field('tauxShowR2', 'Taux de show R2', '%')}{field('ca', "Encaissé (objectif)", 'CHF')}{field('coutParVente', 'Coût par vente (max)', 'CHF')}
-          </>}
-          {showFin && <>
-            {scope === 'all' && <div className="col-span-2 text-[10.5px] font-bold uppercase tracking-wide text-soren-subtle mt-1">Performance financière</div>}
-            {field('ventes', 'Total ventes par mois', 'nb')}{field('panierMoyen', 'Panier moyen', 'CHF')}
-          </>}
+          {cfg.objectives.map(ob => field(ob.key as keyof Obj, ob.label, ob.unit))}
         </div>
         <div className="flex justify-end gap-2 mt-5">
           <button onClick={onClose} className="text-[13px] font-semibold text-soren-muted border border-soren-border rounded-xl px-4 py-2 hover:bg-soren-elevated">Annuler</button>
