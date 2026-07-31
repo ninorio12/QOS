@@ -7,9 +7,14 @@ import { internalMutation } from "./_generated/server"
 import { v } from "convex/values"
 
 export const purgeTestLead = internalMutation({
-  args: { leadgenId: v.string() },
+  args: { leadgenId: v.string(), confirm: v.optional(v.boolean()) },
   handler: async (ctx, a) => {
-    if (!a.leadgenId.startsWith("TEST-")) throw new Error("Réservé aux leads de test (préfixe TEST-)")
+    // Garde-fou : on ne purge que ce qui a été explicitement désigné comme test.
+    // Les leads de test réels de Meta portent un identifiant numérique ordinaire,
+    // donc l'appelant doit confirmer par `confirm: true`.
+    if (!a.leadgenId.startsWith("TEST-") && !a.confirm) {
+      throw new Error("Lead non marqué TEST- : repasser avec confirm: true si c'est bien un test")
+    }
     const row = await ctx.db
       .query("os_lead_journey")
       .withIndex("by_leadgen", (q) => q.eq("leadgenId", a.leadgenId))
