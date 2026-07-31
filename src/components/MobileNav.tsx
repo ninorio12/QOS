@@ -38,16 +38,21 @@ export default function MobileNav() {
   const isTabActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
   // Index réel (selon la route) de l'onglet actif (modules = après les onglets).
   const realIdx = onModules ? tabs.length : tabs.findIndex(t => isTabActive(t.href))
-  // Index OPTIMISTE : posé au toucher pour que la pastille glisse INSTANTANÉMENT, avant le chargement.
+  // Index OPTIMISTE : posé AU CLIC (jamais au poser du doigt, sinon le rendu
+  // React interrompt le geste sur iOS) pour que la pastille glisse sans attendre la route.
   const [pending, setPending] = useState<number | null>(null)
   useEffect(() => { setPending(null) }, [pathname]) // la route est arrivée → on suit le réel
   const activeIdx = pending ?? realIdx
   const modulesActive = activeIdx === tabs.length
   const PITCH = 54 // w-12 (48px) + gap-1.5 (6px)
 
-  // Barre inerte pendant le chargement du profil : même gabarit, aucun lien
-  // cliquable, donc aucun tap ne peut partir sur un onglet qui va changer.
-  if (loading) {
+  // Barre inerte UNIQUEMENT au tout premier chargement : même gabarit, aucun
+  // lien cliquable, donc aucun tap ne peut partir sur un onglet qui va changer.
+  // Une fois les onglets connus, ils ne redeviennent jamais inertes, même si le
+  // profil est rechargé : sinon un tap tomberait dans le vide en pleine navigation.
+  const [ready, setReady] = useState(false)
+  useEffect(() => { if (!loading) setReady(true) }, [loading])
+  if (loading && !ready) {
     return (
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-safe pointer-events-none">
         <div className="mb-3 px-2.5 py-2 rounded-full flex items-center gap-1.5 nav-island">
@@ -78,7 +83,7 @@ export default function MobileNav() {
               prefetch
               href={href}
               aria-label={label}
-              onPointerDown={() => setPending(i)}
+              onClick={() => setPending(i)}
               className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center [touch-action:manipulation] active:opacity-70 transition-opacity duration-100 tap-clean"
             >
               <Icon size={21} strokeWidth={active ? 2.3 : 1.8} className={`transition-colors duration-200 ${active ? 'text-[#111111]' : 'text-soren-subtle'}`} />
@@ -89,7 +94,7 @@ export default function MobileNav() {
         <Link
           href="/modules"
           aria-label="Tout"
-          onPointerDown={() => setPending(tabs.length)}
+          onClick={() => setPending(tabs.length)}
           className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center [touch-action:manipulation] active:opacity-70 transition-opacity duration-100 tap-clean"
         >
           <LayoutGrid size={21} strokeWidth={modulesActive ? 2.3 : 1.8} className={`transition-colors duration-200 ${modulesActive ? 'text-[#111111]' : 'text-soren-subtle'}`} />
