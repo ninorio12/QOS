@@ -895,7 +895,6 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               </div>
               {/* Le canal réel d'arrivée, sous la famille : formulaire Facebook en entrant, emailing en sortant. */}
               <OriginBadge source={inoutbound} contactId={contact?.id} />
-              {sourceLocked && <p className="text-[10px] text-soren-subtle">La source est l'origine du lead : définie à la création, elle ne peut plus être modifiée.</p>}
             </div>
           </div>
 
