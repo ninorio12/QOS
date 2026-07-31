@@ -15,6 +15,9 @@ export default function ModulesView() {
   useEffect(() => { setFavs(readFavorites()) }, [])
 
   // Compte restreint : la grille ne montre que les modules autorisés.
+  // Tant que le profil n'est pas chargé, on n'affiche RIEN plutôt qu'une liste
+  // provisoire : sinon les tuiles se réorganisent sous le doigt et le tap part
+  // sur le mauvais module (ou se perd, d'où le double-clic).
   const loading = me === undefined && !isAdmin
   const allowed = useMemo(
     // Sur mobile, « Pipeline Clients » n'est pas listé : le module Pipeline regroupe déjà Leads + Clients (onglets).
@@ -37,6 +40,18 @@ export default function ModulesView() {
       writeFavorites(next)
       return next
     })
+  }
+
+  if (loading) {
+    return (
+      <div className="h-full flex flex-col bg-soren-app px-3 pt-16">
+        <div className="grid grid-cols-3 gap-2.5">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div key={i} className="h-[92px] rounded-2xl bg-soren-card border border-soren-border animate-pulse" />
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -87,9 +102,9 @@ export default function ModulesView() {
                   </div>
                 )
                 return edit ? (
-                  <button key={href} onClick={() => toggleFav(href)} className="text-left active:scale-95 transition-transform">{tile}</button>
+                  <button key={href} onClick={() => toggleFav(href)} className="text-left [touch-action:manipulation] active:opacity-70">{tile}</button>
                 ) : (
-                  <Link key={href} href={href} className="active:scale-95 transition-transform">{tile}</Link>
+                  <Link key={href} href={href} prefetch className="block [touch-action:manipulation] active:opacity-70">{tile}</Link>
                 )
               })}
             </div>

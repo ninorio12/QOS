@@ -45,6 +45,20 @@ export default function MobileNav() {
   const modulesActive = activeIdx === tabs.length
   const PITCH = 54 // w-12 (48px) + gap-1.5 (6px)
 
+  // Barre inerte pendant le chargement du profil : même gabarit, aucun lien
+  // cliquable, donc aucun tap ne peut partir sur un onglet qui va changer.
+  if (loading) {
+    return (
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-safe pointer-events-none">
+        <div className="mb-3 px-2.5 py-2 rounded-full flex items-center gap-1.5 nav-island">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <span key={i} className="w-12 h-12 rounded-full bg-soren-elevated/60 animate-pulse" />
+          ))}
+        </div>
+      </nav>
+    )
+  }
+
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-safe pointer-events-none">
       <div className="pointer-events-auto mb-3 px-2.5 py-2 rounded-full flex items-center gap-1.5 nav-island relative">
@@ -61,10 +75,11 @@ export default function MobileNav() {
           return (
             <Link
               key={href}
+              prefetch
               href={href}
               aria-label={label}
               onPointerDown={() => setPending(i)}
-              className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center transition-transform duration-150 active:scale-90 tap-clean"
+              className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center [touch-action:manipulation] active:opacity-70 transition-opacity duration-100 tap-clean"
             >
               <Icon size={21} strokeWidth={active ? 2.3 : 1.8} className={`transition-colors duration-200 ${active ? 'text-[#111111]' : 'text-soren-subtle'}`} />
             </Link>
@@ -75,7 +90,7 @@ export default function MobileNav() {
           href="/modules"
           aria-label="Tout"
           onPointerDown={() => setPending(tabs.length)}
-          className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center transition-transform duration-150 active:scale-90 tap-clean"
+          className="relative z-10 w-12 h-12 rounded-full flex items-center justify-center [touch-action:manipulation] active:opacity-70 transition-opacity duration-100 tap-clean"
         >
           <LayoutGrid size={21} strokeWidth={modulesActive ? 2.3 : 1.8} className={`transition-colors duration-200 ${modulesActive ? 'text-[#111111]' : 'text-soren-subtle'}`} />
         </Link>
