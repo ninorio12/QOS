@@ -40,7 +40,7 @@ export const creatives = action({
     const fields = [
       "name", "effective_status", "preview_shareable_link",
       "campaign{name}", "adset{name}",
-      "creative{id,image_url,thumbnail_url,video_id,object_story_spec}",
+      "creative{id,image_url,thumbnail_url,video_id,image_hash,object_story_spec,asset_feed_spec}",
       `insights.date_preset(${preset}){spend,impressions,reach,clicks,ctr,cpc,cpm,frequency,inline_link_clicks,actions,action_values,video_play_actions,video_thruplay_watched_actions,video_avg_time_watched_actions,video_p100_watched_actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}`,
     ].join(",")
     let url: string | null = `${GRAPH}/${META_API_VERSION}/${act}/ads?fields=${encodeURIComponent(fields)}&limit=${limit}&access_token=${encodeURIComponent(token)}`
@@ -74,6 +74,25 @@ export const creatives = action({
         }
       }
     } catch { /* on continue sans : les statistiques restent justes */ }
+
+    // Les URL d'image portées par la création sont des VIGNETTES 64×64 (Meta y
+    // impose un recadrage signé, impossible à retirer). L'original se demande à
+    // l'edge adimages du compte, par empreinte : c'est lui qu'on montre en grand.
+    const urlParHash = new Map<string, string>()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hashOf = (c: any): string | null =>
+      c?.image_hash ?? c?.object_story_spec?.link_data?.image_hash ?? c?.asset_feed_spec?.images?.[0]?.hash ?? null
+    const hashes = [...new Set(ads.map((ad) => hashOf(ad.creative)).filter(Boolean) as string[])]
+    for (let i = 0; i < hashes.length; i += 40) {
+      const lot = hashes.slice(i, i + 40)
+      try {
+        const iu = `${GRAPH}/${META_API_VERSION}/${act}/adimages?hashes=${encodeURIComponent(JSON.stringify(lot))}&fields=hash,url,permalink_url&access_token=${encodeURIComponent(token)}`
+        const ires = await fetch(iu)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ij: any = await ires.json()
+        for (const im of ij.data ?? []) if (im.hash && (im.url || im.permalink_url)) urlParHash.set(im.hash, im.url ?? im.permalink_url)
+      } catch { /* on garde les vignettes : mieux que rien */ }
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const out: any[] = []
@@ -123,8 +142,9 @@ export const creatives = action({
       out.push({
         adId: ad.id, name: ad.name, status: ad.effective_status,
         campaign: ad.campaign?.name ?? null, adset: ad.adset?.name ?? null,
-        imageUrl: cr.image_url ?? cr.thumbnail_url ?? crea?.image_url ?? crea?.thumbnail_url ?? null,
-        thumbnailUrl: cr.thumbnail_url ?? crea?.thumbnail_url ?? null,
+        // imageUrl = le visuel qu'on ouvre en grand ; thumbnailUrl = la vignette du tableau.
+        imageUrl: (hashOf(cr) ? urlParHash.get(hashOf(cr)!) : null) ?? cr.image_url ?? cr.thumbnail_url ?? crea?.image_url ?? crea?.thumbnail_url ?? null,
+        thumbnailUrl: cr.thumbnail_url ?? crea?.thumbnail_url ?? cr.image_url ?? null,
         videoSource, videoThumb, videoLien,
         spend: r2(spend), impressions: imp,
         reach: parseFloat(ins.reach ?? "0") || 0,
