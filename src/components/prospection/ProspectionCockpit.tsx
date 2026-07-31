@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { configById, FUNNEL_CONFIGS, type FunnelConfig } from '@/lib/funnelConfigs'
+import { configById, FUNNEL_CONFIGS, FAMILIES, type FunnelConfig } from '@/lib/funnelConfigs'
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
@@ -111,12 +111,12 @@ export default function ProspectionCockpit() {
 
   // Configuration du parcours : le squelette ne change pas, seuls les noms suivent.
   const searchParams = useSearchParams()
-  const [cfgId, setCfgId] = useState(() => searchParams?.get('funnel') ?? 'vsl')
+  const [cfgId, setCfgId] = useState(() => searchParams?.get('funnel') ?? 'direct')
   const cfg = configById(cfgId)
   const pickConfig = (id: string) => {
     setCfgId(id)
     const url = new URL(window.location.href)
-    if (id === 'vsl') url.searchParams.delete('funnel'); else url.searchParams.set('funnel', id)
+    if (id === 'direct') url.searchParams.delete('funnel'); else url.searchParams.set('funnel', id)
     window.history.replaceState(null, '', url.toString())
   }
 
@@ -193,22 +193,33 @@ export default function ProspectionCockpit() {
           </div>
         </div>
 
-        {/* Choix du parcours : des mots, pas des boutons. L'actif passe en gras et se souligne. */}
-        <div className="flex items-center gap-5 mb-4 flex-wrap border-b border-soren-border/60">
-          {FUNNEL_CONFIGS.map((c) => {
-            const active = c.id === cfg.id
+        {/* Deux niveaux : la famille en haut, le détail du direct response en dessous. */}
+        <div className="flex items-center gap-5 mb-3 flex-wrap border-b border-soren-border/60">
+          {FAMILIES.map((fam) => {
+            const active = cfg.family === fam.id
             return (
-              <button key={c.id} onClick={() => pickConfig(c.id)} title={c.tagline}
-                className={`relative text-[12px] pb-2 -mb-px transition-colors ${
+              <button key={fam.id} onClick={() => pickConfig(fam.defaultConfig)}
+                className={`relative text-[12.5px] pb-2 -mb-px transition-colors ${
                   active ? 'font-bold text-soren-text' : 'font-medium text-soren-subtle hover:text-soren-muted'
                 }`}>
-                {c.label}
+                {fam.label}
                 {active && <span className="absolute left-0 right-0 -bottom-px h-[2px] bg-soren-text rounded-full" />}
               </button>
             )
           })}
         </div>
-
+        {cfg.family === 'direct' && (
+          <div className="flex items-center gap-4 mb-4 flex-wrap">
+            {FUNNEL_CONFIGS.filter(c => c.family === 'direct').map((c) => (
+              <button key={c.id} onClick={() => pickConfig(c.id)} title={c.tagline}
+                className={`text-[11.5px] transition-colors ${
+                  c.id === cfg.id ? 'font-bold text-soren-text underline underline-offset-4' : 'font-medium text-soren-subtle hover:text-soren-muted'
+                }`}>
+                {c.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Ligne 1 : Funnel (grand) + 6 cards 2×2 */}
         <div className={`grid grid-cols-1 lg:grid-cols-12 gap-5 mb-5 items-stretch transition-opacity duration-300 ${refreshing ? 'opacity-50' : 'opacity-100'}`}>

@@ -35,6 +35,8 @@ export type RoleRow = { label: string; key: string }
 
 export type FunnelConfig = {
   id: string
+  /** Famille du parcours : le premier niveau d'onglets. */
+  family: 'direct' | 'social'
   label: string
   tagline: string
   steps: Step[]
@@ -50,6 +52,7 @@ export type FunnelConfig = {
 
 const VSL: FunnelConfig = {
   id: 'vsl',
+  family: 'direct',
   label: 'VSL funnel',
   tagline: 'Publicité vers page de vente vidéo, puis rendez-vous',
   steps: [
@@ -104,6 +107,7 @@ const VSL: FunnelConfig = {
 
 const QUIZZ: FunnelConfig = {
   id: 'quizz',
+  family: 'direct',
   label: 'Quizz funnel',
   tagline: 'Publicité vers quizz de qualification, puis rendez-vous',
   steps: [
@@ -159,6 +163,7 @@ const QUIZZ: FunnelConfig = {
 // envoyés, conversations, calls bookés, shows, ventes. Pas de second rendez-vous.
 const SOCIAL: FunnelConfig = {
   id: 'social',
+  family: 'social',
   label: 'Social funnel',
   tagline: 'Contenu et publicité vers messagerie, puis appel',
   steps: [
@@ -215,7 +220,22 @@ const SOCIAL: FunnelConfig = {
   ],
 }
 
-export const FUNNEL_CONFIGS: FunnelConfig[] = [VSL, QUIZZ, SOCIAL]
+// Vue cumulée de la famille direct response : VSL et quizz ensemble. Elle
+// garde le vocabulaire neutre (leads, R1, R2) puisqu'elle couvre les deux.
+const DIRECT_TOTAL: FunnelConfig = {
+  ...VSL,
+  id: 'direct',
+  label: 'Total',
+  tagline: 'VSL et quizz cumulés',
+}
+
+export const FUNNEL_CONFIGS: FunnelConfig[] = [DIRECT_TOTAL, VSL, QUIZZ, SOCIAL]
+
+/** Les deux familles, dans l'ordre des onglets du haut. */
+export const FAMILIES: { id: 'direct' | 'social'; label: string; defaultConfig: string }[] = [
+  { id: 'direct', label: 'Direct response', defaultConfig: 'direct' },
+  { id: 'social', label: 'Social funnel', defaultConfig: 'social' },
+]
 
 export const configById = (id: string | null | undefined): FunnelConfig =>
-  FUNNEL_CONFIGS.find((c) => c.id === id) ?? VSL
+  FUNNEL_CONFIGS.find((c) => c.id === id) ?? DIRECT_TOTAL
