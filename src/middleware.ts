@@ -9,6 +9,9 @@ const isPublic = createRouteMatcher([
   '/signer(.*)',
   '/audit-synthese(.*)',
   '/book(.*)',
+  // Exigée par Meta pour les formulaires de génération de leads : doit être
+  // lisible sans aucune connexion, sinon la création du formulaire est refusée.
+  '/confidentialite',
 ])
 
 // Routes /api/* qui exposent / modifient des données métier (CRM, dashboard,
