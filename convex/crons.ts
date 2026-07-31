@@ -15,7 +15,7 @@ crons.daily("prospection health snapshot", { hourUTC: 2, minuteUTC: 0 }, interna
 
 // Sync iClosed (filet de sécurité, le webhook /iclosed/webhook fait le temps réel) :
 // kickoffs → onboarding, R1 (event Audit) → os_sales_calls, annulations → RDV retiré.
-crons.interval("iclosed sync", { minutes: 15 }, api.iclosed.syncRecent, {})
+crons.interval("iclosed sync", { minutes: 5 }, api.iclosed.syncRecent, {})
 
 // Taux de change vers CHF (frankfurter.app, BCE) : rafraîchis chaque jour pour la conversion argent.
 crons.daily("fx rates sync", { hourUTC: 5, minuteUTC: 0 }, api.fx.syncRates, {})
