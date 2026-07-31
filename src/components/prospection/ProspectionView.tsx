@@ -62,12 +62,22 @@ const COLUMNS: { id: string; label: string; color: string }[] = [
 ]
 const COLUMN_IDS = COLUMNS.map(c => c.id)
 
-// Étapes du tunnel entrant, dans l'ordre. La dernière franchie s'affiche sur la carte.
-const JOURNEY_STEPS: Record<string, { label: string; bg: string; fg: string; hint: string }> = {
-  formulaire:  { label: 'Formulaire rempli', bg: '#F3F4F6', fg: '#4B5563', hint: "A laissé ses coordonnées, n'a pas encore ouvert le quiz" },
-  quiz_ouvert: { label: 'Quiz ouvert',       bg: '#FEF3C7', fg: '#92400E', hint: 'A ouvert le quiz, pas encore de rendez-vous' },
-  quiz_termine:{ label: 'Quiz terminé',      bg: '#DBEAFE', fg: '#1D4ED8', hint: 'A terminé le quiz, pas encore de rendez-vous' },
-  rdv_pris:    { label: 'Rendez-vous pris',  bg: '#10A066', fg: '#FFFFFF', hint: 'A réservé son appel : rien à relancer' },
+// Logo officiel iClosed, tracé récupéré à la source.
+function IClosedMark({ size = 9 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" className="flex-shrink-0" aria-hidden="true">
+      <path fill="currentColor" d="M6.671 8h25.761c-2.587 1.38-7.987 4.788-8.892 7.386 12.912-8.214 33.662-6.46 34.09-6.323.428.138 1.08.348.862 1.195-.218.849-24.232 43.114-25.26 45-.393.721-1.564 1.339-2.711-.28-1.148-1.619-5.941-10.426-7.01-12.605.295-5.07 8.253-13.263 17.3-19.55-7.916 3.249-16.156 9.784-19.499 16.126-1.562-2.682-3.1-5.314-3.409-5.863-1.041-1.855-8.081-13.122-12.15-22.112-.57-1.26-.6-2.974.918-2.974Z" />
+    </svg>
+  )
+}
+
+// Étapes du tunnel entrant, dans l'ordre. La dernière franchie s'affiche sur la
+// carte, nommée par ce qu'il RESTE à faire : « quiz ouvert » ne disait rien au setter.
+const JOURNEY_STEPS: Record<string, { label: string; bg: string; fg: string; hint: string; iclosed?: boolean }> = {
+  formulaire:  { label: 'Quiz non commencé', bg: '#F3F4F6', fg: '#4B5563', hint: "A laissé ses coordonnées mais n'a jamais ouvert le quiz" },
+  quiz_ouvert: { label: 'Quiz non terminé',  bg: '#FEF3C7', fg: '#92400E', hint: 'A commencé le quiz et l\'a abandonné en route' },
+  quiz_termine:{ label: 'Quiz terminé',      bg: '#DBEAFE', fg: '#1D4ED8', hint: 'A terminé le quiz mais n\'a pas réservé d\'appel' },
+  rdv_pris:    { label: 'RDV booké',         bg: '#10A066', fg: '#FFFFFF', hint: 'A réservé son appel sur iClosed : rien à relancer', iclosed: true },
 }
 const telHref = (p?: string) => (p ? `tel:${p.replace(/[^+0-9]/g, '')}` : undefined)
 const initialsOf = (n?: string) => (n?.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2) || '?').toUpperCase()
@@ -78,7 +88,7 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
   const ReasonIcon = r.column === 'perdu' && r.lostReason ? lostReasonIcon(r.lostReason) : null
   const internal = r.internalLead
   return (
-    <div className={`border rounded-xl px-3.5 py-2.5 flex flex-col gap-1.5 select-none transition-all ${
+    <div className={`border rounded-xl px-3.5 py-2.5 flex flex-col justify-center gap-1.5 select-none transition-all min-h-[92px] ${
       dragging
         ? internal
           ? 'bg-[#FF4D00]/15 backdrop-blur-sm border-[#FF4D00] shadow-[0_0_0_1px_#FF4D00,0_4px_16px_rgba(0,0,0,0.12)] rotate-1 cursor-grabbing'
@@ -136,6 +146,7 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
             <span title={JOURNEY_STEPS[r.journeyStep].hint}
               className="w-fit inline-flex items-center gap-1 text-[8.5px] md:text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
               style={{ background: JOURNEY_STEPS[r.journeyStep].bg, color: JOURNEY_STEPS[r.journeyStep].fg }}>
+              {JOURNEY_STEPS[r.journeyStep].iclosed && <IClosedMark size={9} />}
               {JOURNEY_STEPS[r.journeyStep].label}
             </span>
           )}
