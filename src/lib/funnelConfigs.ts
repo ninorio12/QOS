@@ -194,7 +194,7 @@ const SOCIAL: FunnelConfig = {
       { label: 'DMs envoyés', key: 'contactes' },
       { label: 'Conversations', key: 'reponses' },
       { label: 'Calls bookés', key: 'r1' },
-      { label: 'Taux DM → Convo', key: 'tauxReponse' },
+      { label: 'Taux DM → Conversion', key: 'tauxReponse' },
     ] },
     closing: { title: 'Closer', rows: [
       { label: 'Appels prévus (R2)', key: 'r2' },
@@ -205,8 +205,8 @@ const SOCIAL: FunnelConfig = {
     ] },
   },
   objectives: [
-    { key: 'tauxReponse', label: 'DM → Convo', unit: '%' },
-    { key: 'leadsR1', label: 'Convo → Call', unit: '%' },
+    { key: 'tauxReponse', label: 'DM → Conversion', unit: '%' },
+    { key: 'leadsR1', label: 'Conversion → Call', unit: '%' },
     { key: 'tauxShow', label: 'Taux de show R1', unit: '%' },
     { key: 'leadsR2', label: 'R1 → R2', unit: '%' },
     { key: 'tauxShowR2', label: 'Taux de show R2', unit: '%' },
