@@ -275,7 +275,14 @@ export default function ProspectionCockpit() {
               <div className="mt-3 text-center text-[11px] text-soren-subtle">Résultat : <span className="font-bold text-soren-text">{fmt(ca)}</span> <span className="text-[9px] text-soren-muted font-semibold">CHF</span></div>
             </div>
           </div>
-          <div className="lg:col-span-5 grid grid-cols-2 auto-rows-fr gap-2">
+          <div className="lg:col-span-5 flex flex-col gap-2">
+            {/* Zone du lien de redirection : la page qui reçoit le trafic de ce parcours. */}
+            <FunnelLink
+              url={(obj as unknown as { link?: string | null } | undefined)?.link ?? null}
+              label={cfg.label}
+              onSave={(url) => void setObj({ funnel: cfgId, link: url })}
+            />
+            <div className="grid grid-cols-2 auto-rows-fr gap-2 flex-1">
             {cfg.rates.map((r) => {
               const val = rateOf(r.from, r.to)
               const target = o[r.obj] as number
@@ -287,6 +294,7 @@ export default function ProspectionCockpit() {
               )
             })}
             <KpiCard label="Encaissé" value={fmt(ca)} suffix="CHF" gap={pctGap(ca, o.ca)} gapOk={ca >= o.ca} icon={Banknote} color="#16A34A" />
+            </div>
           </div>
         </div>
 
