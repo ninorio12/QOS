@@ -1,7 +1,7 @@
 import { v } from "convex/values"
 import { mutation, query, action, internalQuery, internalMutation } from "./_generated/server"
 import { internal } from "./_generated/api"
-import { WORKSPACE, requireAdmin } from "./osLib"
+import { WORKSPACE, requireAdmin, PROJECT_START_DATE } from "./osLib"
 
 // Media Buyer — board de décision Meta. V1 : données alimentées par import CSV /
 // saisie manuelle. Le verdict (scale / watch / kill) est recalculé à la lecture
@@ -180,8 +180,13 @@ export const dashboard = query({
     const conn = await ctx.db.query("meta_connection")
       .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).first()
 
+    // Le départ projet borne la vue PAR DÉFAUT (comme iClosed) : il n'a jamais eu
+    // vocation à masquer une période que l'utilisateur choisit lui-même au
+    // calendrier. Dès qu'un `from` explicite arrive, on montre l'historique réel.
+    const floor = args.from ?? PROJECT_START_DATE
     const dailyAll = (await ctx.db.query("meta_daily")
       .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect())
+      .filter(d => d.date >= floor)
       .sort((a, b) => (a.date < b.date ? -1 : 1))
 
     // fenêtre de dates : from/to explicites (calendrier) sinon les `days` derniers jours
@@ -223,7 +228,7 @@ export const dashboard = query({
     const aggObjects = async (level: string) => {
       const rows = (await ctx.db.query("meta_object_daily")
         .withIndex("by_ws_level_date", q => q.eq("workspaceId", WORKSPACE).eq("level", level)).collect())
-        .filter(r => inRange(r.date, from, to))
+        .filter(r => r.date >= floor && inRange(r.date, from, to))
       const byId = new Map<string, { id: string; name: string; campaign: string | null; adset: string | null; spend: number; impressions: number; clicks: number; leads: number }>()
       for (const r of rows) {
         const g = byId.get(r.objectId) ?? { id: r.objectId, name: r.name, campaign: r.campaign ?? null, adset: r.adset ?? null, spend: 0, impressions: 0, clicks: 0, leads: 0 }
@@ -236,26 +241,23 @@ export const dashboard = query({
       }).sort((a, b) => b.spend - a.spend)
     }
 
-    // Détail niveau "publicité" = créas réelles (meta_creatives) AVEC leurs visuels (image/vidéo),
-    // même sans dépense (campagnes en pause). Les autres niveaux restent agrégés depuis les insights.
+    // Détail niveau "publicité" : métriques PÉRIODE-CORRECTES (meta_object_daily level "creative",
+    // filtré [from,to] via aggObjects, comme campagne/adset) + visuels (image/vidéo) greffés depuis
+    // meta_creatives par adId. Avant : on lisait meta_creatives (snapshot figé 14j) sans filtre date
+    // → le tableau « Publicité » montrait une autre fenêtre que les KPI et ne réconciliait jamais (bug C3).
     const creativeDetail = async () => {
-      const cr = await ctx.db.query("meta_creatives")
+      const metrics = await aggObjects("creative")   // période-correct, déjà agrégé + dérivé + trié par spend
+      const creatives = await ctx.db.query("meta_creatives")
         .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
-      return cr.map(c => {
-        const spend = Math.round(c.spend ?? 0)
-        const impressions = Math.round(c.impressions ?? 0)
-        const leads = Math.round(c.leads ?? 0)
-        const ctr = c.ctr ?? 0
-        const clicks = Math.round((ctr / 100) * impressions)
-        const cpl = leads > 0 ? r2(spend / leads) : 0
-        const crv = clicks > 0 ? r2((leads / clicks) * 100) : (c.cvr ?? 0)
+      const visById = new Map(creatives.map(c => [c.adId, c]))
+      return metrics.map(m => {
+        const v = visById.get(m.id)
         return {
-          id: c.adId, name: c.name, campaign: c.campaign ?? null, adset: c.adset ?? null,
-          spend, impressions, clicks, leads, cpl, ctr: r2(ctr), cr: r2(crv), perf: perfOf(cpl),
-          imageUrl: c.imageUrl ?? null, thumbnailUrl: c.thumbnailUrl ?? null,
-          videoSource: c.videoSource ?? null, videoThumb: c.videoThumb ?? null,
+          ...m,
+          imageUrl: v?.imageUrl ?? null, thumbnailUrl: v?.thumbnailUrl ?? null,
+          videoSource: v?.videoSource ?? null, videoThumb: v?.videoThumb ?? null,
         }
-      }).sort((a, b) => b.spend - a.spend || (a.name < b.name ? -1 : 1))
+      })
     }
 
     const topCampaigns = (await aggObjects("campaign")).slice(0, 10)
@@ -373,7 +375,9 @@ export const summary = query({
     const win = args.days ?? 30
     const to = args.to ?? (dailyAll[dailyAll.length - 1]?.date ?? todayISO())
     const from = args.from ?? addDaysISO(to, -(win - 1))
-    const rows = dailyAll.filter(d => d.date >= from && d.date <= to)
+    // Jour 1 du projet : on ignore les dépenses Meta d'anciens projets (avant la date de départ).
+    const start = from > PROJECT_START_DATE ? from : PROJECT_START_DATE
+    const rows = dailyAll.filter(d => d.date >= start && d.date <= to)
     const spend = rows.reduce((s, r) => s + r.spend, 0)
     const leads = rows.reduce((s, r) => s + r.leads, 0)
     return {

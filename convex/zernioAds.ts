@@ -13,9 +13,10 @@
 // ads (le lien de connexion se génère via /v1/connect/facebook/ads). Sans lui,
 // on renvoie { connected: false } : le board affiche son état déconnecté,
 // jamais de donnée fabriquée.
-import { action, internalAction } from "./_generated/server"
+import { action, internalAction, internalMutation } from "./_generated/server"
 import { v } from "convex/values"
 import { internal } from "./_generated/api"
+import { WORKSPACE } from "./osLib"
 
 const BASE = "https://zernio.com/api/v1"
 const LEAD_ACTION_TYPES = ["lead", "onsite_conversion.lead_grouped", "offsite_conversion.fb_pixel_lead", "leadgen_grouped"]
@@ -27,6 +28,21 @@ function actionVal(arr: any[] | undefined, types: string[]): number {
   if (!Array.isArray(arr)) return 0
   for (const t of types) { const a = arr.find((x) => x.action_type === t); if (a) { const n = parseFloat(a.value); if (!isNaN(n)) return n } }
   return 0
+}
+
+/**
+ * Appel avec réessais. Zernio répond `temporarily_unavailable` quand plusieurs
+ * requêtes arrivent en même temps : sans réessai, la journée passait pour vide
+ * et l'historique se remplissait de trous silencieux.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function zgetRetry(path: string, query: Record<string, string | undefined>, tries = 4): Promise<any | null> {
+  for (let i = 0; i < tries; i++) {
+    const res = await zget(path, query)
+    if (res && !res.error) return res
+    await new Promise((r) => setTimeout(r, 400 * (i + 1)))
+  }
+  return null
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -173,6 +189,19 @@ export const creatives = internalAction({
  * `mediaBuyer.syncInsights` passait par le token Meta direct, mort depuis des
  * semaines : le board restait donc à zéro même avec Zernio connecté.
  */
+/** Efface les lignes des journées listées, avant de réécrire ce qu'on vient de lire. */
+export const _purgeDays = internalMutation({
+  args: { days: v.array(v.string()) },
+  handler: async (ctx, a) => {
+    const set = new Set(a.days)
+    for (const r of await ctx.db.query("meta_daily").withIndex("by_workspace", (q) => q.eq("workspaceId", WORKSPACE)).collect())
+      if (set.has(r.date)) await ctx.db.delete(r._id)
+    for (const r of await ctx.db.query("meta_object_daily").withIndex("by_workspace", (q) => q.eq("workspaceId", WORKSPACE)).collect())
+      if (set.has(r.date)) await ctx.db.delete(r._id)
+    return { purged: set.size }
+  },
+})
+
 export const syncDaily = action({
   args: { days: v.optional(v.number()), from: v.optional(v.string()), to: v.optional(v.string()) },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -192,13 +221,15 @@ export const syncDaily = action({
     const num = (x: unknown) => Math.round(Number(x ?? 0)) || 0
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const leadsOf = (r: any) => Math.round(actionVal(r.actions, LEAD_ACTION_TYPES))
+    const failed: string[] = []
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pull = async (level: string, fields: string, day: string): Promise<any[]> => {
-      const res = await zget("/ads/insights", {
+    const pull = async (level: string, fields: string, day: string): Promise<any[] | null> => {
+      const res = await zgetRetry("/ads/insights", {
         accountId: target.fbAccountId, objectId: target.adAccountId,
         level, fields, fromDate: day, toDate: day,
       })
-      return res?.data ?? res?.rows ?? []
+      if (!res) { failed.push(`${day}/${level}`); return null }
+      return res.data ?? res.rows ?? []
     }
 
     const LEVELS_MAP = [
@@ -213,18 +244,21 @@ export const syncDaily = action({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const objects: any[] = []
 
-    // Par paquets de 5 jours : on reste poli avec Zernio sans y passer la nuit.
-    for (let i = 0; i < days.length; i += 5) {
-      const slice = days.slice(i, i + 5)
+    // Deux jours en vol : au-delà, Zernio renvoie des erreurs temporaires.
+    const ok: string[] = []
+    for (let i = 0; i < days.length; i += 2) {
+      const slice = days.slice(i, i + 2)
       await Promise.all(slice.map(async (day) => {
         const accRows = await pull("account", "spend,impressions,clicks,actions", day)
+        if (accRows === null) return          // journée non obtenue : on n'y touche pas
+        ok.push(day)
         for (const r of accRows) {
           const spend = num(parseFloat(r.spend ?? "0")), imp = num(r.impressions)
           if (spend === 0 && imp === 0) continue   // journée sans diffusion : pas de ligne vide
           daily.push({ date: day, spend, impressions: imp, clicks: num(r.clicks), leads: leadsOf(r) })
         }
         for (const { meta, stored } of LEVELS_MAP) {
-          for (const r of await pull(meta, OBJ_FIELDS, day)) {
+          for (const r of (await pull(meta, OBJ_FIELDS, day)) ?? []) {
             const spend = num(parseFloat(r.spend ?? "0")), imp = num(r.impressions)
             if (spend === 0 && imp === 0) continue
             const objectId = meta === "campaign" ? r.campaign_id : meta === "adset" ? r.adset_id : r.ad_id
@@ -240,15 +274,17 @@ export const syncDaily = action({
       }))
     }
 
-    // Purge de la fenêtre puis réécriture : la fenêtre reflète exactement Meta,
-    // y compris « aucune diffusion » (qui doit effacer d'anciennes lignes).
-    await ctx.runMutation(internal.mediaBuyer._purgeWindow, { since, until })
+    if (ok.length === 0) return { ok: false, error: "Aucune journée obtenue de Zernio", daily: 0, objects: 0, missed: failed.length }
+
+    // On n'efface QUE les journées effectivement récupérées : un jour manqué
+    // garde ses anciennes lignes au lieu d'être vidé par erreur.
+    await ctx.runMutation(internal.zernioAds._purgeDays, { days: ok })
     await ctx.runMutation(internal.mediaBuyer._insertBatch, { daily, objects: [] })
     const CHUNK = 1000
     for (let i = 0; i < objects.length; i += CHUNK) {
       await ctx.runMutation(internal.mediaBuyer._insertBatch, { daily: [], objects: objects.slice(i, i + CHUNK) })
     }
-    return { ok: true, source: "zernio", account: target.adAccountId, since, until, daily: daily.length, objects: objects.length }
+    return { ok: true, source: "zernio", account: target.adAccountId, since, until, days: ok.length, missed: failed.length, daily: daily.length, objects: objects.length }
   },
 })
 
