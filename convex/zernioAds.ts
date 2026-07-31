@@ -165,6 +165,93 @@ export const creatives = internalAction({
   },
 })
 
+/**
+ * Séries journalières via Zernio → meta_daily + meta_object_daily.
+ *
+ * C'est CE chemin qui alimente les KPI, les courbes, le Top 10 et le tableau
+ * Détail du board (meta_creatives ne sert qu'aux visuels de créas). L'ancien
+ * `mediaBuyer.syncInsights` passait par le token Meta direct, mort depuis des
+ * semaines : le board restait donc à zéro même avec Zernio connecté.
+ */
+export const syncDaily = action({
+  args: { days: v.optional(v.number()), from: v.optional(v.string()), to: v.optional(v.string()) },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  handler: async (ctx, a): Promise<any> => {
+    const target = await resolveMetaAds()
+    if (!target) return { ok: false, error: "Aucun compte Facebook connecté chez Zernio." }
+
+    // Zernio IGNORE time_increment : une requête par période renvoie UNE ligne
+    // agrégée. Les séries journalières se reconstruisent donc jour par jour.
+    const toISO = (d: Date) => d.toISOString().slice(0, 10)
+    const until = a.to ?? toISO(new Date())
+    const since = a.from ?? toISO(new Date(Date.parse(until) - ((a.days ?? 30) - 1) * 86400_000))
+    const days: string[] = []
+    for (let t = Date.parse(since); t <= Date.parse(until); t += 86400_000) days.push(toISO(new Date(t)))
+    if (days.length > 120) return { ok: false, error: "Fenêtre trop large : 120 jours maximum par passe." }
+
+    const num = (x: unknown) => Math.round(Number(x ?? 0)) || 0
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const leadsOf = (r: any) => Math.round(actionVal(r.actions, LEAD_ACTION_TYPES))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pull = async (level: string, fields: string, day: string): Promise<any[]> => {
+      const res = await zget("/ads/insights", {
+        accountId: target.fbAccountId, objectId: target.adAccountId,
+        level, fields, fromDate: day, toDate: day,
+      })
+      return res?.data ?? res?.rows ?? []
+    }
+
+    const LEVELS_MAP = [
+      { meta: "campaign", stored: "campaign" },
+      { meta: "adset", stored: "adset" },
+      { meta: "ad", stored: "creative" },
+    ]
+    const OBJ_FIELDS = "spend,impressions,clicks,actions,campaign_name,campaign_id,adset_name,adset_id,ad_name,ad_id"
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const daily: any[] = []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const objects: any[] = []
+
+    // Par paquets de 5 jours : on reste poli avec Zernio sans y passer la nuit.
+    for (let i = 0; i < days.length; i += 5) {
+      const slice = days.slice(i, i + 5)
+      await Promise.all(slice.map(async (day) => {
+        const accRows = await pull("account", "spend,impressions,clicks,actions", day)
+        for (const r of accRows) {
+          const spend = num(parseFloat(r.spend ?? "0")), imp = num(r.impressions)
+          if (spend === 0 && imp === 0) continue   // journée sans diffusion : pas de ligne vide
+          daily.push({ date: day, spend, impressions: imp, clicks: num(r.clicks), leads: leadsOf(r) })
+        }
+        for (const { meta, stored } of LEVELS_MAP) {
+          for (const r of await pull(meta, OBJ_FIELDS, day)) {
+            const spend = num(parseFloat(r.spend ?? "0")), imp = num(r.impressions)
+            if (spend === 0 && imp === 0) continue
+            const objectId = meta === "campaign" ? r.campaign_id : meta === "adset" ? r.adset_id : r.ad_id
+            const name = meta === "campaign" ? r.campaign_name : meta === "adset" ? r.adset_name : r.ad_name
+            objects.push({
+              level: stored, objectId: String(objectId ?? "?"), name: name ?? "(sans nom)",
+              campaign: meta === "campaign" ? undefined : r.campaign_name ?? undefined,
+              adset: meta === "ad" ? r.adset_name ?? undefined : undefined,
+              date: day, spend, impressions: imp, clicks: num(r.clicks), leads: leadsOf(r),
+            })
+          }
+        }
+      }))
+    }
+
+    // Purge de la fenêtre puis réécriture : la fenêtre reflète exactement Meta,
+    // y compris « aucune diffusion » (qui doit effacer d'anciennes lignes).
+    await ctx.runMutation(internal.mediaBuyer._purgeWindow, { since, until })
+    await ctx.runMutation(internal.mediaBuyer._insertBatch, { daily, objects: [] })
+    const CHUNK = 1000
+    for (let i = 0; i < objects.length; i += CHUNK) {
+      await ctx.runMutation(internal.mediaBuyer._insertBatch, { daily: [], objects: objects.slice(i, i + CHUNK) })
+    }
+    return { ok: true, source: "zernio", account: target.adAccountId, since, until, daily: daily.length, objects: objects.length }
+  },
+})
+
 /** Sync vers meta_creatives (mêmes lignes que l'ancien chemin, même upsert). */
 export const syncCreatives = action({
   args: { datePreset: v.optional(v.string()), limit: v.optional(v.number()) },
