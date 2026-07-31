@@ -127,13 +127,6 @@ export default function ProspectionCockpit() {
   // ── Dérivations ──
   const spend = media?.kpis?.spend?.value ?? 0
   const ca    = pay?.encaisse ?? 0   // CA = encaissé (décision Thomas 2026-06-21), source unique = paiement.overview
-  // Coût par vente = dépense publicitaire ÷ ventes de la période. Il remplace le
-  // ROI, qui mélangeait la pub et les abonnements du module Budget et n'était
-  // donc comparable ni dans le temps ni entre parcours (le bénéfice ira dans Paiement).
-  const coutParVente: number | null = funnel && funnel.ventes > 0 ? spend / funnel.ventes : null
-  const cpvStr = coutParVente === null ? '-' : fmt(coutParVente)
-  // Ici, plus bas vaut mieux : l'objectif est un plafond, pas un plancher.
-  const cpvOk = coutParVente !== null && coutParVente <= (obj?.coutParVente ?? 500)
   // Levier « vide » = score N/A (null) côté back → on neutralise le vert trompeur et on affiche N/A sur ses taux.
   const pubEmpty   = (scorecards?.publicite?.score ?? null) === null
   const setEmpty   = (scorecards?.setters?.score ?? null) === null
@@ -141,10 +134,6 @@ export default function ProspectionCockpit() {
   const outEmpty   = (outbound?.score ?? null) === null
   const o = obj ?? { leadsR1: 50, leadsR2: 25, tauxShow: 75, tauxShowR2: 75, tauxClose: 30, tauxReponse: 30, cpl: 30, ca: 30000, roi: 5, coutParVente: 500, ventes: 30, cashContracte: 30000, panierMoyen: 2000 }
   const f = funnel ?? { leadsATraiter: 0, leadsTotal: 0, leadsInbound: 0, leadsOutbound: 0, r1Booked: 0, noShows: 0, shows: 0, ventes: 0, tauxLeadsR1: 0, tauxShow: 0, tauxClose: 0, r2Booked: 0, showsR1: 0, showsR2: 0, noShowsR1: 0, noShowsR2: 0, tauxShowR1: 0, tauxShowR2: 0, tauxR1R2: 0, tauxLeadsR2: 0, tauxR1ToR2: 0 }
-  // Clients payants DE LA PÉRIODE (un contact ayant au moins une transaction encaissée sur la fenêtre).
-  const payingClients = pay ? new Set((pay.transactions ?? []).filter(t => t.type === 'payment' && t.status === 'encaissé' && t.contactId).map(t => t.contactId)).size : 0
-  // Panier moyen = encaissé période ÷ clients payants période (numérateur et dénominateur sur la même fenêtre).
-  const panier = payingClients > 0 ? ca / payingClients : 0
   const ptsGap = (val: number, target: number) => `${val >= target ? '▲' : '▼'} ${pct1(Math.abs(val - target))}%`
   const pctGap = (val: number, target: number) => `${val >= target ? '▲' : '▼'} ${target > 0 ? Math.round(val / target * 100) : 0}%`
   const stepColor = (val: number, target: number) => val >= target ? '#16A34A' : val >= target * 0.8 ? '#D97706' : '#DC2626'
@@ -293,8 +282,6 @@ export default function ProspectionCockpit() {
               )
             })}
             <KpiCard label="Encaissé" value={fmt(ca)} suffix="CHF" gap={pctGap(ca, o.ca)} gapOk={ca >= o.ca} icon={Banknote} color="#16A34A" />
-            <KpiCard label="Coût par vente" value={cpvStr} suffix="CHF" gap={coutParVente === null ? '—' : `${cpvOk ? '▼' : '▲'} ${Math.round((coutParVente / (o.coutParVente || 1)) * 100)}%`} gapOk={cpvOk} icon={TrendingUp} color="#16A34A" />
-            <KpiCard label="Panier moyen" value={fmt(panier)} suffix="CHF" gap={pctGap(panier, o.panierMoyen)} gapOk={panier >= o.panierMoyen} icon={DollarSign} color="#FF4D00" />
           </div>
         </div>
 
@@ -306,6 +293,7 @@ export default function ProspectionCockpit() {
             rows={cfg.roles.setting.rows.map(r => [r.label, setEmpty && r.key.startsWith('taux') ? 'N/A' : roleValue(r.key)] as [string, string])} />
           <RoleCard title={cfg.roles.closing.title} score={scorecards?.closers}
             rows={cfg.roles.closing.rows.map(r => [r.label, closeEmpty && r.key.startsWith('taux') ? 'N/A' : roleValue(r.key)] as [string, string])} />
+{cfg.id !== 'social' && (
           <RoleCard title="Emailing Outbound" onExpand={() => setRepliesOpen(true)} score={outbound ? { score: outbound.score, tone: outbound.tone, diagnostic: outbound.diagnostic, charge: null, metrics: [] } : undefined} rows={[
             ['Leads sourcés', fmt(outbound?.sourced ?? 0)],
             ['Decks générés', fmt(outbound?.decks ?? 0)],
@@ -313,6 +301,7 @@ export default function ProspectionCockpit() {
             ['Réponses', fmt(outbound?.reponses ?? 0), outEmpty ? undefined : '#16A34A'],
             ['Taux de réponse', outEmpty ? 'N/A' : `${outbound?.tauxReponse ?? 0}%`, outEmpty ? undefined : '#16A34A'],
           ]} />
+          )}
         </div>
 
 

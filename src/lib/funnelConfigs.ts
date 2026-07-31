@@ -99,7 +99,6 @@ const VSL: FunnelConfig = {
     { key: 'tauxClose', label: 'Taux de closing', unit: '%' },
     { key: 'cpl', label: 'CPL Meta', unit: 'CHF' },
     { key: 'ca', label: 'Encaissé (objectif)', unit: 'CHF' },
-    { key: 'coutParVente', label: 'Coût par vente (max)', unit: 'CHF' },
   ],
 }
 
