@@ -101,24 +101,24 @@ export default function ProspectionCockpit() {
   const summary = useKeep(useQuery(api.performance.summary, qa) as Summary | undefined)
   const media   = useKeep(useQuery(api.mediaBuyer.dashboard, { from: range.from, to: range.to, level: 'adset' }) as Media | undefined)
   const pay     = useKeep(useQuery(api.paiement.overview, { from: range.from, to: range.to, tzOffset: TZ }) as Pay | undefined)
-  const obj     = useQuery(api.prospectionObjectives.get) as Obj | undefined
+  // Configuration du parcours : le squelette ne change pas, seuls les noms suivent.
+  const searchParams = useSearchParams()
+  const [cfgId, setCfgId] = useState(() => searchParams?.get('funnel') ?? 'inbound')
+  const cfg = configById(cfgId)
+  const pickConfig = (id: string) => {
+    setCfgId(id)
+    const url = new URL(window.location.href)
+    if (id === 'inbound') url.searchParams.delete('funnel'); else url.searchParams.set('funnel', id)
+    window.history.replaceState(null, '', url.toString())
+  }
+
+  const obj     = useQuery(api.prospectionObjectives.get, { funnel: cfgId }) as Obj | undefined
   const scorecards = useKeep(useQuery(api.prospectionCockpit.teamScorecards, qa) as Scorecards | undefined)
   const outbound = useKeep(useQuery(api.outboundEmailing.summary, qa) as OutboundSum | undefined)
   // En cours de rechargement (on a déjà d'anciennes données) → léger fondu, pas de saut.
   const refreshing = funnelRaw === undefined && funnel !== undefined
   const outboundList = useQuery(api.outboundLeads.list, {}) as OutboundLead[] | undefined
   const setObj  = useMutation(api.prospectionObjectives.set)
-
-  // Configuration du parcours : le squelette ne change pas, seuls les noms suivent.
-  const searchParams = useSearchParams()
-  const [cfgId, setCfgId] = useState(() => searchParams?.get('funnel') ?? 'direct')
-  const cfg = configById(cfgId)
-  const pickConfig = (id: string) => {
-    setCfgId(id)
-    const url = new URL(window.location.href)
-    if (id === 'direct') url.searchParams.delete('funnel'); else url.searchParams.set('funnel', id)
-    window.history.replaceState(null, '', url.toString())
-  }
 
   // Le trait sous l'onglet actif glisse : on mesure la position du bouton courant.
   const famRefs = useRef<Record<string, HTMLButtonElement | null>>({})
@@ -164,6 +164,10 @@ export default function ProspectionCockpit() {
     metaLeads: media?.kpis?.leads?.value ?? 0, cpl: media?.kpis?.cpl?.value ?? 0,
     tauxReponse: summary?.tauxReponse ?? 0, conversionR1: summary?.conversionR1 ?? 0,
     tauxClose: f.tauxClose,
+    // Emailing outbound : son propre haut d'entonnoir.
+    sources: outbound?.sourced ?? 0, decks: outbound?.decks ?? 0,
+    envois: outbound?.envois ?? 0, reponsesOut: outbound?.reponses ?? 0,
+    tauxReponseOut: outbound?.tauxReponse ?? 0,
   }
   // Un taux se recalcule à partir des deux étapes qu'il relie : si l'une manque, il manque aussi.
   const rateOf = (from: string, to: string): number | null => {
@@ -223,10 +227,10 @@ export default function ProspectionCockpit() {
         </div>
 
         <div className={`overflow-hidden transition-all duration-300 ease-out ${
-          cfg.family === 'direct' ? 'max-h-16 opacity-100 mt-3 mb-4' : 'max-h-0 opacity-0 mt-0 mb-4'
+          FUNNEL_CONFIGS.filter((c) => c.family === cfg.family).length > 1 ? 'max-h-16 opacity-100 mt-3 mb-4' : 'max-h-0 opacity-0 mt-0 mb-4'
         }`}>
           <div className="flex items-center gap-1.5">
-            {FUNNEL_CONFIGS.filter((c) => c.family === 'direct').map((c) => {
+            {FUNNEL_CONFIGS.filter((c) => c.family === cfg.family).map((c) => {
               const on = c.id === cfg.id
               return (
                 <button key={c.id} onClick={() => pickConfig(c.id)} title={c.tagline}
@@ -289,14 +293,14 @@ export default function ProspectionCockpit() {
         {/* Ligne 2 : métiers (anneau de score + diagnostic) */}
         {/* La grille suit le NOMBRE de cartes du parcours : trois en social (sans
             emailing), quatre ailleurs. Sinon la dernière colonne reste vide. */}
-        <div className={`grid md:grid-cols-2 gap-4 mb-5 ${cfg.id === 'social' ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
+        <div className={`grid md:grid-cols-2 gap-4 mb-5 ${cfg.family === 'inbound' ? 'xl:grid-cols-4' : 'xl:grid-cols-3'}`}>
           <RoleCard title={cfg.roles.media.title} score={scorecards?.publicite}
             rows={cfg.roles.media.rows.map(r => [r.label, pubEmpty && (r.key === 'cpl' || r.key === 'coutParAbonne') ? 'N/A' : roleValue(r.key)] as [string, string])} />
           <RoleCard title={cfg.roles.setting.title} score={scorecards?.setters}
             rows={cfg.roles.setting.rows.map(r => [r.label, setEmpty && r.key.startsWith('taux') ? 'N/A' : roleValue(r.key)] as [string, string])} />
           <RoleCard title={cfg.roles.closing.title} score={scorecards?.closers}
             rows={cfg.roles.closing.rows.map(r => [r.label, closeEmpty && r.key.startsWith('taux') ? 'N/A' : roleValue(r.key)] as [string, string])} />
-{cfg.id !== 'social' && (
+{cfg.family === 'inbound' && (
           <RoleCard title="Emailing Outbound" onExpand={() => setRepliesOpen(true)} score={outbound ? { score: outbound.score, tone: outbound.tone, diagnostic: outbound.diagnostic, charge: null, metrics: [] } : undefined} rows={[
             ['Leads sourcés', fmt(outbound?.sourced ?? 0)],
             ['Decks générés', fmt(outbound?.decks ?? 0)],
@@ -310,7 +314,7 @@ export default function ProspectionCockpit() {
 
       </div>
 
-      {objOpen && <ObjModal obj={o} cfg={cfg} onClose={() => setObjOpen(false)} onSave={async (vals) => { await setObj(vals); setObjOpen(false) }} />}
+      {objOpen && <ObjModal obj={o} cfg={cfg} onClose={() => setObjOpen(false)} onSave={async (vals) => { await setObj({ ...vals, funnel: cfgId }); setObjOpen(false) }} />}
 
       {repliesOpen && (
         <Modal onClose={() => setRepliesOpen(false)}>

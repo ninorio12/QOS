@@ -24,6 +24,9 @@ export type FunnelData = {
   noShowsR2: number
   ventes: number
   abonnes: number | null  // pas de source aujourd'hui
+  sources: number
+  envois: number
+  reponsesOut: number
 }
 
 export type StepKey = keyof FunnelData
@@ -35,8 +38,9 @@ export type RoleRow = { label: string; key: string }
 
 export type FunnelConfig = {
   id: string
-  /** Famille du parcours : le premier niveau d'onglets. */
-  family: 'direct' | 'social'
+  /** Famille du parcours : inbound (le lead se déclare), social (il s'abonne
+   *  puis on ouvre le DM), outbound (contact froid, on écrit en premier). */
+  family: 'inbound' | 'social' | 'outbound'
   label: string
   tagline: string
   steps: Step[]
@@ -52,8 +56,8 @@ export type FunnelConfig = {
 
 const VSL: FunnelConfig = {
   id: 'vsl',
-  family: 'direct',
-  label: 'VSL funnel',
+  family: 'inbound',
+  label: 'VSL',
   tagline: 'Publicité vers page de vente vidéo, puis rendez-vous',
   steps: [
     { key: 'leads', label: 'Leads', icon: 'users' },
@@ -107,11 +111,11 @@ const VSL: FunnelConfig = {
 
 const QUIZZ: FunnelConfig = {
   id: 'quizz',
-  family: 'direct',
-  label: 'Quizz funnel',
-  tagline: 'Publicité vers quizz de qualification, puis rendez-vous',
+  family: 'inbound',
+  label: 'Quiz',
+  tagline: 'Publicité vers quiz de qualification, puis rendez-vous',
   steps: [
-    { key: 'leads', label: 'Quizz complétés', icon: 'users' },
+    { key: 'leads', label: 'Quiz complétés', icon: 'users' },
     { key: 'r1', label: 'RDV bookés (R1)', icon: 'calendar' },
     { key: 'showsR1', label: 'Présents en R1', icon: 'phone' },
     { key: 'r2', label: 'RDV bookés (R2)', icon: 'calendar' },
@@ -119,7 +123,7 @@ const QUIZZ: FunnelConfig = {
     { key: 'ventes', label: 'Ventes', icon: 'trophy' },
   ],
   rates: [
-    { label: 'Taux quizz → RDV', from: 'leads', to: 'r1', obj: 'leadsR1' },
+    { label: 'Taux quiz → RDV', from: 'leads', to: 'r1', obj: 'leadsR1' },
     { label: 'Taux de show R1', from: 'r1', to: 'showsR1', obj: 'tauxShow' },
     { label: 'Présents R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
     { label: 'Taux de show R2', from: 'r2', to: 'showsR2', obj: 'tauxShowR2' },
@@ -134,7 +138,7 @@ const QUIZZ: FunnelConfig = {
       { label: 'Clics', key: 'clicks' },
     ] },
     setting: { title: 'Qualification', rows: [
-      { label: 'Quizz relancés', key: 'contactes' },
+      { label: 'Quiz relancés', key: 'contactes' },
       { label: 'Réponses', key: 'reponses' },
       { label: 'Taux de réponse', key: 'tauxReponse' },
       { label: 'RDV bookés', key: 'r1' },
@@ -149,7 +153,7 @@ const QUIZZ: FunnelConfig = {
     ] },
   },
   objectives: [
-    { key: 'leadsR1', label: 'Quizz → RDV', unit: '%' },
+    { key: 'leadsR1', label: 'Quiz → RDV', unit: '%' },
     { key: 'tauxShow', label: 'Taux de show R1', unit: '%' },
     { key: 'leadsR2', label: 'R1 → R2', unit: '%' },
     { key: 'tauxShowR2', label: 'Taux de show R2', unit: '%' },
@@ -220,22 +224,83 @@ const SOCIAL: FunnelConfig = {
   ],
 }
 
-// Vue cumulée de la famille direct response : VSL et quizz ensemble. Elle
-// garde le vocabulaire neutre (leads, R1, R2) puisqu'elle couvre les deux.
-const DIRECT_TOTAL: FunnelConfig = {
-  ...VSL,
-  id: 'direct',
-  label: 'Total',
-  tagline: 'VSL et quizz cumulés',
+// Emailing outbound : contact 100 % froid, on écrit en premier. Le haut de
+// l'entonnoir lui est propre (fichier, envois, réponses), le bas est commun.
+const EMAILING: FunnelConfig = {
+  id: 'emailing',
+  family: 'outbound',
+  label: 'Emailing',
+  tagline: 'Prospection à froid par email, puis rendez-vous',
+  steps: [
+    { key: 'sources', label: 'Contacts sourcés', icon: 'users' },
+    { key: 'envois', label: 'Emails envoyés', icon: 'message' },
+    { key: 'reponsesOut', label: 'Réponses', icon: 'chat' },
+    { key: 'r1', label: 'R1 bookés', icon: 'calendar' },
+    { key: 'showsR1', label: 'Shows en R1', icon: 'phone' },
+    { key: 'r2', label: 'R2 bookés', icon: 'calendar' },
+    { key: 'showsR2', label: 'Shows en R2', icon: 'phone' },
+    { key: 'ventes', label: 'Ventes', icon: 'trophy' },
+  ],
+  rates: [
+    { label: 'Sourcés → envoyés', from: 'sources', to: 'envois', obj: 'leadsR1' },
+    { label: 'Emails → Réponse', from: 'envois', to: 'reponsesOut', obj: 'tauxReponse' },
+    { label: 'Réponse → R1', from: 'reponsesOut', to: 'r1', obj: 'leadsR1' },
+    { label: 'Taux de show R1', from: 'r1', to: 'showsR1', obj: 'tauxShow' },
+    { label: 'Shows R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
+    { label: 'Taux de show R2', from: 'r2', to: 'showsR2', obj: 'tauxShowR2' },
+    { label: 'Taux de closing', from: 'r1', to: 'ventes', obj: 'tauxClose' },
+  ],
+  roles: {
+    media: { title: 'Sourcing', rows: [
+      { label: 'Contacts sourcés', key: 'sources' },
+      { label: 'Decks générés', key: 'decks' },
+      { label: 'Emails envoyés', key: 'envois' },
+      { label: 'Réponses', key: 'reponsesOut' },
+      { label: 'Taux de réponse', key: 'tauxReponseOut' },
+    ] },
+    setting: { title: 'Emailing', rows: [
+      { label: 'Emails envoyés', key: 'envois' },
+      { label: 'Réponses', key: 'reponsesOut' },
+      { label: 'Taux de réponse', key: 'tauxReponseOut' },
+      { label: 'R1 bookés', key: 'r1' },
+      { label: 'Réponses → R1', key: 'conversionR1' },
+    ] },
+    closing: { title: 'Closing', rows: [
+      { label: 'Appels prévus (R2)', key: 'r2' },
+      { label: 'Shows (R2)', key: 'showsR2' },
+      { label: 'No-shows (R2)', key: 'noShowsR2' },
+      { label: 'Ventes', key: 'ventes' },
+      { label: 'Taux de closing', key: 'tauxClose' },
+    ] },
+  },
+  objectives: [
+    { key: 'tauxReponse', label: 'Emails → Réponse', unit: '%' },
+    { key: 'leadsR1', label: 'Réponse → R1', unit: '%' },
+    { key: 'tauxShow', label: 'Taux de show R1', unit: '%' },
+    { key: 'leadsR2', label: 'R1 → R2', unit: '%' },
+    { key: 'tauxShowR2', label: 'Taux de show R2', unit: '%' },
+    { key: 'tauxClose', label: 'Taux de closing', unit: '%' },
+    { key: 'ca', label: 'Encaissé (objectif)', unit: 'CHF' },
+  ],
 }
 
-export const FUNNEL_CONFIGS: FunnelConfig[] = [DIRECT_TOTAL, VSL, QUIZZ, SOCIAL]
+// Vue cumulée de la famille direct response : VSL et quizz ensemble. Elle
+// garde le vocabulaire neutre (leads, R1, R2) puisqu'elle couvre les deux.
+const INBOUND_TOUS: FunnelConfig = {
+  ...VSL,
+  id: 'inbound',
+  label: 'Tous',
+  tagline: 'VSL et quiz cumulés',
+}
+
+export const FUNNEL_CONFIGS: FunnelConfig[] = [INBOUND_TOUS, VSL, QUIZZ, SOCIAL, EMAILING]
 
 /** Les deux familles, dans l'ordre des onglets du haut. */
-export const FAMILIES: { id: 'direct' | 'social'; label: string; defaultConfig: string }[] = [
-  { id: 'direct', label: 'Direct response', defaultConfig: 'direct' },
-  { id: 'social', label: 'Social funnel', defaultConfig: 'social' },
+export const FAMILIES: { id: 'inbound' | 'social' | 'outbound'; label: string; defaultConfig: string }[] = [
+  { id: 'inbound', label: 'Inbound', defaultConfig: 'inbound' },
+  { id: 'social', label: 'Social', defaultConfig: 'social' },
+  { id: 'outbound', label: 'Outbound', defaultConfig: 'emailing' },
 ]
 
 export const configById = (id: string | null | undefined): FunnelConfig =>
-  FUNNEL_CONFIGS.find((c) => c.id === id) ?? DIRECT_TOTAL
+  FUNNEL_CONFIGS.find((c) => c.id === id) ?? INBOUND_TOUS

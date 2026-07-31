@@ -9,12 +9,17 @@ const DEFAULTS = {
 }
 
 export const get = query({
-  args: {},
-  handler: async (ctx) => {
-    const doc = await ctx.db
+  args: { funnel: v.optional(v.string()) },
+  handler: async (ctx, a) => {
+    // Chaque parcours a ses propres seuils. Tant qu'il n'en a pas, on retombe
+    // sur la ligne historique commune plutôt que d'imposer les valeurs par défaut.
+    const rows = await ctx.db
       .query("prospection_objectives")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", WORKSPACE))
-      .first()
+      .collect()
+    const doc = (a.funnel ? rows.find((r) => r.funnel === a.funnel) : undefined)
+      ?? rows.find((r) => !r.funnel)
+      ?? rows[0]
     return {
       leadsR1:       doc?.leadsR1       ?? DEFAULTS.leadsR1,
       leadsR2:       doc?.leadsR2       ?? DEFAULTS.leadsR2,
@@ -35,6 +40,7 @@ export const get = query({
 
 export const set = mutation({
   args: {
+    funnel:        v.optional(v.string()),
     leadsR1:       v.optional(v.number()),
     leadsR2:       v.optional(v.number()),
     tauxShow:      v.optional(v.number()),
@@ -50,13 +56,20 @@ export const set = mutation({
     panierMoyen:   v.optional(v.number()),
   },
   handler: async (ctx, a) => {
-    const existing = await ctx.db
+    const rows = await ctx.db
       .query("prospection_objectives")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", WORKSPACE))
-      .first()
+      .collect()
+    // On écrit sur la ligne du parcours ; si elle n'existe pas encore, on la crée
+    // en partant des seuils actuellement en vigueur pour ce parcours.
+    const existing = a.funnel ? rows.find((r) => r.funnel === a.funnel) : rows.find((r) => !r.funnel)
     const patch = { ...a, updatedAt: new Date().toISOString() }
     if (existing) await ctx.db.patch(existing._id, patch)
-    else await ctx.db.insert("prospection_objectives", { workspaceId: WORKSPACE, ...patch })
+    else {
+      const base = rows.find((r) => !r.funnel)
+      const { _id, _creationTime, ...baseFields } = base ?? ({} as Record<string, unknown>)
+      await ctx.db.insert("prospection_objectives", { ...baseFields, workspaceId: WORKSPACE, ...patch })
+    }
     return { ok: true }
   },
 })

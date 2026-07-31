@@ -703,6 +703,9 @@ export default defineSchema({
   // Seuils d'objectif du cockpit Prospection (vert/orange/rouge). 1 doc par workspace.
   prospection_objectives: defineTable({
     workspaceId:   v.string(),
+    // Parcours concerné (inbound | vsl | quiz | social | emailing). Absent = ligne
+    // historique commune, qui sert de repli tant qu'un parcours n'a pas ses propres seuils.
+    funnel:        v.optional(v.string()),
     leadsR1:       v.optional(v.number()),  // % Total leads → R1
     leadsR2:       v.optional(v.number()),  // % Total leads → R2
     tauxShow:      v.optional(v.number()),  // % taux de show (R1)
