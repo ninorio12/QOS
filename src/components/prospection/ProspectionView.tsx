@@ -180,8 +180,8 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
       {/* Niche — mobile : en bas de la card, plus petite (laisse toute la largeur au nom) */}
       {r.contact.niche && (
         <span title={`Niche : ${r.contact.niche}`}
-          className="md:hidden self-start inline-flex items-center gap-0.5 max-w-full text-[8px] font-semibold px-1.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#3462EE] dark:bg-blue-500/15 dark:text-blue-400">
-          <Tag size={7} className="flex-shrink-0" /><span className="truncate">{r.contact.niche}</span>
+          className="md:hidden self-start inline-flex items-center gap-0.5 max-w-full text-[9px] font-semibold px-1.5 py-[1px] rounded-full leading-tight bg-[#EEF2FF] text-[#3462EE] dark:bg-blue-500/15 dark:text-blue-400">
+          <Tag size={7} className="flex-shrink-0" /><span className="truncate">{nicheKeyword(r.contact.niche)}</span>
         </span>
       )}
     </div>
