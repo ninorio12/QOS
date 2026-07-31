@@ -286,21 +286,14 @@ const EMAILING: FunnelConfig = {
 
 // Vue cumulée de la famille direct response : VSL et quizz ensemble. Elle
 // garde le vocabulaire neutre (leads, R1, R2) puisqu'elle couvre les deux.
-const INBOUND_TOUS: FunnelConfig = {
-  ...VSL,
-  id: 'inbound',
-  label: 'Tous',
-  tagline: 'VSL et quiz cumulés',
-}
-
-export const FUNNEL_CONFIGS: FunnelConfig[] = [INBOUND_TOUS, VSL, QUIZZ, EMAILING, SOCIAL]
+export const FUNNEL_CONFIGS: FunnelConfig[] = [VSL, QUIZZ, EMAILING, SOCIAL]
 
 /** Les deux familles, dans l'ordre des onglets du haut. */
 export const FAMILIES: { id: 'inbound' | 'social' | 'outbound'; label: string; defaultConfig: string }[] = [
-  { id: 'inbound', label: 'Inbound', defaultConfig: 'inbound' },
+  { id: 'inbound', label: 'Inbound', defaultConfig: 'vsl' },
   { id: 'outbound', label: 'Outbound', defaultConfig: 'emailing' },
   { id: 'social', label: 'Social', defaultConfig: 'social' },
 ]
 
 export const configById = (id: string | null | undefined): FunnelConfig =>
-  FUNNEL_CONFIGS.find((c) => c.id === id) ?? INBOUND_TOUS
+  FUNNEL_CONFIGS.find((c) => c.id === id) ?? VSL
