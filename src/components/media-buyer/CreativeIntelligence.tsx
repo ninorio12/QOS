@@ -23,7 +23,7 @@ export default function CreativeIntelligence() {
   const past = useQuery(api.synthese.history)
   const save = useMutation(api.synthese.save)
 
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true)
   const [showHistory, setShowHistory] = useState(false)
   const [draft, setDraft] = useState<string | null>(null)   // null = pas d'édition locale en cours
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -39,10 +39,10 @@ export default function CreativeIntelligence() {
   useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current) }, [])
 
   return (
-    <div className="bg-soren-card border border-soren-border rounded-2xl overflow-hidden">
+    <div className="bg-soren-card border border-soren-border rounded-2xl overflow-hidden h-full flex flex-col">
       <button
         onClick={() => setOpen((s) => !s)}
-        className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left"
+        className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left flex-shrink-0"
       >
         <div className="flex items-center gap-2 min-w-0">
           <NotebookPen size={15} className="text-soren-accent flex-shrink-0" />
@@ -57,13 +57,12 @@ export default function CreativeIntelligence() {
       </button>
 
       {open && (
-        <div className="px-5 pb-4 flex flex-col gap-2.5">
+        <div className="px-5 pb-4 flex-1 min-h-0 flex flex-col gap-2.5">
           <textarea
             value={body}
             onChange={(e) => onType(e.target.value)}
             placeholder="Écrire la synthèse du jour…"
-            rows={5}
-            className="w-full text-[12px] leading-relaxed bg-soren-elevated border border-soren-border rounded-xl px-3.5 py-3 text-soren-text outline-none focus:border-soren-accent/50 resize-y"
+            className="w-full flex-1 min-h-[120px] text-[12px] leading-relaxed bg-soren-elevated border border-soren-border rounded-xl px-3.5 py-3 text-soren-text outline-none focus:border-soren-accent/50 resize-none"
           />
           {(past?.length ?? 0) > 0 && (
             <button

@@ -39,7 +39,7 @@ export default function MediaDashboard() {
   }
 
   return (
-    <div className="bg-soren-card rounded-2xl p-4 md:p-5 shadow-sm border border-soren-border/60 h-full flex flex-col gap-3.5 justify-between">
+    <div className="bg-soren-card rounded-2xl p-4 md:p-5 shadow-sm border border-soren-border/60 flex flex-col gap-3.5">
       <div className="flex items-center gap-2">
         <SlidersHorizontal size={14} className="text-soren-accent" />
         <span className="text-[13px] font-bold text-soren-text">Dashboard</span>

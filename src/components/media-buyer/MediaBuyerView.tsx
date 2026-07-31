@@ -232,13 +232,13 @@ export default function MediaBuyerView() {
           <KpiCard icon={Eye}               label="Impressions" value={loading ? v : nf(k!.impressions.value)}   delta={loading ? null : k!.impressions.delta} color="#0EA5E9" drop="impressions" />
           <KpiCard icon={Users}             label="Leads"       value={loading ? v : nf(k!.leads.value)}         delta={loading ? null : k!.leads.delta}       color="#3462EE" onClick={() => setLeadsOpen(true)} drop="leads" />
           <KpiCard icon={MousePointerClick} label="Clics"       value={loading ? v : nf(k!.clicks.value)}        delta={loading ? null : k!.clicks.delta}      color="#8B5CF6" drop="clicks" />
-          <KpiCard icon={DollarSign} label="CPL" value={loading ? v : cpl(k!.cpl.value)} suffix={cur} delta={loading ? null : k!.cpl.delta} color="#FF4D00" drop="cpl" info="Coût par lead : dépense ÷ leads, le prix d'un contact. Bon repère : sous 10 CHF en lead gen, et surtout sous la médiane du compte ; au-delà du double de la médiane, on coupe." />
-          <KpiCard icon={Percent}    label="CTR" value={loading ? v : pct(k!.ctr.value)} suffix="%"   delta={loading ? null : k!.ctr.delta} color="#D97706" drop="ctr" info="Taux de clic : % des impressions qui cliquent. Moyenne Meta ≈ 1 %. Bon signe à 1,5 % et plus ; sous 0,8 %, la créa n'accroche pas." />
-          <div className="col-span-2"><KpiCard icon={Gauge}      label="CR"  value={loading ? v : pct(k!.cr.value)}  suffix="%"   delta={loading ? null : k!.cr.delta} color="#14B8A6" drop="cr" info="Taux de conversion : % des clics qui deviennent des leads. Bon repère : 10 % et plus sur une page de capture ; sous 5 %, le problème est après le clic (page ou offre)." /></div>
+          <KpiCard icon={DollarSign} label="CPL" value={loading ? v : cpl(k!.cpl.value)} suffix={cur} delta={loading ? null : k!.cpl.delta} color="#FF4D00" drop="cpl" info="Coût par lead : dépense ÷ leads, le prix payé pour un contact. Il ne se juge pas dans l'absolu mais contre la médiane du compte et contre ce qu'un lead rapporte une fois converti." />
+          <KpiCard icon={Percent}    label="CTR" value={loading ? v : pct(k!.ctr.value)} suffix="%"   delta={loading ? null : k!.ctr.delta} color="#D97706" drop="ctr" info="Taux de clic : la part des impressions qui cliquent. C'est le signal de l'accroche : il se lit contre tes propres créas et se compare dans le temps, pas à une moyenne du marché." />
+          <div className="col-span-2"><KpiCard icon={Gauge}      label="CR"  value={loading ? v : pct(k!.cr.value)}  suffix="%"   delta={loading ? null : k!.cr.delta} color="#14B8A6" drop="cr" info="Taux de conversion : la part des clics qui deviennent des leads. Il juge ce qui se passe après le clic, page et offre, pas la publicité : s'il décroche alors que le CTR tient, le problème est sur la page." /></div>
           </div>
           <div className="flex flex-col gap-2 md:gap-3 h-full">
-            <div className="flex-1"><MediaDashboard /></div>
-            <CreativeIntelligence />
+            <MediaDashboard />
+            <div className="flex-1 min-h-[220px]"><CreativeIntelligence /></div>
           </div>
         </div>
 
