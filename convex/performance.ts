@@ -145,7 +145,7 @@ export const summary = query({
 //   taux de show  = shows ÷ R1 bookés
 //   taux de close = ventes ÷ R1 bookés
 export const funnel = query({
-  args: { setter: v.optional(v.string()), from: v.optional(v.string()), to: v.optional(v.string()), channel: v.optional(v.string()), tzOffset: v.optional(v.number()) },
+  args: { setter: v.optional(v.string()), from: v.optional(v.string()), to: v.optional(v.string()), channel: v.optional(v.string()), tzOffset: v.optional(v.number()), funnel: v.optional(v.string()) },
   handler: async (ctx, a) => {
     const from = a.from ?? "0000-00-00", to = a.to ?? "9999-99-99"
     const dayOf = (iso: string) => localDay(iso, a.tzOffset)
@@ -153,7 +153,12 @@ export const funnel = query({
     const contacts = await ctx.db.query("crm_contacts").collect()
     // FUNNEL = cohorte (source UNIQUE partagée avec le cockpit, cf. funnelCohort.ts).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const allLeads = await ctx.db.query("crm_leads").collect()
+    let allLeads = await ctx.db.query("crm_leads").collect()
+    // Parcours demandé : on ne garde que les leads entrés par cette porte. Un lead
+    // sans parcours écrit (tout l'historique d'avant l'étiquetage) n'appartient à
+    // aucun parcours : il ne doit pas gonfler artificiellement le quiz ou le VSL.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (a.funnel) allLeads = allLeads.filter((l: any) => l.funnel === a.funnel)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const salesCalls = await ctx.db.query("os_sales_calls").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
     const fc = funnelCohort(contacts as any[], allLeads as any[], from, to, dayOf, salesCalls as any[])

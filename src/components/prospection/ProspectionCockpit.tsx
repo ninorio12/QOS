@@ -98,11 +98,6 @@ export default function ProspectionCockpit() {
   const range = rangeForPreset(preset)
   const qa = { from: range.from, to: range.to, tzOffset: TZ }
 
-  const funnelRaw = useQuery(api.performance.funnel, qa) as Funnel | undefined
-  const funnel  = useKeep(funnelRaw)
-  const summary = useKeep(useQuery(api.performance.summary, qa) as Summary | undefined)
-  const media   = useKeep(useQuery(api.mediaBuyer.dashboard, { from: range.from, to: range.to, level: 'adset' }) as Media | undefined)
-  const pay     = useKeep(useQuery(api.paiement.overview, { from: range.from, to: range.to, tzOffset: TZ }) as Pay | undefined)
   // Configuration du parcours : le squelette ne change pas, seuls les noms suivent.
   const searchParams = useSearchParams()
   const [cfgId, setCfgId] = useState(() => searchParams?.get('funnel') ?? 'vsl')
@@ -117,8 +112,6 @@ export default function ProspectionCockpit() {
   const obj     = useQuery(api.prospectionObjectives.get, { funnel: cfgId }) as Obj | undefined
   const scorecards = useKeep(useQuery(api.prospectionCockpit.teamScorecards, qa) as Scorecards | undefined)
   const outbound = useKeep(useQuery(api.outboundEmailing.summary, qa) as OutboundSum | undefined)
-  // En cours de rechargement (on a déjà d'anciennes données) → léger fondu, pas de saut.
-  const refreshing = funnelRaw === undefined && funnel !== undefined
   const outboundList = useQuery(api.outboundLeads.list, {}) as OutboundLead[] | undefined
   const setObj  = useMutation(api.prospectionObjectives.set)
 
@@ -130,6 +123,17 @@ export default function ProspectionCockpit() {
     if (el) setInd({ left: el.offsetLeft, width: el.offsetWidth })
   }, [cfg.family])
 
+  // Le VSL reste la vue de référence tant que l'historique n'est pas étiqueté :
+  // seuls les parcours réellement alimentés filtrent leurs propres leads.
+  const FILTERED_FUNNELS = ['quizz', 'linkedin', 'instagram', 'emailing']
+  const funnelRaw = useQuery(api.performance.funnel,
+    FILTERED_FUNNELS.includes(cfgId) ? { ...qa, funnel: cfgId === 'quizz' ? 'quiz' : cfgId } : qa) as Funnel | undefined
+  const funnel  = useKeep(funnelRaw)
+  // En cours de rechargement (on a déjà d'anciennes données) → léger fondu, pas de saut.
+  const refreshing = funnelRaw === undefined && funnel !== undefined
+  const summary = useKeep(useQuery(api.performance.summary, qa) as Summary | undefined)
+  const media   = useKeep(useQuery(api.mediaBuyer.dashboard, { from: range.from, to: range.to, level: 'adset' }) as Media | undefined)
+  const pay     = useKeep(useQuery(api.paiement.overview, { from: range.from, to: range.to, tzOffset: TZ }) as Pay | undefined)
   const [objOpen, setObjOpen] = useState(false)
   const [objScope, setObjScope] = useState<'commerciale' | 'globale' | 'all'>('all')
   const [repliesOpen, setRepliesOpen] = useState(false)
