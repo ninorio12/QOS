@@ -48,14 +48,16 @@ function KpiCard({ label, value, suffix, gap, gapOk, icon: Icon, color = '#FF4D0
   label: string; value: string; suffix?: string; gap?: string; gapOk?: boolean; icon?: Lucide; color?: string
 }) {
   return (
-    <div className="bg-soren-card border border-soren-border/60 rounded-xl p-2.5 flex flex-col justify-start gap-1.5 shadow-sm">
-      <div className="flex items-center gap-1.5">
-        {Icon && <span className="flex h-5 w-5 items-center justify-center rounded-md flex-shrink-0" style={{ background: color + '14', color }}><Icon size={12} strokeWidth={2.4} /></span>}
-        <span className="text-[10px] font-medium tracking-wide text-soren-subtle leading-none">{label}</span>
-      </div>
-      <div className="flex-1 flex items-center justify-start gap-1.5 flex-wrap">
-        <span className="text-[17px] md:text-[19px] font-bold text-soren-text leading-none tabular-nums">{value}{suffix && <span className="text-[11px] text-soren-muted font-semibold ml-0.5">{suffix}</span>}</span>
-        {gap && <span className="text-[10.5px] font-semibold leading-none whitespace-nowrap" style={{ color: gapOk ? '#059669' : '#DC2626' }}>{gap}</span>}
+    // L'icône descend EN BAS À DROITE : la carte se lit par son titre puis son
+    // chiffre, l'icône n'est qu'un repère de couleur, pas un en-tête.
+    <div className="bg-soren-card border border-soren-border/60 rounded-xl p-3 flex flex-col gap-1.5 shadow-sm">
+      <span className="text-[12px] font-semibold tracking-wide text-soren-muted leading-tight">{label}</span>
+      <div className="flex-1 flex items-end justify-between gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+          <span className="text-[17px] md:text-[19px] font-bold text-soren-text leading-none tabular-nums">{value}{suffix && <span className="text-[11px] text-soren-muted font-semibold ml-0.5">{suffix}</span>}</span>
+          {gap && <span className="text-[10.5px] font-semibold leading-none whitespace-nowrap" style={{ color: gapOk ? '#059669' : '#DC2626' }}>{gap}</span>}
+        </div>
+        {Icon && <span className="flex h-9 w-9 items-center justify-center rounded-xl flex-shrink-0" style={{ background: color + '14', color }}><Icon size={19} strokeWidth={2.1} /></span>}
       </div>
     </div>
   )
@@ -526,7 +528,15 @@ function ObjModal({ obj, cfg, onClose, onSave }: { obj: Obj; cfg: FunnelConfig; 
         </div>
         <div className="flex justify-end gap-2 mt-5">
           <button onClick={onClose} className="text-[13px] font-semibold text-soren-muted border border-soren-border rounded-xl px-4 py-2 hover:bg-soren-elevated">Annuler</button>
-          <button onClick={() => onSave(v)} className="text-[13px] font-semibold text-white bg-[#FF4D00] rounded-xl px-4 py-2 shadow-sm">Appliquer →</button>
+          <button
+            onClick={() => {
+              // On ne renvoie que les objectifs affichés : renvoyer l'objet entier
+              // faisait remonter des champs que le serveur refuse (le lien, notamment)
+              // et l'enregistrement échouait sans rien dire.
+              const only = Object.fromEntries(cfg.objectives.map(ob => [ob.key, v[ob.key as keyof Obj]])) as Partial<Obj>
+              onSave(only)
+            }}
+            className="text-[13px] font-semibold text-white bg-[#FF4D00] rounded-xl px-4 py-2 shadow-sm">Appliquer →</button>
         </div>
       </div>
     </Modal>

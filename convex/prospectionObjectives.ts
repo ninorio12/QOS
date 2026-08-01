@@ -42,7 +42,7 @@ export const get = query({
 export const set = mutation({
   args: {
     funnel:        v.optional(v.string()),
-    link:          v.optional(v.string()),
+    link:          v.optional(v.union(v.string(), v.null())),
     leadsR1:       v.optional(v.number()),
     leadsR2:       v.optional(v.number()),
     tauxShow:      v.optional(v.number()),
@@ -65,7 +65,10 @@ export const set = mutation({
     // On écrit sur la ligne du parcours ; si elle n'existe pas encore, on la crée
     // en partant des seuils actuellement en vigueur pour ce parcours.
     const existing = a.funnel ? rows.find((r) => r.funnel === a.funnel) : rows.find((r) => !r.funnel)
-    const patch = { ...a, updatedAt: new Date().toISOString() }
+    // `null` arrive quand l'interface renvoie l'objet complet : on le traduit en
+    // « champ absent » au lieu de faire échouer tout l'enregistrement.
+    const clean = Object.fromEntries(Object.entries(a).filter(([, val]) => val !== null))
+    const patch = { ...clean, updatedAt: new Date().toISOString() }
     if (existing) await ctx.db.patch(existing._id, patch)
     else {
       const base = rows.find((r) => !r.funnel)
