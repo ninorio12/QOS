@@ -22,6 +22,18 @@ function makeToken(seed: string): string {
   return out
 }
 
+/**
+ * Parcours déduit du nom du formulaire quand aucune correspondance n'est posée.
+ * Un formulaire nommé « VSL » ne doit jamais tomber dans l'entonnoir du quiz.
+ */
+function guessFunnel(formName?: string | null): string {
+  const n = (formName ?? "").toLowerCase()
+  if (/vsl|vid[ée]o de vente|page de vente/.test(n)) return "vsl"
+  if (/insta/.test(n)) return "instagram"
+  if (/linkedin/.test(n)) return "linkedin"
+  return "quiz"
+}
+
 // Le formulaire Meta renvoie des clés normalisées ; on accepte les variantes.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function pick(fields: any, keys: string[]): string | undefined {
@@ -65,8 +77,14 @@ export const fromLeadForm = internalMutation({
     const full = pick(a.fields, ["fullname", "name", "nomcomplet", "nom"]) ?? ""
     const first = pick(a.fields, ["firstname", "prenom"]) ?? full.split(" ")[0] ?? "Sans nom"
     const last = pick(a.fields, ["lastname", "nom"]) ?? (full.split(" ").slice(1).join(" ") || undefined)
-    const funnel = a.funnel ?? "quiz"
-    const origin = a.origin ?? "facebook"
+    // Le parcours vient de la correspondance du formulaire, sinon de son nom.
+    // Écrire « quiz » en dur ferait compter les leads d'un futur formulaire VSL
+    // dans l'entonnoir du quiz.
+    const mapped = a.formId
+      ? await ctx.db.query("os_form_funnels").withIndex("by_form", (q) => q.eq("formId", a.formId!)).first()
+      : null
+    const funnel = a.funnel ?? mapped?.funnel ?? guessFunnel(a.formName)
+    const origin = a.origin ?? mapped?.origin ?? "facebook"
     const token = makeToken(a.leadgenId)
 
     // Contact : on complète l'existant plutôt que d'en créer un doublon.
@@ -139,6 +157,47 @@ export const fromLeadForm = internalMutation({
     })
     return { duplicated: false, token, contactId, leadId }
   },
+})
+
+/**
+ * À quel parcours appartient un formulaire Meta.
+ *
+ * Ordre : correspondance explicite en base, sinon déduction depuis le NOM du
+ * formulaire, sinon quiz par défaut. Sans ça, un second formulaire (VSL) verrait
+ * ses leads comptés dans l'entonnoir du quiz.
+ */
+export const funnelForForm = query({
+  args: { formId: v.optional(v.string()), formName: v.optional(v.string()) },
+  handler: async (ctx, a) => {
+    if (a.formId) {
+      const row = await ctx.db.query("os_form_funnels").withIndex("by_form", (q) => q.eq("formId", a.formId!)).first()
+      if (row) return { funnel: row.funnel, origin: row.origin ?? "facebook", source: "table" }
+    }
+    return { funnel: guessFunnel(a.formName), origin: "facebook", source: "nom" }
+  },
+})
+
+/** Associe explicitement un formulaire à un parcours (prime sur le nom). */
+export const mapForm = mutation({
+  args: { formId: v.string(), funnel: v.string(), formName: v.optional(v.string()), origin: v.optional(v.string()) },
+  handler: async (ctx, a) => {
+    const existing = await ctx.db.query("os_form_funnels").withIndex("by_form", (q) => q.eq("formId", a.formId)).first()
+    if (existing) {
+      await ctx.db.patch(existing._id, { funnel: a.funnel, formName: a.formName ?? existing.formName, origin: a.origin ?? existing.origin })
+      return { updated: true }
+    }
+    await ctx.db.insert("os_form_funnels", {
+      workspaceId: WORKSPACE, formId: a.formId, formName: a.formName,
+      funnel: a.funnel, origin: a.origin ?? "facebook", createdAt: now(),
+    })
+    return { updated: false }
+  },
+})
+
+/** Les correspondances connues, pour vérification. */
+export const formMappings = query({
+  args: {},
+  handler: async (ctx) => await ctx.db.query("os_form_funnels").withIndex("by_ws", (q) => q.eq("workspaceId", WORKSPACE)).collect(),
 })
 
 /** Marque une étape du parcours. Une même étape ne s'écrit qu'une fois. */

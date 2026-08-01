@@ -732,6 +732,20 @@ export default defineSchema({
     updatedAt:     v.optional(v.string()),
   }).index("by_workspace", ["workspaceId"]),
 
+  // Formulaire Meta → parcours. Sans cette table, tous les leads d'un compte
+  // atterrissent dans le même entonnoir : un second formulaire (VSL) polluerait
+  // les chiffres du quiz. Le nom du formulaire sert de repli.
+  os_form_funnels: defineTable({
+    workspaceId: v.string(),
+    formId:      v.string(),
+    formName:    v.optional(v.string()),
+    funnel:      v.string(),               // quiz | vsl | social | emailing
+    origin:      v.optional(v.string()),   // facebook, instagram…
+    createdAt:   v.string(),
+  })
+    .index("by_form", ["formId"])
+    .index("by_ws", ["workspaceId", "createdAt"]),
+
   // Parcours d'un lead entrant, étape par étape. Un jeton unique le suit du
   // formulaire Facebook jusqu'à la vente : quiz, rendez-vous, quiz de fin.
   // C'est ce jeton qui circule dans les liens, l'email servant de filet de secours

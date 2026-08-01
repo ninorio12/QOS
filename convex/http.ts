@@ -218,8 +218,8 @@ http.route({
         isOrganic: Boolean(l.isOrganic),
         fields: l.fields ?? {},
         createdAt: l.createdAt ?? undefined,
-        funnel: "quiz",
-        origin: "facebook",
+        // Ni funnel ni origin imposés ici : l'ingestion les déduit de la
+        // correspondance du formulaire, puis de son nom.
       })
     } catch (err) {
       console.error("[zernio/leads] erreur:", err)
