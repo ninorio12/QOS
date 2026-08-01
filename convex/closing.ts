@@ -212,10 +212,35 @@ export async function advanceForCall(ctx: any, contactId: string | undefined, st
     const rec = (await ctx.db.query("prospection_records").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect())
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .find((r: any) => r.contactId === contactId && r.status !== "archived" && r.status !== "lost")
-    if (rec && rec.boardColumn !== "leads_interne") {
-      await ctx.db.patch(rec._id, {
-        boardColumn: "leads_interne", internalLead: true, cadrage: true,
-        status: "active", updatedAt: new Date().toISOString(),
+    const now2 = new Date().toISOString()
+    if (rec) {
+      if (rec.boardColumn !== "leads_interne") {
+        await ctx.db.patch(rec._id, {
+          boardColumn: "leads_interne", internalLead: true, cadrage: true,
+          status: "active", updatedAt: now2,
+        })
+      }
+    } else {
+      // AUCUNE carte de prospection : le lead a réservé sans jamais passer par
+      // le board (lien direct, import, réservation spontanée). Sans carte, il
+      // n'apparaît nulle part dans la file d'appels et la puce de clarté ne peut
+      // pas exister. On la crée donc, sinon le rendez-vous passe inaperçu.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lead = (await ctx.db.query("crm_leads").collect()).find((l: any) => String(l.contactId) === String(contactId))
+      await ctx.db.insert("prospection_records", {
+        workspaceId: WORKSPACE,
+        contactId: String(contactId),
+        leadId: lead ? String(lead._id) : undefined,
+        boardColumn: "leads_interne",
+        phase: "phase1",
+        internalLead: true,
+        cadrage: true,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        origin: (lead as any)?.origin ?? undefined,
+        temperature: "tiede",
+        status: "active",
+        createdAt: now2,
+        updatedAt: now2,
       })
     }
   }
