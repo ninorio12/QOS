@@ -281,7 +281,7 @@ function Overlay({ children, onClose }: { children: React.ReactNode; onClose?: (
 }
 
 // ─── Fiche (clic sur carte) — sobre, coordonnées + déplacement ────────────────
-function Fiche({ r, onClose, onEdit, onMove }: { r: ProspRecord; onClose: () => void; onEdit: () => void; onMove: (col: string) => void }) {
+function Fiche({ r, onClose, onEdit, onMove, onClarityDone }: { r: ProspRecord; onClose: () => void; onEdit: () => void; onMove: (col: string) => void; onClarityDone: () => void }) {
   const tel = telHref(r.contact.phone)
   const ini = initialsOf(r.contact.fullName)
   return (
@@ -344,6 +344,17 @@ function Fiche({ r, onClose, onEdit, onMove }: { r: ProspRecord; onClose: () => 
             })}
           </div>
         </div>
+
+        {/* Appel de clarté terminé : la carte sort du board, le lead passe en R1. */}
+        {r.cadrage && (
+          <div className="px-4 md:px-5 pb-3">
+            <button onClick={onClarityDone}
+              className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#10A066] text-white text-[12.5px] font-semibold hover:opacity-90 transition-opacity">
+              <ClipboardCheck size={14} /> Appel de clarté fait
+            </button>
+            <p className="mt-1.5 text-[10px] text-soren-subtle text-center">La carte quitte la prospection, le lead poursuit en R1.</p>
+          </div>
+        )}
 
         {/* Footer — fiche complète et, pour un lead à rappeler, sa fiche de closing */}
         <div className="flex border-t border-soren-border divide-x divide-soren-border">
@@ -477,6 +488,7 @@ export default function ProspectionView() {
 
   const serverRecords = (useQuery(api.osProspection.list, { search: search || undefined }) ?? []) as ProspRecord[]
   const setColumn = useMutation(api.osProspection.setColumn)
+  const clarityDone = useMutation(api.osProspection.clarityDone)
   const linkContact = useMutation(api.osProspection.linkContact)
 
   // État local optimiste : le drop déplace la carte instantanément (pas d'attente Convex),
@@ -718,6 +730,7 @@ export default function ProspectionView() {
       {openRec && (
         <Fiche r={openRec} onClose={() => setOpenId(null)}
           onEdit={() => { setEditContactId(openRec.contactId); setOpenId(null) }}
+          onClarityDone={async () => { await clarityDone({ id: openRec.id as never }); setOpenId(null) }}
           onMove={col => {
             if (!isMoveAllowed(openRec, col)) return   // garde-fou : lead interne → "Leads à traiter" interdit
             // Perdu / RDV booké → on attend la confirmation avant de déplacer/enregistrer.

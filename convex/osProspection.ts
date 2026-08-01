@@ -119,6 +119,34 @@ export const get = query({
 // Déplace une carte vers une colonne du board (drag & drop kanban).
 // lostReason : renseigné quand on dépose dans "Perdu" (faux_numero | pas_interesse | jamais_repondu).
 // followUpReason : texte libre renseigné quand on dépose dans "À suivre" (devient un chip sur la carte).
+/**
+ * Appel de clarté terminé : la carte quitte le board de prospection et le lead
+ * poursuit sa vie dans le pipeline, au stade R1.
+ *
+ * Le travail de setting est fini : garder la carte en « Leads interne » ferait
+ * grossir indéfiniment une file censée être une liste d'appels à passer.
+ */
+export const clarityDone = mutation({
+  args: { id: v.id("prospection_records") },
+  handler: async (ctx, { id }) => {
+    const rec = await ctx.db.get(id)
+    if (!rec) throw new Error("record introuvable")
+    await ctx.db.patch(id, { status: "archived", boardColumn: "rdv_booke", updatedAt: now() })
+    // Le lead avance en R1 s'il n'y est pas déjà (iClosed l'y met en général avant nous).
+    if (rec.leadId) {
+      const lead = await ctx.db.get(rec.leadId as Id<"crm_leads">)
+      if (lead && lead.stageId !== "r1" && lead.stageId !== "r2") {
+        await ctx.db.patch(lead._id, { stageId: "r1" })
+      }
+    }
+    if (rec.contactId) {
+      const c = await ctx.db.get(rec.contactId as Id<"crm_contacts">)
+      if (c) await ctx.db.patch(c._id, { leadStatus: "handoff", updatedAt: now() })
+    }
+    return { ok: true }
+  },
+})
+
 export const setColumn = mutation({
   args: { id: v.id("prospection_records"), column: v.string(), lostReason: v.optional(v.string()), followUpReason: v.optional(v.string()) },
   handler: async (ctx, { id, column, lostReason, followUpReason }) => {
