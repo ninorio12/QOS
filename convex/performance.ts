@@ -154,14 +154,25 @@ export const funnel = query({
     // FUNNEL = cohorte (source UNIQUE partagée avec le cockpit, cf. funnelCohort.ts).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let allLeads = await ctx.db.query("crm_leads").collect()
-    // Parcours demandé : on ne garde que les leads entrés par cette porte. Un lead
-    // sans parcours écrit (tout l'historique d'avant l'étiquetage) n'appartient à
-    // aucun parcours : il ne doit pas gonfler artificiellement le quiz ou le VSL.
+    // Parcours demandé : la cohorte suit les CONTACTS (ils survivent à la
+    // conversion en client), donc c'est elle qu'on restreint. Un contact
+    // appartient au parcours s'il porte son étiquette, ou si le lead qui le
+    // représente la porte. Sans étiquette, il n'appartient à aucun parcours et
+    // ne doit gonfler ni le quiz ni les autres.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (a.funnel) allLeads = allLeads.filter((l: any) => l.funnel === a.funnel)
+    let cohortContacts: any[] = contacts
+    if (a.funnel) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tagged = new Set(allLeads.filter((l: any) => l.funnel === a.funnel).map((l: any) => String(l.contactId)))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cohortContacts = contacts.filter((c: any) =>
+        tagged.has(String(c._id)) || (Array.isArray(c.tags) && c.tags.includes(`funnel:${a.funnel}`)))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      allLeads = allLeads.filter((l: any) => l.funnel === a.funnel)
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const salesCalls = await ctx.db.query("os_sales_calls").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
-    const fc = funnelCohort(contacts as any[], allLeads as any[], from, to, dayOf, salesCalls as any[])
+    const fc = funnelCohort(cohortContacts as any[], allLeads as any[], from, to, dayOf, salesCalls as any[])
     return { leadsATraiter: fc.leadsTotal, ...fc }
   },
 })
