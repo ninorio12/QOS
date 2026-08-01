@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { configById, FUNNEL_CONFIGS, FAMILIES, type FunnelConfig } from '@/lib/funnelConfigs'
+import { configById, FUNNEL_CONFIGS, FAMILIES, BRAND_PATHS, type FunnelConfig } from '@/lib/funnelConfigs'
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
@@ -103,12 +103,12 @@ export default function ProspectionCockpit() {
   const pay     = useKeep(useQuery(api.paiement.overview, { from: range.from, to: range.to, tzOffset: TZ }) as Pay | undefined)
   // Configuration du parcours : le squelette ne change pas, seuls les noms suivent.
   const searchParams = useSearchParams()
-  const [cfgId, setCfgId] = useState(() => searchParams?.get('funnel') ?? 'inbound')
+  const [cfgId, setCfgId] = useState(() => searchParams?.get('funnel') ?? 'vsl')
   const cfg = configById(cfgId)
   const pickConfig = (id: string) => {
     setCfgId(id)
     const url = new URL(window.location.href)
-    if (id === 'inbound') url.searchParams.delete('funnel'); else url.searchParams.set('funnel', id)
+    if (id === 'vsl') url.searchParams.delete('funnel'); else url.searchParams.set('funnel', id)
     window.history.replaceState(null, '', url.toString())
   }
 
@@ -234,11 +234,16 @@ export default function ProspectionCockpit() {
               const on = c.id === cfg.id
               return (
                 <button key={c.id} onClick={() => pickConfig(c.id)} title={c.tagline}
-                  className={`text-[11px] font-semibold rounded-full px-3 py-1.5 border transition-all duration-200 ease-out ${
+                  className={`inline-flex items-center gap-1.5 text-[11px] font-semibold rounded-full px-3 py-1.5 border transition-all duration-200 ease-out ${
                     on
                       ? 'bg-soren-sidebar text-white border-transparent shadow-sm'
                       : 'bg-soren-elevated text-soren-muted border-soren-border hover:text-soren-text hover:border-soren-border'
                   }`}>
+                  {c.brand && (
+                    <svg width="11" height="11" viewBox="0 0 24 24" className="flex-shrink-0" aria-hidden="true">
+                      <path fill="currentColor" d={BRAND_PATHS[c.brand].d} />
+                    </svg>
+                  )}
                   {c.label}
                 </button>
               )
