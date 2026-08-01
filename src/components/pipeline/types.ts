@@ -26,6 +26,8 @@ export type Opportunity = {
   email:      string
   phone:      string
   contactId:  string
+  /** Appel de clarté : à passer (pending) ou fait (done). Absent = non concerné. */
+  clarity?:   'pending' | 'done'
   tags:       string[]
   status:     'open' | 'won' | 'lost' | 'abandoned'
   noShow?:    boolean   // R1/R2 marqué no-show (récupérable) : chip rouge sur la carte

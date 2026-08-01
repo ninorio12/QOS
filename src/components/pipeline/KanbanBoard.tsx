@@ -100,6 +100,14 @@ function OppCard({ opp, isDragging = false, muted = false, hideValue = false }: 
           )}
           {src && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: src.bg, color: src.color }}>{src.label}</span>}
           {opp.noShow && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: '#FEE2E2', color: '#DC2626' }}>no-show</span>}
+          {/* Appel de clarté : rouge tant qu'il reste à passer, vert une fois fait.
+              Sans lui, une carte en R1 laisse croire que le lead est déjà cadré. */}
+          {opp.clarity === 'pending' && (
+            <span title="Appel de clarté à passer" className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: '#FEE2E2', color: '#DC2626' }}>clarté à faire</span>
+          )}
+          {opp.clarity === 'done' && (
+            <span title="Appel de clarté effectué" className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: '#D1FAE5', color: '#047857' }}>clarté faite</span>
+          )}
         </div>
         <Avatar initials={opp.initials} />
       </div>
@@ -370,6 +378,8 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
       stageId: l.stageId, pipelineId: l.pipelineId, email: l.email ?? '', phone: l.phone ?? '',
       contactId: l.contactId ?? '', tags: [], status: l.status as Opportunity['status'],
       noShow: !!(l.contactId && noShowContacts.has(l.contactId)),
+      // État de l'appel de clarté, calculé côté serveur depuis la carte de prospection.
+      clarity: (l as unknown as { clarity?: 'pending' | 'done' }).clarity,
     }))
     // Source de vérité = statut de la fiche : un lead dont le contact est devenu CLIENT
     // ne reste pas dans le board Leads (sinon carte fantôme en double avec le board Clients),

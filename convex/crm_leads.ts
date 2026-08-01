@@ -5,7 +5,26 @@ import { normalizeLeadSource } from "./lib/leadSource"
 
 export const list = query({
   handler: async (ctx) => {
-    return await ctx.db.query("crm_leads").order("desc").collect()
+    const leads = await ctx.db.query("crm_leads").order("desc").collect()
+    // État de l'appel de clarté : un rendez-vous existe (le lead est en R1) mais
+    // personne n'a encore rappelé tant que sa carte de prospection est active.
+    // Sans ce signal, le pipeline laisse croire que tout est cadré.
+    const recs = await ctx.db.query("prospection_records").collect()
+    const pending = new Set(
+      recs.filter((r) => r.cadrage && r.status !== "archived" && r.boardColumn === "leads_interne")
+          .map((r) => String(r.contactId)),
+    )
+    const done = new Set(
+      recs.filter((r) => r.cadrage && r.status === "archived").map((r) => String(r.contactId)),
+    )
+    return leads.map((l) => ({
+      ...l,
+      clarity: l.contactId && pending.has(String(l.contactId))
+        ? "pending"
+        : l.contactId && done.has(String(l.contactId))
+          ? "done"
+          : undefined,
+    }))
   },
 })
 
