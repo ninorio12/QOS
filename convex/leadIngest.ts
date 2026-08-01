@@ -5,7 +5,8 @@
 // lead, on pose l'étiquette d'origine, et on ouvre un PARCOURS identifié par un
 // jeton court. Ce jeton voyage ensuite dans les liens : quiz, rendez-vous, quiz
 // de fin. Quand un outil externe ne nous le renvoie pas, l'email sert de filet.
-import { internalMutation, mutation, query } from "./_generated/server"
+import { action, internalMutation, mutation, query } from "./_generated/server"
+import { internal } from "./_generated/api"
 import { v } from "convex/values"
 import { WORKSPACE } from "./osLib"
 
@@ -71,6 +72,8 @@ export const fromLeadForm = internalMutation({
       .withIndex("by_leadgen", (q) => q.eq("leadgenId", a.leadgenId))
       .first()
     if (already) return { duplicated: true, token: already.token }
+    const dead = await ctx.db.query("os_ignored_leadgen").withIndex("by_leadgen", (q) => q.eq("leadgenId", a.leadgenId)).first()
+    if (dead) return { duplicated: true, token: null, ignored: true }
 
     const email = pick(a.fields, ["email", "emailaddress", "courriel"])?.toLowerCase()
     const phone = pick(a.fields, ["phonenumber", "phone", "telephone", "tel"])
@@ -96,7 +99,11 @@ export const fromLeadForm = internalMutation({
       // Le contact DÉJÀ CONNU doit lui aussi porter son parcours : à la conversion
       // en client le lead est supprimé, et seul ce tag permet encore de rattacher
       // la vente à son entonnoir.
-      const tags = [...new Set([...(dup.tags ?? []), `origine:${origin}`, `funnel:${funnel}`])]
+      // Premier parcours gagnant : si le contact porte déjà une étiquette de
+      // parcours, on ne la remplace pas (sinon il serait compté dans DEUX
+      // entonnoirs à la fois). L'origine, elle, peut s'ajouter.
+      const hasFunnel = (dup.tags ?? []).some((t) => t.startsWith("funnel:"))
+      const tags = [...new Set([...(dup.tags ?? []), `origine:${origin}`, ...(hasFunnel ? [] : [`funnel:${funnel}`])])]
       await ctx.db.patch(dup._id, {
         tags,
         phone: dup.phone ?? phone,
@@ -117,6 +124,34 @@ export const fromLeadForm = internalMutation({
         createdAt: now(),
       })
       contactId = String(contactRef)
+    }
+
+    // Un lead OUVERT existe déjà pour ce contact ? On le réutilise : en créer un
+    // second ferait deux cartes pour la même personne et fausserait la cohorte.
+    const openLead = dup
+      ? (await ctx.db.query("crm_leads").withIndex("by_contact", (q) => q.eq("contactId", dup._id)).collect()).find((l) => l.status === "open")
+      : undefined
+    if (openLead) {
+      await ctx.db.patch(openLead._id, { funnel: openLead.funnel ?? funnel, origin: openLead.origin ?? origin, token: openLead.token ?? token })
+      const activeRec = (await ctx.db.query("prospection_records").withIndex("by_contact", (q) => q.eq("contactId", String(dup!._id))).collect())
+        .find((r) => r.status !== "archived" && r.status !== "lost")
+      if (!activeRec) {
+        await ctx.db.insert("prospection_records", {
+          workspaceId: WORKSPACE, contactId: String(dup!._id), leadId: String(openLead._id),
+          boardColumn: "leads_interne", phase: "phase1", internalLead: true, cadrage: true,
+          origin, temperature: "tiede", status: "active", createdAt: now(), updatedAt: now(),
+        })
+      }
+      await ctx.db.insert("os_lead_journey", {
+        workspaceId: WORKSPACE, token, contactId: String(dup!._id), leadId: String(openLead._id), funnel,
+        email, phone, name: [first, last].filter(Boolean).join(" ") || email,
+        leadgenId: a.leadgenId, formId: a.formId, adId: a.adId ?? undefined,
+        adsetId: a.adsetId ?? undefined, campaignId: a.campaignId ?? undefined,
+        isOrganic: a.isOrganic, fieldsJson: JSON.stringify(a.fields ?? {}),
+        steps: [{ step: "formulaire", at: a.createdAt ?? now(), meta: a.formName ?? undefined }],
+        createdAt: now(), updatedAt: now(),
+      })
+      return { duplicated: false, token, contactId, leadId: String(openLead._id), reused: true }
     }
 
     // Lead du pipeline, avec son parcours et son étiquette d'origine.
@@ -324,5 +359,39 @@ export const track = mutation({
     if (row.steps.some((s) => s.step === a.step)) return { found: true, already: true }
     await ctx.db.patch(row._id, { steps: [...row.steps, { step: a.step, at: now(), meta: a.meta }], updatedAt: now() })
     return { found: true, already: false }
+  },
+})
+
+/**
+ * Filet de rattrapage : relit les leads du cache Zernio et ingère ceux que le
+ * webhook aurait manqués (panne, URL changée, 401 pendant une rotation de
+ * secret…). Idempotent : fromLeadForm refuse les leadgenId déjà vus.
+ */
+export const syncFromZernio = action({
+  args: {},
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  handler: async (ctx): Promise<any> => {
+    const key = process.env.ZERNIO_API_KEY
+    if (!key) return { ok: false, error: "ZERNIO_API_KEY absent" }
+    const res = await fetch("https://zernio.com/api/v1/ads/leads?limit=50", {
+      headers: { Authorization: `Bearer ${key}` },
+    })
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` }
+    const json = await res.json()
+    let ingested = 0, seen = 0
+    for (const l of json.leads ?? []) {
+      if (!l.leadgenId) continue
+      const r = await ctx.runMutation(internal.leadIngest.fromLeadForm, {
+        leadgenId: String(l.leadgenId),
+        formId: l.formId ? String(l.formId) : undefined,
+        formName: l.formName ?? undefined,
+        adId: l.adId ?? undefined, adsetId: l.adsetId ?? undefined, campaignId: l.campaignId ?? undefined,
+        isOrganic: Boolean(l.isOrganic),
+        fields: l.fields ?? {},
+        createdAt: l.createdTime ?? undefined,
+      })
+      if (r.duplicated) seen++; else ingested++
+    }
+    return { ok: true, ingested, seen }
   },
 })

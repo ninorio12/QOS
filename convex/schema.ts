@@ -732,6 +732,13 @@ export default defineSchema({
     updatedAt:     v.optional(v.string()),
   }).index("by_workspace", ["workspaceId"]),
 
+  // Identifiants de soumission Meta purgés (tests) : le filet Zernio ne doit
+  // jamais les ré-ingérer depuis son cache.
+  os_ignored_leadgen: defineTable({
+    leadgenId: v.string(),
+    createdAt: v.string(),
+  }).index("by_leadgen", ["leadgenId"]),
+
   // Formulaire Meta → parcours. Sans cette table, tous les leads d'un compte
   // atterrissent dans le même entonnoir : un second formulaire (VSL) polluerait
   // les chiffres du quiz. Le nom du formulaire sert de repli.

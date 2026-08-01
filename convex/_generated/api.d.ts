@@ -77,6 +77,7 @@ import type * as processSubfolders from "../processSubfolders.js";
 import type * as processes from "../processes.js";
 import type * as prospectionCockpit from "../prospectionCockpit.js";
 import type * as prospectionObjectives from "../prospectionObjectives.js";
+import type * as purgeOrphanContact from "../purgeOrphanContact.js";
 import type * as purgeOrphanRecord from "../purgeOrphanRecord.js";
 import type * as recordNotes from "../recordNotes.js";
 import type * as seed from "../seed.js";
@@ -167,6 +168,7 @@ declare const fullApi: ApiFromModules<{
   processes: typeof processes;
   prospectionCockpit: typeof prospectionCockpit;
   prospectionObjectives: typeof prospectionObjectives;
+  purgeOrphanContact: typeof purgeOrphanContact;
   purgeOrphanRecord: typeof purgeOrphanRecord;
   recordNotes: typeof recordNotes;
   seed: typeof seed;

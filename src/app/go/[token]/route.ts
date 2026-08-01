@@ -20,13 +20,19 @@ export const dynamic = 'force-dynamic'
 // serait un cadeau pour l'hameçonnage.
 const DESTINATIONS: Record<string, string> = {
   quiz: 'https://quiz.vividflow.co/',
+  // Fin du quiz → prise de rendez-vous. Le jeton voyage dans l'URL : iClosed
+  // capture l'adresse complète dans ses utm, ce qui rattache le RDV au lead.
+  iclosed: 'https://app.iclosed.io/e/vividflow/audit-ia-offert',
 }
+
+// Étape par défaut selon la destination : aller vers iClosed, c'est avoir fini le quiz.
+const DEFAULT_STEP: Record<string, string> = { quiz: 'quiz_ouvert', iclosed: 'quiz_termine' }
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params
   const url = new URL(req.url)
-  const step = url.searchParams.get('step') ?? 'quiz_ouvert'
   const dest = url.searchParams.get('to') ?? 'quiz'
+  const step = url.searchParams.get('step') ?? DEFAULT_STEP[dest] ?? 'quiz_ouvert'
 
   const target = DESTINATIONS[dest] ?? DESTINATIONS.quiz
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL

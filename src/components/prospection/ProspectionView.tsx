@@ -83,6 +83,7 @@ const JOURNEY_STEPS: Record<string, { label: string; bg: string; fg: string; hin
   quiz_ouvert: { label: 'Quiz non terminé',  bg: '#FEF3C7', fg: '#92400E', hint: 'A commencé le quiz et l\'a abandonné en route' },
   quiz_termine:{ label: 'Quiz terminé',      bg: '#DBEAFE', fg: '#1D4ED8', hint: 'A terminé le quiz mais n\'a pas réservé d\'appel' },
   rdv_pris:    { label: 'RDV booké',         bg: '#1E293B', fg: '#FFFFFF', hint: 'A réservé son appel sur iClosed : rien à relancer', iclosed: true },
+  rdv_annule:  { label: 'RDV annulé',        bg: '#FEE2E2', fg: '#DC2626', hint: 'Son rendez-vous a sauté : le rappeler pour re-booker' },
 }
 const telHref = (p?: string) => (p ? `tel:${p.replace(/[^+0-9]/g, '')}` : undefined)
 const initialsOf = (n?: string) => (n?.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2) || '?').toUpperCase()

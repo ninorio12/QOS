@@ -197,6 +197,15 @@ export async function advanceForCall(ctx: any, contactId: string | undefined, st
   // 1) Lead pipeline → r1/r2 (source unique du funnel). Jamais de régression.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const lead = await ctx.db.query("crm_leads").withIndex("by_contact", (q: any) => q.eq("contactId", contactId)).first()
+  // Un lead PERDU qui reprend rendez-vous n'est plus perdu : on rouvre le lead
+  // et le contact, sinon le nouveau RDV reste invisible du pipeline et le
+  // funnel continue de compter la personne comme perdue.
+  if (lead && lead.status === "lost") {
+    await ctx.db.patch(lead._id, { status: "open" })
+    const c = await ctx.db.get(lead.contactId)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (c && (c as any).statut === "perdu") await ctx.db.patch(lead.contactId, { statut: "lead", leadStatus: "active", lostStage: undefined, lostReason: undefined })
+  }
   if (lead && (CALL_STAGE_RANK[lead.stageId] ?? -1) < CALL_STAGE_RANK[target]) {
     await ctx.db.patch(lead._id, { stageId: target })
     await ctx.db.insert("lead_stage_history", { leadId: lead._id, stageId: target, stageName: stage, enteredAt: new Date().toISOString().slice(0, 10) })
@@ -299,6 +308,16 @@ export const scheduleCall = mutation({
       }
     } catch { /* la trace ne doit jamais empêcher la création du rendez-vous */ }
 
+    // R2 déguisé en R1 : le lien iClosed du R2 est le même événement que le R1
+    // (« Audit IA offert »), la synchro annonce donc « R1 ». Si un R1 planifié
+    // existe déjà pour ce contact sous un autre identifiant, ce nouveau
+    // rendez-vous est en réalité le R2.
+    if (a.stage === "R1" && contactId) {
+      const others = await ctx.db.query("os_sales_calls").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
+      const existingR1 = others.find(o => String(o.contactId) === String(contactId) && o.stage === "R1" && o.status !== "cancelled" && o.externalId !== a.externalId)
+      if (existingR1) a = { ...a, stage: "R2", title: a.title.replace(/^R1/, "R2") }
+    }
+
     // Dédup par externalId (iClosed eventCall) : un même RDV n'est jamais dupliqué.
     if (a.externalId) {
       const existing = await ctx.db.query("os_sales_calls").withIndex("by_external", q => q.eq("externalId", a.externalId)).first()
@@ -349,9 +368,28 @@ export const cancelCallByExternalId = mutation({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .find((r: any) => r.contactId === String(call.contactId) && r.cadrage)
       if (rec) {
-        await ctx.db.patch(rec._id, {
-          cadrage: undefined, internalLead: undefined,
-          boardColumn: "leads_a_traiter", status: "active",
+        if (rec.origin) {
+          // Lead spontané (formulaire, emailing…) : retour en file de clarté,
+          // marqueur conservé — l'appel sert maintenant à re-booker.
+          await ctx.db.patch(rec._id, {
+            boardColumn: "leads_interne", internalLead: true, cadrage: true,
+            status: "active", updatedAt: new Date().toISOString(),
+          })
+        } else {
+          await ctx.db.patch(rec._id, {
+            cadrage: undefined, internalLead: undefined,
+            boardColumn: "leads_a_traiter", status: "active",
+            updatedAt: new Date().toISOString(),
+          })
+        }
+      }
+      // Le parcours note l'annulation : sans cette étape, la carte continuait
+      // d'afficher « RDV booké » alors que le rendez-vous n'existait plus.
+      const j = (await ctx.db.query("os_lead_journey").withIndex("by_ws", (q) => q.eq("workspaceId", WORKSPACE)).collect())
+        .find((x) => x.contactId === String(call.contactId))
+      if (j && !j.steps.some((st) => st.step === "rdv_annule")) {
+        await ctx.db.patch(j._id, {
+          steps: [...j.steps.filter((st) => st.step !== "rdv_pris"), { step: "rdv_annule", at: new Date().toISOString() }],
           updatedAt: new Date().toISOString(),
         })
       }

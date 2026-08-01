@@ -17,6 +17,10 @@ crons.daily("prospection health snapshot", { hourUTC: 2, minuteUTC: 0 }, interna
 // kickoffs → onboarding, R1 (event Audit) → os_sales_calls, annulations → RDV retiré.
 crons.interval("iclosed sync", { minutes: 5 }, api.iclosed.syncRecent, {})
 
+// Filet leads Facebook : le webhook Zernio fait le temps réel, ce rattrapage
+// relit son cache et ingère ce qui aurait été manqué (idempotent par leadgenId).
+crons.interval("zernio leads catchup", { minutes: 15 }, api.leadIngest.syncFromZernio, {})
+
 // Taux de change vers CHF (frankfurter.app, BCE) : rafraîchis chaque jour pour la conversion argent.
 crons.daily("fx rates sync", { hourUTC: 5, minuteUTC: 0 }, api.fx.syncRates, {})
 

@@ -67,7 +67,11 @@ export const list = query({
   args: { phase: v.optional(v.string()), temperature: v.optional(v.string()), channel: v.optional(v.string()), status: v.optional(v.string()), column: v.optional(v.string()), ownerUserId: v.optional(v.string()), search: v.optional(v.string()) },
   handler: async (ctx, f) => {
     let rows = await ctx.db.query("prospection_records").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
+    // Les cartes archivées (appel de clarté fait) quittent le board : sans ce
+    // filtre, boardColumnOf les rangeait dans « Perdu », ce qui affichait comme
+    // perdu un lead qui venait justement d'être cadré avec succès.
     if (f.status) rows = rows.filter(r => r.status === f.status)
+    else rows = rows.filter(r => r.status !== "archived")
     if (f.column) { const col = normalizeColumn(f.column); rows = rows.filter(r => boardColumnOf(r) === col) }
     if (f.phase) rows = rows.filter(r => r.phase === f.phase)
     if (f.temperature) rows = rows.filter(r => r.temperature === f.temperature)

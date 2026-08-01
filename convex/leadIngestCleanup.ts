@@ -15,6 +15,10 @@ export const purgeTestLead = internalMutation({
     if (!a.leadgenId.startsWith("TEST-") && !a.confirm) {
       throw new Error("Lead non marqué TEST- : repasser avec confirm: true si c'est bien un test")
     }
+    // La pierre tombale se pose TOUJOURS, même si le parcours a déjà disparu :
+    // c'est elle qui empêche le filet Zernio de ressusciter le lead purgé.
+    const dead = await ctx.db.query("os_ignored_leadgen").withIndex("by_leadgen", (q) => q.eq("leadgenId", a.leadgenId)).first()
+    if (!dead) await ctx.db.insert("os_ignored_leadgen", { leadgenId: a.leadgenId, createdAt: new Date().toISOString() })
     const row = await ctx.db
       .query("os_lead_journey")
       .withIndex("by_leadgen", (q) => q.eq("leadgenId", a.leadgenId))
