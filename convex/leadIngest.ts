@@ -93,7 +93,12 @@ export const fromLeadForm = internalMutation({
     let contactRef: typeof contacts[number]["_id"]
     let contactId: string
     if (dup) {
+      // Le contact DÉJÀ CONNU doit lui aussi porter son parcours : à la conversion
+      // en client le lead est supprimé, et seul ce tag permet encore de rattacher
+      // la vente à son entonnoir.
+      const tags = [...new Set([...(dup.tags ?? []), `origine:${origin}`, `funnel:${funnel}`])]
       await ctx.db.patch(dup._id, {
+        tags,
         phone: dup.phone ?? phone,
         firstName: dup.firstName || first,
         lastName: dup.lastName ?? last,
