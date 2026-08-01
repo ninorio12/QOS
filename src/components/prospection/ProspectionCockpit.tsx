@@ -270,9 +270,7 @@ export default function ProspectionCockpit() {
                       color={D[st.key] == null ? '#9CA3AF' : rate ? stepColor(val ?? 0, target) : '#6B7280'}
                       sub={D[st.key] == null
                         ? <span className="text-soren-subtle">Pas encore mesuré</span>
-                        : i === 0 && st.key === 'leads'
-                          ? <>Inbound <span className="font-semibold text-soren-muted">{f.leadsInbound}</span> · Outbound <span className="font-semibold text-soren-muted">{f.leadsOutbound}</span></>
-                          : undefined}
+                        : undefined}
                     />
                   </div>
                 )

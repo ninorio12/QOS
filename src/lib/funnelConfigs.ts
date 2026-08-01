@@ -116,21 +116,9 @@ const QUIZZ: FunnelConfig = {
   family: 'inbound',
   label: 'Quiz',
   tagline: 'Publicité vers quiz de qualification, puis rendez-vous',
-  steps: [
-    { key: 'leads', label: 'Quiz complétés', icon: 'users' },
-    { key: 'r1', label: 'RDV bookés (R1)', icon: 'calendar' },
-    { key: 'showsR1', label: 'Présents en R1', icon: 'phone' },
-    { key: 'r2', label: 'RDV bookés (R2)', icon: 'calendar' },
-    { key: 'showsR2', label: 'Présents en R2', icon: 'phone' },
-    { key: 'ventes', label: 'Ventes', icon: 'trophy' },
-  ],
-  rates: [
-    { label: 'Quiz → RDV', from: 'leads', to: 'r1', obj: 'leadsR1' },
-    { label: 'Taux de show R1', from: 'r1', to: 'showsR1', obj: 'tauxShow' },
-    { label: 'R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
-    { label: 'Taux de show R2', from: 'r2', to: 'showsR2', obj: 'tauxShowR2' },
-    { label: 'Taux de close', from: 'r1', to: 'ventes', obj: 'tauxClose' },
-  ],
+  // Entonnoir identique au VSL : seuls les leads qui y entrent diffèrent.
+  steps: VSL.steps,
+  rates: VSL.rates,
   roles: {
     media: { title: 'Media Buyer', rows: [
       { label: 'Dépenses totales', key: 'spend' },
@@ -154,15 +142,7 @@ const QUIZZ: FunnelConfig = {
       { label: 'Taux de close', key: 'tauxClose' },
     ] },
   },
-  objectives: [
-    { key: 'leadsR1', label: 'Quiz → RDV', unit: '%' },
-    { key: 'tauxShow', label: 'Taux de show R1', unit: '%' },
-    { key: 'leadsR2', label: 'R1 → R2', unit: '%' },
-    { key: 'tauxShowR2', label: 'Taux de show R2', unit: '%' },
-    { key: 'tauxClose', label: 'Taux de close', unit: '%' },
-    { key: 'cpl', label: 'CPL Meta', unit: 'CHF' },
-    { key: 'ca', label: "Chiffre d'affaires", unit: 'CHF' },
-  ],
+  objectives: VSL.objectives,
 }
 
 // Repris mot pour mot du modèle validé par Jonathan : abonnés reçus, DMs
