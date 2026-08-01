@@ -213,14 +213,18 @@ export async function advanceForCall(ctx: any, contactId: string | undefined, st
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .find((r: any) => r.contactId === contactId && r.status !== "archived" && r.status !== "lost")
     const now2 = new Date().toISOString()
-    if (rec) {
+    // Rendez-vous DÉCROCHÉ PAR UN HUMAIN : le setter a glissé la carte en « RDV
+    // booké » et pris le créneau dans iClosed. Il vient de parler au prospect,
+    // l'appel de clarté n'a aucun sens. On ne touche donc pas à sa carte.
+    const decrocheParUnHumain = rec?.status === "handoff" || rec?.boardColumn === "rdv_booke"
+    if (rec && !decrocheParUnHumain) {
       if (rec.boardColumn !== "leads_interne") {
         await ctx.db.patch(rec._id, {
           boardColumn: "leads_interne", internalLead: true, cadrage: true,
           status: "active", updatedAt: now2,
         })
       }
-    } else {
+    } else if (!rec) {
       // AUCUNE carte de prospection : le lead a réservé sans jamais passer par
       // le board (lien direct, import, réservation spontanée). Sans carte, il
       // n'apparaît nulle part dans la file d'appels et la puce de clarté ne peut
