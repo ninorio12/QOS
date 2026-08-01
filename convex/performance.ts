@@ -161,7 +161,24 @@ export const funnel = query({
     // ne doit gonfler ni le quiz ni les autres.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let cohortContacts: any[] = contacts
-    if (a.funnel) {
+    if (a.funnel === "vsl") {
+      // Le VSL est la voie inbound par défaut : les entrants SANS étiquette de
+      // parcours (historique + formulaires du site) lui reviennent, mais jamais
+      // les leads d'un autre parcours ni l'outbound, qui a son propre onglet.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const otherTag = (c: any) => Array.isArray(c.tags) && c.tags.some((t: string) => t.startsWith("funnel:") && t !== "funnel:vsl")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cohortContacts = contacts.filter((c: any) => c.source !== "outbound" && !otherTag(c))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      allLeads = allLeads.filter((l: any) => l.source !== "outbound" && (!l.funnel || l.funnel === "vsl"))
+    } else if (a.funnel === "emailing") {
+      // L'emailing n'étiquette pas ses leads : le canal SE DÉFINIT par la source
+      // outbound. Sans ce cas, l'onglet Emailing affichait zéro pour toujours.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cohortContacts = contacts.filter((c: any) => c.source === "outbound")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      allLeads = allLeads.filter((l: any) => l.source === "outbound")
+    } else if (a.funnel) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const tagged = new Set(allLeads.filter((l: any) => l.funnel === a.funnel).map((l: any) => String(l.contactId)))
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

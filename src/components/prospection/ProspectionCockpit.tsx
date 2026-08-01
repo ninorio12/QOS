@@ -123,9 +123,9 @@ export default function ProspectionCockpit() {
     if (el) setInd({ left: el.offsetLeft, width: el.offsetWidth })
   }, [cfg.family])
 
-  // Le VSL reste la vue de référence tant que l'historique n'est pas étiqueté :
-  // seuls les parcours réellement alimentés filtrent leurs propres leads.
-  const FILTERED_FUNNELS = ['quizz', 'linkedin', 'instagram', 'emailing']
+  // Chaque onglet filtre sa propre cohorte : VSL = inbound sans autre étiquette,
+  // Quiz/LinkedIn/Instagram = leur étiquette, Emailing = source outbound.
+  const FILTERED_FUNNELS = ['vsl', 'quizz', 'linkedin', 'instagram', 'emailing']
   const funnelRaw = useQuery(api.performance.funnel,
     FILTERED_FUNNELS.includes(cfgId) ? { ...qa, funnel: cfgId === 'quizz' ? 'quiz' : cfgId } : qa) as Funnel | undefined
   const funnel  = useKeep(funnelRaw)

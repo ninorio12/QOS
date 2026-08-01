@@ -26,7 +26,11 @@ async function reconcileProspection(ctx: any, cid: string, finalLeadId: any, sta
     const patch: { leadId?: any; status?: string } = {}
     const desiredLead = finalLeadId ? finalLeadId.toString() : undefined
     if (r.leadId !== desiredLead) patch.leadId = desiredLead
-    const desiredStatus = statut === 'client' ? 'handoff' : statut === 'perdu' ? 'lost' : r.status
+    // Une carte archivée (appel de clarté fait) le reste : la faire repasser en
+    // handoff ressusciterait le client signé dans la colonne RDV booké du board.
+    const desiredStatus = statut === 'client'
+      ? (r.status === 'archived' ? 'archived' : 'handoff')
+      : statut === 'perdu' ? 'lost' : r.status
     if (desiredStatus !== r.status) patch.status = desiredStatus
     if (Object.keys(patch).length) await ctx.db.patch(r._id, { ...patch, updatedAt: new Date().toISOString() })
   }
