@@ -1228,6 +1228,7 @@ export default defineSchema({
     // Rapport quotidien écrit par le Data OS (vs note libre humaine) : il ne doit
     // jamais être écrasé par une saisie, et se reconnaît dans l'historique.
     auto:        v.optional(v.boolean()),
+    readAt:      v.optional(v.number()),   // rapport auto consulté (pastille de la boîte de réception)
     updatedBy:   v.string(),
     avatarUrl:   v.optional(v.string()),
     createdAt:   v.number(),

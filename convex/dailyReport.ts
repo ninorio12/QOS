@@ -1,4 +1,4 @@
-import { internalAction, internalMutation, internalQuery } from "./_generated/server"
+import { internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server"
 import { internal } from "./_generated/api"
 import { v } from "convex/values"
 import { WORKSPACE } from "./osLib"
@@ -123,3 +123,34 @@ export const daily = internalAction({
   },
 })
 
+
+/** La boîte de réception des rapports : liste + nombre de non-lus (pastille). */
+export const inbox = query({
+  args: {},
+  handler: async (ctx) => {
+    const rows = (await ctx.db.query("os_syntheses").withIndex("by_ws", (q) => q.eq("workspaceId", WORKSPACE)).collect())
+      .filter((r) => r.auto)
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 60)
+    return {
+      unread: rows.filter((r) => !r.readAt).length,
+      reports: rows.map((r) => ({
+        id: r._id,
+        title: r.body.split("\n")[0] || "Rapport",
+        body: r.body,
+        createdAt: r.createdAt,
+        read: !!r.readAt,
+      })),
+    }
+  },
+})
+
+/** Marque un rapport comme lu (éteint la pastille). */
+export const markRead = mutation({
+  args: { id: v.id("os_syntheses") },
+  handler: async (ctx, a) => {
+    const row = await ctx.db.get(a.id)
+    if (row && !row.readAt) await ctx.db.patch(a.id, { readAt: Date.now() })
+    return { ok: true }
+  },
+})
