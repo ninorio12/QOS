@@ -145,6 +145,10 @@ http.route({
         const startRaw = c?.dateTimeUTC ?? c?.dateTime ?? c?.startTime
         const evName = String(ev?.name ?? "").toLowerCase()
         const evSlug = String(ev?.linkPrefix ?? "").toLowerCase()
+        // Jeton de parcours : le quiz l'ajoute à l'URL iClosed (?vf=…), iClosed le
+        // recopie dans ses utm. On le pêche n'importe où dans le payload : c'est
+        // le rattachement RDV↔lead qui tient même si l'email de réservation diffère.
+        const vfToken = JSON.stringify(body).match(/vf=([a-z2-9]{10})\b/)?.[1]
         if (externalId && (email || c?.inviteeName)) {
           if (c?.cancelReason) {
             ingested = await ctx.runMutation(api.closing.cancelCallByExternalId, { externalId })
@@ -158,6 +162,7 @@ http.route({
               meetLink: c?.meetingUrl ?? c?.location ?? undefined,
               calendarLabel: ev?.name ?? undefined,
               calendarSlug: ev?.linkPrefix ?? undefined,
+              vfToken,
             })
           }
         }
@@ -225,6 +230,55 @@ http.route({
       console.error("[zernio/leads] erreur:", err)
     }
     return new Response("ok", { status: 200 })
+  }),
+})
+
+/**
+ * Parcours lead, côté page publique du quiz (quiz.vividflow.co).
+ *
+ * Le jeton `vf` est une capacité : il est aléatoire et ne circule que dans les
+ * liens du lead concerné, donc le posséder vaut autorisation. Deux gestes :
+ * lire l'identité pour préremplir (GET /journey/lead) et marquer une étape
+ * franchie (POST /journey/step). CORS ouvert : sans jeton valide, rien ne sort.
+ */
+const journeyCors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+}
+const journeyPreflight = httpAction(async () => new Response(null, { status: 204, headers: journeyCors }))
+http.route({ path: "/journey/lead", method: "OPTIONS", handler: journeyPreflight })
+http.route({ path: "/journey/step", method: "OPTIONS", handler: journeyPreflight })
+
+http.route({
+  path: "/journey/lead",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const vf = new URL(request.url).searchParams.get("vf") ?? ""
+    const row = vf ? await ctx.runQuery(api.leadIngest.journey, { token: vf }) : null
+    const body = row
+      ? { found: true, nom: row.name ?? null, email: row.email ?? null, tel: row.phone ?? null }
+      : { found: false }
+    return new Response(JSON.stringify(body), { status: 200, headers: { ...journeyCors, "Content-Type": "application/json" } })
+  }),
+})
+
+const JOURNEY_STEPS = new Set(["quiz_ouvert", "quiz_termine"])
+http.route({
+  path: "/journey/step",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let b: any
+    try { b = await request.json() } catch { b = null }
+    const vf = typeof b?.vf === "string" ? b.vf : ""
+    const step = typeof b?.step === "string" ? b.step : ""
+    // Liste blanche : la page publique ne peut pas écrire rdv_pris ou toute
+    // étape réservée aux webhooks authentifiés.
+    if (vf && JOURNEY_STEPS.has(step)) {
+      await ctx.runMutation(internal.leadIngest.markStep, { token: vf, step })
+    }
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...journeyCors, "Content-Type": "application/json" } })
   }),
 })
 

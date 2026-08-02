@@ -266,9 +266,18 @@ export const scheduleCall = mutation({
     title: v.string(), contactId: v.optional(v.string()), email: v.optional(v.string()), stage: v.string(), date: v.optional(v.string()),
     externalId: v.optional(v.string()), meetLink: v.optional(v.string()), quizJson: v.optional(v.string()),
     calendarLabel: v.optional(v.string()), calendarSlug: v.optional(v.string()), calendarColor: v.optional(v.string()),
+    vfToken: v.optional(v.string()),
   },
   handler: async (ctx, a) => {
     const now = new Date().toISOString()
+    // Jeton de parcours porté par les utm iClosed : c'est le rattachement le plus
+    // sûr, il tient même si le lead réserve avec une autre adresse email.
+    let tokenRow = null
+    if (a.vfToken) {
+      tokenRow = await ctx.db.query("os_lead_journey").withIndex("by_token", (q) => q.eq("token", a.vfToken!)).first()
+      if (tokenRow && !a.contactId && tokenRow.contactId) a = { ...a, contactId: tokenRow.contactId }
+      if (tokenRow && !a.email && tokenRow.email) a = { ...a, email: tokenRow.email }
+    }
     // Résolution email → contactId (même logique que scheduleKickoff) si le webhook ne donne que l'email.
     let contactId = a.contactId
     if (!contactId && a.email) {
@@ -299,7 +308,8 @@ export const scheduleCall = mutation({
     // s'il a déjà réservé, donc il rappelle pour rien ou avec le mauvais discours.
     try {
       const journeys = await ctx.db.query("os_lead_journey").withIndex("by_ws", (q) => q.eq("workspaceId", WORKSPACE)).collect()
-      const row = journeys.find((j) => (contactId && j.contactId === contactId) || (a.email && j.email?.toLowerCase() === a.email.trim().toLowerCase()))
+      const row = tokenRow
+        ?? journeys.find((j) => (contactId && j.contactId === contactId) || (a.email && j.email?.toLowerCase() === a.email.trim().toLowerCase()))
       if (row && !row.steps.some((st) => st.step === "rdv_pris")) {
         await ctx.db.patch(row._id, {
           steps: [...row.steps, { step: "rdv_pris", at: now, meta: a.stage }],
