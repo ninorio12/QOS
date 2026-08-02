@@ -732,6 +732,24 @@ export default defineSchema({
     updatedAt:     v.optional(v.string()),
   }).index("by_workspace", ["workspaceId"]),
 
+  // Cache des profils sociaux du parcours Profil (photo, nom, abonnés/connexions),
+  // rafraîchi par cron depuis Meta Graph (Instagram) et Nango/LinkedIn.
+  // L'écran lit CE cache : jamais d'appel externe depuis le client.
+  os_social_profiles: defineTable({
+    workspaceId:     v.string(),
+    platform:        v.string(),              // instagram | linkedin
+    connected:       v.boolean(),
+    username:        v.optional(v.string()),
+    displayName:     v.optional(v.string()),
+    profilePicture:  v.optional(v.string()),
+    profileUrl:      v.optional(v.string()),
+    followersCount:  v.optional(v.number()),
+    gained7:         v.optional(v.number()),  // abonnés gagnés sur 7 jours
+    gained30:        v.optional(v.number()),  // abonnés gagnés sur 30 jours (fenêtre max Meta)
+    error:           v.optional(v.string()),
+    updatedAt:       v.string(),
+  }).index("by_ws_platform", ["workspaceId", "platform"]),
+
   // Identifiants de soumission Meta purgés (tests) : le filet Zernio ne doit
   // jamais les ré-ingérer depuis son cache.
   os_ignored_leadgen: defineTable({

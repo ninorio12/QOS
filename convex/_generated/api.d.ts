@@ -84,6 +84,7 @@ import type * as seed from "../seed.js";
 import type * as seedDemo from "../seedDemo.js";
 import type * as seedDevis from "../seedDevis.js";
 import type * as socialProfile from "../socialProfile.js";
+import type * as socialProfileCache from "../socialProfileCache.js";
 import type * as stripe from "../stripe.js";
 import type * as stripePayments from "../stripePayments.js";
 import type * as stripeSync from "../stripeSync.js";
@@ -176,6 +177,7 @@ declare const fullApi: ApiFromModules<{
   seedDemo: typeof seedDemo;
   seedDevis: typeof seedDevis;
   socialProfile: typeof socialProfile;
+  socialProfileCache: typeof socialProfileCache;
   stripe: typeof stripe;
   stripePayments: typeof stripePayments;
   stripeSync: typeof stripeSync;

@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation'
 import { configById, FUNNEL_CONFIGS, FAMILIES, BRAND_PATHS, type FunnelConfig } from '@/lib/funnelConfigs'
 import { useState, useEffect, useRef, type ReactNode } from 'react'
-import { useQuery, useMutation, useAction } from 'convex/react'
+import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { Modal } from '@/components/ui/Modal'
 import { Target, Calendar, Eye, DollarSign, TrendingUp, Users, CalendarCheck, Phone, Trophy, Banknote, BarChart3, Megaphone, PhoneCall, Handshake, Sparkles, ArrowUpRight, X, Mail, Send, MessageSquare, Pencil, Link as LinkIcon } from 'lucide-react'
@@ -163,18 +163,10 @@ export default function ProspectionCockpit() {
   const summary = useKeep(useQuery(api.performance.summary, serverFunnel ? { ...qa, funnel: serverFunnel } : qa) as Summary | undefined)
   const media   = useKeep(useQuery(api.mediaBuyer.dashboard, { from: range.from, to: range.to, level: 'adset', funnel: serverFunnel }) as Media | undefined)
   const pay     = useKeep(useQuery(api.paiement.overview, { from: range.from, to: range.to, tzOffset: TZ }) as Pay | undefined)
-  // Compte social du parcours Profil (photo, nom, abonnés) : lu chez Zernio à
-  // l'affichage. Non connecté = état honnête, jamais un chiffre emprunté.
-  const [social, setSocial] = useState<SocialInfo | null>(null)
-  const socialInfo = useAction(api.socialProfile.info)
-  useEffect(() => {
-    if (cfg.family !== 'social') { setSocial(null); return }
-    let on = true
-    socialInfo({ platform: cfg.id, days: preset === '7j' ? 7 : preset === '30j' ? 30 : 365 })
-      .then(r => { if (on) setSocial(r as SocialInfo) }).catch(() => {})
-    return () => { on = false }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cfgId, preset, cfg.family])
+  // Compte social du parcours Profil (photo, nom, abonnés) : lu dans le cache
+  // os_social_profiles, rafraîchi par cron. Non connecté = état honnête.
+  const social = useKeep(useQuery(api.socialProfileCache.get,
+    cfg.family === 'social' ? { platform: cfg.id } : 'skip') as SocialInfo | null | undefined) ?? null
 
   const [objOpen, setObjOpen] = useState(false)
   const [objScope, setObjScope] = useState<'commerciale' | 'globale' | 'all'>('all')
@@ -208,8 +200,8 @@ export default function ProspectionCockpit() {
     r1: f.r1Booked, showsR1: f.showsR1, noShowsR1: f.noShowsR1,
     r2: f.r2Booked, showsR2: f.showsR2, noShowsR2: f.noShowsR2,
     ventes: f.ventes,
-    // Abonnés = gagnés sur la période (historique Zernio). Sans compte connecté : N/A.
-    abonnes: cfg.family === 'social' ? (social?.followersGained ?? null) : null,
+    // Abonnés = gagnés sur la période (insights Meta, fenêtre max 30 j). Sans compte : N/A.
+    abonnes: cfg.family === 'social' ? ((preset === '7j' ? social?.gained7 : social?.gained30) ?? null) : null,
     abonnesOrganiques: null, coutParAbonne: null,
     spend, impressions: media?.kpis?.impressions?.value ?? 0, clicks: media?.kpis?.clicks?.value ?? 0,
     metaLeads: media?.kpis?.leads?.value ?? 0, cpl: media?.kpis?.cpl?.value ?? 0,
@@ -477,7 +469,7 @@ function TeamCard({ name, color, card }: { name: string; color: string; card?: T
 }
 // Compte social du parcours Profil : photo, nom, @, abonnés (comme Brvndlab
 // Analytics). Non connecté : invite à connecter, aucun chiffre inventé.
-type SocialInfo = { connected: boolean; platform: string; username?: string | null; displayName?: string | null; profilePicture?: string | null; profileUrl?: string | null; followersCount?: number | null; followersGained?: number | null }
+type SocialInfo = { connected: boolean; platform: string; username?: string | null; displayName?: string | null; profilePicture?: string | null; profileUrl?: string | null; followersCount?: number | null; gained7?: number | null; gained30?: number | null }
 function SocialConnectCard({ info, label, brand }: { info: SocialInfo | null; label: string; brand?: 'linkedin' | 'instagram' }) {
   const path = brand ? BRAND_PATHS[brand] : null
   if (!info || !info.connected) {

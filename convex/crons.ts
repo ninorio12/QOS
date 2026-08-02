@@ -24,4 +24,8 @@ crons.interval("zernio leads catchup", { minutes: 15 }, api.leadIngest.syncFromZ
 // Taux de change vers CHF (frankfurter.app, BCE) : rafraîchis chaque jour pour la conversion argent.
 crons.daily("fx rates sync", { hourUTC: 5, minuteUTC: 0 }, api.fx.syncRates, {})
 
+// Profils sociaux du parcours Profil (photo, nom, abonnés IG, identité LinkedIn) :
+// l'écran lit le cache os_social_profiles, ce cron le garde frais.
+crons.interval("social profiles refresh", { minutes: 30 }, internal.socialProfile.refresh, {})
+
 export default crons
