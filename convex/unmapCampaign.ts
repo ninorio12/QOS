@@ -17,3 +17,19 @@ export const run = internalMutation({
     return { removed }
   },
 })
+
+/**
+ * Neutralise une campagne HISTORIQUE : on pose explicitement un parcours
+ * « archive », qui n'est l'onglet de personne. Nécessaire quand le nom de la
+ * campagne contient un mot-clé (« VSL »…) que la déduction automatique
+ * rattacherait à un parcours actuel.
+ */
+export const archive = internalMutation({
+  args: { campaignId: v.string(), campaignName: v.optional(v.string()) },
+  handler: async (ctx, a) => {
+    const existing = await ctx.db.query("os_campaign_funnels").withIndex("by_campaign", (q) => q.eq("campaignId", a.campaignId)).first()
+    if (existing) await ctx.db.patch(existing._id, { funnel: "archive", updatedAt: new Date().toISOString() })
+    else await ctx.db.insert("os_campaign_funnels", { workspaceId: WORKSPACE, campaignId: a.campaignId, campaignName: a.campaignName, funnel: "archive", updatedAt: new Date().toISOString() })
+    return { ok: true }
+  },
+})
