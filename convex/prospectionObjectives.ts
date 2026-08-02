@@ -6,7 +6,7 @@ import { WORKSPACE } from "./osLib"
 const DEFAULTS = {
   leadsR1: 50, leadsR2: 25, tauxShow: 75, tauxShowR2: 75, tauxClose: 30, ca: 30000, roi: 5, coutParVente: 500,
   ventes: 30, cashContracte: 30000, panierMoyen: 2000, tauxReponse: 30, cpl: 30,
-  tauxContact: 30, convDmR1: 20,
+  tauxContact: 30, convDmR1: 20, tauxSetting: 20,
 }
 
 export const get = query({
@@ -34,6 +34,7 @@ export const get = query({
       tauxReponse:   doc?.tauxReponse   ?? DEFAULTS.tauxReponse,
       tauxContact:   doc?.tauxContact   ?? DEFAULTS.tauxContact,
       convDmR1:      doc?.convDmR1      ?? DEFAULTS.convDmR1,
+      tauxSetting:   doc?.tauxSetting   ?? DEFAULTS.tauxSetting,
       cpl:           doc?.cpl           ?? DEFAULTS.cpl,
       ca:            base?.ca           ?? doc?.ca ?? DEFAULTS.ca,
       roi:           doc?.roi           ?? DEFAULTS.roi,
@@ -58,6 +59,7 @@ export const set = mutation({
     tauxReponse:   v.optional(v.number()),
     tauxContact:   v.optional(v.number()),
     convDmR1:      v.optional(v.number()),
+    tauxSetting:   v.optional(v.number()),
     cpl:           v.optional(v.number()),
     ca:            v.optional(v.number()),
     roi:           v.optional(v.number()),

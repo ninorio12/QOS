@@ -187,7 +187,7 @@ export default function ProspectionCockpit() {
   const pubEmpty   = (scorecards?.publicite?.score ?? null) === null
   const setEmpty   = (scorecards?.setters?.score ?? null) === null
   const closeEmpty = (scorecards?.closers?.score ?? null) === null
-  const o = obj ?? { leadsR1: 50, tauxContact: 30, convDmR1: 20, leadsR2: 25, tauxShow: 75, tauxShowR2: 75, tauxClose: 30, tauxReponse: 30, cpl: 30, ca: 30000, roi: 5, coutParVente: 500, ventes: 30, cashContracte: 30000, panierMoyen: 2000 }
+  const o = obj ?? { leadsR1: 50, tauxContact: 30, convDmR1: 20, tauxSetting: 20, leadsR2: 25, tauxShow: 75, tauxShowR2: 75, tauxClose: 30, tauxReponse: 30, cpl: 30, ca: 30000, roi: 5, coutParVente: 500, ventes: 30, cashContracte: 30000, panierMoyen: 2000 }
   const f = funnel ?? { leadsATraiter: 0, leadsTotal: 0, leadsInbound: 0, leadsOutbound: 0, r1Booked: 0, noShows: 0, shows: 0, ventes: 0, tauxLeadsR1: 0, tauxShow: 0, tauxClose: 0, r2Booked: 0, showsR1: 0, showsR2: 0, noShowsR1: 0, noShowsR2: 0, tauxShowR1: 0, tauxShowR2: 0, tauxR1R2: 0, tauxLeadsR2: 0, tauxR1ToR2: 0, encaisse: 0, rdvDirects: null }
   const ptsGap = (val: number, target: number) => `${val >= target ? '▲' : '▼'} ${pct1(Math.abs(val - target))}%`
   const pctGap = (val: number, target: number) => `${val >= target ? '▲' : '▼'} ${target > 0 ? Math.round(val / target * 100) : 0}%`
@@ -617,7 +617,7 @@ function FinCard({ label, Icon, color, value, obj, ok, gap, unit }: { label: str
   )
 }
 
-type Obj = { leadsR1: number; tauxContact: number; convDmR1: number; leadsR2: number; tauxShow: number; tauxShowR2: number; tauxClose: number; tauxReponse: number; cpl: number; ca: number; roi: number; coutParVente: number; ventes: number; cashContracte: number; panierMoyen: number }
+type Obj = { leadsR1: number; tauxContact: number; convDmR1: number; tauxSetting: number; leadsR2: number; tauxShow: number; tauxShowR2: number; tauxClose: number; tauxReponse: number; cpl: number; ca: number; roi: number; coutParVente: number; ventes: number; cashContracte: number; panierMoyen: number }
 function ObjModal({ obj, cfg, onClose, onSave }: { obj: Obj; cfg: FunnelConfig; onClose: () => void; onSave: (v: Partial<Obj>) => void }) {
   const [v, setV] = useState<Obj>(obj)
   const field = (key: keyof Obj, label: string, unit: string) => (

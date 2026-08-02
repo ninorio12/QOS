@@ -38,7 +38,7 @@ export type Step = { key: StepKey; label: string; icon: 'users' | 'message' | 'c
  *  `card: false` : le taux n'apparaît QUE sur la flèche de l'entonnoir, pas en
  *  carte (évite la marée de cards sur les parcours à entonnoir long). */
 export type Rate = { label: string; from: StepKey; to: StepKey; obj: ObjKey; info?: string; card?: boolean }
-export type ObjKey = 'leadsR1' | 'tauxContact' | 'convDmR1' | 'tauxShow' | 'leadsR2' | 'tauxShowR2' | 'tauxClose' | 'tauxReponse' | 'cpl' | 'ca' | 'coutParVente' | 'ventes' | 'panierMoyen'
+export type ObjKey = 'leadsR1' | 'tauxContact' | 'convDmR1' | 'tauxSetting' | 'tauxShow' | 'leadsR2' | 'tauxShowR2' | 'tauxClose' | 'tauxReponse' | 'cpl' | 'ca' | 'coutParVente' | 'ventes' | 'panierMoyen'
 export type RoleRow = { label: string; key: string }
 
 export type FunnelConfig = {
@@ -110,7 +110,7 @@ const VSL: FunnelConfig = {
   },
   objectives: [
     { key: 'leadsR1', label: 'Taux conversion leads → R1', unit: '%' },
-    { key: 'tauxReponse', label: 'Taux de réponse', unit: '%' },
+    { key: 'tauxReponse', label: 'Taux de réponse (Setting)', unit: '%' },
     { key: 'leadsR2', label: 'Taux conversion R1 → R2', unit: '%' },
     { key: 'tauxShow', label: 'Taux de show R1', unit: '%' },
     { key: 'tauxShowR2', label: 'Taux de show R2', unit: '%' },
@@ -219,9 +219,9 @@ const SOCIAL: FunnelConfig = {
     { key: 'leadsR1', label: 'Conversation → Call', unit: '%' },
     { key: 'convDmR1', label: 'Conversion DM → R1', unit: '%' },
     { key: 'tauxShow', label: 'Taux de show R1', unit: '%' },
-    { key: 'leadsR2', label: 'R1 → R2', unit: '%' },
+    { key: 'leadsR2', label: 'Taux conversion R1 → R2', unit: '%' },
     { key: 'tauxShowR2', label: 'Taux de show R2', unit: '%' },
-    { key: 'tauxClose', label: 'Taux de close', unit: '%' },
+    { key: 'tauxClose', label: 'Taux de closing', unit: '%' },
     { key: 'ca', label: "Chiffre d'affaires", unit: 'CHF' },
   ],
 }
@@ -248,7 +248,7 @@ const EMAILING: FunnelConfig = {
     // Trois lectures du haut de l'entonnoir : ce que le deck décroche seul, ce
     // que le setter décroche, et le total des deux.
     { label: 'RDV booké via deck', from: 'sources', to: 'rdvDirects', obj: 'tauxReponse' },
-    { label: 'RDV via Setting', from: 'sources', to: 'rdvSetter', obj: 'tauxReponse' },
+    { label: 'RDV via Setting', from: 'sources', to: 'rdvSetter', obj: 'tauxSetting' },
     { label: 'Taux conversion leads → R1', from: 'sources', to: 'r1', obj: 'leadsR1' },
     { label: 'Taux de show R1', from: 'r1', to: 'showsR1', obj: 'tauxShow' },
     { label: 'Taux conversion R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
@@ -273,6 +273,7 @@ const EMAILING: FunnelConfig = {
   },
   objectives: [
     { key: 'tauxReponse', label: 'RDV booké via deck', unit: '%' },
+    { key: 'tauxSetting', label: 'RDV via Setting', unit: '%' },
     { key: 'leadsR1', label: 'Taux conversion leads → R1', unit: '%' },
     { key: 'tauxShow', label: 'Taux de show R1', unit: '%' },
     { key: 'leadsR2', label: 'Taux conversion R1 → R2', unit: '%' },
