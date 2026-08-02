@@ -32,8 +32,9 @@ export type FunnelData = {
 
 export type StepKey = keyof FunnelData
 export type Step = { key: StepKey; label: string; icon: 'users' | 'message' | 'chat' | 'calendar' | 'phone' | 'trophy' }
-/** Un taux : numérateur ÷ dénominateur, et l'objectif auquel on le compare. */
-export type Rate = { label: string; from: StepKey; to: StepKey; obj: ObjKey }
+/** Un taux : numérateur ÷ dénominateur, et l'objectif auquel on le compare.
+ *  `info` : explication affichée derrière le petit « i » de la carte. */
+export type Rate = { label: string; from: StepKey; to: StepKey; obj: ObjKey; info?: string }
 export type ObjKey = 'leadsR1' | 'tauxShow' | 'leadsR2' | 'tauxShowR2' | 'tauxClose' | 'tauxReponse' | 'cpl' | 'ca' | 'coutParVente' | 'ventes' | 'panierMoyen'
 export type RoleRow = { label: string; key: string }
 
@@ -231,9 +232,12 @@ const EMAILING: FunnelConfig = {
     { key: 'ventes', label: 'Ventes', icon: 'trophy' },
   ],
   rates: [
-    // RDV pris SEUL via le deck ÷ leads sourcés : c'est la vraie réponse au mail.
-    { label: 'Taux de réponse par mail', from: 'sources', to: 'rdvDirects', obj: 'tauxReponse' },
-    { label: 'Taux de conversion', from: 'sources', to: 'r1', obj: 'leadsR1' },
+    // Deux lectures distinctes du haut de l'entonnoir : le deck seul, puis tous
+    // canaux confondus. L'écart entre les deux = l'apport du setter.
+    { label: 'RDV directs via deck', from: 'sources', to: 'rdvDirects', obj: 'tauxReponse',
+      info: 'Leads qui ont réservé SEULS depuis le lien du deck reçu par email, sans intervention du setter, divisés par les leads sourcés. Mesure la force du mail et du deck.' },
+    { label: 'Conversion totale → R1', from: 'sources', to: 'r1', obj: 'leadsR1',
+      info: 'TOUS les R1 bookés (réservés seuls via le deck + décrochés par le setter), divisés par les leads sourcés. L\'écart avec « RDV directs via deck » = ce que le setter ajoute.' },
     { label: 'Taux de show R1', from: 'r1', to: 'showsR1', obj: 'tauxShow' },
     { label: 'Taux conversion R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
     { label: 'Taux de show R2', from: 'r2', to: 'showsR2', obj: 'tauxShowR2' },
@@ -255,8 +259,8 @@ const EMAILING: FunnelConfig = {
     ] },
   },
   objectives: [
-    { key: 'tauxReponse', label: 'Taux de réponse par mail', unit: '%' },
-    { key: 'leadsR1', label: 'Taux de conversion', unit: '%' },
+    { key: 'tauxReponse', label: 'RDV directs via deck', unit: '%' },
+    { key: 'leadsR1', label: 'Conversion totale → R1', unit: '%' },
     { key: 'tauxShow', label: 'Taux de show R1', unit: '%' },
     { key: 'leadsR2', label: 'Taux conversion R1 → R2', unit: '%' },
     { key: 'tauxShowR2', label: 'Taux de show R2', unit: '%' },

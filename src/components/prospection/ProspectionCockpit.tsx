@@ -60,14 +60,24 @@ const DOT: Record<Tone, string> = { bon: '#16A34A', surveillance: '#D97706', cri
 type Lucide = React.ElementType
 
 // ── Card KPI (épurée : label + valeur + variant vs objectif, sans icône ni obj orange) ──
-function KpiCard({ label, value, suffix, gap, gapOk, icon: Icon, color = '#FF4D00' }: {
-  label: string; value: string; suffix?: string; gap?: string; gapOk?: boolean; icon?: Lucide; color?: string
+function KpiCard({ label, value, suffix, gap, gapOk, icon: Icon, color = '#FF4D00', info }: {
+  label: string; value: string; suffix?: string; gap?: string; gapOk?: boolean; icon?: Lucide; color?: string; info?: string
 }) {
+  const [infoOpen, setInfoOpen] = useState(false)
   return (
     // L'icône descend EN BAS À DROITE : la carte se lit par son titre puis son
     // chiffre, l'icône n'est qu'un repère de couleur, pas un en-tête.
-    <div className="bg-soren-card border border-soren-border/60 rounded-xl p-3 flex flex-col gap-1.5 shadow-sm">
-      <span className="text-[12px] font-semibold tracking-wide text-soren-muted leading-tight">{label}</span>
+    <div className="relative bg-soren-card border border-soren-border/60 rounded-xl p-3 flex flex-col gap-1.5 shadow-sm">
+      <span className="flex items-start justify-between gap-1 text-[12px] font-semibold tracking-wide text-soren-muted leading-tight">
+        {label}
+        {info && (
+          <button onClick={() => setInfoOpen(v => !v)} onBlur={() => setInfoOpen(false)} aria-label="Explication"
+            className="w-[15px] h-[15px] rounded-full border border-soren-border text-[9px] font-bold text-soren-subtle hover:text-soren-text flex items-center justify-center flex-shrink-0 leading-none">i</button>
+        )}
+      </span>
+      {info && infoOpen && (
+        <div className="absolute top-8 right-2 left-2 z-20 bg-soren-sidebar text-white text-[10.5px] leading-relaxed rounded-lg px-3 py-2 shadow-xl">{info}</div>
+      )}
       <div className="flex-1 flex items-end justify-between gap-2">
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
           <span className="text-[17px] md:text-[19px] font-bold text-soren-text leading-none tabular-nums">{value}{suffix && <span className="text-[11px] text-soren-muted font-semibold ml-0.5">{suffix}</span>}</span>
@@ -343,7 +353,7 @@ export default function ProspectionCockpit() {
                 <KpiCard key={r.label} label={r.label}
                   value={val == null ? 'N/A' : pct1(val)} suffix={val == null ? undefined : '%'}
                   gap={val == null ? '—' : ptsGap(val, target)} gapOk={(val ?? 0) >= target}
-                  icon={st.icon} color={st.color} />
+                  icon={st.icon} color={st.color} info={r.info} />
               )
             })}
             <KpiCard label="Encaissé" value={fmt(ca)} suffix="CHF" gap={pctGap(ca, o.ca)} gapOk={ca >= o.ca} icon={Banknote} color="#16A34A" />
