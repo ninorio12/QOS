@@ -33,8 +33,10 @@ export type FunnelData = {
 export type StepKey = keyof FunnelData
 export type Step = { key: StepKey; label: string; icon: 'users' | 'message' | 'chat' | 'calendar' | 'phone' | 'trophy' }
 /** Un taux : numérateur ÷ dénominateur, et l'objectif auquel on le compare.
- *  `info` : explication affichée derrière le petit « i » de la carte. */
-export type Rate = { label: string; from: StepKey; to: StepKey; obj: ObjKey; info?: string }
+ *  `info` : explication derrière le petit « i » de la carte.
+ *  `card: false` : le taux n'apparaît QUE sur la flèche de l'entonnoir, pas en
+ *  carte (évite la marée de cards sur les parcours à entonnoir long). */
+export type Rate = { label: string; from: StepKey; to: StepKey; obj: ObjKey; info?: string; card?: boolean }
 export type ObjKey = 'leadsR1' | 'tauxShow' | 'leadsR2' | 'tauxShowR2' | 'tauxClose' | 'tauxReponse' | 'cpl' | 'ca' | 'coutParVente' | 'ventes' | 'panierMoyen'
 export type RoleRow = { label: string; key: string }
 
@@ -166,17 +168,20 @@ const SOCIAL: FunnelConfig = {
     { key: 'showsR2', label: 'Shows en R2', icon: 'phone' },
     { key: 'ventes', label: 'Ventes', icon: 'trophy' },
   ],
+  // 6 cards seulement (demande Jonathan 2026-08-02) : les taux intermédiaires
+  // (abonné→DM, conversation→call, show R2) restent sur les flèches de
+  // l'entonnoir mais ne prennent plus une carte chacun.
   rates: [
-    { label: 'Abonné → DM', from: 'abonnes', to: 'contactes', obj: 'leadsR1' },
+    { label: 'Abonné → DM', from: 'abonnes', to: 'contactes', obj: 'leadsR1', card: false },
     { label: 'DM → Conversation', from: 'contactes', to: 'reponses', obj: 'tauxReponse' },
-    { label: 'Conversation → Call', from: 'reponses', to: 'r1', obj: 'leadsR1' },
+    { label: 'Conversation → Call', from: 'reponses', to: 'r1', obj: 'leadsR1', card: false },
     // Vision d'ensemble du setting : du DM ouvert jusqu'au call. Pas liée à une
     // étape (l'entonnoir passe déjà par Conversations), carte seule.
     { label: 'Conversion DM → R1', from: 'contactes', to: 'r1', obj: 'leadsR1' },
     { label: 'Taux de show R1', from: 'r1', to: 'showsR1', obj: 'tauxShow' },
-    { label: 'Shows R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
-    { label: 'Taux de show R2', from: 'r2', to: 'showsR2', obj: 'tauxShowR2' },
-    { label: 'Show → Closing', from: 'r1', to: 'ventes', obj: 'tauxClose' },
+    { label: 'Taux conversion R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
+    { label: 'Taux de show R2', from: 'r2', to: 'showsR2', obj: 'tauxShowR2', card: false },
+    { label: 'Taux de closing', from: 'r1', to: 'ventes', obj: 'tauxClose' },
   ],
   roles: {
     media: { title: 'Media Buyer', rows: [

@@ -345,7 +345,7 @@ export default function ProspectionCockpit() {
               onSave={(url) => void setObj({ funnel: cfgId, link: url })}
             />
             <div className="grid grid-cols-2 auto-rows-fr gap-2 flex-1">
-            {cfg.rates.map((r) => {
+            {cfg.rates.filter((r) => r.card !== false).map((r) => {
               const val = rateOf(r.from, r.to)
               const target = o[r.obj] as number
               const st = rateStyle(r.label)
