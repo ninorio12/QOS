@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation'
 import { configById, FUNNEL_CONFIGS, FAMILIES, BRAND_PATHS, type FunnelConfig } from '@/lib/funnelConfigs'
 import { useState, useEffect, useRef, type ReactNode } from 'react'
-import { useQuery, useMutation } from 'convex/react'
+import { useQuery, useMutation, useAction } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { Modal } from '@/components/ui/Modal'
 import { Target, Calendar, Eye, DollarSign, TrendingUp, Users, CalendarCheck, Phone, Trophy, Banknote, BarChart3, Megaphone, PhoneCall, Handshake, Sparkles, ArrowUpRight, X, Mail, Send, MessageSquare, Pencil, Link as LinkIcon } from 'lucide-react'
@@ -38,6 +38,22 @@ function useKeep<T>(v: T | undefined): T | undefined {
 }
 const fmt = (n: number) => Math.round(n).toLocaleString('fr-FR', { maximumFractionDigits: 0 })
 const pct1 = (n: number) => (Math.round(n * 10) / 10).toString().replace('.', ',')
+
+// Chaque nature de taux a son icône et sa couleur (avant : tout bleu, même logo).
+// La règle lit le libellé : show → œil, closing → trophée, réponse/DM → bulle,
+// R2 → calendrier, conversion → tendance.
+function rateStyle(label: string): { icon: Lucide; color: string } {
+  const l = label.toLowerCase()
+  if (/show r2/.test(l)) return { icon: Eye, color: '#0891B2' }
+  if (/show/.test(l)) return { icon: Eye, color: '#7C3AED' }
+  if (/closing|close/.test(l)) return { icon: Trophy, color: '#D97706' }
+  if (/call/.test(l)) return { icon: PhoneCall, color: '#4F46E5' }
+  if (/abonné/.test(l)) return { icon: Send, color: '#DB2777' }
+  if (/réponse|conversation/.test(l)) return { icon: MessageSquare, color: '#16A34A' }
+  if (/r2/.test(l)) return { icon: CalendarCheck, color: '#3462EE' }
+  if (/dm/.test(l)) return { icon: Send, color: '#DB2777' }
+  return { icon: TrendingUp, color: '#FF4D00' }
+}
 
 type Tone = 'bon' | 'surveillance' | 'critique' | 'vide'
 const DOT: Record<Tone, string> = { bon: '#16A34A', surveillance: '#D97706', critique: '#DC2626', vide: '#9CA3AF' }
@@ -109,8 +125,15 @@ export default function ProspectionCockpit() {
     window.history.replaceState(null, '', url.toString())
   }
 
+  // Chaque onglet filtre sa propre cohorte : VSL = inbound sans autre étiquette,
+  // Quiz/LinkedIn/Instagram = leur étiquette, Emailing = source outbound.
+  // Le MÊME parcours scope l'entonnoir, le setting (événements des leads de la
+  // cohorte), le media buying (campagnes rattachées) et les scores des cartes.
+  const FILTERED_FUNNELS = ['vsl', 'quizz', 'linkedin', 'instagram', 'emailing']
+  const serverFunnel = FILTERED_FUNNELS.includes(cfgId) ? (cfgId === 'quizz' ? 'quiz' : cfgId) : undefined
+
   const obj     = useQuery(api.prospectionObjectives.get, { funnel: cfgId }) as Obj | undefined
-  const scorecards = useKeep(useQuery(api.prospectionCockpit.teamScorecards, qa) as Scorecards | undefined)
+  const scorecards = useKeep(useQuery(api.prospectionCockpit.teamScorecards, { ...qa, funnel: serverFunnel }) as Scorecards | undefined)
   const outbound = useKeep(useQuery(api.outboundEmailing.summary, qa) as OutboundSum | undefined)
   const outboundList = useQuery(api.outboundLeads.list, {}) as OutboundLead[] | undefined
   const setObj  = useMutation(api.prospectionObjectives.set)
@@ -123,31 +146,41 @@ export default function ProspectionCockpit() {
     if (el) setInd({ left: el.offsetLeft, width: el.offsetWidth })
   }, [cfg.family])
 
-  // Chaque onglet filtre sa propre cohorte : VSL = inbound sans autre étiquette,
-  // Quiz/LinkedIn/Instagram = leur étiquette, Emailing = source outbound.
-  const FILTERED_FUNNELS = ['vsl', 'quizz', 'linkedin', 'instagram', 'emailing']
-  const funnelRaw = useQuery(api.performance.funnel,
-    FILTERED_FUNNELS.includes(cfgId) ? { ...qa, funnel: cfgId === 'quizz' ? 'quiz' : cfgId } : qa) as Funnel | undefined
+  const funnelRaw = useQuery(api.performance.funnel, serverFunnel ? { ...qa, funnel: serverFunnel } : qa) as Funnel | undefined
   const funnel  = useKeep(funnelRaw)
   // En cours de rechargement (on a déjà d'anciennes données) → léger fondu, pas de saut.
   const refreshing = funnelRaw === undefined && funnel !== undefined
-  const summary = useKeep(useQuery(api.performance.summary, qa) as Summary | undefined)
-  const media   = useKeep(useQuery(api.mediaBuyer.dashboard, { from: range.from, to: range.to, level: 'adset' }) as Media | undefined)
+  const summary = useKeep(useQuery(api.performance.summary, serverFunnel ? { ...qa, funnel: serverFunnel } : qa) as Summary | undefined)
+  const media   = useKeep(useQuery(api.mediaBuyer.dashboard, { from: range.from, to: range.to, level: 'adset', funnel: serverFunnel }) as Media | undefined)
   const pay     = useKeep(useQuery(api.paiement.overview, { from: range.from, to: range.to, tzOffset: TZ }) as Pay | undefined)
+  // Compte social du parcours Profil (photo, nom, abonnés) : lu chez Zernio à
+  // l'affichage. Non connecté = état honnête, jamais un chiffre emprunté.
+  const [social, setSocial] = useState<SocialInfo | null>(null)
+  const socialInfo = useAction(api.socialProfile.info)
+  useEffect(() => {
+    if (cfg.family !== 'social') { setSocial(null); return }
+    let on = true
+    socialInfo({ platform: cfg.id, days: preset === '7j' ? 7 : preset === '30j' ? 30 : 365 })
+      .then(r => { if (on) setSocial(r as SocialInfo) }).catch(() => {})
+    return () => { on = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cfgId, preset, cfg.family])
+
   const [objOpen, setObjOpen] = useState(false)
   const [objScope, setObjScope] = useState<'commerciale' | 'globale' | 'all'>('all')
   const [repliesOpen, setRepliesOpen] = useState(false)
 
   // ── Dérivations ──
   const spend = media?.kpis?.spend?.value ?? 0
-  const ca    = pay?.encaisse ?? 0   // CA = encaissé (décision Thomas 2026-06-21), source unique = paiement.overview
+  // Encaissé DU PARCOURS : paiements des contacts de la cohorte (décision
+  // Jonathan 2026-08-02). Sans parcours filtré : le global (paiement.overview).
+  const ca    = (serverFunnel ? funnel?.encaisse : undefined) ?? pay?.encaisse ?? 0
   // Levier « vide » = score N/A (null) côté back → on neutralise le vert trompeur et on affiche N/A sur ses taux.
   const pubEmpty   = (scorecards?.publicite?.score ?? null) === null
   const setEmpty   = (scorecards?.setters?.score ?? null) === null
   const closeEmpty = (scorecards?.closers?.score ?? null) === null
-  const outEmpty   = (outbound?.score ?? null) === null
   const o = obj ?? { leadsR1: 50, leadsR2: 25, tauxShow: 75, tauxShowR2: 75, tauxClose: 30, tauxReponse: 30, cpl: 30, ca: 30000, roi: 5, coutParVente: 500, ventes: 30, cashContracte: 30000, panierMoyen: 2000 }
-  const f = funnel ?? { leadsATraiter: 0, leadsTotal: 0, leadsInbound: 0, leadsOutbound: 0, r1Booked: 0, noShows: 0, shows: 0, ventes: 0, tauxLeadsR1: 0, tauxShow: 0, tauxClose: 0, r2Booked: 0, showsR1: 0, showsR2: 0, noShowsR1: 0, noShowsR2: 0, tauxShowR1: 0, tauxShowR2: 0, tauxR1R2: 0, tauxLeadsR2: 0, tauxR1ToR2: 0 }
+  const f = funnel ?? { leadsATraiter: 0, leadsTotal: 0, leadsInbound: 0, leadsOutbound: 0, r1Booked: 0, noShows: 0, shows: 0, ventes: 0, tauxLeadsR1: 0, tauxShow: 0, tauxClose: 0, r2Booked: 0, showsR1: 0, showsR2: 0, noShowsR1: 0, noShowsR2: 0, tauxShowR1: 0, tauxShowR2: 0, tauxR1R2: 0, tauxLeadsR2: 0, tauxR1ToR2: 0, encaisse: 0, rdvDirects: null }
   const ptsGap = (val: number, target: number) => `${val >= target ? '▲' : '▼'} ${pct1(Math.abs(val - target))}%`
   const pctGap = (val: number, target: number) => `${val >= target ? '▲' : '▼'} ${target > 0 ? Math.round(val / target * 100) : 0}%`
   const stepColor = (val: number, target: number) => val >= target ? '#16A34A' : val >= target * 0.8 ? '#D97706' : '#DC2626'
@@ -165,16 +198,24 @@ export default function ProspectionCockpit() {
     r1: f.r1Booked, showsR1: f.showsR1, noShowsR1: f.noShowsR1,
     r2: f.r2Booked, showsR2: f.showsR2, noShowsR2: f.noShowsR2,
     ventes: f.ventes,
-    abonnes: null, abonnesOrganiques: null, coutParAbonne: null,
+    // Abonnés = gagnés sur la période (historique Zernio). Sans compte connecté : N/A.
+    abonnes: cfg.family === 'social' ? (social?.followersGained ?? null) : null,
+    abonnesOrganiques: null, coutParAbonne: null,
     spend, impressions: media?.kpis?.impressions?.value ?? 0, clicks: media?.kpis?.clicks?.value ?? 0,
     metaLeads: media?.kpis?.leads?.value ?? 0, cpl: media?.kpis?.cpl?.value ?? 0,
     tauxReponse: summary?.tauxReponse ?? 0, conversionR1: summary?.conversionR1 ?? 0,
     tauxClose: f.tauxClose,
-    // Emailing outbound : son propre haut d'entonnoir.
-    sources: outbound?.sourced ?? 0, decks: outbound?.decks ?? 0,
+    // Outbound : « Leads sourcés » = le total de la cohorte outbound (décision
+    // Jonathan 2026-08-02), pas le fichier de sourcing. RDV directs = bookés
+    // seuls via le deck, calculés côté serveur.
+    sources: cfg.id === 'emailing' ? leadsATraiterTotal : (outbound?.sourced ?? 0),
+    decks: outbound?.decks ?? 0,
     envois: outbound?.envois ?? 0, reponsesOut: outbound?.reponses ?? 0,
     tauxReponseOut: outbound?.tauxReponse ?? 0,
+    rdvDirects: f.rdvDirects ?? null,
   }
+  // Taux de réponse par mail = RDV directs ÷ leads sourcés.
+  D.tauxReponseMail = D.sources && D.rdvDirects != null ? Math.round((D.rdvDirects / D.sources) * 1000) / 10 : null
   // Un taux se recalcule à partir des deux étapes qu'il relie : si l'une manque, il manque aussi.
   const rateOf = (from: string, to: string): number | null => {
     const a = D[from], b = D[to]
@@ -285,6 +326,8 @@ export default function ProspectionCockpit() {
             </div>
           </div>
           <div className="lg:col-span-5 flex flex-col gap-2">
+            {/* Parcours Profil : le compte social connecté (photo + nom + abonnés). */}
+            {cfg.family === 'social' && <SocialConnectCard info={social} label={cfg.label} brand={cfg.brand} />}
             {/* Zone du lien de redirection : la page qui reçoit le trafic de ce parcours. */}
             <FunnelLink
               url={(obj as unknown as { link?: string | null } | undefined)?.link ?? null}
@@ -295,11 +338,12 @@ export default function ProspectionCockpit() {
             {cfg.rates.map((r) => {
               const val = rateOf(r.from, r.to)
               const target = o[r.obj] as number
+              const st = rateStyle(r.label)
               return (
                 <KpiCard key={r.label} label={r.label}
                   value={val == null ? 'N/A' : pct1(val)} suffix={val == null ? undefined : '%'}
                   gap={val == null ? '—' : ptsGap(val, target)} gapOk={(val ?? 0) >= target}
-                  icon={CalendarCheck} color="#3462EE" />
+                  icon={st.icon} color={st.color} />
               )
             })}
             <KpiCard label="Encaissé" value={fmt(ca)} suffix="CHF" gap={pctGap(ca, o.ca)} gapOk={ca >= o.ca} icon={Banknote} color="#16A34A" />
@@ -308,24 +352,21 @@ export default function ProspectionCockpit() {
         </div>
 
         {/* Ligne 2 : métiers (anneau de score + diagnostic) */}
-        {/* La grille suit le NOMBRE de cartes du parcours : trois en social (sans
-            emailing), quatre ailleurs. Sinon la dernière colonne reste vide. */}
-        <div className={`grid md:grid-cols-2 gap-4 mb-5 ${cfg.family === 'inbound' ? 'xl:grid-cols-4' : 'xl:grid-cols-3'}`}>
-          <RoleCard title={cfg.roles.media.title} score={scorecards?.publicite}
+        {/* La grille suit le NOMBRE de cartes du parcours : deux en outbound
+            (Emailing + Closing), trois ailleurs. Sinon une colonne reste vide. */}
+        <div className={`grid md:grid-cols-2 gap-4 mb-5 ${cfg.roles.setting ? 'xl:grid-cols-3' : 'xl:grid-cols-2'}`}>
+          <RoleCard title={cfg.roles.media.title}
+            score={cfg.family === 'outbound'
+              ? (outbound ? { score: outbound.score, tone: outbound.tone, diagnostic: outbound.diagnostic, charge: null, metrics: [] } : undefined)
+              : scorecards?.publicite}
+            onExpand={cfg.family === 'outbound' ? () => setRepliesOpen(true) : undefined}
             rows={cfg.roles.media.rows.map(r => [r.label, pubEmpty && (r.key === 'cpl' || r.key === 'coutParAbonne') ? 'N/A' : roleValue(r.key)] as [string, string])} />
+          {cfg.roles.setting && (
           <RoleCard title={cfg.roles.setting.title} score={scorecards?.setters}
             rows={cfg.roles.setting.rows.map(r => [r.label, setEmpty && r.key.startsWith('taux') ? 'N/A' : roleValue(r.key)] as [string, string])} />
+          )}
           <RoleCard title={cfg.roles.closing.title} score={scorecards?.closers}
             rows={cfg.roles.closing.rows.map(r => [r.label, closeEmpty && r.key.startsWith('taux') ? 'N/A' : roleValue(r.key)] as [string, string])} />
-{cfg.family === 'inbound' && (
-          <RoleCard title="Emailing Outbound" onExpand={() => setRepliesOpen(true)} score={outbound ? { score: outbound.score, tone: outbound.tone, diagnostic: outbound.diagnostic, charge: null, metrics: [] } : undefined} rows={[
-            ['Leads sourcés', fmt(outbound?.sourced ?? 0)],
-            ['Decks générés', fmt(outbound?.decks ?? 0)],
-            ['Emails envoyés', fmt(outbound?.envois ?? 0), outEmpty ? undefined : '#16A34A'],
-            ['Réponses', fmt(outbound?.reponses ?? 0), outEmpty ? undefined : '#16A34A'],
-            ['Taux de réponse', outEmpty ? 'N/A' : `${outbound?.tauxReponse ?? 0}%`, outEmpty ? undefined : '#16A34A'],
-          ]} />
-          )}
         </div>
 
 
@@ -424,6 +465,47 @@ function TeamCard({ name, color, card }: { name: string; color: string; card?: T
     </div>
   )
 }
+// Compte social du parcours Profil : photo, nom, @, abonnés (comme Brvndlab
+// Analytics). Non connecté : invite à connecter, aucun chiffre inventé.
+type SocialInfo = { connected: boolean; platform: string; username?: string | null; displayName?: string | null; profilePicture?: string | null; profileUrl?: string | null; followersCount?: number | null; followersGained?: number | null }
+function SocialConnectCard({ info, label, brand }: { info: SocialInfo | null; label: string; brand?: 'linkedin' | 'instagram' }) {
+  const path = brand ? BRAND_PATHS[brand] : null
+  if (!info || !info.connected) {
+    return (
+      <div className="flex items-center gap-2.5 bg-soren-card border border-dashed border-soren-border rounded-xl px-3 py-2.5">
+        {path && (
+          <span className="w-8 h-8 rounded-full bg-soren-elevated border border-soren-border flex items-center justify-center flex-shrink-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill={path.color} d={path.d} /></svg>
+          </span>
+        )}
+        <div className="min-w-0">
+          <p className="text-[12px] font-semibold text-soren-text">Compte {label} non connecté</p>
+          <p className="text-[10.5px] text-soren-subtle">
+            {brand === 'linkedin' ? 'Connexion via l’API LinkedIn à venir' : 'Connecter le compte dans Zernio pour afficher photo, nom et abonnés'}
+          </p>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <a href={info.profileUrl ?? undefined} target="_blank" rel="noreferrer"
+      className="flex items-center gap-2.5 bg-soren-card border border-soren-border/60 rounded-xl px-3 py-2.5 shadow-sm hover:border-soren-border transition-colors">
+      {info.profilePicture
+        ? <img src={info.profilePicture} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-soren-border" />
+        : path && <span className="w-9 h-9 rounded-full bg-soren-elevated flex items-center justify-center flex-shrink-0"><svg width="16" height="16" viewBox="0 0 24 24"><path fill={path.color} d={path.d} /></svg></span>}
+      <div className="min-w-0 flex-1">
+        <p className="text-[12.5px] font-semibold text-soren-text truncate">{info.displayName ?? info.username}</p>
+        <p className="text-[10.5px] text-soren-subtle truncate">@{info.username}</p>
+      </div>
+      <div className="text-right flex-shrink-0">
+        <p className="text-[14px] font-bold tabular-nums text-soren-text leading-none">{info.followersCount != null ? fmt(info.followersCount) : 'N/A'}</p>
+        <p className="text-[9.5px] text-soren-subtle mt-0.5">abonnés</p>
+      </div>
+      {path && <svg width="13" height="13" viewBox="0 0 24 24" className="flex-shrink-0" aria-hidden="true"><path fill={path.color} d={path.d} /></svg>}
+    </a>
+  )
+}
+
 // Lien de redirection du parcours : la page qui reçoit le trafic (quiz, VSL…).
 // Cliquer l'ouvre, le crayon permet de le coller ou de le corriger.
 function FunnelLink({ url, label, onSave }: { url: string | null; label: string; onSave: (url: string) => void }) {
@@ -548,7 +630,7 @@ function ObjModal({ obj, cfg, onClose, onSave }: { obj: Obj; cfg: FunnelConfig; 
 }
 
 // ── Types des queries ───────────────────────────────────────────────────────
-type Funnel = { leadsATraiter: number; leadsTotal: number; leadsInbound: number; leadsOutbound: number; r1Booked: number; noShows: number; shows: number; ventes: number; tauxLeadsR1: number; tauxShow: number; tauxClose: number; r2Booked: number; showsR1: number; showsR2: number; noShowsR1: number; noShowsR2: number; tauxShowR1: number; tauxShowR2: number; tauxR1R2: number; tauxLeadsR2: number; tauxR1ToR2: number }
+type Funnel = { leadsATraiter: number; leadsTotal: number; leadsInbound: number; leadsOutbound: number; r1Booked: number; noShows: number; shows: number; ventes: number; tauxLeadsR1: number; tauxShow: number; tauxClose: number; r2Booked: number; showsR1: number; showsR2: number; noShowsR1: number; noShowsR2: number; tauxShowR1: number; tauxShowR2: number; tauxR1R2: number; tauxLeadsR2: number; tauxR1ToR2: number; encaisse: number; rdvDirects: number | null }
 type Summary = { contactes: number; reponses: number; tauxReponse: number; r1Booked: number; conversionR1: number }
 type Media = { kpis?: { spend?: { value: number }; impressions?: { value: number }; clicks?: { value: number }; leads?: { value: number }; cpl?: { value: number } } }
 type Pay = { encaisse: number; attente: number; enRetard: number; caTotal: number; clientsCount: number; transactions?: { contactId: string; type: string; status: string }[] }

@@ -20,6 +20,10 @@ export const get = query({
     const doc = (a.funnel ? rows.find((r) => r.funnel === a.funnel) : undefined)
       ?? rows.find((r) => !r.funnel)
       ?? rows[0]
+    // L'objectif Encaissé est un objectif d'ENTREPRISE, pas de canal : une seule
+    // valeur, la ligne commune, quel que soit le parcours affiché (décision
+    // Jonathan 2026-08-02). Le modifier depuis n'importe quel onglet le change partout.
+    const base = rows.find((r) => !r.funnel)
     return {
       leadsR1:       doc?.leadsR1       ?? DEFAULTS.leadsR1,
       leadsR2:       doc?.leadsR2       ?? DEFAULTS.leadsR2,
@@ -28,7 +32,7 @@ export const get = query({
       tauxClose:     doc?.tauxClose     ?? DEFAULTS.tauxClose,
       tauxReponse:   doc?.tauxReponse   ?? DEFAULTS.tauxReponse,
       cpl:           doc?.cpl           ?? DEFAULTS.cpl,
-      ca:            doc?.ca            ?? DEFAULTS.ca,
+      ca:            base?.ca           ?? doc?.ca ?? DEFAULTS.ca,
       roi:           doc?.roi           ?? DEFAULTS.roi,
       coutParVente:  doc?.coutParVente  ?? DEFAULTS.coutParVente,
       ventes:        doc?.ventes        ?? DEFAULTS.ventes,
@@ -68,6 +72,15 @@ export const set = mutation({
     // `null` arrive quand l'interface renvoie l'objet complet : on le traduit en
     // « champ absent » au lieu de faire échouer tout l'enregistrement.
     const clean = Object.fromEntries(Object.entries(a).filter(([, val]) => val !== null))
+    // Encaissé = objectif d'entreprise : il vit sur la ligne commune uniquement.
+    // Saisi depuis n'importe quel parcours, il est écrit là-bas et retiré du
+    // patch du parcours, pour qu'aucune copie locale ne diverge.
+    if (typeof clean.ca === "number" && a.funnel) {
+      const base = rows.find((r) => !r.funnel)
+      if (base) await ctx.db.patch(base._id, { ca: clean.ca, updatedAt: new Date().toISOString() })
+      else await ctx.db.insert("prospection_objectives", { workspaceId: WORKSPACE, ca: clean.ca, updatedAt: new Date().toISOString() })
+      delete clean.ca
+    }
     const patch = { ...clean, updatedAt: new Date().toISOString() }
     if (existing) await ctx.db.patch(existing._id, patch)
     else {

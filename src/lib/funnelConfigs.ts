@@ -27,6 +27,7 @@ export type FunnelData = {
   sources: number
   envois: number
   reponsesOut: number
+  rdvDirects: number | null // outbound : RDV bookés SEULS via le deck, sans le setter
 }
 
 export type StepKey = keyof FunnelData
@@ -49,7 +50,8 @@ export type FunnelConfig = {
   rates: Rate[]
   roles: {
     media: { title: string; rows: RoleRow[] }
-    setting: { title: string; rows: RoleRow[] }
+    /** Absente en outbound : la card Emailing (media) couvre déjà le setting. */
+    setting?: { title: string; rows: RoleRow[] }
     closing: { title: string; rows: RoleRow[] }
   }
   /** Les objectifs modifiables pour ce parcours, dans l'ordre d'affichage. */
@@ -72,7 +74,8 @@ const VSL: FunnelConfig = {
   rates: [
     { label: 'Taux conversion leads → R1', from: 'leads', to: 'r1', obj: 'leadsR1' },
     { label: 'Taux de show R1', from: 'r1', to: 'showsR1', obj: 'tauxShow' },
-    { label: 'Présents R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
+    // Le calcul reste R2 ÷ présents R1 : on ne peut convertir que ceux qui se sont présentés.
+    { label: 'Conversion R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
     { label: 'Taux de show R2', from: 'r2', to: 'showsR2', obj: 'tauxShowR2' },
     { label: 'Taux de closing', from: 'r1', to: 'ventes', obj: 'tauxClose' },
   ],
@@ -153,7 +156,7 @@ const SOCIAL: FunnelConfig = {
   label: 'Social funnel',
   tagline: 'Contenu et publicité vers messagerie, puis appel',
   steps: [
-    { key: 'abonnes', label: 'Abonnés reçus', icon: 'users' },
+    { key: 'abonnes', label: 'Abonnés', icon: 'users' },
     { key: 'contactes', label: 'DMs envoyés', icon: 'message' },
     { key: 'reponses', label: 'Conversations', icon: 'chat' },
     { key: 'r1', label: 'Calls bookés (R1)', icon: 'calendar' },
@@ -166,6 +169,9 @@ const SOCIAL: FunnelConfig = {
     { label: 'Abonné → DM', from: 'abonnes', to: 'contactes', obj: 'leadsR1' },
     { label: 'DM → Conversation', from: 'contactes', to: 'reponses', obj: 'tauxReponse' },
     { label: 'Conversation → Call', from: 'reponses', to: 'r1', obj: 'leadsR1' },
+    // Vision d'ensemble du setting : du DM ouvert jusqu'au call. Pas liée à une
+    // étape (l'entonnoir passe déjà par Conversations), carte seule.
+    { label: 'Conversion DM → R1', from: 'contactes', to: 'r1', obj: 'leadsR1' },
     { label: 'Taux de show R1', from: 'r1', to: 'showsR1', obj: 'tauxShow' },
     { label: 'Shows R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
     { label: 'Taux de show R2', from: 'r2', to: 'showsR2', obj: 'tauxShowR2' },
@@ -206,17 +212,18 @@ const SOCIAL: FunnelConfig = {
   ],
 }
 
-// Emailing outbound : contact 100 % froid, on écrit en premier. Le haut de
-// l'entonnoir lui est propre (fichier, envois, réponses), le bas est commun.
+// Emailing outbound : contact 100 % froid, le deck part par email avec le lien
+// iClosed. Entonnoir raccourci (décision Jonathan 2026-08-02) : Leads sourcés
+// puis directement les rendez-vous, car le RDV se prend soit seul via le deck,
+// soit par le setter qui glisse la carte. Deux cartes de rôle : Emailing et
+// Closing (la card setting était un doublon, supprimée).
 const EMAILING: FunnelConfig = {
   id: 'emailing',
   family: 'outbound',
   label: 'Emailing',
   tagline: 'Prospection à froid par email, puis rendez-vous',
   steps: [
-    { key: 'sources', label: 'Contacts sourcés', icon: 'users' },
-    { key: 'envois', label: 'Emails envoyés', icon: 'message' },
-    { key: 'reponsesOut', label: 'Réponses', icon: 'chat' },
+    { key: 'sources', label: 'Leads sourcés', icon: 'users' },
     { key: 'r1', label: 'R1 bookés', icon: 'calendar' },
     { key: 'showsR1', label: 'Shows en R1', icon: 'phone' },
     { key: 'r2', label: 'R2 bookés', icon: 'calendar' },
@@ -224,28 +231,20 @@ const EMAILING: FunnelConfig = {
     { key: 'ventes', label: 'Ventes', icon: 'trophy' },
   ],
   rates: [
-    { label: 'Sourcés → envoyés', from: 'sources', to: 'envois', obj: 'leadsR1' },
-    { label: 'Emails → Réponse', from: 'envois', to: 'reponsesOut', obj: 'tauxReponse' },
-    { label: 'Réponse → R1', from: 'reponsesOut', to: 'r1', obj: 'leadsR1' },
+    // RDV pris SEUL via le deck ÷ leads sourcés : c'est la vraie réponse au mail.
+    { label: 'Taux de réponse par mail', from: 'sources', to: 'rdvDirects', obj: 'tauxReponse' },
+    { label: 'Taux de conversion', from: 'sources', to: 'r1', obj: 'leadsR1' },
     { label: 'Taux de show R1', from: 'r1', to: 'showsR1', obj: 'tauxShow' },
-    { label: 'Shows R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
+    { label: 'Conversion R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
     { label: 'Taux de show R2', from: 'r2', to: 'showsR2', obj: 'tauxShowR2' },
     { label: 'Taux de closing', from: 'r1', to: 'ventes', obj: 'tauxClose' },
   ],
   roles: {
-    media: { title: 'Sourcing', rows: [
-      { label: 'Contacts sourcés', key: 'sources' },
+    media: { title: 'Emailing', rows: [
       { label: 'Decks générés', key: 'decks' },
-      { label: 'Emails envoyés', key: 'envois' },
-      { label: 'Réponses', key: 'reponsesOut' },
-      { label: 'Taux de réponse', key: 'tauxReponseOut' },
-    ] },
-    setting: { title: 'Emailing', rows: [
-      { label: 'Emails envoyés', key: 'envois' },
-      { label: 'Réponses', key: 'reponsesOut' },
-      { label: 'Taux de réponse', key: 'tauxReponseOut' },
-      { label: 'R1 bookés', key: 'r1' },
-      { label: 'Réponses → R1', key: 'conversionR1' },
+      { label: 'Leads sourcés', key: 'sources' },
+      { label: 'Réponses (RDV directs)', key: 'rdvDirects' },
+      { label: 'Taux de réponse', key: 'tauxReponseMail' },
     ] },
     closing: { title: 'Closing', rows: [
       { label: 'Appels prévus (R2)', key: 'r2' },
@@ -256,10 +255,10 @@ const EMAILING: FunnelConfig = {
     ] },
   },
   objectives: [
-    { key: 'tauxReponse', label: 'Emails → Réponse', unit: '%' },
-    { key: 'leadsR1', label: 'Réponse → R1', unit: '%' },
+    { key: 'tauxReponse', label: 'Taux de réponse par mail', unit: '%' },
+    { key: 'leadsR1', label: 'Taux de conversion', unit: '%' },
     { key: 'tauxShow', label: 'Taux de show R1', unit: '%' },
-    { key: 'leadsR2', label: 'R1 → R2', unit: '%' },
+    { key: 'leadsR2', label: 'Conversion R1 → R2', unit: '%' },
     { key: 'tauxShowR2', label: 'Taux de show R2', unit: '%' },
     { key: 'tauxClose', label: 'Taux de closing', unit: '%' },
     { key: 'ca', label: 'Encaissé (objectif)', unit: 'CHF' },

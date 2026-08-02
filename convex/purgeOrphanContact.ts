@@ -17,3 +17,14 @@ export const remove = internalMutation({
     return { removed: true, leads: leads.length, records: recs.length }
   },
 })
+
+// Retrait d'un parcours de test (adresse @example.com uniquement, même garde-fou).
+export const removeJourney = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, a) => {
+    if (!a.email.endsWith("@example.com")) throw new Error("Réservé aux parcours de test @example.com")
+    const rows = await ctx.db.query("os_lead_journey").withIndex("by_email", (q) => q.eq("email", a.email.toLowerCase())).collect()
+    for (const r of rows) await ctx.db.delete(r._id)
+    return { removed: rows.length }
+  },
+})

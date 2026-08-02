@@ -742,6 +742,19 @@ export default defineSchema({
   // Formulaire Meta → parcours. Sans cette table, tous les leads d'un compte
   // atterrissent dans le même entonnoir : un second formulaire (VSL) polluerait
   // les chiffres du quiz. Le nom du formulaire sert de repli.
+  // Correspondance CAMPAGNE Meta → parcours (vsl | quiz | instagram | linkedin).
+  // Même philosophie que os_form_funnels : la table prime, sinon déduction par
+  // le nom de la campagne. Sert à scoper le reporting Media Buying par parcours.
+  os_campaign_funnels: defineTable({
+    workspaceId:  v.string(),
+    campaignId:   v.string(),
+    campaignName: v.optional(v.string()),
+    funnel:       v.string(),
+    updatedAt:    v.string(),
+  })
+    .index("by_campaign", ["campaignId"])
+    .index("by_ws", ["workspaceId"]),
+
   os_form_funnels: defineTable({
     workspaceId: v.string(),
     formId:      v.string(),

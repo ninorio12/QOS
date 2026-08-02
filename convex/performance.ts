@@ -68,9 +68,24 @@ async function goalsInRange(ctx: any, from: string, to: string) {
 }
 
 export const summary = query({
-  args: { setter: v.optional(v.string()), from: v.optional(v.string()), to: v.optional(v.string()), channel: v.optional(v.string()), tzOffset: v.optional(v.number()) },
+  args: { setter: v.optional(v.string()), from: v.optional(v.string()), to: v.optional(v.string()), channel: v.optional(v.string()), tzOffset: v.optional(v.number()), funnel: v.optional(v.string()) },
   handler: async (ctx, a) => {
-    const { list, recs, from, to, dayOf } = await loadEvents(ctx, a)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let { list, recs, from, to, dayOf } = await loadEvents(ctx, a)
+    // Vue parcours : seuls comptent les événements des leads de la cohorte
+    // (contactés/réponses/R1 du parcours affiché, pas du bureau entier).
+    if (a.funnel) {
+      const allContacts = await ctx.db.query("crm_contacts").collect()
+      const { cohortContacts } = partitionCohort(allContacts, await ctx.db.query("crm_leads").collect(), a.funnel)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const cohortIds = new Set(cohortContacts.map((c: any) => String(c._id)))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const contactOfRec = new Map<string, string>((recs as any[]).map((r: any) => [String(r._id), String(r.contactId)]))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      list = list.filter((e: any) => cohortIds.has(contactOfRec.get(String(e.prospectionRecordId)) ?? ""))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recs = (recs as any[]).filter((r: any) => cohortIds.has(String(r.contactId)))
+    }
     // « Contactés » = leads RÉELLEMENT travaillés sur la période = leads distincts ayant AU MOINS
     // un événement de prospection (toute action loggée). Garantit que réponses/R1/perdus ⊆ contactés
     // → les taux (réponse, conversion R1) sont bornés ≤ 100% par construction.
@@ -144,6 +159,41 @@ export const summary = query({
 //             (cf. src/lib/lostReasons.ts > NONVENTE_REASONS)
 //   taux de show  = shows ÷ R1 bookés
 //   taux de close = ventes ÷ R1 bookés
+// Partition des contacts/leads par parcours. Source UNIQUE de la règle :
+// VSL = inbound sans autre étiquette (voie par défaut), Emailing = source
+// outbound (il n'étiquette pas), les autres = leur étiquette. Un contact sans
+// étiquette n'appartient qu'au VSL ; les quatre cohortes ne se recouvrent pas.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function partitionCohort(contacts: any[], leads: any[], funnel?: string): { cohortContacts: any[]; cohortLeads: any[] } {
+  if (!funnel) return { cohortContacts: contacts, cohortLeads: leads }
+  if (funnel === "vsl") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const otherTag = (c: any) => Array.isArray(c.tags) && c.tags.some((t: string) => t.startsWith("funnel:") && t !== "funnel:vsl")
+    return {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cohortContacts: contacts.filter((c: any) => c.source !== "outbound" && !otherTag(c)),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cohortLeads: leads.filter((l: any) => l.source !== "outbound" && (!l.funnel || l.funnel === "vsl")),
+    }
+  }
+  if (funnel === "emailing") {
+    return {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cohortContacts: contacts.filter((c: any) => c.source === "outbound"),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cohortLeads: leads.filter((l: any) => l.source === "outbound"),
+    }
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tagged = new Set(leads.filter((l: any) => l.funnel === funnel).map((l: any) => String(l.contactId)))
+  return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    cohortContacts: contacts.filter((c: any) => tagged.has(String(c._id)) || (Array.isArray(c.tags) && c.tags.includes(`funnel:${funnel}`))),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    cohortLeads: leads.filter((l: any) => l.funnel === funnel),
+  }
+}
+
 export const funnel = query({
   args: { setter: v.optional(v.string()), from: v.optional(v.string()), to: v.optional(v.string()), channel: v.optional(v.string()), tzOffset: v.optional(v.number()), funnel: v.optional(v.string()) },
   handler: async (ctx, a) => {
@@ -152,45 +202,50 @@ export const funnel = query({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const contacts = await ctx.db.query("crm_contacts").collect()
     // FUNNEL = cohorte (source UNIQUE partagée avec le cockpit, cf. funnelCohort.ts).
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let allLeads = await ctx.db.query("crm_leads").collect()
-    // Parcours demandé : la cohorte suit les CONTACTS (ils survivent à la
-    // conversion en client), donc c'est elle qu'on restreint. Un contact
-    // appartient au parcours s'il porte son étiquette, ou si le lead qui le
-    // représente la porte. Sans étiquette, il n'appartient à aucun parcours et
-    // ne doit gonfler ni le quiz ni les autres.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let cohortContacts: any[] = contacts
-    if (a.funnel === "vsl") {
-      // Le VSL est la voie inbound par défaut : les entrants SANS étiquette de
-      // parcours (historique + formulaires du site) lui reviennent, mais jamais
-      // les leads d'un autre parcours ni l'outbound, qui a son propre onglet.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const otherTag = (c: any) => Array.isArray(c.tags) && c.tags.some((t: string) => t.startsWith("funnel:") && t !== "funnel:vsl")
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      cohortContacts = contacts.filter((c: any) => c.source !== "outbound" && !otherTag(c))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      allLeads = allLeads.filter((l: any) => l.source !== "outbound" && (!l.funnel || l.funnel === "vsl"))
-    } else if (a.funnel === "emailing") {
-      // L'emailing n'étiquette pas ses leads : le canal SE DÉFINIT par la source
-      // outbound. Sans ce cas, l'onglet Emailing affichait zéro pour toujours.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      cohortContacts = contacts.filter((c: any) => c.source === "outbound")
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      allLeads = allLeads.filter((l: any) => l.source === "outbound")
-    } else if (a.funnel) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tagged = new Set(allLeads.filter((l: any) => l.funnel === a.funnel).map((l: any) => String(l.contactId)))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      cohortContacts = contacts.filter((c: any) =>
-        tagged.has(String(c._id)) || (Array.isArray(c.tags) && c.tags.includes(`funnel:${a.funnel}`)))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      allLeads = allLeads.filter((l: any) => l.funnel === a.funnel)
-    }
+    const { cohortContacts, cohortLeads: allLeads } = partitionCohort(contacts, await ctx.db.query("crm_leads").collect(), a.funnel)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const salesCalls = await ctx.db.query("os_sales_calls").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
     const fc = funnelCohort(cohortContacts as any[], allLeads as any[], from, to, dayOf, salesCalls as any[])
-    return { leadsATraiter: fc.leadsTotal, ...fc }
+
+    // Encaissé du PARCOURS : uniquement les paiements des contacts de cette
+    // cohorte (décision Jonathan 2026-08-02). Sans ce filtre, chaque onglet
+    // s'attribuait le chiffre global, donc le VSL comptait les ventes outbound.
+    const onbs = await ctx.db.query("onboarding").collect()
+    const clients = await ctx.db.query("pipeline_clients").collect()
+    const stripePayments = await ctx.db.query("stripe_payments").withIndex("by_created").collect()
+    const externalPayments = await ctx.db.query("external_payments").collect()
+    const fxRows = await ctx.db.query("fx_rates").collect()
+    const fxToChf: Record<string, number> = { chf: 1 }; for (const r of fxRows) fxToChf[r.currency] = r.rate
+    const money = reconcileMoney({ obs: onbs, clients, contacts, stripePayments, externalPayments, from, to, tzOffset: a.tzOffset, fxToChf })
+    const cohortIds = new Set(cohortContacts.map((c) => String(c._id)))
+    const encaisse = money.transactions
+      .filter((t) => t.type === "payment" && t.status === "encaissé" && cohortIds.has(String(t.contactId)))
+      .reduce((s, t) => s + t.amount, 0)
+
+    // RDV DIRECTS (outbound) : le prospect a réservé SEUL via le lien du deck,
+    // sans que le setter décroche. Détection : un R1 existe pour le contact mais
+    // sa carte de prospection n'a JAMAIS reçu d'événement « R1 booké » (le geste
+    // du setter). Quand les decks porteront le jeton, le rattachement par jeton
+    // remplacera cette heuristique.
+    let rdvDirects: number | null = null
+    if (a.funnel === "emailing") {
+      const cohortIds = new Set(cohortContacts.map((c) => String(c._id)))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const recs = await ctx.db.query("prospection_records").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const evs = await ctx.db.query("prospection_events").withIndex("by_workspace_created", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const bookedBySetter = new Set((evs as any[]).filter((e: any) => e.eventType === "r1_booke").map((e: any) => String(e.prospectionRecordId)))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const recOfContact = new Map<string, any>((recs as any[]).map((r: any) => [String(r.contactId), r]))
+      rdvDirects = (salesCalls as unknown as { contactId?: string; stage: string; status: string; createdAt: string }[])
+        .filter((cl) => cl.stage === "R1" && cl.status !== "cancelled" && cl.contactId && cohortIds.has(String(cl.contactId)))
+        .filter((cl) => { const d = dayOf(cl.createdAt); return d >= from && d <= to })
+        .filter((cl) => { const r = recOfContact.get(String(cl.contactId)); return !r || !bookedBySetter.has(String(r._id)) })
+        .length
+    }
+
+    return { leadsATraiter: fc.leadsTotal, encaisse, rdvDirects, ...fc }
   },
 })
 

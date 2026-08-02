@@ -263,6 +263,33 @@ http.route({
   }),
 })
 
+/**
+ * Deck outbound généré (build SSG Hermes). Protégé par DECK_WEBHOOK_SECRET.
+ * Rend le jeton + l'URL iClosed traçante à embarquer dans la page booking.
+ */
+http.route({
+  path: "/deck/generated",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const secret = process.env.DECK_WEBHOOK_SECRET
+    if (!secret) return new Response("Webhook deck non configuré", { status: 400 })
+    const provided = request.headers.get("x-deck-secret") ?? new URL(request.url).searchParams.get("secret")
+    if (provided !== secret) return new Response("Non autorisé", { status: 401 })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let b: any
+    try { b = await request.json() } catch { return new Response("Bad payload", { status: 400 }) }
+    if (typeof b?.email !== "string" || !b.email.includes("@")) return new Response("email requis", { status: 400 })
+    const r = await ctx.runMutation(internal.leadIngest.deckGenerated, {
+      email: b.email, name: b.name ?? undefined, company: b.company ?? undefined,
+      slug: b.slug ?? undefined, deckUrl: b.deckUrl ?? undefined,
+    })
+    return new Response(JSON.stringify({
+      token: r.token,
+      bookingUrl: `https://app.iclosed.io/e/vividflow/audit-out?vf=${r.token}`,
+    }), { status: 200, headers: { "Content-Type": "application/json" } })
+  }),
+})
+
 const JOURNEY_STEPS = new Set(["quiz_ouvert", "quiz_termine"])
 http.route({
   path: "/journey/step",

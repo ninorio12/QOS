@@ -83,6 +83,7 @@ import type * as recordNotes from "../recordNotes.js";
 import type * as seed from "../seed.js";
 import type * as seedDemo from "../seedDemo.js";
 import type * as seedDevis from "../seedDevis.js";
+import type * as socialProfile from "../socialProfile.js";
 import type * as stripe from "../stripe.js";
 import type * as stripePayments from "../stripePayments.js";
 import type * as stripeSync from "../stripeSync.js";
@@ -174,6 +175,7 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   seedDemo: typeof seedDemo;
   seedDevis: typeof seedDevis;
+  socialProfile: typeof socialProfile;
   stripe: typeof stripe;
   stripePayments: typeof stripePayments;
   stripeSync: typeof stripeSync;

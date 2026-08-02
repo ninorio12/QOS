@@ -172,10 +172,82 @@ function spanDaysISO(from: string, to: string) {
 
 const perfOf = (cpl: number) => cpl > 0 && cpl <= 25 ? "excellent" : cpl > 0 && cpl <= 35 ? "moyen" : "optimiser"
 
+// Parcours d'une campagne : la table os_campaign_funnels prime, sinon le nom
+// décide (même philosophie que les formulaires Meta). Pas de correspondance =
+// campagne hors parcours : elle ne compte dans AUCUN onglet filtré.
+function guessCampaignFunnel(name: string | null | undefined): string | null {
+  const n = (name ?? "").toLowerCase()
+  if (!n) return null
+  if (/vsl/.test(n)) return "vsl"
+  if (/quiz/.test(n)) return "quiz"
+  if (/linkedin/.test(n)) return "linkedin"
+  if (/insta|abonn|follow|profil/.test(n)) return "instagram"
+  return null
+}
+
+/** Correspondances campagne → parcours (pour l'écran de réglage et l'agent). */
+export const campaignFunnels = query({
+  args: {},
+  handler: async (ctx) => await ctx.db.query("os_campaign_funnels").withIndex("by_ws", (q) => q.eq("workspaceId", WORKSPACE)).collect(),
+})
+
+export const mapCampaign = mutation({
+  args: { campaignId: v.string(), campaignName: v.optional(v.string()), funnel: v.string() },
+  handler: async (ctx, a) => {
+    const existing = await ctx.db.query("os_campaign_funnels").withIndex("by_campaign", (q) => q.eq("campaignId", a.campaignId)).first()
+    if (existing) await ctx.db.patch(existing._id, { funnel: a.funnel, campaignName: a.campaignName ?? existing.campaignName, updatedAt: new Date().toISOString() })
+    else await ctx.db.insert("os_campaign_funnels", { workspaceId: WORKSPACE, campaignId: a.campaignId, campaignName: a.campaignName, funnel: a.funnel, updatedAt: new Date().toISOString() })
+    return { ok: true }
+  },
+})
+
+/**
+ * Filtre par parcours : on repart des lignes JOURNALIÈRES par campagne
+ * (meta_object_daily), seules capables d'être découpées, au lieu du total
+ * compte (meta_daily). Campagnes retenues : correspondance en table, sinon nom.
+ * Réutilisé par le dashboard ET par les scorecards du cockpit Performance.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function funnelCampaignFilter(ctx: any, funnel: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mappings = await ctx.db.query("os_campaign_funnels").withIndex("by_ws", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const byId = new Map<string, string>(mappings.map((m: any) => [m.campaignId, m.funnel]))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const campRows = await ctx.db.query("meta_object_daily")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .withIndex("by_ws_level_date", (q: any) => q.eq("workspaceId", WORKSPACE).eq("level", "campaign")).collect()
+  const allowedCampaignIds = new Set<string>(), allowedCampaignNames = new Set<string>()
+  for (const r of campRows) {
+    const f = byId.get(r.objectId) ?? guessCampaignFunnel(r.name)
+    if (f === funnel) { allowedCampaignIds.add(r.objectId); allowedCampaignNames.add(r.name) }
+  }
+  // Totaux journaliers du PARCOURS : somme des campagnes retenues, par date.
+  const byDate = new Map<string, { date: string; spend: number; impressions: number; clicks: number; leads: number }>()
+  for (const r of campRows) {
+    if (!allowedCampaignIds.has(r.objectId)) continue
+    const g = byDate.get(r.date) ?? { date: r.date, spend: 0, impressions: 0, clicks: 0, leads: 0 }
+    g.spend += r.spend; g.impressions += r.impressions; g.clicks += r.clicks; g.leads += r.leads
+    byDate.set(r.date, g)
+  }
+  const funnelDaily = [...byDate.values()].sort((a, b) => (a.date < b.date ? -1 : 1))
+  return { allowedCampaignIds, allowedCampaignNames, funnelDaily }
+}
+
 export const dashboard = query({
-  args: { from: v.optional(v.string()), to: v.optional(v.string()), days: v.optional(v.number()), level: v.optional(v.string()) },
+  args: { from: v.optional(v.string()), to: v.optional(v.string()), days: v.optional(v.number()), level: v.optional(v.string()), funnel: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const lvl = args.level ?? "campaign"
+
+    let allowedCampaignIds: Set<string> | null = null
+    let allowedCampaignNames: Set<string> | null = null
+    let funnelDaily: { date: string; spend: number; impressions: number; clicks: number; leads: number }[] | null = null
+    if (args.funnel) {
+      const flt = await funnelCampaignFilter(ctx, args.funnel)
+      allowedCampaignIds = flt.allowedCampaignIds
+      allowedCampaignNames = flt.allowedCampaignNames
+      funnelDaily = flt.funnelDaily
+    }
 
     const conn = await ctx.db.query("meta_connection")
       .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).first()
@@ -184,8 +256,9 @@ export const dashboard = query({
     // vocation à masquer une période que l'utilisateur choisit lui-même au
     // calendrier. Dès qu'un `from` explicite arrive, on montre l'historique réel.
     const floor = args.from ?? PROJECT_START_DATE
-    const dailyAll = (await ctx.db.query("meta_daily")
-      .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect())
+    // Vue parcours : les totaux journaliers du parcours remplacent le total compte.
+    const dailyAll = (funnelDaily ?? (await ctx.db.query("meta_daily")
+      .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()))
       .filter(d => d.date >= floor)
       .sort((a, b) => (a.date < b.date ? -1 : 1))
 
@@ -229,6 +302,10 @@ export const dashboard = query({
       const rows = (await ctx.db.query("meta_object_daily")
         .withIndex("by_ws_level_date", q => q.eq("workspaceId", WORKSPACE).eq("level", level)).collect())
         .filter(r => r.date >= floor && inRange(r.date, from, to))
+        // Vue parcours : campagnes retenues seulement (par id au niveau campagne,
+        // par nom de campagne aux niveaux adset/publicité).
+        .filter(r => !allowedCampaignIds
+          || (level === "campaign" ? allowedCampaignIds.has(r.objectId) : allowedCampaignNames!.has(r.campaign ?? "")))
       const byId = new Map<string, { id: string; name: string; campaign: string | null; adset: string | null; spend: number; impressions: number; clicks: number; leads: number }>()
       for (const r of rows) {
         const g = byId.get(r.objectId) ?? { id: r.objectId, name: r.name, campaign: r.campaign ?? null, adset: r.adset ?? null, spend: 0, impressions: 0, clicks: 0, leads: 0 }

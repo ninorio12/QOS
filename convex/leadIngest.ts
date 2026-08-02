@@ -350,6 +350,45 @@ export const trackByLeadgen = mutation({
   },
 })
 
+/**
+ * Deck outbound généré : frappe le jeton du lead et l'attache à son parcours.
+ * Appelé par le build du deck (SSG Hermes) via POST /deck/generated. Le jeton
+ * part dans le lien iClosed du deck : si le prospect réserve seul, le webhook
+ * iClosed rattache le RDV par jeton (= « RDV direct », la vraie réponse au mail).
+ */
+export const deckGenerated = internalMutation({
+  args: { email: v.string(), name: v.optional(v.string()), company: v.optional(v.string()), slug: v.optional(v.string()), deckUrl: v.optional(v.string()) },
+  handler: async (ctx, a) => {
+    const email = a.email.trim().toLowerCase()
+    let row = await ctx.db.query("os_lead_journey").withIndex("by_email", (q) => q.eq("email", email)).first()
+    if (!row) {
+      const contact = await ctx.db.query("crm_contacts").withIndex("by_email", (q) => q.eq("email", email)).first()
+        ?? await ctx.db.query("crm_contacts").withIndex("by_email", (q) => q.eq("email", a.email.trim())).first()
+      const id = await ctx.db.insert("os_lead_journey", {
+        workspaceId: WORKSPACE,
+        token: makeToken("deck:" + email),
+        contactId: contact ? String(contact._id) : undefined,
+        funnel: "emailing",
+        email, name: a.name,
+        steps: [{ step: "deck_genere", at: now(), meta: a.slug }],
+        createdAt: now(), updatedAt: now(),
+      })
+      row = await ctx.db.get(id)
+    } else if (!row.steps.some((s) => s.step === "deck_genere")) {
+      await ctx.db.patch(row._id, { steps: [...row.steps, { step: "deck_genere", at: now(), meta: a.slug }], updatedAt: now() })
+    }
+    // Le fichier de sourcing garde l'URL du deck (compteur « Decks générés »).
+    if (a.deckUrl) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lead = (await ctx.db.query("outbound_leads").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect())
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .find((l: any) => (l.email ?? "").trim().toLowerCase() === email)
+      if (lead && !lead.deckUrl) await ctx.db.patch(lead._id, { deckUrl: a.deckUrl })
+    }
+    return { token: row!.token }
+  },
+})
+
 /** Étape franchie, appelée par une page publique (redirection du quiz). */
 export const track = mutation({
   args: { token: v.string(), step: v.string(), meta: v.optional(v.string()) },

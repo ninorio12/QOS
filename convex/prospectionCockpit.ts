@@ -4,6 +4,8 @@ import { WORKSPACE } from "./osLib"
 import { localDay } from "./timeLib"
 import { funnelCohort } from "./funnelCohort"
 import { reconcileMoney } from "./moneyReconciliation"
+import { partitionCohort } from "./performance"
+import { funnelCampaignFilter } from "./mediaBuyer"
 
 // Cockpit Prospection — Score Santé Business + Heatmap Équipes.
 // Source 100% réelle ; les seuils marqués "ajustable" sont des constantes à régler.
@@ -38,7 +40,7 @@ function shiftDate(d: string, days: number): string {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function coreMetrics(ctx: any, from: string, to: string, tz?: number) {
+async function coreMetrics(ctx: any, from: string, to: string, tz?: number, funnelId?: string) {
   const dayOf = (iso: string) => localDay(iso, tz)
   const inWin = (iso?: string) => { if (!iso) return false; const d = dayOf(iso); return d >= from && d <= to }
 
@@ -49,7 +51,22 @@ async function coreMetrics(ctx: any, from: string, to: string, tz?: number) {
     .withIndex("by_workspace_created", (q: any) => q.eq("workspaceId", WORKSPACE).gte("createdAt", shift(from, -2)).lt("createdAt", shift(to, 3)))
     .collect()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const evWin = events.filter((e: any) => { const d = dayOf(e.createdAt); return d >= from && d <= to })
+  let evWin = events.filter((e: any) => { const d = dayOf(e.createdAt); return d >= from && d <= to })
+  // Vue parcours : seuls les événements des leads de la cohorte comptent
+  // (le score du Setting VSL ne doit pas refléter l'activité outbound, et
+  // inversement). Même partition que l'entonnoir (performance.partitionCohort).
+  if (funnelId) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recsAll = await ctx.db.query("prospection_records").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
+    const allContacts = await ctx.db.query("crm_contacts").collect()
+    const { cohortContacts } = partitionCohort(allContacts, await ctx.db.query("crm_leads").collect(), funnelId)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ids = new Set(cohortContacts.map((c: any) => String(c._id)))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contactOfRec = new Map<string, string>(recsAll.map((r: any) => [String(r._id), String(r.contactId)]))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    evWin = evWin.filter((e: any) => ids.has(contactOfRec.get(String(e.prospectionRecordId)) ?? ""))
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const distinct = (pred: (e: any) => boolean) => new Set(evWin.filter(pred).map((e: any) => e.prospectionRecordId)).size
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,12 +81,13 @@ async function coreMetrics(ctx: any, from: string, to: string, tz?: number) {
   const contacts = await ctx.db.query("crm_contacts").collect()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const allLeads = await ctx.db.query("crm_leads").collect()
-  // R1 / shows / no-shows / ventes : SOURCE UNIQUE = la cohorte du funnel (funnelCohort.ts).
-  // Les anneaux/scorecards consomment exactement les mêmes valeurs que le funnel affiché :
-  // plus de double moteur (events vs cohorte), plus de taux >100% à l'écran.
+  // R1 / shows / no-shows / ventes : SOURCE UNIQUE = la cohorte du funnel (funnelCohort.ts),
+  // restreinte au parcours affiché quand il y en a un. Les anneaux/scorecards consomment
+  // exactement les mêmes valeurs que le funnel affiché : plus de double moteur.
+  const { cohortContacts: fcContacts, cohortLeads: fcLeads } = partitionCohort(contacts, allLeads, funnelId)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const salesCalls = await ctx.db.query("os_sales_calls").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
-  const fc = funnelCohort(contacts, allLeads, from, to, dayOf, salesCalls)
+  const fc = funnelCohort(fcContacts, fcLeads, from, to, dayOf, salesCalls)
   const r1Booked = fc.r1Booked, noShows = fc.noShows, shows = fc.shows, ventes = fc.ventes
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -82,10 +100,21 @@ async function coreMetrics(ctx: any, from: string, to: string, tz?: number) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fxRows = await ctx.db.query("fx_rates").collect()
   const fxToChf: Record<string, number> = { chf: 1 }; for (const r of fxRows) fxToChf[r.currency] = r.rate
-  const ca = reconcileMoney({ obs, clients, contacts, stripePayments, externalPayments, from, to, tzOffset: tz, fxToChf }).encaisse
+  // Encaissé : global, ou restreint aux contacts de la cohorte en vue parcours.
+  const money = reconcileMoney({ obs, clients, contacts, stripePayments, externalPayments, from, to, tzOffset: tz, fxToChf })
+  const ca = funnelId
+    ? (() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ids = new Set(fcContacts.map((c: any) => String(c._id)))
+        return money.transactions.filter((t) => t.type === "payment" && t.status === "encaissé" && ids.has(String(t.contactId))).reduce((s, t) => s + t.amount, 0)
+      })()
+    : money.encaisse
 
+  // Dépenses pub : total compte, ou campagnes du parcours (même filtre que le dashboard).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const meta = await ctx.db.query("meta_daily").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
+  const meta = funnelId
+    ? (await funnelCampaignFilter(ctx, funnelId)).funnelDaily
+    : await ctx.db.query("meta_daily").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const md = meta.filter((m: any) => m.date >= from && m.date <= to)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -215,12 +244,15 @@ export const heatmap = query({
 
 // Scorecards par équipe : score /100 + KPI (valeur + tendance vs période préc.) + charge + diagnostic.
 export const teamScorecards = query({
-  args: { from: v.string(), to: v.string(), tzOffset: v.optional(v.number()) },
+  args: { from: v.string(), to: v.string(), tzOffset: v.optional(v.number()), funnel: v.optional(v.string()) },
   handler: async (ctx, a) => {
-    const m = await coreMetrics(ctx, a.from, a.to, a.tzOffset)
+    // Vue parcours : le score note le levier DU parcours affiché (mêmes cohortes
+    // que l'entonnoir), N/A si le parcours n'a pas d'activité. Jamais un score
+    // global déguisé en score de parcours.
+    const m = await coreMetrics(ctx, a.from, a.to, a.tzOffset, a.funnel)
     const obj = await objectives(ctx)
     const days = Math.max(1, Math.round((Date.parse(a.to) - Date.parse(a.from)) / 86400000) + 1)
-    const prev = await coreMetrics(ctx, shiftDate(a.from, -days), shiftDate(a.from, -1), a.tzOffset)
+    const prev = await coreMetrics(ctx, shiftDate(a.from, -days), shiftDate(a.from, -1), a.tzOffset, a.funnel)
 
     const clampPct = (actual: number, target: number) => target > 0 ? Math.max(0, Math.min(100, (actual / target) * 100)) : 0
     const toneOf = (s: number): Status => s >= 75 ? "bon" : s >= 50 ? "surveillance" : "critique"
