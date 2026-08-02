@@ -33,6 +33,12 @@ export const refresh = internalAction({
         data = { connected: false, error: String(e).slice(0, 160) }
       }
       await ctx.runMutation(internal.socialProfileCache.upsert, { platform, ...data })
+      // Photo du jour pour la courbe d'abonnés (idempotent par date).
+      if (typeof data.followersCount === "number") {
+        await ctx.runMutation(internal.socialProfileCache.snapshotFollowers, {
+          platform, date: new Date().toISOString().slice(0, 10), followers: data.followersCount,
+        })
+      }
       results.push({ platform, connected: data.connected })
     }
     return results

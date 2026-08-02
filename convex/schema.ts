@@ -750,6 +750,17 @@ export default defineSchema({
     updatedAt:       v.string(),
   }).index("by_ws_platform", ["workspaceId", "platform"]),
 
+  // Historique QUOTIDIEN d'abonnés par plateforme (photo prise par le cron
+  // socialProfile.refresh + import de l'historique Brvndlab du 2026-08-02).
+  // Sert la courbe d'abonnés au-delà de la fenêtre de 30 jours de Meta.
+  os_social_followers_daily: defineTable({
+    workspaceId: v.string(),
+    platform:    v.string(),   // instagram | linkedin
+    date:        v.string(),   // YYYY-MM-DD
+    followers:   v.number(),
+    source:      v.optional(v.string()), // cron | brvndlab-import
+  }).index("by_ws_platform_date", ["workspaceId", "platform", "date"]),
+
   // Identifiants de soumission Meta purgés (tests) : le filet Zernio ne doit
   // jamais les ré-ingérer depuis son cache.
   os_ignored_leadgen: defineTable({
