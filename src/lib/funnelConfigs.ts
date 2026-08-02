@@ -189,17 +189,12 @@ const SOCIAL: FunnelConfig = {
     { label: 'Taux de show R2', from: 'r2', to: 'showsR2', obj: 'tauxShowR2', card: false },
     { label: 'Taux de closing', from: 'r1', to: 'ventes', obj: 'tauxClose' },
   ],
+  // Pas de Media Buying sur les profils : on n'achète pas de publicité pour
+  // gagner des abonnés (décision Jonathan 2026-08-02). Deux cartes : Setter et
+  // Closer. Le distinguo abonnés « ads » / « organiques » disparaît avec elle.
   roles: {
-    media: { title: 'Media Buyer', rows: [
-      { label: 'Dépenses totales', key: 'spend' },
-      { label: 'Leads générés', key: 'metaLeads' },
-      { label: 'Coût par lead', key: 'cpl' },
-      { label: 'Abonnés ads', key: 'abonnes' },
-      { label: 'Coût par abonné', key: 'coutParAbonne' },
-    ] },
     setting: { title: 'Setter', rows: [
-      { label: 'Abonnés ads', key: 'abonnes' },
-      { label: 'Abonnés organiques', key: 'abonnesOrganiques' },
+      { label: 'Abonnés', key: 'abonnes' },
       { label: 'DMs envoyés', key: 'contactes' },
       { label: 'Conversations', key: 'reponses' },
       { label: 'Calls bookés', key: 'r1' },
@@ -299,11 +294,7 @@ const LINKEDIN: FunnelConfig = {
   roles: {
     ...SOCIAL.roles,
     setting: { title: 'Setter', rows: SOCIAL.roles.setting!.rows.map((row) =>
-      row.key === 'abonnes' ? { ...row, label: 'Connexions ads' }
-      : row.key === 'abonnesOrganiques' ? { ...row, label: 'Connexions organiques' } : row) },
-    media: { title: 'Media Buyer', rows: SOCIAL.roles.media!.rows.map((row) =>
-      row.key === 'abonnes' ? { ...row, label: 'Connexions ads' }
-      : row.key === 'coutParAbonne' ? { ...row, label: 'Coût par connexion' } : row) },
+      row.key === 'abonnes' ? { ...row, label: 'Connexions' } : row) },
   },
 }
 
