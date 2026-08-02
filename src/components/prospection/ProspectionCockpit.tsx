@@ -120,7 +120,9 @@ function RoleCard({ title, score, rows, onExpand }: { title: string; score?: Tea
 
 // ── Composant principal ─────────────────────────────────────────────────────
 export default function ProspectionCockpit() {
-  const [preset, setPreset] = useState<Preset>('30j')
+  // « Tout » par défaut (décision Jonathan 2026-08-02) : tant que les volumes
+  // sont faibles, une fenêtre glissante masque des leads et des ventes réels.
+  const [preset, setPreset] = useState<Preset>('all')
   const range = rangeForPreset(preset)
   const qa = { from: range.from, to: range.to, tzOffset: TZ }
 
