@@ -73,7 +73,7 @@ function KpiCard({ label, value, suffix, gap, gapOk, icon: Icon, color = '#FF4D0
           <span className="text-[17px] md:text-[19px] font-bold text-soren-text leading-none tabular-nums">{value}{suffix && <span className="text-[11px] text-soren-muted font-semibold ml-0.5">{suffix}</span>}</span>
           {gap && <span className="text-[10.5px] font-semibold leading-none whitespace-nowrap" style={{ color: gapOk ? '#059669' : '#DC2626' }}>{gap}</span>}
         </div>
-        {Icon && <span className="flex h-9 w-9 items-center justify-center rounded-xl flex-shrink-0" style={{ background: color + '14', color }}><Icon size={19} strokeWidth={2.1} /></span>}
+        {Icon && <span className="flex h-[26px] w-[26px] items-center justify-center rounded-lg flex-shrink-0" style={{ background: color + '14', color }}><Icon size={14} strokeWidth={2.1} /></span>}
       </div>
     </div>
   )
@@ -499,7 +499,7 @@ function SocialConnectCard({ info, label, brand }: { info: SocialInfo | null; la
       </div>
       <div className="text-right flex-shrink-0">
         <p className="text-[14px] font-bold tabular-nums text-soren-text leading-none">{info.followersCount != null ? fmt(info.followersCount) : 'N/A'}</p>
-        <p className="text-[9.5px] text-soren-subtle mt-0.5">abonnés</p>
+        <p className="text-[9.5px] text-soren-subtle mt-0.5">{brand === 'linkedin' ? 'connexions' : 'abonnés'}</p>
       </div>
       {path && <svg width="13" height="13" viewBox="0 0 24 24" className="flex-shrink-0" aria-hidden="true"><path fill={path.color} d={path.d} /></svg>}
     </a>

@@ -75,7 +75,7 @@ const VSL: FunnelConfig = {
     { label: 'Taux conversion leads → R1', from: 'leads', to: 'r1', obj: 'leadsR1' },
     { label: 'Taux de show R1', from: 'r1', to: 'showsR1', obj: 'tauxShow' },
     // Le calcul reste R2 ÷ présents R1 : on ne peut convertir que ceux qui se sont présentés.
-    { label: 'Conversion R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
+    { label: 'Taux conversion R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
     { label: 'Taux de show R2', from: 'r2', to: 'showsR2', obj: 'tauxShowR2' },
     { label: 'Taux de closing', from: 'r1', to: 'ventes', obj: 'tauxClose' },
   ],
@@ -235,7 +235,7 @@ const EMAILING: FunnelConfig = {
     { label: 'Taux de réponse par mail', from: 'sources', to: 'rdvDirects', obj: 'tauxReponse' },
     { label: 'Taux de conversion', from: 'sources', to: 'r1', obj: 'leadsR1' },
     { label: 'Taux de show R1', from: 'r1', to: 'showsR1', obj: 'tauxShow' },
-    { label: 'Conversion R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
+    { label: 'Taux conversion R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
     { label: 'Taux de show R2', from: 'r2', to: 'showsR2', obj: 'tauxShowR2' },
     { label: 'Taux de closing', from: 'r1', to: 'ventes', obj: 'tauxClose' },
   ],
@@ -258,7 +258,7 @@ const EMAILING: FunnelConfig = {
     { key: 'tauxReponse', label: 'Taux de réponse par mail', unit: '%' },
     { key: 'leadsR1', label: 'Taux de conversion', unit: '%' },
     { key: 'tauxShow', label: 'Taux de show R1', unit: '%' },
-    { key: 'leadsR2', label: 'Conversion R1 → R2', unit: '%' },
+    { key: 'leadsR2', label: 'Taux conversion R1 → R2', unit: '%' },
     { key: 'tauxShowR2', label: 'Taux de show R2', unit: '%' },
     { key: 'tauxClose', label: 'Taux de closing', unit: '%' },
     { key: 'ca', label: 'Encaissé (objectif)', unit: 'CHF' },
@@ -275,6 +275,18 @@ const LINKEDIN: FunnelConfig = {
   brand: 'linkedin',
   label: 'LinkedIn',
   tagline: 'Profil LinkedIn : contenu puis messages privés',
+  // Sur LinkedIn on parle de CONNEXIONS, pas d'abonnés (demande Jonathan 2026-08-02).
+  steps: SOCIAL.steps.map((s) => (s.key === 'abonnes' ? { ...s, label: 'Connexions' } : s)),
+  rates: SOCIAL.rates.map((r) => (r.label === 'Abonné → DM' ? { ...r, label: 'Connexion → DM' } : r)),
+  roles: {
+    ...SOCIAL.roles,
+    setting: { title: 'Setter', rows: SOCIAL.roles.setting!.rows.map((row) =>
+      row.key === 'abonnes' ? { ...row, label: 'Connexions ads' }
+      : row.key === 'abonnesOrganiques' ? { ...row, label: 'Connexions organiques' } : row) },
+    media: { title: 'Media Buyer', rows: SOCIAL.roles.media.rows.map((row) =>
+      row.key === 'abonnes' ? { ...row, label: 'Connexions ads' }
+      : row.key === 'coutParAbonne' ? { ...row, label: 'Coût par connexion' } : row) },
+  },
 }
 
 const INSTAGRAM: FunnelConfig = {
