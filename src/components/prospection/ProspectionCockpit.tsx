@@ -224,6 +224,8 @@ export default function ProspectionCockpit() {
     envois: outbound?.envois ?? 0, reponsesOut: outbound?.reponses ?? 0,
     tauxReponseOut: outbound?.tauxReponse ?? 0,
     rdvDirects: f.rdvDirects ?? null,
+    // RDV décrochés par le setter = total des R1 moins ceux réservés seuls via le deck.
+    rdvSetter: f.rdvDirects == null ? null : Math.max(0, f.r1Booked - f.rdvDirects),
   }
   // Taux de réponse par mail = RDV directs ÷ leads sourcés.
   D.tauxReponseMail = D.sources && D.rdvDirects != null ? Math.round((D.rdvDirects / D.sources) * 1000) / 10 : null
