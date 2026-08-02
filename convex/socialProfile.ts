@@ -60,8 +60,53 @@ async function linkedinInfo() {
     displayName: me.name ?? [me.given_name, me.family_name].filter(Boolean).join(" "),
     profilePicture: me.picture ?? undefined,
     profileUrl: "https://www.linkedin.com/in/jonathan-zekhe",
-    // followersCount volontairement absent : les connexions attendent l'app DMA.
+    // Connexions : via l'app 3rd-party ACTIVE (l'app DMA « member » est
+    // désactivée côté LinkedIn). Dès que Jonathan a autorisé linkedin-3p,
+    // le snapshot CONNECTIONS donne le compte exact ; avant : absent (N/A).
+    followersCount: await linkedinConnectionsCount(key),
   }
+}
+
+/**
+ * Compte les connexions via le Member Snapshot API (domaine CONNECTIONS) de
+ * l'app linkedin-3p. Le snapshot peut mettre jusqu'à 24-48 h à se générer
+ * après le consentement : 404 = pas encore prêt, on rend undefined (N/A).
+ */
+async function linkedinConnectionsCount(nangoKey: string): Promise<number | undefined> {
+  const endUser = process.env.LINKEDIN_3P_ENDUSER
+  if (!endUser) return undefined
+  try {
+    const lc = await fetch(`https://api.nango.dev/connections?endUserId=${encodeURIComponent(endUser)}`, {
+      headers: { Authorization: `Bearer ${nangoKey}` },
+    })
+    if (!lc.ok) return undefined
+    const lj = (await lc.json()) as { connections?: { connection_id: string; provider_config_key: string }[] }
+    const c3p = (lj.connections ?? []).find((c) => c.provider_config_key === "linkedin-3p")
+    if (!c3p) return undefined
+    const cr = await fetch(`https://api.nango.dev/connection/${c3p.connection_id}?provider_config_key=linkedin-3p`, {
+      headers: { Authorization: `Bearer ${nangoKey}` },
+    })
+    if (!cr.ok) return undefined
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const token = ((await cr.json()) as any)?.credentials?.access_token
+    if (!token) return undefined
+    let total = 0
+    let start = 0
+    for (let page = 0; page < 60; page++) {
+      const sr = await fetch(`https://api.linkedin.com/rest/memberSnapshotData?q=criteria&domain=CONNECTIONS&start=${start}`, {
+        headers: { Authorization: `Bearer ${token}`, "LinkedIn-Version": "202312", "X-Restli-Protocol-Version": "2.0.0" },
+      })
+      if (sr.status === 404) return page === 0 ? undefined : total
+      if (!sr.ok) return undefined
+      const sj = (await sr.json()) as { elements?: { snapshotData?: unknown[] }[]; paging?: { total?: number } }
+      const els = sj.elements ?? []
+      for (const el of els) total += (el.snapshotData ?? []).length
+      if (els.length === 0) break
+      start += els.length
+      if (typeof sj.paging?.total === "number" && start >= sj.paging.total) break
+    }
+    return total
+  } catch { return undefined }
 }
 
 const FB_GRAPH = "https://graph.facebook.com/v23.0"
