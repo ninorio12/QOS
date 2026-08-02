@@ -160,20 +160,23 @@ export const summary = query({
 //   taux de show  = shows ÷ R1 bookés
 //   taux de close = ventes ÷ R1 bookés
 // Partition des contacts/leads par parcours. Source UNIQUE de la règle :
-// VSL = inbound sans autre étiquette (voie par défaut), Emailing = source
-// outbound (il n'étiquette pas), les autres = leur étiquette. Un contact sans
-// étiquette n'appartient qu'au VSL ; les quatre cohortes ne se recouvrent pas.
+// VSL = étiquette funnel:vsl STRICTE (posée par le futur tunnel VSL),
+// Recommandation = inbound SANS étiquette (réseau, bouche-à-oreille, entrées
+// directes), Emailing = source outbound (il n'étiquette pas), les autres =
+// leur étiquette. Les cohortes ne se recouvrent jamais.
+// (Décision Jonathan 2026-08-02 : le VSL n'est plus la voie par défaut ; les
+//  inbound non tracés vivent dans Recommandation.)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function partitionCohort(contacts: any[], leads: any[], funnel?: string): { cohortContacts: any[]; cohortLeads: any[] } {
   if (!funnel) return { cohortContacts: contacts, cohortLeads: leads }
-  if (funnel === "vsl") {
+  if (funnel === "recommandation") {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const otherTag = (c: any) => Array.isArray(c.tags) && c.tags.some((t: string) => t.startsWith("funnel:") && t !== "funnel:vsl")
+    const anyTag = (c: any) => Array.isArray(c.tags) && c.tags.some((t: string) => t.startsWith("funnel:"))
     return {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      cohortContacts: contacts.filter((c: any) => c.source !== "outbound" && !otherTag(c)),
+      cohortContacts: contacts.filter((c: any) => c.source !== "outbound" && !anyTag(c)),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      cohortLeads: leads.filter((l: any) => l.source !== "outbound" && (!l.funnel || l.funnel === "vsl")),
+      cohortLeads: leads.filter((l: any) => l.source !== "outbound" && !l.funnel),
     }
   }
   if (funnel === "emailing") {

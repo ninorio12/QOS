@@ -139,7 +139,7 @@ export default function ProspectionCockpit() {
   // Quiz/LinkedIn/Instagram = leur étiquette, Emailing = source outbound.
   // Le MÊME parcours scope l'entonnoir, le setting (événements des leads de la
   // cohorte), le media buying (campagnes rattachées) et les scores des cartes.
-  const FILTERED_FUNNELS = ['vsl', 'quizz', 'linkedin', 'instagram', 'emailing']
+  const FILTERED_FUNNELS = ['vsl', 'quizz', 'linkedin', 'instagram', 'emailing', 'recommandation']
   const serverFunnel = FILTERED_FUNNELS.includes(cfgId) ? (cfgId === 'quizz' ? 'quiz' : cfgId) : undefined
 
   const obj     = useQuery(api.prospectionObjectives.get, { funnel: cfgId }) as Obj | undefined
@@ -333,12 +333,15 @@ export default function ProspectionCockpit() {
           <div className="lg:col-span-5 flex flex-col gap-2">
             {/* Parcours Profil : le compte social connecté (photo + nom + abonnés). */}
             {cfg.family === 'social' && <SocialConnectCard info={social} label={cfg.label} brand={cfg.brand} />}
-            {/* Zone du lien de redirection : la page qui reçoit le trafic de ce parcours. */}
+            {/* Zone du lien de redirection : la page qui reçoit le trafic. La
+                recommandation n'a pas de lien : personne n'y clique, on est recommandé. */}
+            {cfg.family !== 'recommandation' && (
             <FunnelLink
               url={(obj as unknown as { link?: string | null } | undefined)?.link ?? null}
               label={cfg.label}
               onSave={(url) => void setObj({ funnel: cfgId, link: url })}
             />
+            )}
             <div className="grid grid-cols-2 auto-rows-fr gap-2 flex-1">
             {cfg.rates.filter((r) => r.card !== false).map((r) => {
               const val = rateOf(r.from, r.to)
@@ -358,14 +361,17 @@ export default function ProspectionCockpit() {
 
         {/* Ligne 2 : métiers (anneau de score + diagnostic) */}
         {/* La grille suit le NOMBRE de cartes du parcours : deux en outbound
-            (Emailing + Closing), trois ailleurs. Sinon une colonne reste vide. */}
-        <div className={`grid md:grid-cols-2 gap-4 mb-5 ${cfg.roles.setting ? 'xl:grid-cols-3' : 'xl:grid-cols-2'}`}>
+            (Emailing + Closing) et en recommandation (Setting + Closing, pas de
+            pub), trois ailleurs. Sinon une colonne reste vide. */}
+        <div className={`grid md:grid-cols-2 gap-4 mb-5 ${[cfg.roles.media, cfg.roles.setting, cfg.roles.closing].filter(Boolean).length >= 3 ? 'xl:grid-cols-3' : 'xl:grid-cols-2'}`}>
+          {cfg.roles.media && (
           <RoleCard title={cfg.roles.media.title}
             score={cfg.family === 'outbound'
               ? (outbound ? { score: outbound.score, tone: outbound.tone, diagnostic: outbound.diagnostic, charge: null, metrics: [] } : undefined)
               : scorecards?.publicite}
             onExpand={cfg.family === 'outbound' ? () => setRepliesOpen(true) : undefined}
             rows={cfg.roles.media.rows.map(r => [r.label, pubEmpty && (r.key === 'cpl' || r.key === 'coutParAbonne') ? 'N/A' : roleValue(r.key)] as [string, string])} />
+          )}
           {cfg.roles.setting && (
           <RoleCard title={cfg.roles.setting.title} score={scorecards?.setters}
             rows={cfg.roles.setting.rows.map(r => [r.label, setEmpty && r.key.startsWith('taux') ? 'N/A' : roleValue(r.key)] as [string, string])} />

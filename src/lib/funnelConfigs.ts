@@ -45,14 +45,16 @@ export type FunnelConfig = {
   /** Logo de plateforme affiché dans le filtre (linkedin | instagram). */
   brand?: 'linkedin' | 'instagram'
   /** Famille du parcours : inbound (le lead se déclare), social (il s'abonne
-   *  puis on ouvre le DM), outbound (contact froid, on écrit en premier). */
-  family: 'inbound' | 'social' | 'outbound'
+   *  puis on ouvre le DM), outbound (contact froid, on écrit en premier),
+   *  recommandation (réseau et bouche-à-oreille : pas de pub, pas de lien). */
+  family: 'inbound' | 'social' | 'outbound' | 'recommandation'
   label: string
   tagline: string
   steps: Step[]
   rates: Rate[]
   roles: {
-    media: { title: string; rows: RoleRow[] }
+    /** Absente en recommandation : pas de publicité sur ce parcours. */
+    media?: { title: string; rows: RoleRow[] }
     /** Absente en outbound : la card Emailing (media) couvre déjà le setting. */
     setting?: { title: string; rows: RoleRow[] }
     closing: { title: string; rows: RoleRow[] }
@@ -292,7 +294,7 @@ const LINKEDIN: FunnelConfig = {
     setting: { title: 'Setter', rows: SOCIAL.roles.setting!.rows.map((row) =>
       row.key === 'abonnes' ? { ...row, label: 'Connexions ads' }
       : row.key === 'abonnesOrganiques' ? { ...row, label: 'Connexions organiques' } : row) },
-    media: { title: 'Media Buyer', rows: SOCIAL.roles.media.rows.map((row) =>
+    media: { title: 'Media Buyer', rows: SOCIAL.roles.media!.rows.map((row) =>
       row.key === 'abonnes' ? { ...row, label: 'Connexions ads' }
       : row.key === 'coutParAbonne' ? { ...row, label: 'Coût par connexion' } : row) },
   },
@@ -306,13 +308,32 @@ const INSTAGRAM: FunnelConfig = {
   tagline: 'Profil Instagram : contenu et publicité puis messages privés',
 }
 
-export const FUNNEL_CONFIGS: FunnelConfig[] = [VSL, QUIZZ, EMAILING, LINKEDIN, INSTAGRAM]
+// Recommandation : réseau, bouche-à-oreille, entrées directes. Même squelette
+// que le VSL (décision Jonathan 2026-08-02) mais SANS lien de redirection ni
+// Media Buying : personne ne paie pour ces leads, ils arrivent tout seuls.
+const RECOMMANDATION: FunnelConfig = {
+  id: 'recommandation',
+  family: 'recommandation',
+  label: 'Recommandation',
+  tagline: 'Réseau et bouche-à-oreille, puis rendez-vous',
+  steps: VSL.steps,
+  rates: VSL.rates,
+  roles: {
+    setting: VSL.roles.setting,
+    closing: VSL.roles.closing,
+  },
+  // Les objectifs du VSL sans le CPL : pas de pub ici.
+  objectives: VSL.objectives.filter((o) => o.key !== 'cpl'),
+}
 
-/** Les deux familles, dans l'ordre des onglets du haut. */
-export const FAMILIES: { id: 'inbound' | 'social' | 'outbound'; label: string; defaultConfig: string }[] = [
+export const FUNNEL_CONFIGS: FunnelConfig[] = [VSL, QUIZZ, EMAILING, LINKEDIN, INSTAGRAM, RECOMMANDATION]
+
+/** Les familles, dans l'ordre des onglets du haut. */
+export const FAMILIES: { id: 'inbound' | 'social' | 'outbound' | 'recommandation'; label: string; defaultConfig: string }[] = [
   { id: 'inbound', label: 'Inbound', defaultConfig: 'vsl' },
   { id: 'outbound', label: 'Outbound', defaultConfig: 'emailing' },
   { id: 'social', label: 'Profil', defaultConfig: 'linkedin' },
+  { id: 'recommandation', label: 'Recommandation', defaultConfig: 'recommandation' },
 ]
 
 /** Tracés officiels des plateformes, pour les filtres du parcours Profil. */
