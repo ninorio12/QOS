@@ -200,8 +200,11 @@ export default function ProspectionCockpit() {
     r1: f.r1Booked, showsR1: f.showsR1, noShowsR1: f.noShowsR1,
     r2: f.r2Booked, showsR2: f.showsR2, noShowsR2: f.noShowsR2,
     ventes: f.ventes,
-    // Abonnés = gagnés sur la période (insights Meta, fenêtre max 30 j). Sans compte : N/A.
-    abonnes: cfg.family === 'social' ? ((preset === '7j' ? social?.gained7 : social?.gained30) ?? null) : null,
+    // Abonnés : 7 j / 30 j = gagnés sur la période (insights Meta, fenêtre max 30 j) ;
+    // « Tout » = le stock actuel d'abonnés du compte. Sans compte connecté : N/A.
+    abonnes: cfg.family === 'social'
+      ? ((preset === '7j' ? social?.gained7 : preset === '30j' ? social?.gained30 : social?.followersCount) ?? null)
+      : null,
     abonnesOrganiques: null, coutParAbonne: null,
     spend, impressions: media?.kpis?.impressions?.value ?? 0, clicks: media?.kpis?.clicks?.value ?? 0,
     metaLeads: media?.kpis?.leads?.value ?? 0, cpl: media?.kpis?.cpl?.value ?? 0,
