@@ -24,6 +24,10 @@ crons.interval("zernio leads catchup", { minutes: 15 }, api.leadIngest.syncFromZ
 // Taux de change vers CHF (frankfurter.app, BCE) : rafraîchis chaque jour pour la conversion argent.
 crons.daily("fx rates sync", { hourUTC: 5, minuteUTC: 0 }, api.fx.syncRates, {})
 
+// Rapport quotidien d'acquisition, écrit dans la Synthèse du module Meta Ads
+// (7 h 30 heure suisse = 5 h 30 UTC) : chiffres de la veille, créas, à traiter.
+crons.daily("rapport quotidien acquisition", { hourUTC: 5, minuteUTC: 30 }, internal.dailyReport.daily, {})
+
 // Profils sociaux du parcours Profil (photo, nom, abonnés IG, identité LinkedIn) :
 // l'écran lit le cache os_social_profiles, ce cron le garde frais.
 crons.interval("social profiles refresh", { minutes: 30 }, internal.socialProfile.refresh, {})

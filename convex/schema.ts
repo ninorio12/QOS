@@ -1225,6 +1225,9 @@ export default defineSchema({
   os_syntheses: defineTable({
     workspaceId: v.string(),
     body:        v.string(),
+    // Rapport quotidien écrit par le Data OS (vs note libre humaine) : il ne doit
+    // jamais être écrasé par une saisie, et se reconnaît dans l'historique.
+    auto:        v.optional(v.boolean()),
     updatedBy:   v.string(),
     avatarUrl:   v.optional(v.string()),
     createdAt:   v.number(),

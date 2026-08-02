@@ -28,7 +28,7 @@ export const current = query({
       .query("os_syntheses")
       .withIndex("by_ws", (q) => q.eq("workspaceId", WORKSPACE))
       .collect()
-    const latest = rows.sort((a, b) => b.createdAt - a.createdAt)[0]
+    const latest = rows.filter((r) => !r.auto).sort((a, b) => b.createdAt - a.createdAt)[0]
     if (!latest || Date.now() - latest.createdAt >= WINDOW_MS) return null
     return { id: latest._id, body: latest.body, updatedBy: latest.updatedBy, avatarUrl: latest.avatarUrl, updatedAt: latest.updatedAt }
   },
@@ -44,7 +44,7 @@ export const history = query({
       .collect()
     const cutoff = Date.now() - WINDOW_MS
     return rows
-      .filter((r) => r.createdAt <= cutoff && r.body.trim().length > 0)
+      .filter((r) => (r.auto || r.createdAt <= cutoff) && r.body.trim().length > 0)
       .sort((a, b) => b.createdAt - a.createdAt)
       .slice(0, 60)
   },
@@ -60,7 +60,9 @@ export const save = mutation({
       .query("os_syntheses")
       .withIndex("by_ws", (q) => q.eq("workspaceId", WORKSPACE))
       .collect()
-    const latest = rows.sort((x, y) => y.createdAt - x.createdAt)[0]
+    // Le rapport quotidien du Data OS n'est jamais écrasé par une saisie humaine :
+    // la note libre s'ajoute à côté (audit : sinon écrire une note effaçait le rapport).
+    const latest = rows.filter((r) => !r.auto).sort((x, y) => y.createdAt - x.createdAt)[0]
     if (latest && Date.now() - latest.createdAt < WINDOW_MS) {
       await ctx.db.patch(latest._id, { body: a.body, updatedBy: name, avatarUrl: me?.avatarUrl, updatedAt: Date.now() })
       return latest._id
