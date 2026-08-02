@@ -180,18 +180,36 @@ export function partitionCohort(contacts: any[], leads: any[], funnel?: string):
     }
   }
   if (funnel === "emailing") {
+    // Un contact outbound qui reçoit ensuite une étiquette de parcours (lead
+    // Facebook rattaché à un contact déjà démarché) appartient à CE parcours,
+    // plus à l'emailing : sinon il compte dans deux onglets et son encaissé est
+    // attribué deux fois (audit tribunal 2026-08-02).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const anyTag = (c: any) => Array.isArray(c.tags) && c.tags.some((t: string) => t.startsWith("funnel:"))
     return {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      cohortContacts: contacts.filter((c: any) => c.source === "outbound"),
+      cohortContacts: contacts.filter((c: any) => c.source === "outbound" && !anyTag(c)),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      cohortLeads: leads.filter((l: any) => l.source === "outbound"),
+      cohortLeads: leads.filter((l: any) => l.source === "outbound" && !l.funnel),
     }
+  }
+  // Parcours étiqueté : l'étiquette du CONTACT fait foi. Un contact déjà étiqueté
+  // X n'entre pas dans le parcours Y même si un lead plus récent porte Y (premier
+  // parcours gagnant, cohérent avec l'ingestion) : les cohortes restent disjointes.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tagOf = (c: any): string | null => {
+    const t = (c.tags ?? []).find((x: string) => x.startsWith("funnel:"))
+    return t ? String(t).slice(7) : null
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tagged = new Set(leads.filter((l: any) => l.funnel === funnel).map((l: any) => String(l.contactId)))
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    cohortContacts: contacts.filter((c: any) => tagged.has(String(c._id)) || (Array.isArray(c.tags) && c.tags.includes(`funnel:${funnel}`))),
+    cohortContacts: contacts.filter((c: any) => {
+      const own = tagOf(c)
+      if (own) return own === funnel                       // l'étiquette du contact tranche
+      return tagged.has(String(c._id)) && c.source !== "outbound"  // sinon, le lead, sauf outbound
+    }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cohortLeads: leads.filter((l: any) => l.funnel === funnel),
   }
@@ -232,7 +250,12 @@ export const funnel = query({
     // remplacera cette heuristique.
     let rdvDirects: number | null = null
     if (a.funnel === "emailing") {
-      const cohortIds = new Set(cohortContacts.map((c) => String(c._id)))
+      // MÊME cohorte que r1Booked : les contacts CRÉÉS dans la période (funnelCohort).
+      // Sinon « RDV directs » pouvait dépasser « R1 bookés » alors qu'il en est
+      // un sous-ensemble (audit tribunal 2026-08-02).
+      const cohortIds = new Set(
+        cohortContacts.filter((c) => { const d = dayOf(c.createdAt); return d >= from && d <= to }).map((c) => String(c._id)),
+      )
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const recs = await ctx.db.query("prospection_records").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

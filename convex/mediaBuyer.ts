@@ -194,6 +194,7 @@ export const campaignFunnels = query({
 export const mapCampaign = mutation({
   args: { campaignId: v.string(), campaignName: v.optional(v.string()), funnel: v.string() },
   handler: async (ctx, a) => {
+    await requireAdmin(ctx)
     const existing = await ctx.db.query("os_campaign_funnels").withIndex("by_campaign", (q) => q.eq("campaignId", a.campaignId)).first()
     if (existing) await ctx.db.patch(existing._id, { funnel: a.funnel, campaignName: a.campaignName ?? existing.campaignName, updatedAt: new Date().toISOString() })
     else await ctx.db.insert("os_campaign_funnels", { workspaceId: WORKSPACE, campaignId: a.campaignId, campaignName: a.campaignName, funnel: a.funnel, updatedAt: new Date().toISOString() })
@@ -231,7 +232,11 @@ export async function funnelCampaignFilter(ctx: any, funnel: string) {
     byDate.set(r.date, g)
   }
   const funnelDaily = [...byDate.values()].sort((a, b) => (a.date < b.date ? -1 : 1))
-  return { allowedCampaignIds, allowedCampaignNames, funnelDaily }
+  // Dates réellement couvertes au niveau campagne : les tableaux adset/créa sont
+  // restreints à ces jours, sinon un sous-ensemble affiché dépasse son total
+  // (jours synchronisés à un niveau et pas à l'autre — audit tribunal 2026-08-02).
+  const funnelDates = new Set(byDate.keys())
+  return { allowedCampaignIds, allowedCampaignNames, funnelDaily, funnelDates }
 }
 
 export const dashboard = query({
@@ -242,11 +247,13 @@ export const dashboard = query({
     let allowedCampaignIds: Set<string> | null = null
     let allowedCampaignNames: Set<string> | null = null
     let funnelDaily: { date: string; spend: number; impressions: number; clicks: number; leads: number }[] | null = null
+    let funnelDates: Set<string> | null = null
     if (args.funnel) {
       const flt = await funnelCampaignFilter(ctx, args.funnel)
       allowedCampaignIds = flt.allowedCampaignIds
       allowedCampaignNames = flt.allowedCampaignNames
       funnelDaily = flt.funnelDaily
+      funnelDates = flt.funnelDates
     }
 
     const conn = await ctx.db.query("meta_connection")
@@ -255,7 +262,11 @@ export const dashboard = query({
     // Le départ projet borne la vue PAR DÉFAUT (comme iClosed) : il n'a jamais eu
     // vocation à masquer une période que l'utilisateur choisit lui-même au
     // calendrier. Dès qu'un `from` explicite arrive, on montre l'historique réel.
-    const floor = args.from ?? PROJECT_START_DATE
+    // ⚠️ Le plancher borne la vue PAR DÉFAUT seulement. Il ne doit jamais couper
+    // la période PRÉCÉDENTE (qui est, par construction, avant `from`) : sinon les
+    // variations « vs période précédente » sont toujours vides dès qu'on choisit
+    // une période au calendrier (audit tribunal 2026-08-02).
+    const floor = args.from ? "0000-00-00" : PROJECT_START_DATE
     // Vue parcours : les totaux journaliers du parcours remplacent le total compte.
     const dailyAll = (funnelDaily ?? (await ctx.db.query("meta_daily")
       .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()))
@@ -306,6 +317,9 @@ export const dashboard = query({
         // par nom de campagne aux niveaux adset/publicité).
         .filter(r => !allowedCampaignIds
           || (level === "campaign" ? allowedCampaignIds.has(r.objectId) : allowedCampaignNames!.has(r.campaign ?? "")))
+        // Vue parcours : mêmes JOURS que les KPI (niveau campagne), pour que le
+        // détail ne dépasse jamais le total affiché juste au-dessus.
+        .filter(r => !funnelDates || funnelDates.has(r.date))
       const byId = new Map<string, { id: string; name: string; campaign: string | null; adset: string | null; spend: number; impressions: number; clicks: number; leads: number }>()
       for (const r of rows) {
         const g = byId.get(r.objectId) ?? { id: r.objectId, name: r.name, campaign: r.campaign ?? null, adset: r.adset ?? null, spend: 0, impressions: 0, clicks: 0, leads: 0 }
@@ -353,7 +367,10 @@ export const dashboard = query({
 })
 
 // Seed démo (jusqu'à la connexion API Meta). Branché sur le bouton "Sync Meta".
-export const seedDashboard = mutation({
+// ⚠️ INTERNE (audit tribunal 2026-08-02) : cette mutation injecte des données
+// FICTIVES dans meta_daily. Publique, n'importe qui pouvait fabriquer les KPI
+// du Media Buying. Réservée aux appels serveur.
+export const seedDashboard = internalMutation({
   args: {},
   handler: async (ctx) => {
     const now = new Date()

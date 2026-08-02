@@ -6,6 +6,7 @@ import { WORKSPACE } from "./osLib"
 const DEFAULTS = {
   leadsR1: 50, leadsR2: 25, tauxShow: 75, tauxShowR2: 75, tauxClose: 30, ca: 30000, roi: 5, coutParVente: 500,
   ventes: 30, cashContracte: 30000, panierMoyen: 2000, tauxReponse: 30, cpl: 30,
+  tauxContact: 30, convDmR1: 20,
 }
 
 export const get = query({
@@ -31,6 +32,8 @@ export const get = query({
       tauxShowR2:    doc?.tauxShowR2    ?? DEFAULTS.tauxShowR2,
       tauxClose:     doc?.tauxClose     ?? DEFAULTS.tauxClose,
       tauxReponse:   doc?.tauxReponse   ?? DEFAULTS.tauxReponse,
+      tauxContact:   doc?.tauxContact   ?? DEFAULTS.tauxContact,
+      convDmR1:      doc?.convDmR1      ?? DEFAULTS.convDmR1,
       cpl:           doc?.cpl           ?? DEFAULTS.cpl,
       ca:            base?.ca           ?? doc?.ca ?? DEFAULTS.ca,
       roi:           doc?.roi           ?? DEFAULTS.roi,
@@ -53,6 +56,8 @@ export const set = mutation({
     tauxShowR2:    v.optional(v.number()),
     tauxClose:     v.optional(v.number()),
     tauxReponse:   v.optional(v.number()),
+    tauxContact:   v.optional(v.number()),
+    convDmR1:      v.optional(v.number()),
     cpl:           v.optional(v.number()),
     ca:            v.optional(v.number()),
     roi:           v.optional(v.number()),
@@ -85,7 +90,10 @@ export const set = mutation({
     if (existing) await ctx.db.patch(existing._id, patch)
     else {
       const base = rows.find((r) => !r.funnel)
-      const { _id, _creationTime, ...baseFields } = base ?? ({} as Record<string, unknown>)
+      // `ca` est GLOBAL : on ne le recopie jamais sur une ligne de parcours,
+      // sinon une valeur fantôme y dort et ressort au moindre changement de
+      // lecture (audit tribunal 2026-08-02 : 50000/120000 traînaient encore).
+      const { _id, _creationTime, ca: _ca, ...baseFields } = base ?? ({} as Record<string, unknown>)
       await ctx.db.insert("prospection_objectives", { ...baseFields, workspaceId: WORKSPACE, ...patch })
     }
     return { ok: true }

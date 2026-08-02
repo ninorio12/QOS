@@ -255,7 +255,7 @@ http.route({
   method: "GET",
   handler: httpAction(async (ctx, request) => {
     const vf = new URL(request.url).searchParams.get("vf") ?? ""
-    const row = vf ? await ctx.runQuery(api.leadIngest.journey, { token: vf }) : null
+    const row = vf ? await ctx.runQuery(internal.leadIngest.journey, { token: vf }) : null
     const body = row
       ? { found: true, nom: row.name ?? null, email: row.email ?? null, tel: row.phone ?? null }
       : { found: false }

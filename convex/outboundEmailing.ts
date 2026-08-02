@@ -23,9 +23,17 @@ export const summary = query({
     const aCorriger = rows.filter(r => r.etape === "a_corriger").length
     const rejetes   = rows.filter(r => r.etape === "rejete").length
 
-    // RDV R1 issus de l'outbound (pipeline)
+    // RDV R1 issus de l'outbound : leads outbound ayant RÉELLEMENT atteint R1,
+    // bornés à la période comme le reste de la carte. Avant, ce champ comptait
+    // TOUS les leads outbound tous stades et hors période : il annonçait 153 RDV
+    // pour 1 réel (audit tribunal 2026-08-02).
+    const R1_STAGES = new Set(["r1", "r2", "gagne", "closing"])
     const leads = await ctx.db.query("crm_leads").collect()
-    const r1 = leads.filter(l => l.source === "outbound").length
+    const r1 = leads.filter((l) =>
+      l.source === "outbound"
+      && R1_STAGES.has(String(l.stageId ?? "").toLowerCase())
+      && (() => { const d = String(l.createdAt ?? "").slice(0, 10); return d >= from && d <= to })()
+    ).length
 
     const tauxValideEnvoi = validated > 0 ? Math.round((envois / validated) * 100) : 0
     const tauxReponse = envois > 0 ? Math.round((reponses / envois) * 100) : 0   // réponses ÷ emails envoyés

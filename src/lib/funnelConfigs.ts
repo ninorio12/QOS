@@ -37,7 +37,7 @@ export type Step = { key: StepKey; label: string; icon: 'users' | 'message' | 'c
  *  `card: false` : le taux n'apparaît QUE sur la flèche de l'entonnoir, pas en
  *  carte (évite la marée de cards sur les parcours à entonnoir long). */
 export type Rate = { label: string; from: StepKey; to: StepKey; obj: ObjKey; info?: string; card?: boolean }
-export type ObjKey = 'leadsR1' | 'tauxShow' | 'leadsR2' | 'tauxShowR2' | 'tauxClose' | 'tauxReponse' | 'cpl' | 'ca' | 'coutParVente' | 'ventes' | 'panierMoyen'
+export type ObjKey = 'leadsR1' | 'tauxContact' | 'convDmR1' | 'tauxShow' | 'leadsR2' | 'tauxShowR2' | 'tauxClose' | 'tauxReponse' | 'cpl' | 'ca' | 'coutParVente' | 'ventes' | 'panierMoyen'
 export type RoleRow = { label: string; key: string }
 
 export type FunnelConfig = {
@@ -174,12 +174,15 @@ const SOCIAL: FunnelConfig = {
   // (abonné→DM, conversation→call, show R2) restent sur les flèches de
   // l'entonnoir mais ne prennent plus une carte chacun.
   rates: [
-    { label: 'Abonné → DM', from: 'abonnes', to: 'contactes', obj: 'leadsR1', card: false },
+    // Chaque taux compare à SON objectif : partager leadsR1 faisait juger
+    // « Abonné → DM » et « Conversation → Call » sur le même seuil, donc un
+    // faux rouge sur l'un des deux (audit tribunal 2026-08-02).
+    { label: 'Abonné → DM', from: 'abonnes', to: 'contactes', obj: 'tauxContact', card: false },
     { label: 'DM → Conversation', from: 'contactes', to: 'reponses', obj: 'tauxReponse' },
     { label: 'Conversation → Call', from: 'reponses', to: 'r1', obj: 'leadsR1', card: false },
     // Vision d'ensemble du setting : du DM ouvert jusqu'au call. Pas liée à une
     // étape (l'entonnoir passe déjà par Conversations), carte seule.
-    { label: 'Conversion DM → R1', from: 'contactes', to: 'r1', obj: 'leadsR1' },
+    { label: 'Conversion DM → R1', from: 'contactes', to: 'r1', obj: 'convDmR1' },
     { label: 'Taux de show R1', from: 'r1', to: 'showsR1', obj: 'tauxShow' },
     { label: 'Taux conversion R1 → R2', from: 'showsR1', to: 'r2', obj: 'leadsR2' },
     { label: 'Taux de show R2', from: 'r2', to: 'showsR2', obj: 'tauxShowR2', card: false },
@@ -210,8 +213,10 @@ const SOCIAL: FunnelConfig = {
     ] },
   },
   objectives: [
+    { key: 'tauxContact', label: 'Abonné → DM', unit: '%' },
     { key: 'tauxReponse', label: 'DM → Conversation', unit: '%' },
     { key: 'leadsR1', label: 'Conversation → Call', unit: '%' },
+    { key: 'convDmR1', label: 'Conversion DM → R1', unit: '%' },
     { key: 'tauxShow', label: 'Taux de show R1', unit: '%' },
     { key: 'leadsR2', label: 'R1 → R2', unit: '%' },
     { key: 'tauxShowR2', label: 'Taux de show R2', unit: '%' },

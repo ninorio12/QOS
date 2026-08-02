@@ -256,6 +256,11 @@ export const createBooking = mutation({
 
 // Étape 1 du flow public : fiche soumise → contact + lead + trace de capture.
 // Si le prospect abandonne au calendrier, tout est déjà dans le Data OS.
+// Parcours ACCEPTÉS sur le lien public : une valeur libre créerait un contact
+// étiqueté d'un parcours inexistant, invisible dans tous les onglets et pourtant
+// compté dans le global (audit tribunal 2026-08-02).
+const BOOKING_FUNNELS = new Set(["vsl", "quiz", "linkedin", "instagram", "emailing"])
+
 export const capture = mutation({
   args: {
     slug: v.string(),
@@ -284,6 +289,12 @@ export const capture = mutation({
     const link = await ctx.db.query("booking_links").withIndex("by_slug", q => q.eq("slug", a.slug)).first()
     if (!link || !link.active) throw new Error("Lien introuvable ou inactif")
 
+    // Étiquette de parcours : seules les valeurs connues sont posées. Une valeur
+    // libre venue de l'URL créerait un contact rangé dans un parcours qui
+    // n'existe pas : invisible dans tous les onglets, compté dans le global.
+    const rawFunnel = (a.funnel ?? "").trim().toLowerCase()
+    const normalizedFunnel = BOOKING_FUNNELS.has(rawFunnel) ? rawFunnel : null
+
     const email = a.email.trim().toLowerCase()
     // Contact (dédup) + lead + carte Prospection — chemins canoniques.
     const dupId = await findDuplicateContact(ctx, { email, phone: a.phone })
@@ -296,7 +307,7 @@ export const capture = mutation({
       contactId = await ctx.db.insert("crm_contacts", {
         firstName: a.firstName, lastName: a.lastName, email, phone: a.phone,
         source: "inbound", statut: "lead", leadStatus: "active", temperature: "tiede",
-        tags: a.funnel ? [`funnel:${a.funnel}`] : [], createdAt: now(),
+        tags: normalizedFunnel ? [`funnel:${normalizedFunnel}`] : [], createdAt: now(),
       })
     }
     const linked = await linkInternal(ctx, contactId, { channel: "booking", temperature: "tiede", by: "booking" })

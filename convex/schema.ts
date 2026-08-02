@@ -722,6 +722,8 @@ export default defineSchema({
     tauxShowR2:    v.optional(v.number()),  // % taux de show R2
     tauxClose:     v.optional(v.number()),  // % taux de close
     tauxReponse:   v.optional(v.number()),  // % taux de réponse (outbound)
+    tauxContact:   v.optional(v.number()),  // % abonné → DM (parcours Profil)
+    convDmR1:      v.optional(v.number()),  // % DM → R1 (parcours Profil)
     cpl:           v.optional(v.number()),  // CHF — cible CPL Meta
     ca:            v.optional(v.number()),  // € chiffre d'affaires
     roi:           v.optional(v.number()),  // × ROI (retiré du cockpit, gardé pour l'historique)

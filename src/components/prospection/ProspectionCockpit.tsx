@@ -126,7 +126,13 @@ export default function ProspectionCockpit() {
 
   // Configuration du parcours : le squelette ne change pas, seuls les noms suivent.
   const searchParams = useSearchParams()
-  const [cfgId, setCfgId] = useState(() => searchParams?.get('funnel') ?? 'vsl')
+  // Un ?funnel= inconnu (faute de frappe, vieux lien) retombe explicitement sur
+  // le VSL : sinon l'écran affichait l'onglet VSL avec les données GLOBALES
+  // toutes cohortes confondues (audit tribunal 2026-08-02).
+  const [cfgId, setCfgId] = useState(() => {
+    const q = searchParams?.get('funnel')
+    return q && FUNNEL_CONFIGS.some((c) => c.id === q) ? q : 'vsl'
+  })
   const cfg = configById(cfgId)
   const pickConfig = (id: string) => {
     setCfgId(id)
@@ -181,7 +187,7 @@ export default function ProspectionCockpit() {
   const pubEmpty   = (scorecards?.publicite?.score ?? null) === null
   const setEmpty   = (scorecards?.setters?.score ?? null) === null
   const closeEmpty = (scorecards?.closers?.score ?? null) === null
-  const o = obj ?? { leadsR1: 50, leadsR2: 25, tauxShow: 75, tauxShowR2: 75, tauxClose: 30, tauxReponse: 30, cpl: 30, ca: 30000, roi: 5, coutParVente: 500, ventes: 30, cashContracte: 30000, panierMoyen: 2000 }
+  const o = obj ?? { leadsR1: 50, tauxContact: 30, convDmR1: 20, leadsR2: 25, tauxShow: 75, tauxShowR2: 75, tauxClose: 30, tauxReponse: 30, cpl: 30, ca: 30000, roi: 5, coutParVente: 500, ventes: 30, cashContracte: 30000, panierMoyen: 2000 }
   const f = funnel ?? { leadsATraiter: 0, leadsTotal: 0, leadsInbound: 0, leadsOutbound: 0, r1Booked: 0, noShows: 0, shows: 0, ventes: 0, tauxLeadsR1: 0, tauxShow: 0, tauxClose: 0, r2Booked: 0, showsR1: 0, showsR2: 0, noShowsR1: 0, noShowsR2: 0, tauxShowR1: 0, tauxShowR2: 0, tauxR1R2: 0, tauxLeadsR2: 0, tauxR1ToR2: 0, encaisse: 0, rdvDirects: null }
   const ptsGap = (val: number, target: number) => `${val >= target ? '▲' : '▼'} ${pct1(Math.abs(val - target))}%`
   const pctGap = (val: number, target: number) => `${val >= target ? '▲' : '▼'} ${target > 0 ? Math.round(val / target * 100) : 0}%`
@@ -315,7 +321,7 @@ export default function ProspectionCockpit() {
                 const w = 100 - i * (58 / Math.max(1, cfg.steps.length - 1))
                 return (
                   <div key={st.key} className="w-full flex flex-col items-center">
-                    {rate && <FunnelConv pct={val ?? 0} note={rate.label} ok={(val ?? 0) >= target} />}
+                    {rate && <FunnelConv pct={val} note={rate.label} ok={(val ?? 0) >= target} />}
                     <FunnelStep
                       Icon={STEP_ICONS[st.icon]} label={st.label}
                       val={D[st.key] ?? 0} w={w}
@@ -573,7 +579,12 @@ function FunnelStep({ Icon, label, val, w, color, sub, subTitle }: { Icon: Lucid
     </div>
   )
 }
-function FunnelConv({ pct, note, ok }: { pct: number; note: string; ok: boolean }) {
+function FunnelConv({ pct, note, ok }: { pct: number | null; note: string; ok: boolean }) {
+  // Étape sans source (abonnés non connectés…) : N/A gris, jamais « 0,0% » rouge
+  // qui ferait croire à une contre-performance (audit tribunal 2026-08-02).
+  if (pct == null) {
+    return <div className="flex items-center gap-1.5 py-0.5"><span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-soren-subtle bg-soren-elevated">N/A</span><span className="text-[10px] text-soren-subtle">{note}</span></div>
+  }
   const c = ok ? '#059669' : '#D97706'
   return <div className="flex items-center gap-1.5 py-0.5"><span style={{ color: c, fontSize: 10 }}>{ok ? '▲' : '▼'}</span><span className="text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-full" style={{ color: c, background: c + '14' }}>{pct1(pct)}%</span><span className="text-[10px] text-soren-subtle">{note}</span></div>
 }
@@ -604,7 +615,7 @@ function FinCard({ label, Icon, color, value, obj, ok, gap, unit }: { label: str
   )
 }
 
-type Obj = { leadsR1: number; leadsR2: number; tauxShow: number; tauxShowR2: number; tauxClose: number; tauxReponse: number; cpl: number; ca: number; roi: number; coutParVente: number; ventes: number; cashContracte: number; panierMoyen: number }
+type Obj = { leadsR1: number; tauxContact: number; convDmR1: number; leadsR2: number; tauxShow: number; tauxShowR2: number; tauxClose: number; tauxReponse: number; cpl: number; ca: number; roi: number; coutParVente: number; ventes: number; cashContracte: number; panierMoyen: number }
 function ObjModal({ obj, cfg, onClose, onSave }: { obj: Obj; cfg: FunnelConfig; onClose: () => void; onSave: (v: Partial<Obj>) => void }) {
   const [v, setV] = useState<Obj>(obj)
   const field = (key: keyof Obj, label: string, unit: string) => (

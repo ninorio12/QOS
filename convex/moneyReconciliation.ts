@@ -68,6 +68,8 @@ export function reconcileMoney(opts: {
 
   // Encaissé externe (Revolut / virement / manuel) par contact, EN CHF : déduit du « à collecter » dans LES DEUX modes.
   const externalByContact = new Map<string, number>()
+  // Ce que les échéances manuelles ont déjà compté comme encaissé, par contact.
+  const manualPaidByContact = new Map<string, number>()
   for (const p of externalPayments) { const k = p.contactId?.toString(); if (k) externalByContact.set(k, (externalByContact.get(k) ?? 0) + chf(p.amount ?? 0, p.currency)) }
 
   if (stripeMode) {
@@ -146,6 +148,11 @@ export function reconcileMoney(opts: {
       }
     }
   } else {
+    // Mode NON-Stripe : l'encaissé vient de DEUX sources qui décrivent souvent le
+    // MÊME argent (une échéance cochée reçue + le virement correspondant ingéré).
+    // On mémorise ce que les échéances ont déjà compté par contact, pour ne
+    // compter ensuite que l'EXCÉDENT des virements externes (audit tribunal
+    // 2026-08-02 : sans ça, un virement saisi ET coché comptait deux fois).
     for (const ob of obs) {
       const { name, company } = nameOf(ob.contactId)
       const client = clientByContact.get(ob.contactId)
@@ -157,7 +164,7 @@ export function reconcileMoney(opts: {
         const isPaid = paid[i] === true
         const pdate = dates[i] || ''
         if (isPaid) {
-          if (pdate && inWinDate(pdate)) { encaisse += amt; transactions.push({ contactId: ob.contactId, client: name, company, label: amounts.length > 1 ? `Échéance ${i + 1}/${amounts.length}` : 'Paiement', amount: amt, date: pdate, type: 'payment', status: 'encaissé' }) }
+          if (pdate && inWinDate(pdate)) { encaisse += amt; manualPaidByContact.set(ob.contactId, (manualPaidByContact.get(ob.contactId) ?? 0) + amt); transactions.push({ contactId: ob.contactId, client: name, company, label: amounts.length > 1 ? `Échéance ${i + 1}/${amounts.length}` : 'Paiement', amount: amt, date: pdate, type: 'payment', status: 'encaissé' }) }
         } else {
           unpaid += amt
         }
@@ -184,12 +191,19 @@ export function reconcileMoney(opts: {
     }
   }
   // Paiements externes (Revolut Pro / virements / saisie manuelle) : encaissés, comptés quel que soit stripeMode.
+  // Anti-double-comptage : si l'échéance du même contact a DÉJÀ été cochée reçue
+  // dans la fenêtre, ce virement décrit le même argent ; on n'ajoute que l'excédent.
   for (const p of externalPayments) {
     const date = String(p.date || p.created || '').slice(0, 10)
     if (!inWinDate(date)) continue
     const cid = p.contactId?.toString() ?? ''
     const nm = cid ? nameOf(cid) : { name: p.counterparty || 'Virement', company: '' }
-    const amt = chf(p.amount ?? 0, p.currency)
+    const amtRaw = chf(p.amount ?? 0, p.currency)
+    const alreadyManual = cid ? (manualPaidByContact.get(cid) ?? 0) : 0
+    const absorbed = Math.min(alreadyManual, amtRaw)
+    if (cid && absorbed > 0) manualPaidByContact.set(cid, alreadyManual - absorbed)
+    const amt = amtRaw - absorbed
+    if (amt <= 0) continue
     encaisse += amt
     transactions.push({
       contactId: cid, client: nm.name || p.counterparty || 'Virement', company: nm.company,

@@ -45,10 +45,15 @@ export const refresh = internalAction({
   },
 })
 
-/** Rafraîchissement manuel (bouton / debug). */
+/** Rafraîchissement manuel (bouton / debug). Réservé aux admins : chaque appel
+ *  brûle des quotas Meta/Nango avec NOS tokens (audit tribunal 2026-08-02). */
 export const refreshNow = action({
   args: {},
-  handler: async (ctx): Promise<unknown> => await ctx.runAction(internal.socialProfile.refresh, {}),
+  handler: async (ctx): Promise<unknown> => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error("Authentification requise")
+    return await ctx.runAction(internal.socialProfile.refresh, {})
+  },
 })
 
 async function linkedinInfo() {

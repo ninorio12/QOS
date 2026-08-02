@@ -5,7 +5,7 @@
 // lead, on pose l'étiquette d'origine, et on ouvre un PARCOURS identifié par un
 // jeton court. Ce jeton voyage ensuite dans les liens : quiz, rendez-vous, quiz
 // de fin. Quand un outil externe ne nous le renvoie pas, l'email sert de filet.
-import { action, internalMutation, mutation, query } from "./_generated/server"
+import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server"
 import { internal } from "./_generated/api"
 import { v } from "convex/values"
 import { WORKSPACE } from "./osLib"
@@ -259,8 +259,12 @@ export const markStep = internalMutation({
   },
 })
 
-/** Parcours d'un lead, pour l'afficher sur sa fiche. */
-export const journey = query({
+/** Parcours d'un lead, pour l'afficher sur sa fiche.
+ *  ⚠️ INTERNE (audit tribunal 2026-08-02) : cette query rend la ligne ENTIÈRE
+ *  (téléphone, réponses brutes du formulaire, jeton). Publique, elle fuitait
+ *  toute la fiche à qui connaissait l'email. Réservée au serveur ; l'écran
+ *  passe par la fiche contact authentifiée, la page publique par /journey/lead. */
+export const journey = internalQuery({
   args: { token: v.optional(v.string()), email: v.optional(v.string()), leadId: v.optional(v.string()) },
   handler: async (ctx, a) => {
     if (a.token) return await ctx.db.query("os_lead_journey").withIndex("by_token", (q) => q.eq("token", a.token!)).first()
