@@ -25,3 +25,23 @@ export const markPastR1 = internalMutation({
     return { ok: true }
   },
 })
+
+/**
+ * Même reprise d'historique pour un R2 TENU avant le Data OS : on enregistre
+ * l'appel comme fait, ce qui le compte à la fois en « R2 bookés » et en
+ * « Shows en R2 » (décision Jonathan 2026-08-02 pour Gallo et Rafaela).
+ */
+export const markPastR2 = internalMutation({
+  args: { contactId: v.string(), date: v.string(), title: v.string() },
+  handler: async (ctx, a) => {
+    const existing = (await ctx.db.query("os_sales_calls").withIndex("by_workspace", (q) => q.eq("workspaceId", WORKSPACE)).collect())
+      .find((c) => String(c.contactId) === a.contactId && c.stage === "R2")
+    if (existing) return { ok: false, reason: "un R2 existe déjà" }
+    await ctx.db.insert("os_sales_calls", {
+      workspaceId: WORKSPACE, title: a.title, contactId: a.contactId,
+      stage: "R2", status: "done", date: new Date(a.date + "T10:00:00.000Z").toISOString(),
+      createdBy: "reprise-historique", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    })
+    return { ok: true }
+  },
+})
