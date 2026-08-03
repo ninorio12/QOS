@@ -749,6 +749,15 @@ export default defineSchema({
     followersCount:  v.optional(v.number()),
     gained7:         v.optional(v.number()),  // abonnés gagnés sur 7 jours
     gained30:        v.optional(v.number()),  // abonnés gagnés sur 30 jours (fenêtre max Meta)
+    // Messagerie LinkedIn (snapshot DMA INBOX) : conversations où IL a écrit
+    // (DMs envoyés) et conversations à double sens (vraies conversations).
+    dmSent7:         v.optional(v.number()),
+    dmSent30:        v.optional(v.number()),
+    dmSentAll:       v.optional(v.number()),
+    conv7:           v.optional(v.number()),
+    conv30:          v.optional(v.number()),
+    convAll:         v.optional(v.number()),
+    inboxFetchedAt:  v.optional(v.number()),
     error:           v.optional(v.string()),
     updatedAt:       v.string(),
   }).index("by_ws_platform", ["workspaceId", "platform"]),

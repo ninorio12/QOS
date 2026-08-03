@@ -1,7 +1,7 @@
 "use node"
 import { v } from "convex/values"
 import { action, internalAction } from "./_generated/server"
-import { internal } from "./_generated/api"
+import { api, internal } from "./_generated/api"
 
 /**
  * Rafraîchissement des profils sociaux du parcours « Profil ».
@@ -28,7 +28,9 @@ export const refresh = internalAction({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let data: any
       try {
-        data = platform === "instagram" ? await instagramInfo() : await linkedinInfo()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const prev: any = await ctx.runQuery(api.socialProfileCache.get, { platform })
+        data = platform === "instagram" ? await instagramInfo() : await linkedinInfo(prev)
       } catch (e) {
         data = { connected: false, error: String(e).slice(0, 160) }
       }
@@ -56,7 +58,8 @@ export const refreshNow = action({
   },
 })
 
-async function linkedinInfo() {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function linkedinInfo(prev?: any) {
   const key = process.env.NANGO_SECRET_KEY
   const connId = process.env.LINKEDIN_NANGO_CONNECTION_ID
   if (!key || !connId) return { connected: false }
@@ -75,7 +78,81 @@ async function linkedinInfo() {
     // désactivée côté LinkedIn). Dès que Jonathan a autorisé linkedin-3p,
     // le snapshot CONNECTIONS donne le compte exact ; avant : absent (N/A).
     followersCount: await linkedinConnectionsCount(key),
+    ...(await linkedinInboxStats(key, prev)),
   }
+}
+
+/**
+ * Messagerie LinkedIn via le snapshot DMA INBOX (historique complet, ~1 ligne
+ * par message : date, expéditeur, conversation). On en tire :
+ *  - dmSent* : conversations où JONATHAN a écrit dans la fenêtre (DMs envoyés)
+ *  - conv*   : conversations à DOUBLE sens dans la fenêtre (vraies conversations)
+ * Le snapshot pèse ~20 pages : on ne le relit qu'une fois par 20 h (rate limits DMA).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function linkedinInboxStats(nangoKey: string, prev?: any) {
+  const keep = {
+    dmSent7: prev?.dmSent7, dmSent30: prev?.dmSent30, dmSentAll: prev?.dmSentAll,
+    conv7: prev?.conv7, conv30: prev?.conv30, convAll: prev?.convAll,
+    inboxFetchedAt: prev?.inboxFetchedAt,
+  }
+  if (prev?.inboxFetchedAt && Date.now() - prev.inboxFetchedAt < 20 * 3600_000) return keep
+  const endUser = process.env.LINKEDIN_3P_ENDUSER
+  if (!endUser) return keep
+  try {
+    const lc = await fetch(`https://api.nango.dev/connections?endUserId=${encodeURIComponent(endUser)}`, { headers: { Authorization: `Bearer ${nangoKey}` } })
+    if (!lc.ok) return keep
+    const lj = (await lc.json()) as { connections?: { connection_id: string; provider_config_key: string }[] }
+    const c3p = (lj.connections ?? []).find((c) => c.provider_config_key === "linkedin-3p")
+    if (!c3p) return keep
+    const cr = await fetch(`https://api.nango.dev/connection/${c3p.connection_id}?provider_config_key=linkedin-3p`, { headers: { Authorization: `Bearer ${nangoKey}` } })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const token = ((await cr.json()) as any)?.credentials?.access_token
+    if (!token) return keep
+
+    const ME = "/in/jonathan-zekhe"
+    type Msg = { conv: string; ts: number; mine: boolean }
+    const msgs: Msg[] = []
+    let start = 0
+    for (let page = 0; page < 30; page++) {
+      const sr = await fetch(`https://api.linkedin.com/rest/memberSnapshotData?q=criteria&domain=INBOX&start=${start}`, {
+        headers: { Authorization: `Bearer ${token}`, "LinkedIn-Version": "202312", "X-Restli-Protocol-Version": "2.0.0" },
+      })
+      if (!sr.ok) break
+      const sj = (await sr.json()) as { elements?: { snapshotData?: Record<string, string>[] }[]; paging?: { total?: number } }
+      const els = sj.elements ?? []
+      let rows = 0
+      for (const el of els) {
+        for (const r of el.snapshotData ?? []) {
+          rows++
+          const conv = r["CONVERSATION ID"] ?? ""
+          const ts = Date.parse((r["DATE"] ?? "").replace(" UTC", "Z").replace(" ", "T"))
+          if (!conv || Number.isNaN(ts)) continue
+          msgs.push({ conv, ts, mine: (r["SENDER PROFILE URL"] ?? "").includes(ME) })
+        }
+      }
+      if (rows === 0) break
+      start += els.length
+      if (typeof sj.paging?.total === "number" && start >= sj.paging.total) break
+    }
+    const windowStats = (days: number | null) => {
+      const since = days == null ? 0 : Date.now() - days * 86400_000
+      const sent = new Set<string>()
+      const fromMe = new Set<string>(), fromThem = new Set<string>()
+      for (const m of msgs) {
+        if (m.ts < since) continue
+        if (m.mine) { sent.add(m.conv); fromMe.add(m.conv) } else fromThem.add(m.conv)
+      }
+      const conv = [...fromMe].filter((c) => fromThem.has(c)).length
+      return { sent: sent.size, conv }
+    }
+    const w7 = windowStats(7), w30 = windowStats(30), wa = windowStats(null)
+    return {
+      dmSent7: w7.sent, dmSent30: w30.sent, dmSentAll: wa.sent,
+      conv7: w7.conv, conv30: w30.conv, convAll: wa.conv,
+      inboxFetchedAt: Date.now(),
+    }
+  } catch { return keep }
 }
 
 /**

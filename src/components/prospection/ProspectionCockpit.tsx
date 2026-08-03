@@ -201,10 +201,19 @@ export default function ProspectionCockpit() {
   // Toutes les valeurs du parcours à plat : les étapes, les taux et les cartes
   // de rôles y puisent. `abonnes` reste null tant que personne ne l'enregistre :
   // le cockpit affiche N/A plutôt qu'un nombre emprunté à une autre étape.
+  // Parcours Profil : DMs envoyés et Conversations viennent de la MESSAGERIE
+  // (LinkedIn : snapshot DMA ; Instagram : à venir via Zernio), pas des
+  // événements de prospection. Fenêtres alignées sur le préréglage.
+  const socialDm = cfg.family === 'social'
+    ? (preset === '7j' ? social?.dmSent7 : preset === '30j' ? social?.dmSent30 : social?.dmSentAll) ?? null
+    : null
+  const socialConv = cfg.family === 'social'
+    ? (preset === '7j' ? social?.conv7 : preset === '30j' ? social?.conv30 : social?.convAll) ?? null
+    : null
   const D: Record<string, number | null> = {
     leads: leadsATraiterTotal,
-    contactes: summary?.contactes ?? 0,
-    reponses: summary?.reponses ?? 0,
+    contactes: cfg.family === 'social' ? socialDm : (summary?.contactes ?? 0),
+    reponses: cfg.family === 'social' ? socialConv : (summary?.reponses ?? 0),
     r1: f.r1Booked, showsR1: f.showsR1, noShowsR1: f.noShowsR1,
     r2: f.r2Booked, showsR2: f.showsR2, noShowsR2: f.noShowsR2,
     ventes: f.ventes,
@@ -488,7 +497,7 @@ function TeamCard({ name, color, card }: { name: string; color: string; card?: T
 }
 // Compte social du parcours Profil : photo, nom, @, abonnés (comme Brvndlab
 // Analytics). Non connecté : invite à connecter, aucun chiffre inventé.
-type SocialInfo = { connected: boolean; platform: string; username?: string | null; displayName?: string | null; profilePicture?: string | null; profileUrl?: string | null; followersCount?: number | null; gained7?: number | null; gained30?: number | null }
+type SocialInfo = { connected: boolean; platform: string; username?: string | null; displayName?: string | null; profilePicture?: string | null; profileUrl?: string | null; followersCount?: number | null; gained7?: number | null; gained30?: number | null; dmSent7?: number | null; dmSent30?: number | null; dmSentAll?: number | null; conv7?: number | null; conv30?: number | null; convAll?: number | null }
 function SocialConnectCard({ info, label, brand }: { info: SocialInfo | null; label: string; brand?: 'linkedin' | 'instagram' }) {
   const path = brand ? BRAND_PATHS[brand] : null
   if (!info || !info.connected) {

@@ -66,6 +66,13 @@ export const upsert = internalMutation({
     followersCount: v.optional(v.number()),
     gained7: v.optional(v.number()),
     gained30: v.optional(v.number()),
+    dmSent7: v.optional(v.number()),
+    dmSent30: v.optional(v.number()),
+    dmSentAll: v.optional(v.number()),
+    conv7: v.optional(v.number()),
+    conv30: v.optional(v.number()),
+    convAll: v.optional(v.number()),
+    inboxFetchedAt: v.optional(v.number()),
     error: v.optional(v.string()),
   },
   handler: async (ctx, a) => {
