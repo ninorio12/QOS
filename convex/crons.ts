@@ -8,6 +8,11 @@ crons.interval("meta insights sync", { hours: 1 }, api.zernioAds.syncDaily, { da
 
 // Synchronisation horaire des créas Meta (visuels + KPI) → alimente le board live
 // de décision (media_buyer_board) et la galerie de créas. No-op si non connecté.
+// Statuts de diffusion (campagnes, adsets, publicités) : 3 appels sans aucune
+// métrique, donc assez léger pour tourner au quart d'heure. C'est ce qui garantit
+// qu'une pub coupée à 14h05 est marquée arrêtée sur le board à 14h15.
+crons.interval("meta statuts sync", { minutes: 15 }, api.metaAds.syncStatuses, {})
+
 // La limite compte : à 25 publicités, le compte VividFlow (100+) ne renvoyait
 // jamais les dernières créées, dont les nouvelles générations de créas — leur
 // statut restait figé à celui de leur mise en ligne.

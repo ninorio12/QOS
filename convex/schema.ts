@@ -1241,6 +1241,23 @@ export default defineSchema({
     .index("by_workspace",      ["workspaceId"])
     .index("by_ws_level_date",  ["workspaceId", "level", "date"]),
 
+  // Statut de diffusion de CHAQUE objet Meta (campagne, adset, publicité), lu
+  // directement chez Meta toutes les 15 minutes. Table à part des métriques :
+  // un objet garde un statut même sans une seule journée de diffusion, et le
+  // board n'a jamais à DÉDUIRE d'une dépense nulle qu'une pub est coupée.
+  meta_objects: defineTable({
+    workspaceId: v.string(),
+    level:       v.string(),               // 'campaign' | 'adset' | 'creative' (= ad côté Meta)
+    objectId:    v.string(),
+    name:        v.string(),
+    statut:      v.string(),               // statut EFFECTIF (les étages du dessus comptent)
+    statutBrut:  v.optional(v.string()),   // effective_status renvoyé par Meta pour l'objet lui-même
+    parentId:    v.optional(v.string()),   // adset → campagne, publicité → adset
+    syncedAt:    v.string(),
+  })
+    .index("by_workspace",   ["workspaceId"])
+    .index("by_ws_object",   ["workspaceId", "objectId"]),
+
   // Créas Meta synchronisées AVEC leurs visuels (photo + vidéo) — accessibles depuis le Data OS,
   // analysables par l'agent Media Buyer (vision). 1 ligne / annonce (adId).
   // ── Cockpit Media Buyer : décisions homme + agent ─────────────────────────

@@ -266,3 +266,123 @@ export const syncCreatives = action({
     return { connected: true, synced, account: res.account }
   },
 })
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * STATUTS DE DIFFUSION — campagnes, adsets, publicités
+ *
+ * Table meta_objects, alimentée par une lecture directe des trois edges Meta.
+ * Trois principes, nés des pièges rencontrés le 05/08/2026 :
+ *
+ *   1. On LIT le statut, on ne le déduit jamais. Une dépense nulle ne prouve
+ *      pas qu'une pub est coupée (budget épuisé, adset en apprentissage), et un
+ *      objet sans aucune journée de diffusion n'a pas à passer pour arrêté.
+ *   2. On demande explicitement TOUS les statuts : les edges Meta masquent les
+ *      objets archivés par défaut, et un objet qui disparaît de la synchro
+ *      garde éternellement son dernier statut connu.
+ *   3. Le statut effectif descend : une campagne en pause arrête ses adsets et
+ *      ses pubs, même si Meta les laisse à ACTIVE en propre.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+const TOUS_STATUTS = JSON.stringify([{
+  field: "effective_status", operator: "IN",
+  value: ["ACTIVE", "PAUSED", "ADSET_PAUSED", "CAMPAIGN_PAUSED", "ARCHIVED", "DELETED", "IN_PROCESS", "WITH_ISSUES", "PENDING_REVIEW", "DISAPPROVED", "PREAPPROVED", "PENDING_BILLING_INFO"],
+}])
+
+/** Une page d'un edge Meta, tous statuts confondus. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function lireEdge(act: string, token: string, edge: string, fields: string): Promise<any[]> {
+  let url: string | null = `${GRAPH}/${META_API_VERSION}/${act}/${edge}`
+    + `?fields=${encodeURIComponent(fields)}&filtering=${encodeURIComponent(TOUS_STATUTS)}`
+    + `&limit=200&access_token=${encodeURIComponent(token)}`
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const out: any[] = []
+  for (let i = 0; i < 40 && url; i++) {
+    const res = await fetch(url)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json: any = await res.json()
+    if (json.error) throw new Error(`Meta API (${edge}): ${json.error.message ?? "erreur"}`)
+    if (Array.isArray(json.data)) out.push(...json.data)
+    url = json.paging?.next ?? null
+  }
+  return out
+}
+
+export const _remplacerStatuts = internalMutation({
+  args: {
+    objets: v.array(v.object({
+      level: v.string(), objectId: v.string(), name: v.string(),
+      statut: v.string(), statutBrut: v.optional(v.string()), parentId: v.optional(v.string()),
+    })),
+  },
+  handler: async (ctx, a) => {
+    const syncedAt = new Date().toISOString()
+    const vus = new Set(a.objets.map(o => o.objectId))
+    const existants = await ctx.db.query("meta_objects")
+      .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
+    const parId = new Map(existants.map(r => [r.objectId, r]))
+    for (const o of a.objets) {
+      const ex = parId.get(o.objectId)
+      const row = { workspaceId: WORKSPACE, ...o, syncedAt }
+      if (ex) await ctx.db.patch(ex._id, row); else await ctx.db.insert("meta_objects", row)
+    }
+    // Objet absent de la lecture (supprimé chez Meta) : il ne diffuse plus, on
+    // le dit au lieu de laisser traîner un « ACTIVE » qui ne veut plus rien dire.
+    for (const ex of existants) {
+      if (!vus.has(ex.objectId) && ex.statut !== "SUPPRIMEE") await ctx.db.patch(ex._id, { statut: "SUPPRIMEE", syncedAt })
+    }
+    return { ok: true, objets: a.objets.length, disparus: existants.filter(e => !vus.has(e.objectId)).length }
+  },
+})
+
+/** Synchronise les statuts des trois étages (cron court : aucune métrique lue). */
+export const syncStatuses = action({
+  args: {},
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  handler: async (ctx): Promise<any> => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const conn: any = await ctx.runQuery(internal.mediaBuyer._connection, {})
+    if (!conn?.token || !conn?.accountId) return { connected: false, objets: 0 }
+    let act = String(conn.accountId).trim(); if (!act.startsWith("act_")) act = `act_${act.replace(/^act_?/, "")}`
+    const token: string = conn.token
+
+    const campagnes = await lireEdge(act, token, "campaigns", "name,effective_status")
+    const adsets = await lireEdge(act, token, "adsets", "name,effective_status,campaign_id")
+    const pubs = await lireEdge(act, token, "ads", "name,effective_status,adset_id,campaign_id")
+
+    const actif = (s: unknown) => s === "ACTIVE"
+    const statutCampagne = new Map<string, string>(campagnes.map(c => [c.id, c.effective_status]))
+    const statutAdset = new Map<string, string>(adsets.map(s => [s.id, s.effective_status]))
+    const campagneDeAdset = new Map<string, string>(adsets.map(s => [s.id, s.campaign_id]))
+
+    const objets = [
+      ...campagnes.map(c => ({
+        level: "campaign", objectId: c.id, name: c.name ?? "(sans nom)",
+        statut: c.effective_status ?? "INCONNU", statutBrut: c.effective_status, parentId: undefined,
+      })),
+      ...adsets.map(s => {
+        const camp = statutCampagne.get(s.campaign_id)
+        return {
+          level: "adset", objectId: s.id, name: s.name ?? "(sans nom)",
+          statut: !actif(s.effective_status) ? (s.effective_status ?? "INCONNU")
+            : camp && !actif(camp) ? "CAMPAIGN_PAUSED" : "ACTIVE",
+          statutBrut: s.effective_status, parentId: s.campaign_id,
+        }
+      }),
+      ...pubs.map(p => {
+        const set = statutAdset.get(p.adset_id)
+        const camp = statutCampagne.get(p.campaign_id ?? campagneDeAdset.get(p.adset_id) ?? "")
+        return {
+          level: "creative", objectId: p.id, name: p.name ?? "(sans nom)",
+          statut: !actif(p.effective_status) ? (p.effective_status ?? "INCONNU")
+            : set && !actif(set) ? "ADSET_PAUSED"
+            : camp && !actif(camp) ? "CAMPAIGN_PAUSED" : "ACTIVE",
+          statutBrut: p.effective_status, parentId: p.adset_id,
+        }
+      }),
+    ]
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const res: any = await ctx.runMutation(internal.metaAds._remplacerStatuts, { objets })
+    return { connected: true, campagnes: campagnes.length, adsets: adsets.length, pubs: pubs.length, ...res }
+  },
+})

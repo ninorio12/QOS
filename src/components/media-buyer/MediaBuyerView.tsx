@@ -29,7 +29,7 @@ type Row = {
   id: string; name: string; campaign: string | null; adset: string | null
   spend: number; impressions: number; clicks: number; leads: number
   cpl: number; ctr: number; cr: number; perf: 'excellent' | 'moyen' | 'optimiser'
-  premiereDiffusion?: string; derniereDiffusion?: string; statut?: string | null; enCours?: boolean
+  premiereDiffusion?: string; derniereDiffusion?: string; statut?: string | null; enCours?: boolean | null
   imageUrl?: string | null; thumbnailUrl?: string | null; videoSource?: string | null; videoThumb?: string | null; videoLien?: string | null
 }
 type MediaView = { src: string; isVideo: boolean; name: string; integre?: boolean }
@@ -50,6 +50,21 @@ const PERF: Record<string, { label: string; cls: string }> = {
   excellent: { label: 'Excellent', cls: 'bg-emerald-100 text-emerald-700' },
   moyen:     { label: 'Moyen',     cls: 'bg-amber-100 text-amber-700' },
   optimiser: { label: 'À optimiser', cls: 'bg-red-100 text-red-700' },
+}
+
+// Vocabulaire Meta traduit : « pourquoi c'est arrêté » vaut mieux que « arrêté ».
+const LIB_STATUT: Record<string, string> = {
+  PAUSED: 'En pause',
+  ADSET_PAUSED: 'Arrêtée : adset en pause',
+  CAMPAIGN_PAUSED: 'Arrêtée : campagne en pause',
+  ARCHIVED: 'Archivée',
+  DELETED: 'Supprimée',
+  SUPPRIMEE: 'Supprimée chez Meta',
+  DISAPPROVED: 'Refusée par Meta',
+  PENDING_REVIEW: 'En attente de validation Meta',
+  WITH_ISSUES: 'Bloquée : problème Meta',
+  IN_PROCESS: 'En cours de traitement',
+  PENDING_BILLING_INFO: 'Bloquée : facturation',
 }
 
 const nf = (n: number) => n.toLocaleString('fr-CH', { maximumFractionDigits: 0 })
@@ -164,7 +179,7 @@ export default function MediaBuyerView() {
   // Deux générations de créas cohabitent dès qu'on relance un test : même nom,
   // deux lignes. Le filtre montre par défaut ce qui tourne AUJOURD'HUI ; les
   // arrêtées restent à un clic, avec leur dernier jour de diffusion.
-  const detailRows = (d?.detail ?? []).filter(r => !enCoursSeul || r.enCours !== false)
+  const detailRows = (d?.detail ?? []).filter(r => !enCoursSeul || r.enCours !== false)   // inconnu = jamais masqué
   const nbArretees = (d?.detail ?? []).filter(r => r.enCours === false).length
 
   return (
@@ -406,15 +421,24 @@ export default function MediaBuyerView() {
 // Statut de diffusion d'une publicité, sous son nom : deux créas peuvent porter
 // le même nom (« Quiz 1 » relancé), seul ce repère les distingue.
 function Diffusion({ r }: { r: Row }) {
-  if (r.enCours === undefined) return null
   const jour = (iso?: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : null)
+  // Trois états, jamais deux : le statut vient d'une lecture Meta (meta_objects).
+  // Tant qu'on ne l'a pas lu, on le dit — on ne le devine pas depuis la dépense.
+  if (r.enCours === null || r.enCours === undefined) {
+    return (
+      <span className="flex items-center gap-1.5 mt-0.5 text-[10px] font-medium text-amber-600">
+        <span className="w-[5px] h-[5px] rounded-full bg-amber-500" />
+        Statut inconnu : pas encore synchronisé
+      </span>
+    )
+  }
   return (
     <span className="flex items-center gap-1.5 mt-0.5 text-[10px] font-medium">
       <span className={`w-[5px] h-[5px] rounded-full ${r.enCours ? 'bg-emerald-500' : 'bg-soren-subtle'}`} />
       <span className={r.enCours ? 'text-emerald-600' : 'text-soren-subtle'}>
         {r.enCours
           ? `En diffusion${jour(r.premiereDiffusion) ? ` depuis le ${jour(r.premiereDiffusion)}` : ''}`
-          : `Arrêtée${jour(r.derniereDiffusion) ? ` : dernière diffusion le ${jour(r.derniereDiffusion)}` : ''}`}
+          : `${LIB_STATUT[r.statut ?? ''] ?? 'Arrêtée'}${jour(r.derniereDiffusion) ? ` : dernière diffusion le ${jour(r.derniereDiffusion)}` : ''}`}
       </span>
     </span>
   )

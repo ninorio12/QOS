@@ -360,7 +360,6 @@ export const dashboard = query({
     // meta_creatives par adId. Avant : on lisait meta_creatives (snapshot figé 14j) sans filtre date
     // → le tableau « Publicité » montrait une autre fenêtre que les KPI et ne réconciliait jamais (bug C3).
     const creativeDetail = async () => {
-      const dernierJourDonnees = dailyAll[dailyAll.length - 1]?.date ?? null
       const metrics = await aggObjects("creative")   // période-correct, déjà agrégé + dérivé + trié par spend
       const creatives = await ctx.db.query("meta_creatives")
         .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
@@ -369,12 +368,8 @@ export const dashboard = query({
         const v = visById.get(m.id)
         return {
           ...m,
-          // Statut de diffusion : le statut effectif Meta quand on l'a (il tient
-          // compte de l'adset et de la campagne), sinon la dernière journée de
-          // diffusion connue. Une pub qui n'a rien dépensé le dernier jour
-          // synchronisé est arrêtée, pas « en cours mais discrète ».
-          statut: v?.status ?? null,
-          enCours: v?.status ? v.status === "ACTIVE" : m.derniereDiffusion >= (dernierJourDonnees ?? m.derniereDiffusion),
+          // Le statut arrive de meta_objects (statutParNiveau), pas d'ici :
+          // les visuels et le statut n'ont plus la même source ni le même cron.
           imageUrl: v?.imageUrl ?? null, thumbnailUrl: v?.thumbnailUrl ?? null,
           videoSource: v?.videoSource ?? null, videoThumb: v?.videoThumb ?? null,
         videoLien: v?.videoLien ?? null,
@@ -396,32 +391,21 @@ export const dashboard = query({
      * la dernière journée de diffusion : rien dépensé le dernier jour
      * synchronisé = arrêtée.
      */
-    const statutParNiveau = async (rows: { id: string; derniereDiffusion: string }[], niveau: "campaign" | "adset") => {
-      const dernierJourDonnees = dailyAll[dailyAll.length - 1]?.date ?? null
-      const creatives = await ctx.db.query("meta_creatives")
+    const statutParNiveau = async <T extends { id: string }>(rows: T[]) => {
+      const statuts = await ctx.db.query("meta_objects")
         .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
-      const actifs = new Set<string>(), connus = new Set<string>()
-      for (const c of creatives) {
-        // Rattachement par ID Meta : deux adsets « Broad Suisse - Quiz » vivent
-        // côte à côte, l'un archivé, l'autre en cours. Par nom, l'archivé
-        // héritait du statut de son homonyme.
-        const cle = niveau === "campaign" ? c.campaignId : c.adsetId
-        if (!cle) continue
-        connus.add(cle)
-        if (c.status === "ACTIVE") actifs.add(cle)
-      }
-      return rows.map(r => ({
-        ...r,
-        enCours: connus.has(r.id)
-          ? actifs.has(r.id)
-          : r.derniereDiffusion >= (dernierJourDonnees ?? r.derniereDiffusion),
-      }))
+      const parId = new Map(statuts.map(s => [s.objectId, s]))
+      return rows.map(r => {
+        const s = parId.get(r.id)
+        // enCours à trois états : true (lu ACTIVE), false (lu autre chose),
+        // null (jamais synchronisé). Le board affiche « statut inconnu » dans
+        // ce dernier cas plutôt que de deviner à partir d'une dépense.
+        return { ...r, statut: s?.statut ?? null, enCours: s ? s.statut === "ACTIVE" : null }
+      })
     }
 
-    const topCampaigns = await statutParNiveau((await aggObjects("campaign")).slice(0, 10), "campaign")
-    const detail = lvl === "creative"
-      ? await creativeDetail()
-      : await statutParNiveau(await aggObjects(lvl), lvl === "adset" ? "adset" : "campaign")
+    const topCampaigns = await statutParNiveau((await aggObjects("campaign")).slice(0, 10))
+    const detail = await statutParNiveau(lvl === "creative" ? await creativeDetail() : await aggObjects(lvl))
 
     return {
       from, to, level: lvl,
