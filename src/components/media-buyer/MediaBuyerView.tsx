@@ -7,7 +7,7 @@ import { useQuery, useMutation, useAction } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import {
   DollarSign, Eye, MousePointerClick, Users, Percent, Gauge,
-  RefreshCw, CalendarDays, ArrowUpRight, Play, X, Info, ClipboardList,
+  RefreshCw, CalendarDays, ArrowUpRight, Play, X, Info, ClipboardList, Sparkles, RotateCcw,
 } from 'lucide-react'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import MetaLogo from './MetaLogo'
@@ -30,6 +30,8 @@ type Row = {
   spend: number; impressions: number; clicks: number; leads: number
   cpl: number; ctr: number; cr: number; perf: 'excellent' | 'moyen' | 'optimiser'
   premiereDiffusion?: string; derniereDiffusion?: string; statut?: string | null; enCours?: boolean | null
+  resetAt?: string | null
+  lecture?: { ton: 'neutre' | 'bon' | 'moyen' | 'alerte'; phrase: string }
   imageUrl?: string | null; thumbnailUrl?: string | null; videoSource?: string | null; videoThumb?: string | null; videoLien?: string | null
 }
 type MediaView = { src: string; isVideo: boolean; name: string; integre?: boolean }
@@ -65,6 +67,69 @@ const LIB_STATUT: Record<string, string> = {
   WITH_ISSUES: 'Bloquée : problème Meta',
   IN_PROCESS: 'En cours de traitement',
   PENDING_BILLING_INFO: 'Bloquée : facturation',
+}
+
+const TONS: Record<string, { fg: string; bg: string }> = {
+  bon:    { fg: '#047857', bg: '#D1FAE5' },
+  moyen:  { fg: '#92400E', bg: '#FEF3C7' },
+  alerte: { fg: '#B91C1C', bg: '#FEE2E2' },
+  neutre: { fg: '#6B7280', bg: '#F3F4F6' },
+}
+
+/**
+ * La lecture de la ligne : une phrase, pas une note.
+ *
+ * « Excellent » ne disait rien d'actionnable et félicitait un CPL calculé sur
+ * un seul lead. La phrase dit ce qui est mesuré, ce qui manque pour trancher,
+ * et où ça casse quand ça casse.
+ */
+/**
+ * Remise à zéro d'une campagne : on déplace son point de départ, on n'efface rien.
+ *
+ * Relancer des créas sur une campagne qui a déjà dépensé rend son total
+ * illisible : le CPL moyen traîne les anciennes pubs derrière lui. Après remise
+ * à zéro, la ligne dit toujours depuis quand elle compte, et le geste s'annule.
+ */
+function BoutonRemiseAZero({ r }: { r: Row }) {
+  const reset = useMutation(api.mediaBuyer.resetCampaign)
+  const annuler = useMutation(api.mediaBuyer.cancelReset)
+  const [confirme, setConfirme] = useState(false)
+  if (r.resetAt) {
+    return (
+      <button onClick={() => annuler({ campaignId: r.id })}
+        title="Recompter la campagne depuis son premier jour"
+        className="text-[9px] font-semibold text-soren-subtle hover:text-soren-text underline underline-offset-2">
+        annuler
+      </button>
+    )
+  }
+  if (!confirme) {
+    return (
+      <button onClick={() => setConfirme(true)} title="Repartir de zéro à partir d'aujourd'hui"
+        className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-soren-subtle hover:text-soren-text">
+        <RotateCcw size={11} />
+      </button>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-[9.5px]">
+      <span className="text-soren-muted">Repartir de zéro aujourd&apos;hui ?</span>
+      <button onClick={() => { reset({ campaignId: r.id, campaignName: r.name }); setConfirme(false) }}
+        className="font-semibold text-[#FF4D00] hover:underline">Oui</button>
+      <button onClick={() => setConfirme(false)} className="text-soren-subtle hover:text-soren-text">non</button>
+    </span>
+  )
+}
+
+function Lecture({ l }: { l?: Row['lecture'] }) {
+  if (!l) return null
+  const t = TONS[l.ton] ?? TONS.neutre
+  return (
+    <span className="inline-flex items-start gap-1.5 text-left max-w-[320px]">
+      <Sparkles size={11} className="flex-none mt-[2px]" style={{ color: t.fg }} />
+      <span className="text-[10.5px] font-medium leading-snug" style={{ color: t.fg }}>{l.phrase}</span>
+    </span>
+  )
 }
 
 const nf = (n: number) => n.toLocaleString('fr-CH', { maximumFractionDigits: 0 })
@@ -304,14 +369,25 @@ export default function MediaBuyerView() {
                 <th className="text-left px-5 py-2.5 border-y border-soren-border">Campagne</th>
                 <th className="text-left px-3 py-2.5 border-y border-soren-border">Adset</th>
                 {[`Dépense (${cur})`, 'Impressions', 'Clics', 'Leads', `CPL (${cur})`, 'CTR (%)'].map(h => <th key={h} className="text-right px-3 py-2.5 border-y border-soren-border">{h}</th>)}
-                <th className="text-right px-5 py-2.5 border-y border-soren-border">Performance</th>
+                <th className="text-left px-5 py-2.5 border-y border-soren-border">Lecture</th>
               </tr></thead>
               <tbody>
                 {loading ? null : d!.topCampaigns.length === 0 ? (
                   <tr><td colSpan={9} className="text-center text-soren-muted text-[13px] py-10">Aucune donnée</td></tr>
                 ) : d!.topCampaigns.map(r => (
-                  <tr key={r.id} className="text-[11.5px] font-normal border-b border-soren-border last:border-0">
-                    <td className="px-5 py-3 font-medium text-soren-text">{r.name}<Diffusion r={r} /></td>
+                  <tr key={r.id} className="group text-[11.5px] font-normal border-b border-soren-border last:border-0">
+                    <td className="px-5 py-3 font-medium text-soren-text">
+                      <span className="inline-flex items-center gap-1.5">
+                        {r.name}
+                        {isAdmin && <BoutonRemiseAZero r={r} />}
+                      </span>
+                      {r.resetAt && (
+                        <span className="block text-[9.5px] text-soren-subtle mt-0.5">
+                          comptée depuis le {r.resetAt.slice(8, 10)}/{r.resetAt.slice(5, 7)}
+                        </span>
+                      )}
+                      <Diffusion r={r} />
+                    </td>
                     <td className="px-3 py-3 text-soren-muted">{r.adset ?? '—'}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{nf(r.spend)}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{nf(r.impressions)}</td>
@@ -319,7 +395,7 @@ export default function MediaBuyerView() {
                     <td className="px-3 py-3 text-right tabular-nums">{nf(r.leads)}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{cpl(r.cpl)}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{pct(r.ctr)}</td>
-                    <td className="px-5 py-3 text-right"><span className={`inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold px-2.5 py-1 rounded-full ${(PERF[r.perf] ?? PERF.apprentissage).cls}`}><span className="w-[6px] h-[6px] rounded-full bg-current" />{(PERF[r.perf] ?? PERF.apprentissage).label}</span></td>
+                    <td className="px-5 py-3"><Lecture l={r.lecture} /></td>
                   </tr>
                 ))}
               </tbody>

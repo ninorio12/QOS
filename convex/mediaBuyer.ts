@@ -183,6 +183,58 @@ function spanDaysISO(from: string, to: string) {
 // attente : elle demande de fixer ce CPL cible. Les bornes 25/35 restent donc
 // telles quelles au-delà du seuil d'apprentissage.
 const MIN_LEADS_POUR_JUGER = 5
+// Bornes de CPL héritées du board. Elles restent le repère tant qu'un CPL cible
+// n'est pas dérivé de la valeur réelle d'un lead.
+const CPL_BON = 25, CPL_MOYEN = 35
+// Combien de fois le CPL haut peut-on dépenser sans UN lead avant de s'alarmer.
+const DEPENSE_SANS_LEAD_ALERTE = 2
+
+/**
+ * La lecture de la ligne, en une phrase.
+ *
+ * Remplace le mot unique (« Excellent ») qui ne disait rien : un CPL de 4 CHF
+ * sur un seul lead affichait la même chose qu'une campagne installée. Ici on
+ * dit CE QU'ON VOIT et ce qu'il manque pour trancher, dans cet ordre :
+ *
+ *   1. rien diffusé : il n'y a rien à juger ;
+ *   2. dépense sans aucun lead : c'est le seul cas qui alarme tôt, parce qu'il
+ *      se mesure en argent perdu et pas en statistique ;
+ *   3. moins de 5 leads : apprentissage, on annonce ce qu'il reste à attendre
+ *      plutôt que de féliciter un coup de chance ;
+ *   4. au-delà, le CPL tranche, et l'écart CTR / CR dit OÙ ça casse : une
+ *      accroche qui marche avec une page qui décroche ne se soigne pas comme
+ *      une accroche qui n'accroche pas.
+ */
+function lectureDeLigne(m: {
+  spend: number; impressions: number; clicks: number; leads: number
+  cpl: number; ctr: number; cr: number
+}): { ton: "neutre" | "bon" | "moyen" | "alerte"; phrase: string } {
+  const { spend, impressions, clicks, leads, cpl, ctr, cr } = m
+  const chf = (n: number) => `${Math.round(n)} CHF`
+
+  if (spend === 0 && impressions === 0) return { ton: "neutre", phrase: "Aucune diffusion sur la période." }
+  if (impressions > 0 && clicks === 0) return { ton: "alerte", phrase: `${impressions.toLocaleString("fr-CH")} impressions, aucun clic : l'accroche ne prend pas.` }
+
+  if (leads === 0) {
+    const seuil = CPL_MOYEN * DEPENSE_SANS_LEAD_ALERTE
+    if (spend >= seuil) return { ton: "alerte", phrase: `${chf(spend)} sans un seul lead, soit plus de ${DEPENSE_SANS_LEAD_ALERTE} fois le CPL haut. À couper ou à revoir.` }
+    return { ton: "neutre", phrase: `En apprentissage : ${chf(spend)} dépensés, pas encore de lead. Rien à conclure avant ${chf(seuil)}.` }
+  }
+
+  if (leads < MIN_LEADS_POUR_JUGER) {
+    return { ton: "neutre", phrase: `En apprentissage : ${leads} lead${leads > 1 ? "s" : ""} à ${chf(cpl)}. Il en faut ${MIN_LEADS_POUR_JUGER} pour que le CPL veuille dire quelque chose.` }
+  }
+
+  // Assez de leads pour juger : le CPL tranche, le reste explique.
+  const ou = ctr >= 1.5 && cr < 2
+    ? ` L'accroche prend (CTR ${ctr}%), c'est après le clic que ça décroche (CR ${cr}%).`
+    : ctr < 1 && cr >= 3
+      ? ` La page convertit (CR ${cr}%), c'est l'accroche qui limite (CTR ${ctr}%).`
+      : ""
+  if (cpl <= CPL_BON) return { ton: "bon", phrase: `${leads} leads à ${chf(cpl)}, sous la borne de ${CPL_BON} CHF.${ou}` }
+  if (cpl <= CPL_MOYEN) return { ton: "moyen", phrase: `${leads} leads à ${chf(cpl)}, dans la zone ${CPL_BON} à ${CPL_MOYEN} CHF.${ou}` }
+  return { ton: "alerte", phrase: `${leads} leads à ${chf(cpl)}, au-dessus de ${CPL_MOYEN} CHF.${ou}` }
+}
 const perfOf = (cpl: number, leads: number) =>
   leads < MIN_LEADS_POUR_JUGER ? "apprentissage"
   : cpl > 0 && cpl <= 25 ? "excellent"
@@ -201,6 +253,40 @@ function guessCampaignFunnel(name: string | null | undefined): string | null {
   if (/insta|abonn|follow|profil/.test(n)) return "instagram"
   return null
 }
+
+/* ─────────────────── Remise à zéro d'une campagne ───────────────────
+ * Relancer des créas sur une campagne qui a déjà dépensé rend son total
+ * illisible : le CPL moyen traîne les anciennes pubs derrière lui. Remettre à
+ * zéro déplace le point de départ du comptage, sans rien effacer. L'historique
+ * reste en base, et l'écran dit toujours depuis quand il compte.
+ * ─────────────────────────────────────────────────────────────────── */
+export const resetCampaign = mutation({
+  args: { campaignId: v.string(), campaignName: v.optional(v.string()), date: v.optional(v.string()) },
+  handler: async (ctx, a) => {
+    await requireAdmin(ctx)
+    const resetAt = a.date ?? todayISO()
+    const existant = await ctx.db.query("meta_campaign_resets")
+      .withIndex("by_campaign", q => q.eq("workspaceId", WORKSPACE).eq("campaignId", a.campaignId)).first()
+    if (existant) await ctx.db.patch(existant._id, { resetAt, campaignName: a.campaignName ?? existant.campaignName })
+    else await ctx.db.insert("meta_campaign_resets", {
+      workspaceId: WORKSPACE, campaignId: a.campaignId, campaignName: a.campaignName,
+      resetAt, createdAt: new Date().toISOString(),
+    })
+    return { ok: true, resetAt }
+  },
+})
+
+/** Annule la remise à zéro : la campagne se relit depuis son premier jour. */
+export const cancelReset = mutation({
+  args: { campaignId: v.string() },
+  handler: async (ctx, { campaignId }) => {
+    await requireAdmin(ctx)
+    const existant = await ctx.db.query("meta_campaign_resets")
+      .withIndex("by_campaign", q => q.eq("workspaceId", WORKSPACE).eq("campaignId", campaignId)).first()
+    if (existant) await ctx.db.delete(existant._id)
+    return { ok: true }
+  },
+})
 
 /** Correspondances campagne → parcours (pour l'écran de réglage et l'agent). */
 export const campaignFunnels = query({
@@ -325,6 +411,14 @@ export const dashboard = query({
       leads: Math.round(d.leads),
     }))
 
+    // Remises à zéro : une campagne remise à zéro ne se compte qu'à partir de sa
+    // date. On indexe par id (niveau campagne) ET par nom (niveaux adset et
+    // publicité, où la ligne ne porte que le nom de sa campagne).
+    const resets = await ctx.db.query("meta_campaign_resets")
+      .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
+    const resetParId = new Map(resets.map(r => [r.campaignId, r.resetAt]))
+    const resetParNom = new Map(resets.filter(r => r.campaignName).map(r => [r.campaignName as string, r.resetAt]))
+
     // agrégation des objets (meta_object_daily) sur la fenêtre, regroupée par objectId
     const aggObjects = async (level: string) => {
       const rows = (await ctx.db.query("meta_object_daily")
@@ -337,6 +431,11 @@ export const dashboard = query({
         // Vue parcours : mêmes JOURS que les KPI (niveau campagne), pour que le
         // détail ne dépasse jamais le total affiché juste au-dessus.
         .filter(r => !funnelDates || funnelDates.has(r.date))
+        // Point de départ propre à la campagne, quand il a été posé.
+        .filter(r => {
+          const depuis = level === "campaign" ? resetParId.get(r.objectId) : resetParNom.get(r.campaign ?? "")
+          return !depuis || r.date >= depuis
+        })
       // Première et dernière journée de diffusion : deux publicités peuvent
       // porter le MÊME nom (« Quiz 1 » relancé dans un nouvel adset). Sans ces
       // dates, le tableau affiche deux lignes jumelles et rien ne dit laquelle
@@ -351,7 +450,13 @@ export const dashboard = query({
       }
       return [...byId.values()].map(g => {
         const m = derive(g)
-        return { id: g.id, name: g.name, campaign: g.campaign, adset: g.adset, ...m, perf: perfOf(m.cpl, g.leads), premiereDiffusion: g.premiereDiffusion, derniereDiffusion: g.derniereDiffusion }
+        return {
+          id: g.id, name: g.name, campaign: g.campaign, adset: g.adset, ...m,
+          perf: perfOf(m.cpl, g.leads),
+          lecture: lectureDeLigne(m),
+          premiereDiffusion: g.premiereDiffusion, derniereDiffusion: g.derniereDiffusion,
+          resetAt: (level === "campaign" ? resetParId.get(g.id) : resetParNom.get(g.campaign ?? "")) ?? null,
+        }
       }).sort((a, b) => b.spend - a.spend)
     }
 
@@ -794,5 +899,20 @@ export const syncInsights = action({
     } catch (e: any) {
       return { ok: false, error: e?.message ?? "Erreur de synchronisation Meta" }
     }
+  },
+})
+
+/** Remise à zéro déclenchée côté serveur (outillage, jamais depuis le client). */
+export const _resetCampaign = internalMutation({
+  args: { campaignId: v.string(), campaignName: v.optional(v.string()), date: v.string() },
+  handler: async (ctx, a) => {
+    const existant = await ctx.db.query("meta_campaign_resets")
+      .withIndex("by_campaign", q => q.eq("workspaceId", WORKSPACE).eq("campaignId", a.campaignId)).first()
+    if (existant) await ctx.db.patch(existant._id, { resetAt: a.date, campaignName: a.campaignName ?? existant.campaignName })
+    else await ctx.db.insert("meta_campaign_resets", {
+      workspaceId: WORKSPACE, campaignId: a.campaignId, campaignName: a.campaignName,
+      resetAt: a.date, createdAt: new Date().toISOString(),
+    })
+    return { ok: true, resetAt: a.date }
   },
 })

@@ -1241,6 +1241,20 @@ export default defineSchema({
     .index("by_workspace",      ["workspaceId"])
     .index("by_ws_level_date",  ["workspaceId", "level", "date"]),
 
+  // Remise à zéro d'une campagne : la date à partir de laquelle on la compte.
+  // Rien n'est effacé, on déplace le point de départ. Relancer des créas sur une
+  // campagne qui a déjà dépensé, c'est repartir d'une page blanche pour juger,
+  // sans perdre ce qui s'est passé avant.
+  meta_campaign_resets: defineTable({
+    workspaceId:  v.string(),
+    campaignId:   v.string(),
+    campaignName: v.optional(v.string()),
+    resetAt:      v.string(),            // 'YYYY-MM-DD' : premier jour compté
+    createdAt:    v.string(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_campaign",  ["workspaceId", "campaignId"]),
+
   // Statut de diffusion de CHAQUE objet Meta (campagne, adset, publicité), lu
   // directement chez Meta toutes les 15 minutes. Table à part des métriques :
   // un objet garde un statut même sans une seule journée de diffusion, et le
