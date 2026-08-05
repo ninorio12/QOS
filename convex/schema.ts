@@ -1390,6 +1390,7 @@ export default defineSchema({
     firstName:        v.string(),
     lastName:         v.optional(v.string()),
     email:            v.optional(v.string()),
+    phone:            v.optional(v.string()),     // le setter appelle : le numéro est une donnée, pas une note
     company:          v.optional(v.string()),
     role:             v.optional(v.string()),     // poste du décideur
     niche:            v.optional(v.string()),

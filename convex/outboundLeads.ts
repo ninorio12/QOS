@@ -8,6 +8,7 @@ const ETAPES = ["a_auditer", "audit_ok", "a_corriger", "rejete", "deck_a_faire",
 export const create = mutation({
   args: {
     firstName: v.string(), lastName: v.optional(v.string()), email: v.optional(v.string()),
+    phone: v.optional(v.string()),
     company: v.optional(v.string()), role: v.optional(v.string()), niche: v.optional(v.string()),
     canton: v.optional(v.string()), website: v.optional(v.string()), source: v.optional(v.string()),
     score: v.optional(v.string()), note: v.optional(v.string()), createdBy: v.optional(v.string()),
@@ -21,7 +22,7 @@ export const create = mutation({
       if (dup) return { id: dup._id, created: false, etape: dup.etape }
     }
     const id = await ctx.db.insert("outbound_leads", {
-      workspaceId: WORKSPACE, firstName: a.firstName, lastName: a.lastName, email,
+      workspaceId: WORKSPACE, firstName: a.firstName, lastName: a.lastName, email, phone: a.phone,
       company: a.company, role: a.role, niche: a.niche, canton: a.canton, website: a.website,
       source: a.source, score: a.score, etape: "a_auditer", agentResponsable: "data_analyst",
       note: a.note, lastActivity: iso, createdBy: a.createdBy ?? "agent", createdAt: iso,
@@ -40,7 +41,7 @@ export const list = query({
     return rows
       .sort((a, b) => (a.lastActivity < b.lastActivity ? 1 : -1))
       .map(r => ({
-        id: r._id, firstName: r.firstName, lastName: r.lastName ?? null, email: r.email ?? null,
+        id: r._id, firstName: r.firstName, lastName: r.lastName ?? null, email: r.email ?? null, phone: r.phone ?? null,
         company: r.company ?? null, role: r.role ?? null, niche: r.niche ?? null, canton: r.canton ?? null,
         website: r.website ?? null, source: r.source ?? null, score: r.score ?? null,
         etape: r.etape, agentResponsable: r.agentResponsable ?? null, note: r.note ?? null,
@@ -177,5 +178,14 @@ export const attachDecksFromSheet = mutation({
       rattaches++
     }
     return { rattaches, inchanges, absents, divergences, leads: leads.length }
+  },
+})
+
+/** Pose le téléphone d'un lead, sans toucher à son étape (même esprit que setDeckUrl). */
+export const setPhone = mutation({
+  args: { id: v.id("outbound_leads"), phone: v.string() },
+  handler: async (ctx, { id, phone }) => {
+    await ctx.db.patch(id, { phone })
+    return { ok: true }
   },
 })
