@@ -438,6 +438,12 @@ function Diagnostic({ reponses }: { reponses: { id: string; value: string }[] })
       <div className="flex items-center gap-2 px-3 py-2 border-b border-soren-border">
         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: N.couleur }} />
         <span className="text-[11.5px] font-semibold text-soren-text flex-1">Diagnostic</span>
+        {m.partiel && (
+          <span className="text-[9px] font-semibold flex-none px-2 py-[2px] rounded-full bg-soren-elevated text-soren-muted"
+            title="Quiz abandonné en route : le score ne porte que sur les questions répondues">
+            Partiel · {m.repondues}/{m.total}
+          </span>
+        )}
         <span className="text-[10px] font-semibold flex-none px-2 py-[2px] rounded-full"
           style={{ background: N.fond, color: N.couleur }}>{N.label}</span>
       </div>

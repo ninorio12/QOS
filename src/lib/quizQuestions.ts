@@ -74,23 +74,38 @@ export const QUIZ_BAREME: Record<string, { value: string; points: number }[]> = 
   equipes: [{ value: "aucune", points: 0 }, { value: "auto", points: 1 }, { value: "sessions", points: 2 }, { value: "programme", points: 3 }],
 }
 
-export type Maturite = { points: number; max: number; pct: number; niveau: 'debutant' | 'intermediaire' | 'avance' }
+export type Maturite = {
+  points: number; max: number; pct: number
+  niveau: 'debutant' | 'intermediaire' | 'avance'
+  /** Questions notées réellement répondues, sur le total noté. */
+  repondues: number; total: number
+  /** Vrai quand le quiz a été abandonné en route : le pourcentage porte alors
+   *  sur les seules questions répondues, et l'écran doit le dire. */
+  partiel: boolean
+}
 
 /** Paliers identiques à la page : 65 % et plus = avancé, 35 % et plus = intermédiaire. */
 export function scoreMaturite(reponses: { id?: string; value?: string }[]): Maturite | null {
   const parId = new Map(reponses.filter(r => r.id).map(r => [r.id as string, r.value ?? '']))
-  let points = 0, max = 0, repondues = 0
+  let points = 0, maxComplet = 0, maxRepondu = 0, repondues = 0, total = 0
   for (const [qid, options] of Object.entries(QUIZ_BAREME)) {
     const maxQ = Math.max(0, ...options.map(o => o.points))
-    max += maxQ
+    if (maxQ === 0) continue          // question d'aiguillage : ne compte pas
+    total++
+    maxComplet += maxQ
     const choisi = options.find(o => o.value === parId.get(qid))
-    if (choisi) { points += choisi.points; repondues++ }
+    if (choisi) { points += choisi.points; maxRepondu += maxQ; repondues++ }
   }
   // Aucune réponse reconnue : on ne fabrique pas un 0 %, on ne montre rien.
-  if (repondues === 0 || max === 0) return null
+  if (repondues === 0 || maxComplet === 0) return null
+  // Quiz abandonné en route : le pourcentage se calcule sur ce qui a été
+  // répondu, sinon trois bonnes réponses sur cinq questions donneraient un
+  // score de débutant et feraient passer un prospect mûr pour un retardataire.
+  const partiel = repondues < total
+  const max = partiel ? maxRepondu : maxComplet
   const pct = Math.round((points / max) * 100)
   const niveau = pct >= 65 ? 'avance' : pct >= 35 ? 'intermediaire' : 'debutant'
-  return { points, max, pct, niveau }
+  return { points, max, pct, niveau, repondues, total, partiel }
 }
 
 /** Ce que dit la page de diagnostic pour chaque palier, resserré pour une fiche. */
