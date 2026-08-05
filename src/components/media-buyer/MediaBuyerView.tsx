@@ -125,9 +125,9 @@ function Lecture({ l }: { l?: Row['lecture'] }) {
   if (!l) return null
   const t = TONS[l.ton] ?? TONS.neutre
   return (
-    <span className="inline-flex items-start gap-1.5 text-left max-w-[320px]">
+    <span className="inline-flex items-start gap-1.5 text-left max-w-[210px] align-top">
       <Sparkles size={11} className="flex-none mt-[2px]" style={{ color: t.fg }} />
-      <span className="text-[10.5px] font-medium leading-snug" style={{ color: t.fg }}>{l.phrase}</span>
+      <span className="text-[10px] font-medium leading-snug" style={{ color: t.fg }}>{l.phrase}</span>
     </span>
   )
 }
@@ -369,7 +369,7 @@ export default function MediaBuyerView() {
                 <th className="text-left px-5 py-2.5 border-y border-soren-border">Campagne</th>
                 <th className="text-left px-3 py-2.5 border-y border-soren-border">Adset</th>
                 {[`Dépense (${cur})`, 'Impressions', 'Clics', 'Leads', `CPL (${cur})`, 'CTR (%)'].map(h => <th key={h} className="text-right px-3 py-2.5 border-y border-soren-border">{h}</th>)}
-                <th className="text-left px-5 py-2.5 border-y border-soren-border">Lecture</th>
+                <th className="text-right px-5 py-2.5 border-y border-soren-border">Performance</th>
               </tr></thead>
               <tbody>
                 {loading ? null : d!.topCampaigns.length === 0 ? (
@@ -395,7 +395,7 @@ export default function MediaBuyerView() {
                     <td className="px-3 py-3 text-right tabular-nums">{nf(r.leads)}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{cpl(r.cpl)}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{pct(r.ctr)}</td>
-                    <td className="px-5 py-3"><Lecture l={r.lecture} /></td>
+                    <td className="px-5 py-3 text-right"><Lecture l={r.lecture} /></td>
                   </tr>
                 ))}
               </tbody>
