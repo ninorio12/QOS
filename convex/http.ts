@@ -142,7 +142,25 @@ http.route({
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const body: any = await request.clone().json()
-        const c = body?.data?.eventCall ?? body?.eventCall ?? body?.data ?? body
+        // Deux formes possibles, et c'est la SECONDE qu'iClosed envoie vraiment.
+        //
+        // Forme « eventCall » : celle de leur documentation, avec inviteeEmail et
+        // dateTimeUTC. Forme « contact » (hookType « Contact updated ») : un objet
+        // contact à plat, dont le rendez-vous vit dans `latestCall`. On ne lisait
+        // que la première : chaque réservation arrivait, était tracée, et repartait
+        // sans rien créer (constaté en réservant pour de vrai le 05/08).
+        const brut = body?.data?.eventCall ?? body?.eventCall ?? body?.data ?? body
+        const contactHook = brut?.latestCall ? brut : null
+        const c = contactHook ? {
+          ...brut,
+          id: brut.latestCall?.id,
+          inviteeEmail: brut.email,
+          inviteeName: [brut.firstName, brut.lastName].filter(Boolean).join(" ").trim(),
+          inviteePhone: brut.phoneNumber,
+          dateTimeUTC: brut.latestCall?.dateTime,
+          // Le lien de visio n'est pas dans ce message : le filet périodique le
+          // complètera, ou le closer l'ouvre depuis iClosed.
+        } : brut
         const ev = c?.event ?? {}
         const externalId = String(c?.id ?? c?.callId ?? "")
         const email = c?.inviteeEmail ?? c?.invitee?.email
@@ -152,7 +170,11 @@ http.route({
         // Jeton de parcours : le quiz l'ajoute à l'URL iClosed (?vf=…), iClosed le
         // recopie dans ses utm. On le pêche n'importe où dans le payload : c'est
         // le rattachement RDV↔lead qui tient même si l'email de réservation diffère.
-        const vfToken = JSON.stringify(body).match(/vf=([a-z2-9]{10})\b/)?.[1]
+        // Jeton de parcours : soit dans les utm de l'URL (forme eventCall), soit
+        // dans le bloc `tracking` (forme contact), où il s'appelle simplement vf.
+        const vfToken = brut?.tracking?.vf
+          ?? JSON.stringify(body).match(/vf=([a-z2-9]{10})\b/)?.[1]
+          ?? JSON.stringify(body).match(/"vf":"([a-z2-9]{10})"/)?.[1]
         if (externalId && (email || c?.inviteeName)) {
           if (c?.cancelReason) {
             ingested = await ctx.runMutation(api.closing.cancelCallByExternalId, { externalId })
