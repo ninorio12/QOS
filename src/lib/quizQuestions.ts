@@ -28,8 +28,8 @@ export const QUIZ_CONFIRMATION = [
   "Pourquoi voulez-vous installer des agents IA maintenant ?",
   "Si l'audit révèle une opportunité claire, quand aimeriez-vous lancer une première installation ?",
   "Avez-vous déjà prévu un budget pour intégrer l'IA dans vos opérations ?",
-  "Votre nom complet",
-  "Votre société",
+  // Le nom et la société ne sont plus demandés : la page 1 du quiz les a déjà
+  // récoltés, et les redemander après la réservation était du travail en double.
 ]
 
 /**

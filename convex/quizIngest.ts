@@ -301,6 +301,13 @@ export const qualification = query({
       } catch { return [] }
     }
 
+    // Rendez-vous du contact, le plus proche à venir sinon le plus récent.
+    const appels = (await ctx.db.query("os_sales_calls").withIndex("by_workspace", (q) => q.eq("workspaceId", WORKSPACE)).collect())
+      .filter((c) => String(c.contactId ?? "") === a.contactId && c.status !== "cancelled")
+      .sort((x, y) => (String(x.date ?? "") < String(y.date ?? "") ? 1 : -1))
+    const maintenant = new Date().toISOString()
+    const rdv = appels.find((c) => String(c.date ?? "") >= maintenant) ?? appels[0] ?? null
+
     // 1. Le formulaire d'identité. Un contact peut avoir PLUSIEURS parcours
     //    pendant la transition (formulaire instantané Meta encore branché ET
     //    page 1 du quiz) : on montre en priorité celui de VividFlow, sinon le
@@ -407,6 +414,9 @@ export const qualification = query({
       quizProgression: quiz && quiz.qTotal ? { atteinte: (quiz.qi ?? 0) + 1, total: quiz.qTotal } : null,
       quizScore: quiz?.score ?? null,
       confirmation: paires((intake as { answersJson?: string } | null)?.answersJson),
+      // Le rendez-vous pris : c'est l'aboutissement du parcours, il se lit au
+      // même endroit que le reste plutôt que dans un autre module.
+      rendezVous: rdv ? { date: rdv.date ?? null, calendrier: rdv.calendarLabel ?? null, stage: rdv.stage ?? null, lien: rdv.meetLink ?? null } : null,
     }
   },
 })

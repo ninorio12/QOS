@@ -467,6 +467,41 @@ function Diagnostic({ reponses }: { reponses: { id: string; value: string }[] })
   )
 }
 
+/**
+ * Le rendez-vous pris, dans la même colonne que le reste.
+ *
+ * C'est l'aboutissement du parcours : le lire ailleurs obligeait à ouvrir un
+ * autre module pour savoir si la personne avait réservé, et quand.
+ */
+function BlocRendezVous({ rdv }: { rdv: { date: string | null; calendrier: string | null; stage: string | null; lien: string | null } | null }) {
+  if (!rdv?.date) return null
+  const d = new Date(rdv.date)
+  const jour = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+  const heure = d.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Zurich' })
+  const passe = d.getTime() < Date.now()
+  return (
+    <div className="rounded-xl border border-soren-border overflow-hidden bg-soren-card">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-soren-border">
+        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: passe ? '#9CA3AF' : '#10B981' }} />
+        <span className="text-[11.5px] font-semibold text-soren-text flex-1">Rendez-vous</span>
+        {rdv.stage && <span className="text-[10px] font-semibold text-soren-muted">{rdv.stage}</span>}
+      </div>
+      <div className="px-3 py-2.5">
+        <p className="text-[12px] font-semibold text-soren-text capitalize">{jour} · {heure}</p>
+        <p className="text-[10.5px] text-soren-muted mt-0.5">
+          {rdv.calendrier ?? 'Rendez-vous'}{passe ? ' · déjà passé' : ''}
+        </p>
+        {rdv.lien && (
+          <a href={rdv.lien} target="_blank" rel="noreferrer"
+            className="inline-flex items-center gap-1 mt-1.5 text-[10.5px] font-medium text-soren-muted hover:text-soren-text underline underline-offset-2">
+            Rejoindre la visio
+          </a>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function PanneauQualification({ contactId, email }: { contactId: string; email?: string }) {
   const q = useQuery(api.quizIngest.qualification, { contactId, email }) as {
     metaForm: { q: string; a: string }[]
@@ -476,6 +511,7 @@ function PanneauQualification({ contactId, email }: { contactId: string; email?:
     metaFormAt: string | null
     quiz: { q: string; a: string }[]
     quizBrut: { id: string; value: string }[]
+    rendezVous: { date: string | null; calendrier: string | null; stage: string | null; lien: string | null } | null
     quizStatut: string | null
     quizProgression: { atteinte: number; total: number } | null
     quizScore: number | null
@@ -512,6 +548,7 @@ function PanneauQualification({ contactId, email }: { contactId: string; email?:
           <QuizDeroulant titre="Quiz diagnostic" couleur="#FF4D00"
             questions={QUIZ_DIAGNOSTIC} reponses={q?.quiz ?? []} chapeau={chapeauQuiz} />
           <Diagnostic reponses={q?.quizBrut ?? []} />
+          <BlocRendezVous rdv={q?.rendezVous ?? null} />
           <QuizDeroulant titre="Formulaire confirmation" couleur="#10B981"
             questions={QUIZ_CONFIRMATION} reponses={q?.confirmation ?? []} />
         </div>

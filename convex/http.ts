@@ -185,7 +185,13 @@ http.route({
             // INBOUND, avant de poser le rendez-vous. Idempotent par l'identifiant
             // iClosed, et dédoublonné : quelqu'un venu du quiz garde sa fiche.
             const versSite = /d-mo|demo|d\u00e9mo/.test(`${evSlug} ${evName}`)
+            // ⚠️ Un jeton de parcours veut dire que la fiche EXISTE déjà : la
+            // personne vient du quiz. On ne crée rien, sinon quelqu'un qui
+            // corrige son adresse dans le formulaire iClosed (elle est
+            // pré-remplie, mais modifiable) repartirait avec une seconde fiche.
+            // Le rattachement se fera par le jeton, pas par l'email.
             try {
+              if (vfToken) throw new Error("__deja_connu")
               const cree = await ctx.runMutation(internal.leadIngest.fromLeadForm, {
                 leadgenId: `iclosed:${externalId}`,
                 formName: `Rendez-vous iClosed · ${ev?.name ?? "sans nom"}`,
@@ -200,7 +206,11 @@ http.route({
               })
               if (cree?.contactId) c.__contactId = cree.contactId
             } catch (e) {
-              console.error("[iClosed] création du lead impossible:", e)
+              if (String(e).includes("__deja_connu")) {
+                // Cas normal : rien à créer, le jeton suffit.
+              } else {
+                console.error("[iClosed] création du lead impossible:", e)
+              }
             }
             ingested = await ctx.runMutation(api.closing.scheduleCall, {
               contactId: c.__contactId ?? undefined,
