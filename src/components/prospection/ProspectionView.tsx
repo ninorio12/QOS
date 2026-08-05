@@ -37,26 +37,18 @@ type ProspRecord = { id: string; contactId: string; column: string; shortNote?: 
 type ProspNote = { id: string; text: string; createdAt: string }
 const fmtFollowUp = (iso?: string) => { if (!iso) return ''; const d = new Date(iso); return isNaN(d.getTime()) ? '' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) }
 
-// Règles métier de déplacement :
-//  Mouvement libre pour pouvoir CORRIGER une erreur de drop (remettre une carte depuis n'importe quelle
-//  colonne, NRP/Perdu/RDV inclus). Seuls 2 garde-fous d'intégrité de type subsistent :
-//  • « Leads interne » = réservé aux leads internes (envoyés depuis une fiche) — mais accessible depuis n'importe où.
-//  • « Leads à traiter » = réservé aux leads bruts (non internes) — accessible depuis n'importe où.
-const isMoveAllowed = (r: ProspRecord, target: string) => {
-  if (target === 'leads_interne')  return !!r.internalLead
-  if (target === 'leads_a_traiter') return !r.internalLead
-  return true
-}
-// Texte d'explication du blocage (tooltip).
-const blockReason = (r: ProspRecord, target: string) =>
-  target === 'leads_interne'
-    ? '« Leads interne » est réservé aux contacts envoyés depuis leur fiche'
-    : '« Leads à traiter » est réservé aux leads (un lead interne y est exclu)'
+// Déplacement LIBRE, dans les deux sens et depuis n'importe quelle colonne.
+//
+// Il y avait deux garde-fous de type, l'un réservant « Leads interne » aux
+// contacts envoyés depuis leur fiche, l'autre les excluant de « Leads à
+// traiter ». La colonne dédiée a disparu : un lead interne se travaille au même
+// endroit que les autres, il se distingue par sa couleur, pas par sa colonne.
+const isMoveAllowed = (_r: ProspRecord, _target: string) => true
+const blockReason = (_r: ProspRecord, _target: string) => undefined
 
 // Colonnes du board — ordre = parcours commercial.
 const COLUMNS: { id: string; label: string; color: string }[] = [
   { id: 'leads_a_traiter', label: 'Leads à traiter',        color: '#3462EE' },
-  { id: 'leads_interne',   label: 'Leads interne',          color: '#FF4D00' },
   { id: 'nrp1',            label: 'NRP 1',                   color: '#D97706' },
   { id: 'nrp2',            label: 'NRP 2',                   color: '#D97706' },
   { id: 'nrp3',            label: 'NRP 3',                   color: '#D97706' },
@@ -287,11 +279,10 @@ function Column({ col, records, onOpen, wasDragged, onMove, colIndex = 0, colCou
         ? { label: 'text-[#DC2626]', zone: isOver ? 'bg-[#EF4444]/25 ring-1 ring-[#EF4444]' : 'bg-[#EF4444]/12 ring-1 ring-[#EF4444]/35' }
         : col.id === 'a_suivre'
           ? { label: 'text-[#7C3AED]', zone: isOver ? 'bg-[#8B5CF6]/25 ring-1 ring-[#8B5CF6]' : 'bg-[#8B5CF6]/12 ring-1 ring-[#8B5CF6]/35' }
-          : col.id === 'leads_interne'
-            ? { label: 'text-[#FF4D00]', zone: isOver ? 'bg-[#FF4D00]/15 border border-solid border-[#FF4D00]' : 'bg-[#FF4D00]/[0.05] border border-dashed border-[#FF4D00]/45' }
-            : { label: 'text-soren-text', zone: isOver ? 'bg-[#FF4D00]/10 ring-1 ring-[#FF4D00]/40' : 'bg-black/[0.04]' }
-  // Colonne SURVOLÉE mais interdite pour la card en cours (ex. lead normal → Leads interne) :
-  // AUCUNE surbrillance — elle reste dans son état normal (juste un curseur « interdit »).
+          : { label: 'text-soren-text', zone: isOver ? 'bg-[#FF4D00]/10 ring-1 ring-[#FF4D00]/40' : 'bg-black/[0.04]' }
+  // Plus aucune colonne n'est interdite : le garde-fou de type est tombé avec la
+  // colonne « Leads interne ». Le mécanisme reste en place au cas où une règle
+  // reviendrait un jour.
   const accent = blocked ? { label: baseAccent.label, zone: `${baseAccent.zone} cursor-not-allowed` } : baseAccent
   // Colonnes élargies (demande Thomas, 04/08) : à 260 px, le nom du contact, sa
   // société et ses puces se tassaient et se coupaient.
@@ -903,6 +894,13 @@ export default function ProspectionView() {
     const m: Record<string, ProspRecord[]> = {}
     for (const c of COLUMNS) m[c.id] = []
     for (const r of items) (m[r.column] ?? m['leads_a_traiter']).push(r)
+    // Les leads internes passent devant dans « Leads à traiter » : envoyés à la
+    // main ou issus d'une recommandation, ils ne doivent pas se perdre au
+    // milieu de cent cinquante lignes de sourcing.
+    m['leads_a_traiter'] = [
+      ...m['leads_a_traiter'].filter(r => r.internalLead),
+      ...m['leads_a_traiter'].filter(r => !r.internalLead),
+    ]
     return m
   }, [items])
 
