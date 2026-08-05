@@ -13,7 +13,7 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Search, Plus, X, Phone, Mail, Building2, ExternalLink, CalendarCheck, UserMinus, ChevronLeft, ChevronRight, Tag, Bookmark, ClipboardCheck, Headphones, ChevronUp, ChevronDown, FileText, StickyNote } from 'lucide-react'
+import { Search, Plus, X, Phone, Mail, Building2, ExternalLink, CalendarCheck, UserMinus, ChevronLeft, ChevronRight, Tag, Bookmark, ClipboardCheck, Headphones, ChevronUp, ChevronDown, FileText } from 'lucide-react'
 import { useKanbanSensors } from '@/hooks/useKanbanSensors'
 import { type GHLContact } from '@/lib/ghl'
 import { LOST_REASONS, lostReasonLabel, lostReasonIcon } from '@/lib/lostReasons'
@@ -210,7 +210,7 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
           {r.notes.map(n => (
             <span key={n.id} title={`${n.text} · ${new Date(n.createdAt).toLocaleDateString('fr-FR')}`}
               className="max-w-full inline-flex items-center gap-1 text-[9px] font-semibold px-[5px] py-[1px] rounded-full leading-tight bg-[#FFF1EA] text-[#B23B00] dark:bg-orange-500/15 dark:text-orange-300">
-              <StickyNote size={9} className="flex-shrink-0" /><span className="truncate">{n.text}</span>
+              <span className="truncate">{n.text}</span>
             </span>
           ))}
         </div>
@@ -504,8 +504,8 @@ function ZoneNotes({ recordId }: { recordId: string }) {
           className="flex-1 min-w-0 text-[11.5px] px-2.5 py-1.5 rounded-lg border border-soren-border bg-soren-card text-soren-text placeholder:text-soren-subtle focus:outline-none focus:border-[#C8CBD0]"
         />
         <button onClick={ajouter} disabled={!texte.trim()}
-          className="flex-none inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#FF4D00] text-white disabled:opacity-35 disabled:cursor-not-allowed hover:opacity-90 transition-opacity">
-          <Plus size={12} /> Noter
+          className="flex-none text-[11px] font-medium px-3 py-1.5 rounded-lg border border-soren-border text-soren-muted hover:text-soren-text hover:border-[#C8CBD0] hover:bg-soren-elevated disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-soren-muted disabled:hover:border-soren-border transition-colors">
+          Noter
         </button>
       </div>
       {notes && notes.length > 0 && (
