@@ -119,6 +119,7 @@ async function fetchAdTree(target: { fbAccountId: string; adAccountId: string })
           creative: ad.creative ?? {},
           effectiveObjectStoryId: (ad.creative ?? {}).effectiveObjectStoryId,
           campaign: c.campaignName, adset: s.adSetName,
+          campaignId: c.platformCampaignId ?? null, adsetId: s.platformAdSetId ?? null,
           createdAt: ad.platformCreatedAt ?? ad.createdAt ?? null,
         })
       }
@@ -210,6 +211,7 @@ export const creatives = internalAction({
         adId: String(r.ad_id), name: r.ad_name ?? meta?.name ?? "Sans nom",
         status: status ?? undefined,
         campaign: r.campaign_name ?? undefined, adset: r.adset_name ?? undefined,
+        campaignId: meta?.campaignId ?? null, adsetId: meta?.adsetId ?? null,
         imageUrl: cr.imageUrl ?? cr.image_url ?? cr.thumbnailUrl ?? cr.thumbnail_url ?? null,
         thumbnailUrl: cr.thumbnailUrl ?? cr.thumbnail_url ?? null,
         videoSource: cr.videoUrl ?? cr.video_url ?? null,

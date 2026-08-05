@@ -164,8 +164,8 @@ export default function MediaBuyerView() {
   // Deux générations de créas cohabitent dès qu'on relance un test : même nom,
   // deux lignes. Le filtre montre par défaut ce qui tourne AUJOURD'HUI ; les
   // arrêtées restent à un clic, avec leur dernier jour de diffusion.
-  const detailRows = (d?.detail ?? []).filter(r => dLvl !== 'creative' || !enCoursSeul || r.enCours !== false)
-  const nbArretees = dLvl === 'creative' ? (d?.detail ?? []).filter(r => r.enCours === false).length : 0
+  const detailRows = (d?.detail ?? []).filter(r => !enCoursSeul || r.enCours !== false)
+  const nbArretees = (d?.detail ?? []).filter(r => r.enCours === false).length
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -296,7 +296,7 @@ export default function MediaBuyerView() {
                   <tr><td colSpan={9} className="text-center text-soren-muted text-[13px] py-10">Aucune donnée</td></tr>
                 ) : d!.topCampaigns.map(r => (
                   <tr key={r.id} className="text-[11.5px] font-normal border-b border-soren-border last:border-0">
-                    <td className="px-5 py-3 font-medium text-soren-text">{r.name}</td>
+                    <td className="px-5 py-3 font-medium text-soren-text">{r.name}<Diffusion r={r} /></td>
                     <td className="px-3 py-3 text-soren-muted">{r.adset ?? '—'}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{nf(r.spend)}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{nf(r.impressions)}</td>
@@ -318,7 +318,7 @@ export default function MediaBuyerView() {
           <div className="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-[13px] font-semibold text-soren-text tracking-tight whitespace-nowrap">Détail par {level === 'campaign' ? 'campagne' : level === 'creative' ? 'publicité' : 'adset'}</h3>
             <div className="flex items-center gap-2">
-              {dLvl === 'creative' && nbArretees > 0 && (
+              {nbArretees > 0 && (
                 <button
                   onClick={() => setEnCoursSeul(s => !s)}
                   className={`px-2.5 py-1 rounded-full border text-[11px] font-medium transition-colors ${enCoursSeul ? 'bg-soren-elevated border-soren-border text-soren-muted hover:text-soren-text' : 'bg-soren-accent border-soren-accent text-white'}`}
@@ -352,7 +352,7 @@ export default function MediaBuyerView() {
                               <Diffusion r={r} />
                             </span>
                           </div>
-                        : r.name}
+                        : <span>{r.name}<Diffusion r={r} /></span>}
                     </td>
                     <td className="px-3 py-3 text-soren-muted">{(dLvl === 'adset' ? r.campaign : r.adset) ?? '—'}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{nf(r.spend)}</td>

@@ -164,6 +164,7 @@ export const creatives = action({
       out.push({
         adId: ad.id, name: ad.name, status: statutReel(ad),
         campaign: ad.campaign?.name ?? null, adset: ad.adset?.name ?? null,
+        campaignId: ad.campaign?.id ?? null, adsetId: ad.adset?.id ?? null,
         // imageUrl = le visuel qu'on ouvre en grand ; thumbnailUrl = la vignette du tableau.
         imageUrl: (hashOf(cr) ? urlParHash.get(hashOf(cr)!) : null) ?? cr.image_url ?? cr.thumbnail_url ?? crea?.image_url ?? crea?.thumbnail_url ?? null,
         thumbnailUrl: cr.thumbnail_url ?? crea?.thumbnail_url ?? cr.image_url ?? null,
@@ -209,6 +210,7 @@ export const _upsertOne = internalMutation({
   args: {
     adId: v.string(), name: v.string(), status: v.optional(v.string()),
     campaign: v.optional(v.string()), adset: v.optional(v.string()),
+    campaignId: v.optional(v.union(v.string(), v.null())), adsetId: v.optional(v.union(v.string(), v.null())),
     imageUrl: v.optional(v.union(v.string(), v.null())), thumbnailUrl: v.optional(v.union(v.string(), v.null())),
     videoSource: v.optional(v.union(v.string(), v.null())), videoThumb: v.optional(v.union(v.string(), v.null())),
     videoLien: v.optional(v.union(v.string(), v.null())),
@@ -227,6 +229,7 @@ export const _upsertOne = internalMutation({
     const row = {
       workspaceId: WORKSPACE, adId: a.adId, name: a.name, status: a.status,
       campaign: a.campaign, adset: a.adset,
+      campaignId: u(a.campaignId) as string | undefined, adsetId: u(a.adsetId) as string | undefined,
       imageUrl: u(a.imageUrl) as string | undefined, thumbnailUrl: u(a.thumbnailUrl) as string | undefined,
       videoSource: u(a.videoSource) as string | undefined, videoThumb: u(a.videoThumb) as string | undefined,
       videoLien: u(a.videoLien) as string | undefined,

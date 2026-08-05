@@ -726,7 +726,10 @@ export default defineSchema({
     convDmR1:      v.optional(v.number()),  // % DM → R1 (parcours Profil)
     tauxSetting:   v.optional(v.number()),  // % RDV décrochés par le setter (outbound)
     cpl:           v.optional(v.number()),  // CHF — cible CPL Meta
-    ca:            v.optional(v.number()),  // € chiffre d'affaires
+    ca:            v.optional(v.number()),  // CHF encaissé — objectif GLOBAL (ligne commune uniquement)
+    // Objectif encaissé DE CE PARCOURS. Le global ne se déduit pas d'une somme
+    // de sous-objectifs : il se décide, et chaque section porte sa part ici.
+    caSection:     v.optional(v.number()),
     roi:           v.optional(v.number()),  // × ROI (retiré du cockpit, gardé pour l'historique)
     coutParVente:  v.optional(v.number()),  // CHF — plafond de coût par vente (dépense pub ÷ ventes)
     ventes:        v.optional(v.number()),  // nb total ventes
@@ -827,6 +830,12 @@ export default defineSchema({
     adsetId:     v.optional(v.string()),
     campaignId:  v.optional(v.string()),
     isOrganic:   v.optional(v.boolean()),
+    // Soumission de TEST : elle reste visible dans la liste des leads Meta Ads,
+    // marquée « (test) », parce que le compteur Meta la compte et qu'un écart
+    // inexpliqué avec le module serait pire. Elle n'a ni contact ni lead, donc
+    // elle n'entre ni dans la prospection, ni dans le pipeline, ni dans les
+    // cohortes de Performance.
+    isTest:      v.optional(v.boolean()),
     fieldsJson:  v.optional(v.string()),     // réponses brutes du formulaire
     // Étapes franchies, horodatées : formulaire, quiz ouvert, quiz terminé,
     // rendez-vous pris, quiz de fin. Une étape ne s'écrit qu'une fois.
@@ -838,6 +847,49 @@ export default defineSchema({
     .index("by_leadgen", ["leadgenId"])
     .index("by_email", ["email"])
     .index("by_ws", ["workspaceId", "createdAt"]),
+
+  // ─── Réponses du quiz de qualification (quiz.vividflow.co) ───────────────
+  // Le quiz envoyait ses réponses à deux endpoints qui n'existaient pas : tout
+  // était perdu. Ici on garde la CAPTURE PROGRESSIVE (une ligne par email, mise
+  // à jour à chaque réponse) puis la soumission finale. Le rattachement au
+  // parcours se fait par jeton quand il existe, sinon par email : c'est le
+  // filet quand le bouton du formulaire Meta ne porte pas la macro lead_id.
+  quiz_responses: defineTable({
+    workspaceId: v.string(),
+    // Email VIDE tant que la personne ne s'est pas identifiée : le quiz demande
+    // son identité à 90 % du parcours, alors qu'on veut garder ses réponses dès
+    // la première. La ligne vit donc d'abord sous `sid` (jeton de session posé
+    // par la page), puis se recolle à l'email dès qu'il arrive.
+    email:       v.string(),
+    sid:         v.optional(v.string()),
+    // Où la personne s'est arrêtée : numéro de question atteint et total.
+    qi:          v.optional(v.number()),
+    qTotal:      v.optional(v.number()),
+    ecran:       v.optional(v.string()),   // q | result | gate | closing…                 // clé de rapprochement, toujours en minuscules
+    name:        v.optional(v.string()),
+    phone:       v.optional(v.string()),
+    company:     v.optional(v.string()),
+    metier:      v.optional(v.string()),
+    secteur:     v.optional(v.string()),
+    token:       v.optional(v.string()),     // jeton du parcours si on a su le rattacher
+    contactId:   v.optional(v.string()),
+    leadId:      v.optional(v.string()),
+    status:      v.string(),                 // "en_cours" | "termine"
+    qualified:   v.optional(v.boolean()),
+    score:       v.optional(v.number()),
+    tier:        v.optional(v.string()),
+    answersJson: v.optional(v.string()),     // réponses brutes (JSON)
+    answersText: v.optional(v.string()),     // version lisible, pour la fiche
+    attributionJson: v.optional(v.string()), // utm / referrer capturés par la page
+    pageUrl:     v.optional(v.string()),
+    variant:     v.optional(v.string()),
+    firstSeenAt: v.string(),
+    updatedAt:   v.string(),
+  })
+    .index("by_email", ["email"])
+    .index("by_sid", ["sid"])
+    .index("by_token", ["token"])
+    .index("by_ws", ["workspaceId", "updatedAt"]),
 
   // Module Budget : chaque poste de dépense, saisi et modifiable à la main.
   // Remplace la liste codée en dur du composant : les montants bougent, les
@@ -1237,6 +1289,10 @@ export default defineSchema({
     // Rapport quotidien écrit par le Data OS (vs note libre humaine) : il ne doit
     // jamais être écrasé par une saisie, et se reconnaît dans l'historique.
     auto:        v.optional(v.boolean()),
+    // Chiffres du rapport, structurés (JSON). Le texte de `body` reste la
+    // version lisible dans la boîte de réception ; la mise en page du PDF
+    // travaille sur ces données plutôt que de re-parser des lignes.
+    dataJson:    v.optional(v.string()),
     readAt:      v.optional(v.number()),   // rapport auto consulté (pastille de la boîte de réception)
     updatedBy:   v.string(),
     avatarUrl:   v.optional(v.string()),
@@ -1261,6 +1317,11 @@ export default defineSchema({
     status:       v.optional(v.string()),
     campaign:     v.optional(v.string()),
     adset:        v.optional(v.string()),
+    // Ids Meta des étages du dessus : deux adsets peuvent porter le MÊME nom
+    // (un test relancé à l'identique). Le statut de diffusion d'une campagne ou
+    // d'un adset se rattache donc par id, jamais par nom.
+    campaignId:   v.optional(v.string()),
+    adsetId:      v.optional(v.string()),
     imageUrl:     v.optional(v.string()),   // 📷 photo de la créa
     thumbnailUrl: v.optional(v.string()),
     videoSource:  v.optional(v.string()),   // 🎬 URL de la vidéo
@@ -1293,6 +1354,20 @@ export default defineSchema({
 
   // Outbound email — état de la loop (remplace le Google Sheet « Base leads dirigeants »).
   // Machine à états du SOP « Présentation email outbound ». Source de vérité de la loop.
+  // Haut d'entonnoir du parcours LinkedIn, alimente par lemlist via le pont VPS.
+  // Le module Performance attendait Connexions / DMs / Conversations sans source :
+  // c'est cette table (un enregistrement par jour, idempotent).
+  os_linkedin_daily: defineTable({
+    workspaceId:   v.string(),
+    day:           v.string(),              // YYYY-MM-DD
+    connexions:    v.number(),              // invitations ACCEPTEES ce jour
+    dmsEnvoyes:    v.number(),
+    conversations: v.number(),              // reponses recues
+    invitations:   v.optional(v.number()),  // invitations ENVOYEES (suivi du quota 20/j)
+    campaignId:    v.optional(v.string()),
+    updatedAt:     v.optional(v.string()),
+  }).index("by_day", ["workspaceId", "day"]),
+
   outbound_leads: defineTable({
     workspaceId:      v.string(),
     firstName:        v.string(),

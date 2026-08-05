@@ -383,8 +383,45 @@ export const dashboard = query({
       })
     }
 
-    const topCampaigns = (await aggObjects("campaign")).slice(0, 10)
-    const detail = lvl === "creative" ? await creativeDetail() : await aggObjects(lvl)
+    /**
+     * Statut de diffusion d'une CAMPAGNE ou d'un ADSET.
+     *
+     * Meta ne stocke chez nous que le statut des publicités, mais il y propage
+     * déjà les étages du dessus (une pub d'une campagne en pause est marquée
+     * CAMPAIGN_PAUSED, une pub d'un adset en pause ADSET_PAUSED). Une campagne
+     * diffuse donc si, et seulement si, au moins une de ses publicités est
+     * ACTIVE : pas besoin d'une table de plus pour le savoir.
+     *
+     * Sans aucune publicité connue (créa jamais synchronisée), on retombe sur
+     * la dernière journée de diffusion : rien dépensé le dernier jour
+     * synchronisé = arrêtée.
+     */
+    const statutParNiveau = async (rows: { id: string; derniereDiffusion: string }[], niveau: "campaign" | "adset") => {
+      const dernierJourDonnees = dailyAll[dailyAll.length - 1]?.date ?? null
+      const creatives = await ctx.db.query("meta_creatives")
+        .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
+      const actifs = new Set<string>(), connus = new Set<string>()
+      for (const c of creatives) {
+        // Rattachement par ID Meta : deux adsets « Broad Suisse - Quiz » vivent
+        // côte à côte, l'un archivé, l'autre en cours. Par nom, l'archivé
+        // héritait du statut de son homonyme.
+        const cle = niveau === "campaign" ? c.campaignId : c.adsetId
+        if (!cle) continue
+        connus.add(cle)
+        if (c.status === "ACTIVE") actifs.add(cle)
+      }
+      return rows.map(r => ({
+        ...r,
+        enCours: connus.has(r.id)
+          ? actifs.has(r.id)
+          : r.derniereDiffusion >= (dernierJourDonnees ?? r.derniereDiffusion),
+      }))
+    }
+
+    const topCampaigns = await statutParNiveau((await aggObjects("campaign")).slice(0, 10), "campaign")
+    const detail = lvl === "creative"
+      ? await creativeDetail()
+      : await statutParNiveau(await aggObjects(lvl), lvl === "adset" ? "adset" : "campaign")
 
     return {
       from, to, level: lvl,
