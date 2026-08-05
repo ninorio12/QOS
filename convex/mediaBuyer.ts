@@ -260,17 +260,39 @@ function guessCampaignFunnel(name: string | null | undefined): string | null {
  * zéro déplace le point de départ du comptage, sans rien effacer. L'historique
  * reste en base, et l'écran dit toujours depuis quand il compte.
  * ─────────────────────────────────────────────────────────────────── */
+
+/**
+ * Publicités à sortir du compteur après une remise à zéro.
+ *
+ * ⚠️ UNIQUEMENT celles qui ont DÉJÀ dépensé. Une pub créée mais jamais diffusée
+ * n'a rien à effacer : si on l'excluait, la remise à zéro rendrait le board
+ * aveugle au lancement qu'elle est censée préparer (cas vécu le 05/08, les
+ * nouvelles créas étaient prêtes et en pause au moment du geste).
+ */
+async function pubsExistantes(ctx: any, campaignId: string, campaignName?: string): Promise<string[]> {
+  const rows = await ctx.db.query("meta_object_daily")
+    .withIndex("by_ws_level_date", (q: any) => q.eq("workspaceId", WORKSPACE).eq("level", "creative")).collect()
+  const ids = new Set<string>()
+  for (const r of rows) {
+    if (campaignName && r.campaign !== campaignName) continue
+    if ((r.spend ?? 0) > 0 || (r.impressions ?? 0) > 0) ids.add(r.objectId)
+  }
+  void campaignId
+  return [...ids]
+}
+
 export const resetCampaign = mutation({
   args: { campaignId: v.string(), campaignName: v.optional(v.string()), date: v.optional(v.string()) },
   handler: async (ctx, a) => {
     await requireAdmin(ctx)
     const resetAt = a.date ?? todayISO()
+    const excludedAdIds = await pubsExistantes(ctx, a.campaignId, a.campaignName)
     const existant = await ctx.db.query("meta_campaign_resets")
       .withIndex("by_campaign", q => q.eq("workspaceId", WORKSPACE).eq("campaignId", a.campaignId)).first()
-    if (existant) await ctx.db.patch(existant._id, { resetAt, campaignName: a.campaignName ?? existant.campaignName })
+    if (existant) await ctx.db.patch(existant._id, { resetAt, campaignName: a.campaignName ?? existant.campaignName, excludedAdIds })
     else await ctx.db.insert("meta_campaign_resets", {
       workspaceId: WORKSPACE, campaignId: a.campaignId, campaignName: a.campaignName,
-      resetAt, createdAt: new Date().toISOString(),
+      resetAt, excludedAdIds, createdAt: new Date().toISOString(),
     })
     return { ok: true, resetAt }
   },
@@ -418,11 +440,18 @@ export const dashboard = query({
       .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
     const resetParId = new Map(resets.map(r => [r.campaignId, r.resetAt]))
     const resetParNom = new Map(resets.filter(r => r.campaignName).map(r => [r.campaignName as string, r.resetAt]))
+    // Pubs à ne plus compter, tous niveaux confondus.
+    const pubsExclues = new Set<string>(resets.flatMap(r => r.excludedAdIds ?? []))
+    // Campagnes remises à zéro : leurs totaux se RECONSTRUISENT depuis les
+    // publicités, sinon la ligne agrégée de Meta réintroduirait la matinée
+    // effacée (une ligne campagne ne se découpe pas par pub).
+    const campagnesRemisesANom = new Set<string>(resets.map(r => r.campaignName ?? "").filter(Boolean))
 
     // agrégation des objets (meta_object_daily) sur la fenêtre, regroupée par objectId
     const aggObjects = async (level: string) => {
+      const niveauLu = (level === "campaign" || level === "adset") && campagnesRemisesANom.size > 0 ? "creative" : level
       const rows = (await ctx.db.query("meta_object_daily")
-        .withIndex("by_ws_level_date", q => q.eq("workspaceId", WORKSPACE).eq("level", level)).collect())
+        .withIndex("by_ws_level_date", q => q.eq("workspaceId", WORKSPACE).eq("level", niveauLu)).collect())
         .filter(r => r.date >= floor && inRange(r.date, from, to))
         // Vue parcours : campagnes retenues seulement (par id au niveau campagne,
         // par nom de campagne aux niveaux adset/publicité).
@@ -441,7 +470,18 @@ export const dashboard = query({
       // dates, le tableau affiche deux lignes jumelles et rien ne dit laquelle
       // tourne encore.
       const byId = new Map<string, { id: string; name: string; campaign: string | null; adset: string | null; spend: number; impressions: number; clicks: number; leads: number; premiereDiffusion: string; derniereDiffusion: string }>()
-      for (const r of rows) {
+      for (const brut of rows) {
+        // Une pub d'avant la remise à zéro ne compte plus, à aucun niveau.
+        if (niveauLu === "creative" && pubsExclues.has(brut.objectId)) continue
+        // Lecture reconstruite : la ligne de pub porte les totaux de son adset
+        // ou de sa campagne, regroupés par leur NOM (seule clé dont on dispose
+        // à ce niveau-là).
+        const r = niveauLu === level ? brut : {
+          ...brut,
+          objectId: level === "adset" ? (brut.adset ?? "?") : (brut.campaign ?? "?"),
+          name: (level === "adset" ? brut.adset : brut.campaign) ?? "(sans nom)",
+          adset: level === "adset" ? undefined : brut.adset,
+        }
         const g = byId.get(r.objectId) ?? { id: r.objectId, name: r.name, campaign: r.campaign ?? null, adset: r.adset ?? null, spend: 0, impressions: 0, clicks: 0, leads: 0, premiereDiffusion: r.date, derniereDiffusion: r.date }
         g.spend += r.spend; g.impressions += r.impressions; g.clicks += r.clicks; g.leads += r.leads; g.name = r.name
         if (r.date < g.premiereDiffusion) g.premiereDiffusion = r.date
@@ -906,12 +946,13 @@ export const syncInsights = action({
 export const _resetCampaign = internalMutation({
   args: { campaignId: v.string(), campaignName: v.optional(v.string()), date: v.string() },
   handler: async (ctx, a) => {
+    const excludedAdIds = await pubsExistantes(ctx, a.campaignId, a.campaignName)
     const existant = await ctx.db.query("meta_campaign_resets")
       .withIndex("by_campaign", q => q.eq("workspaceId", WORKSPACE).eq("campaignId", a.campaignId)).first()
-    if (existant) await ctx.db.patch(existant._id, { resetAt: a.date, campaignName: a.campaignName ?? existant.campaignName })
+    if (existant) await ctx.db.patch(existant._id, { resetAt: a.date, campaignName: a.campaignName ?? existant.campaignName, excludedAdIds })
     else await ctx.db.insert("meta_campaign_resets", {
       workspaceId: WORKSPACE, campaignId: a.campaignId, campaignName: a.campaignName,
-      resetAt: a.date, createdAt: new Date().toISOString(),
+      resetAt: a.date, excludedAdIds, createdAt: new Date().toISOString(),
     })
     return { ok: true, resetAt: a.date }
   },

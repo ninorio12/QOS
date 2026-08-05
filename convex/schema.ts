@@ -1250,6 +1250,12 @@ export default defineSchema({
     campaignId:   v.string(),
     campaignName: v.optional(v.string()),
     resetAt:      v.string(),            // 'YYYY-MM-DD' : premier jour compté
+    // Publicités qui existaient AU MOMENT de la remise à zéro. Les compter
+    // reviendrait à traîner la veille : une remise à zéro en milieu de journée
+    // doit effacer la matinée, or Meta ne nous donne le détail qu'à la journée.
+    // On exclut donc les anciennes pubs par leur identifiant, ce qui donne un
+    // vrai zéro même le jour même.
+    excludedAdIds: v.optional(v.array(v.string())),
     createdAt:    v.string(),
   })
     .index("by_workspace", ["workspaceId"])
