@@ -68,21 +68,24 @@ export default function MetaLeadsModal({ onClose }: { onClose: () => void }) {
               {rows.map(r => (
                 <a
                   key={r.id}
-                  href={`/contacts/${r.id}`}
-                  className="group flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-soren-elevated transition-colors"
+                  // Une soumission de test n'a pas de fiche : la ligne existe pour
+                  // expliquer le compteur Meta, elle ne mène nulle part.
+                  href={r.test ? undefined : `/contacts/${r.id}`}
+                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${r.test ? 'opacity-60 cursor-default' : 'hover:bg-soren-elevated'}`}
                 >
                   <div className="w-8 h-8 rounded-full bg-soren-accent/10 text-soren-accent grid place-items-center text-[11px] font-bold flex-none">
                     {r.name.split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[13px] font-medium text-soren-text truncate">{r.name}</span>
+                      <span className="text-[13px] font-medium text-soren-text truncate">
+                        {r.name}{r.test && <span className="text-soren-subtle font-normal"> (test)</span>}
+                      </span>
                       {r.statut && STATUT[r.statut] && <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUT[r.statut].cls}`}>{STATUT[r.statut].label}</span>}
                     </div>
                     <div className="flex items-center gap-3 text-[11.5px] text-soren-muted mt-0.5 truncate">
-                      {r.company && <span className="truncate">{r.company}</span>}
                       {r.email && <span className="inline-flex items-center gap-1 truncate"><Mail size={11} />{r.email}</span>}
-                      {!r.email && r.phone && <span className="inline-flex items-center gap-1"><Phone size={11} />{r.phone}</span>}
+                      {r.phone && <span className="inline-flex items-center gap-1 flex-none"><Phone size={11} />{r.phone}</span>}
                     </div>
                   </div>
                   <span className="text-[11px] text-soren-subtle tabular-nums flex-none">{fmtDate(r.createdAt)}</span>

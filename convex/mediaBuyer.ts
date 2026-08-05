@@ -1018,3 +1018,15 @@ export const _resetCampaign = internalMutation({
     return { ok: true, resetAt: a.date }
   },
 })
+
+/** Répare la liste des publicités écartées par une remise à zéro (outillage). */
+export const _setResetExclusions = internalMutation({
+  args: { campaignId: v.string(), adIds: v.array(v.string()) },
+  handler: async (ctx, a) => {
+    const row = await ctx.db.query("meta_campaign_resets")
+      .withIndex("by_campaign", q => q.eq("workspaceId", WORKSPACE).eq("campaignId", a.campaignId)).first()
+    if (!row) return { ok: false }
+    await ctx.db.patch(row._id, { excludedAdIds: a.adIds })
+    return { ok: true, exclues: a.adIds.length }
+  },
+})

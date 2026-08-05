@@ -16,7 +16,6 @@ const MetaCplChart = dynamic(() => import('./MetaCplChart'), { ssr: false })
 const MetaLeadsChart = dynamic(() => import('./MetaLeadsChart'), { ssr: false })
 const MetaConnectModal = dynamic(() => import('./MetaConnectModal'), { ssr: false })
 const MetaLeadsModal = dynamic(() => import('./MetaLeadsModal'), { ssr: false })
-const QuizSessionsModal = dynamic(() => import('./QuizSessionsModal'), { ssr: false })
 const MetaGuide = dynamic(() => import('./MetaGuide'), { ssr: false })
 const CreativeIntelligence = dynamic(() => import('./CreativeIntelligence'), { ssr: false })
 const CardDrop = dynamic(() => import('./CardDrop'), { ssr: false })
@@ -83,44 +82,6 @@ const TONS: Record<string, { fg: string; bg: string }> = {
  * un seul lead. La phrase dit ce qui est mesuré, ce qui manque pour trancher,
  * et où ça casse quand ça casse.
  */
-/**
- * Remise à zéro d'une campagne : on déplace son point de départ, on n'efface rien.
- *
- * Relancer des créas sur une campagne qui a déjà dépensé rend son total
- * illisible : le CPL moyen traîne les anciennes pubs derrière lui. Après remise
- * à zéro, la ligne dit toujours depuis quand elle compte, et le geste s'annule.
- */
-function BoutonRemiseAZero({ r }: { r: Row }) {
-  const reset = useMutation(api.mediaBuyer.resetCampaign)
-  const annuler = useMutation(api.mediaBuyer.cancelReset)
-  const [confirme, setConfirme] = useState(false)
-  if (r.resetAt) {
-    return (
-      <button onClick={() => annuler({ campaignId: r.id })}
-        title="Recompter la campagne depuis son premier jour"
-        className="text-[9px] font-semibold text-soren-subtle hover:text-soren-text underline underline-offset-2">
-        annuler
-      </button>
-    )
-  }
-  if (!confirme) {
-    return (
-      <button onClick={() => setConfirme(true)} title="Repartir de zéro à partir d'aujourd'hui"
-        className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-soren-subtle hover:text-soren-text">
-        <RotateCcw size={11} />
-      </button>
-    )
-  }
-  return (
-    <span className="inline-flex items-center gap-1 text-[9.5px]">
-      <span className="text-soren-muted">Repartir de zéro aujourd&apos;hui ?</span>
-      <button onClick={() => { reset({ campaignId: r.id, campaignName: r.name }); setConfirme(false) }}
-        className="font-semibold text-[#FF4D00] hover:underline">Oui</button>
-      <button onClick={() => setConfirme(false)} className="text-soren-subtle hover:text-soren-text">non</button>
-    </span>
-  )
-}
-
 function Lecture({ l }: { l?: Row['lecture'] }) {
   if (!l) return null
   const t = TONS[l.ton] ?? TONS.neutre
@@ -198,7 +159,6 @@ export default function MediaBuyerView() {
   const [syncErr, setSyncErr] = useState<string | null>(null)
   const [connectOpen, setConnectOpen] = useState(false)
   const [leadsOpen, setLeadsOpen] = useState(false)
-  const [quizOpen, setQuizOpen] = useState(false)
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [tab, setTab] = useState<'perf' | 'guide'>('perf')
   const [rangeLabel, setRangeLabel] = useState('7 derniers jours')
@@ -304,18 +264,11 @@ export default function MediaBuyerView() {
               />
             )}
           </div>
-          {/* Réponses du quiz, abandons compris : la seule vue qui montre ce que
-              les gens répondent avant de partir. */}
-          <button onClick={() => setQuizOpen(true)}
-            className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium text-soren-muted bg-soren-card border border-soren-border rounded-full px-2.5 py-1.5 hover:text-soren-text transition-colors">
-            <ClipboardList size={12} /> Réponses du quiz
-          </button>
           {isAdmin && conn?.connected && <button onClick={syncMeta} disabled={syncing} className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium text-soren-muted bg-soren-card border border-soren-border rounded-full px-2.5 py-1.5 hover:text-soren-text transition-colors disabled:opacity-60"><RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />{syncing ? 'Sync…' : 'Sync Meta'}</button>}
         </div>
       </div>
       {connectOpen && <MetaConnectModal onClose={() => setConnectOpen(false)} />}
       {leadsOpen && <MetaLeadsModal onClose={() => setLeadsOpen(false)} />}
-      {quizOpen && <QuizSessionsModal onClose={() => setQuizOpen(false)} />}
 
       <div className={`flex-1 overflow-y-auto p-7 transition-opacity duration-200 ${refreshing ? 'opacity-70' : 'opacity-100'}`}>
         {tab === 'guide' ? <MetaGuide /> : (<>
@@ -352,7 +305,15 @@ export default function MediaBuyerView() {
             <CardDrop cardId="chart_cpl" variant="panel" />
           </div>
           <div className="bg-soren-card border border-soren-border rounded-2xl p-5">
-            <h3 className="text-[10.5px] uppercase tracking-wide text-soren-muted font-semibold mb-3">Leads générés</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[10.5px] uppercase tracking-wide text-soren-muted font-semibold">Leads générés</h3>
+              {/* La liste des personnes derrière le chiffre : un graphique dit
+                  combien, pas qui. */}
+              <button onClick={() => setLeadsOpen(true)} title="Voir les leads"
+                className="w-7 h-7 rounded-lg grid place-items-center text-soren-muted hover:text-soren-text hover:bg-soren-elevated transition-colors">
+                <Users size={14} />
+              </button>
+            </div>
             <div className="h-[180px]">
               {!loading && d!.series.length > 0 ? <MetaLeadsChart data={d!.series} /> : <EmptyChart />}
             </div>
@@ -377,10 +338,7 @@ export default function MediaBuyerView() {
                 ) : d!.topCampaigns.map(r => (
                   <tr key={r.id} className="group text-[11.5px] font-normal border-b border-soren-border last:border-0">
                     <td className="px-5 py-3 font-medium text-soren-text">
-                      <span className="inline-flex items-center gap-1.5">
-                        {r.name}
-                        {isAdmin && <BoutonRemiseAZero r={r} />}
-                      </span>
+                      {r.name}
                       {r.resetAt && (
                         <span className="block text-[9.5px] text-soren-subtle mt-0.5">
                           comptée depuis le {r.resetAt.slice(8, 10)}/{r.resetAt.slice(5, 7)}
