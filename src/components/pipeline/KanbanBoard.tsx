@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useQuery } from 'convex/react'
+import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
+import { type Id } from '../../../convex/_generated/dataModel'
 import PipelineMobileTabs from '@/components/pipeline/PipelineMobileTabs'
 import { Modal } from '@/components/ui/Modal'
 import { IClosedBookingModal, ICLOSED_R1_BOOKING_URL, ICLOSED_R2_BOOKING_URL } from '@/components/shared/IClosedBookingModal'
@@ -31,7 +32,6 @@ import { CSS } from '@dnd-kit/utilities'
 import { Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, X, ArrowLeft, Search } from 'lucide-react'
 import { type GHLPipelineData, type GHLStage, type Opportunity, type Lead } from './types'
 import { NONVENTE_REASONS, NONVENTE_OBJECTIONS } from '@/lib/lostReasons'
-import { getAvatarColor } from '@/components/contacts/types'
 import dynamic from 'next/dynamic'
 import { useToast } from '@/hooks/useToast'
 import { useKanbanSensors } from '@/hooks/useKanbanSensors'
@@ -49,18 +49,9 @@ const dropAnimation: DropAnimation = {
 
 const LOST_PREFIX = 'lost-'
 
-// ─── Avatar ───────────────────────────────────────────────────
-function Avatar({ initials }: { initials: string }) {
-  const color = getAvatarColor(initials)
-  return (
-    <div
-      className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold border border-white"
-      style={{ background: color + '22', color }}
-    >
-      {initials}
-    </div>
-  )
-}
+// Pas de pastille d'initiales sur les cartes du board Leads (demande Thomas,
+// 03/08) : le nom est déjà en tête de carte, la pastille ne disait rien de plus
+// et mangeait la largeur utile des chips (source, no-show, clarté).
 
 // Chips de source :reflètent fidèlement contact.source (inbound/outbound/recommandation/…).
 const SOURCE_META: Record<string, { label: string; bg: string; color: string }> = {
@@ -91,8 +82,8 @@ function OppCard({ opp, isDragging = false, muted = false, hideValue = false }: 
         <p className="flex-1 min-w-0 text-[10.5px] font-normal text-soren-text leading-tight truncate">{opp.name}</p>
         <span className="text-[10px] text-soren-subtle shrink-0">{date}</span>
       </div>
-      <div className="flex items-center justify-between gap-1 min-w-0">
-        <div className="flex items-center gap-1 min-w-0 overflow-hidden">
+      <div className="flex items-center gap-1 min-w-0">
+        <div className="flex items-center gap-1 min-w-0 overflow-hidden flex-1">
           {!hideValue && (
             <span className="text-xs font-bold text-soren-text shrink-0">
               {opp.value > 0 ? `${opp.value.toLocaleString('fr-FR')} CHF` : '—'}
@@ -109,7 +100,6 @@ function OppCard({ opp, isDragging = false, muted = false, hideValue = false }: 
             <span title="Appel de clarté effectué" className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: '#D1FAE5', color: '#047857' }}>clarté faite</span>
           )}
         </div>
-        <Avatar initials={opp.initials} />
       </div>
     </div>
   )
@@ -258,7 +248,9 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
         {/* 1ʳᵉ étape (Nouveau lead) et dernière étape : pas de zone perdu :un nouveau lead ne peut pas
             être perdu. Pas de réservateur d'espace → les cartes occupent toute la hauteur (les colonnes
             restent alignées via l'étirement flex du board row). */}
-        {!showLost && !isLastStage && !isFirstStage && <LostZone stageId={stage.id} isOver={isLostOver} />}
+        {/* Après la signature, il n'y a plus de « perdu » : un client se termine
+            ou se poursuit, il ne se perd pas dans le tunnel de vente. */}
+        {!showLost && !isLastStage && !isFirstStage && !ID_ETAPES_CLIENT.has(stage.id) && <LostZone stageId={stage.id} isOver={isLostOver} />}
       </div>
     </div>
   )
@@ -339,6 +331,22 @@ interface KanbanBoardProps {
   initialOpportunities: Opportunity[]
 }
 
+/**
+ * Suite du parcours, après la signature.
+ *
+ * « Nouveau client » n'est pas dupliqué : c'est la dernière colonne des leads ET
+ * la première des clients, c'est la même. Les cinq colonnes ci-dessous la
+ * prolongent, dans la même ligne.
+ */
+const ETAPES_CLIENT: { id: string; name: string; color: string }[] = [
+  { id: 'onboarding-envoye',  name: 'Onboarding envoyé',   color: '#F59E0B' },
+  { id: 'onboarding-complet', name: 'Onboarding complété', color: '#3B82F6' },
+  { id: 'kickoff-booke',      name: 'Kickoff booké',       color: '#8B5CF6' },
+  { id: 'setup-cree',         name: 'Setup créé',          color: '#EC4899' },
+  { id: 'consulting',         name: 'Consulting',          color: '#10B981' },
+]
+const ID_ETAPES_CLIENT = new Set(['nouveau-client', ...ETAPES_CLIENT.map(e => e.id)])
+
 export default function KanbanBoard({ initialPipelines, initialOpportunities }: KanbanBoardProps) {
   const [opps,           setOpps]           = useState<Opportunity[]>(initialOpportunities.filter(o => o.status !== 'lost'))
   const [lostOpps,       setLostOpps]       = useState<Opportunity[]>(initialOpportunities.filter(o => o.status === 'lost'))
@@ -353,6 +361,9 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
   const liveLeads = useQuery(api.crm_leads.list)
   const liveContacts = useQuery(api.crm_contacts.list)
   const liveCalls = useQuery(api.osSalesCalls.list, {})
+  // Clients signés : ils vivent dans les colonnes qui prolongent le parcours.
+  const liveClients = useQuery(api.pipeline_clients.list)
+  const deplacerClient = useMutation(api.pipeline_clients.updateStage)
   useEffect(() => {
     if (!liveLeads || draggingRef.current) return
     // source de vérité = la fiche contact ; la chip inbound/outbound en dérive.
@@ -552,8 +563,28 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
 
   const sensors = useKanbanSensors()
 
+  // Cartes des clients signés, dans la forme des cartes de lead : le board n'a
+  // ainsi qu'un seul modèle à rendre et à déplacer.
+  const cartesClients: Opportunity[] = useMemo(() => (
+    ((liveClients ?? []) as { _id: string; name: string; company?: string; value?: number; stageId: string; createdAt: string; email?: string; phone?: string; contactId?: string }[])
+      .map(c => ({
+        id: c._id, name: c.name, company: c.company ?? '', value: c.value ?? 0,
+        source: 'client', createdAt: c.createdAt,
+        initials: (c.name || '?').split(' ').map(m => m[0]).slice(0, 2).join('').toUpperCase(),
+        stageId: c.stageId, pipelineId: 'clients',
+        email: c.email ?? '', phone: c.phone ?? '', contactId: c.contactId ?? '',
+        tags: [], status: 'won' as const,
+      }))
+  ), [liveClients])
+
   const pipeline     = initialPipelines[pipelineIdx] ?? initialPipelines[0]
-  const stages       = pipeline?.stages ?? []
+  // Les colonnes clientes prolongent celles des leads : une seule ligne, de
+  // « Nouveaux leads » à « Consulting », sans rupture ni doublon de colonne.
+  const stages       = useMemo(() => {
+    const base = pipeline?.stages ?? []
+    const suite = ETAPES_CLIENT.map((e, i) => ({ ...e, position: base.length + i }))
+    return [...base, ...suite]
+  }, [pipeline])
   const [searchQuery, setSearchQuery] = useState('')
   // Étape affichée sur mobile (sélecteur d'étapes :une colonne à la fois)
   const [mobileStageId, setMobileStageId] = useState<string | null>(null)
@@ -587,16 +618,19 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     void persistStageMove(opp.id, target.id, opp.stageId)
     setMobileStageId(target.id)
   }
-  const activeOpp    = opps.find(o => o.id === activeId) ?? null
+  const activeOpp    = [...opps, ...cartesClients].find(o => o.id === activeId) ?? null
   const pipelineOpps = opps.filter(o => o.pipelineId === pipeline?.id)
   const getColOpps = useCallback((stageId: string) => {
     const q = searchQuery.trim().toLowerCase()
     const match = (o: Opportunity) => !q || [o.name, o.company, o.email, o.phone].some(f => f?.toLowerCase().includes(q))
+    // Colonnes d'après signature : ce sont les clients qu'on y lit, pas les leads.
     const base = showLost
       ? lostOpps.filter(o => o.stageId === stageId && o.pipelineId === pipeline?.id)
-      : pipelineOpps.filter(o => o.stageId === stageId)
+      : ID_ETAPES_CLIENT.has(stageId)
+        ? cartesClients.filter(o => o.stageId === stageId)
+        : pipelineOpps.filter(o => o.stageId === stageId)
     return base.filter(match)
-  }, [showLost, lostOpps, pipelineOpps, pipeline?.id, searchQuery])
+  }, [showLost, lostOpps, pipelineOpps, cartesClients, pipeline?.id, searchQuery])
 
   function handleDragStart({ active }: DragStartEvent) {
     setActiveId(active.id as string)
@@ -662,7 +696,17 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     // Dropped on a column (stage)
     const targetStage = stages.find(s => s.id === overId)
     if (targetStage) {
-      const isLast = stages[stages.length - 1]?.id === targetStage.id
+      // Carte CLIENTE : elle circule dans les colonnes d'après signature.
+      if (ID_ETAPES_CLIENT.has(activeOpp.stageId)) {
+        if (!ID_ETAPES_CLIENT.has(targetStage.id)) { toast('Un client signé ne repart pas dans les étapes de vente', 'error'); return }
+        if (activeOpp.stageId !== targetStage.id) {
+          void deplacerClient({ id: activeOpp.id as Id<'pipeline_clients'>, stageId: targetStage.id })
+        }
+        return
+      }
+      // Carte LEAD déposée après la signature : elle doit d'abord être convertie.
+      // On passe par la conversion habituelle, qui demande le montant.
+      const isLast = targetStage.id === 'nouveau-client' || ID_ETAPES_CLIENT.has(targetStage.id)
       if (isLast) {
         setOpps(prev => prev.filter(o => o.id !== activeId))
         setPendingConversion(activeOpp)

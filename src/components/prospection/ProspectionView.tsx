@@ -131,9 +131,12 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
               <Phone size={9} className="text-[#FF4D00] flex-shrink-0" /><span>{r.contact.phone}</span>
             </a>
           : <span className="flex-none text-[9.5px] md:text-[10.5px] text-soren-subtle">Pas de n°</span>}
-        {/* Leads à traiter = outbound : ces leads se travaillent d'abord à
-            l'écrit. La puce ouvre directement la rédaction dans Gmail. */}
-        {r.column === 'leads_a_traiter' && r.contact.email && (
+        {/* La puce Email ne concerne QUE l'outbound : ces leads-là se travaillent
+            d'abord à l'écrit. Un lead interne ou entrant se rappelle, il n'a rien
+            à faire avec un brouillon Gmail. Depuis que les deux cohabitent dans
+            la même colonne, la condition porte sur la NATURE du lead, plus sur
+            la colonne où il se trouve. */}
+        {r.column === 'leads_a_traiter' && !r.internalLead && r.contact.email && (
           <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(r.contact.email)}`}
             target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}
             title={`Écrire à ${r.contact.email}`}
