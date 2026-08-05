@@ -473,7 +473,7 @@ function Diagnostic({ reponses }: { reponses: { id: string; value: string }[] })
  * C'est l'aboutissement du parcours : le lire ailleurs obligeait à ouvrir un
  * autre module pour savoir si la personne avait réservé, et quand.
  */
-function BlocRendezVous({ rdv }: { rdv: { date: string | null; calendrier: string | null; stage: string | null; lien: string | null } | null }) {
+function BlocRendezVous({ rdv }: { rdv: { date: string | null; calendrier: string | null; stage: string | null; lien: string | null; viaIclosed?: boolean } | null }) {
   if (!rdv?.date) return null
   const d = new Date(rdv.date)
   const jour = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -484,6 +484,13 @@ function BlocRendezVous({ rdv }: { rdv: { date: string | null; calendrier: strin
       <div className="flex items-center gap-2 px-3 py-2 border-b border-soren-border">
         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: passe ? '#9CA3AF' : '#10B981' }} />
         <span className="text-[11.5px] font-semibold text-soren-text flex-1">Rendez-vous</span>
+        {/* D'où vient ce rendez-vous : la marque iClosed le dit d'un coup d'œil,
+            sans avoir à ouvrir le module Closing. */}
+        {rdv.viaIclosed && (
+          <span title="Réservé sur iClosed" className="inline-flex items-center gap-1 text-[9.5px] font-semibold text-soren-muted">
+            <IClosedMark size={10} /> iClosed
+          </span>
+        )}
         {rdv.stage && <span className="text-[10px] font-semibold text-soren-muted">{rdv.stage}</span>}
       </div>
       <div className="px-3 py-2.5">
@@ -511,7 +518,7 @@ function PanneauQualification({ contactId, email }: { contactId: string; email?:
     metaFormAt: string | null
     quiz: { q: string; a: string }[]
     quizBrut: { id: string; value: string }[]
-    rendezVous: { date: string | null; calendrier: string | null; stage: string | null; lien: string | null } | null
+    rendezVous: { date: string | null; calendrier: string | null; stage: string | null; lien: string | null; viaIclosed: boolean } | null
     quizStatut: string | null
     quizProgression: { atteinte: number; total: number } | null
     quizScore: number | null

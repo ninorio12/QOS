@@ -13,6 +13,9 @@ const norm = (s?: string) => (s ?? "").trim().toLowerCase()
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase() ?? "").join("")
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const fullNameOf = (c: any) => [c?.firstName, c?.lastName].filter(Boolean).join(" ").trim()
+// Le titre d'un RDV iClosed porte déjà son étape (« R1 · Thomas »). Affiché à
+// côté de la pastille R1, ça faisait doublon : on ne garde que le nom.
+const sansEtape = (t?: string | null) => (t ?? "").replace(/^\s*(R1|R2|Kickoff|Kick-off)\s*[·:-]\s*/i, "").trim()
 // Parse les réponses captées au booking iClosed (stockées en JSON sur l'appel).
 function parseQuiz(s?: string): { q: string; a: string }[] {
   if (!s) return []
@@ -71,7 +74,7 @@ export const upcomingCalls = query({
     const entryFor = (contact: any, kind: string, call: any, id: string, pipelineStage: string | null) => {
       const cid = contact ? String(contact._id) : (call?.contactId ? String(call.contactId) : null)
       const intake = (cid && byContactId.get(cid)) || (contact?.email && byEmail.get(norm(contact.email))) || null
-      const name = (contact ? fullNameOf(contact) : "") || call?.title || "Prospect"
+      const name = (contact ? fullNameOf(contact) : "") || sansEtape(call?.title) || "Prospect"
       // Funnel Meta Ads : le lead a rempli le formulaire Meta → réponses captées dans contact.notes,
       // marqueur tag « Meta Ads ». Sert au brief R1 (pas de transcript) avec le quizz de confirmation.
       const tagsLc = (contact?.tags ?? []).map((t: any) => String(t).toLowerCase())
@@ -152,7 +155,7 @@ export const calendarEvents = query({
       const t = Date.parse(c.date)
       if (isNaN(t) || t < fromMs || t > toMs) return []
       const contact = c.contactId ? contacts.find((x: any) => String(x._id) === String(c.contactId)) : null
-      const name = (contact ? fullNameOf(contact) : "") || c.title || "RDV"
+      const name = (contact ? fullNameOf(contact) : "") || sansEtape(c.title) || "RDV"
       const kind = (c.stage as string) || (/r2|closing/i.test(c.title ?? "") ? "R2" : "R1")
       return [{
         id: String(c._id), kind, contactName: name,
@@ -303,6 +306,30 @@ export const scheduleCall = mutation({
     }
     a = { ...a, contactId }
 
+    // ENRICHISSEMENT À LA RÉSERVATION.
+    // Depuis que la page 1 du quiz ne demande plus l'email (moins de friction),
+    // c'est iClosed qui le récolte au moment du rendez-vous. On le pose donc sur
+    // la fiche quand elle n'en a pas : sans ça, l'adresse resterait enfermée dans
+    // le rendez-vous et le contact serait à jamais sans email. On ne REMPLACE
+    // jamais une valeur déjà présente : la fiche fait foi.
+    if (contactId && a.email) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const c: any = await ctx.db.get(contactId as Id<"crm_contacts">)
+        if (c && !c.email) {
+          await ctx.db.patch(c._id, { email: a.email.trim().toLowerCase(), updatedAt: now })
+          // Le lead du pipeline porte aussi l'email : il sert aux rapprochements.
+          const lead = (await ctx.db.query("crm_leads").withIndex("by_contact", (q: any) => q.eq("contactId", c._id)).collect())
+            .find((l: any) => l.status === "open")
+          if (lead && !lead.email) await ctx.db.patch(lead._id, { email: a.email.trim().toLowerCase() })
+          // Et le parcours, pour que le filet par email fonctionne ensuite.
+          const js = await ctx.db.query("os_lead_journey").withIndex("by_ws", (q) => q.eq("workspaceId", WORKSPACE)).collect()
+          const j = js.find((x) => x.contactId === String(c._id))
+          if (j && !j.email) await ctx.db.patch(j._id, { email: a.email.trim().toLowerCase(), updatedAt: now })
+        }
+      } catch { /* l'enrichissement ne doit jamais empêcher la création du rendez-vous */ }
+    }
+
     // Parcours du lead : le rendez-vous est la dernière étape visible du tunnel.
     // Sans cette trace, le setter voit qu'un lead vient de Facebook mais ignore
     // s'il a déjà réservé, donc il rappelle pour rien ou avec le mauvais discours.
@@ -318,14 +345,40 @@ export const scheduleCall = mutation({
       }
     } catch { /* la trace ne doit jamais empêcher la création du rendez-vous */ }
 
-    // R2 déguisé en R1 : le lien iClosed du R2 est le même événement que le R1
-    // (« Audit IA offert »), la synchro annonce donc « R1 ». Si un R1 planifié
-    // existe déjà pour ce contact sous un autre identifiant, ce nouveau
-    // rendez-vous est en réalité le R2.
+    // R1, R2, ou simple report : la DATE tranche.
+    //
+    // iClosed utilise le même événement pour le premier et le deuxième appel :
+    // il annonce toujours « R1 ». La règle d'avant promouvait donc en R2 dès
+    // qu'un R1 existait, sans regarder quand. Quelqu'un qui se trompait de
+    // créneau et rebookait dix minutes plus tard se retrouvait en R2, et son
+    // lead avançait d'une étape avant même d'avoir fait son premier appel.
+    //
+    // La lecture juste :
+    //   • le R1 existant est DÉJÀ PASSÉ  → ce nouveau rendez-vous est le R2 ;
+    //   • le R1 existant est ENCORE À VENIR → c'est un report du même appel,
+    //     on déplace celui qui existe au lieu d'en créer un second.
     if (a.stage === "R1" && contactId) {
       const others = await ctx.db.query("os_sales_calls").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
-      const existingR1 = others.find(o => String(o.contactId) === String(contactId) && o.stage === "R1" && o.status !== "cancelled" && o.externalId !== a.externalId)
-      if (existingR1) a = { ...a, stage: "R2", title: a.title.replace(/^R1/, "R2") }
+      const r1Existant = others.find(o => String(o.contactId) === String(contactId) && o.stage === "R1" && o.status !== "cancelled" && o.externalId !== a.externalId)
+      if (r1Existant) {
+        const dejaPasse = String(r1Existant.date ?? "") < now
+        if (dejaPasse) {
+          a = { ...a, stage: "R2", title: a.title.replace(/^R1/, "R2") }
+        } else {
+          // Report : on garde UNE ligne, celle qui existe, et on la redate.
+          await ctx.db.patch(r1Existant._id, {
+            date: a.date ?? r1Existant.date,
+            externalId: a.externalId ?? r1Existant.externalId,
+            meetLink: a.meetLink ?? r1Existant.meetLink,
+            calendarLabel: a.calendarLabel ?? r1Existant.calendarLabel,
+            calendarSlug: a.calendarSlug ?? r1Existant.calendarSlug,
+            title: a.title,
+            updatedAt: now,
+          })
+          await advanceForCall(ctx, contactId, "R1")
+          return { id: r1Existant._id, created: false, reporte: true }
+        }
+      }
     }
 
     // Dédup par externalId (iClosed eventCall) : un même RDV n'est jamais dupliqué.

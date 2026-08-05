@@ -416,7 +416,13 @@ export const qualification = query({
       confirmation: paires((intake as { answersJson?: string } | null)?.answersJson),
       // Le rendez-vous pris : c'est l'aboutissement du parcours, il se lit au
       // même endroit que le reste plutôt que dans un autre module.
-      rendezVous: rdv ? { date: rdv.date ?? null, calendrier: rdv.calendarLabel ?? null, stage: rdv.stage ?? null, lien: rdv.meetLink ?? null } : null,
+      rendezVous: rdv ? {
+        date: rdv.date ?? null, calendrier: rdv.calendarLabel ?? null,
+        stage: rdv.stage ?? null, lien: rdv.meetLink ?? null,
+        // Un rendez-vous venu d'iClosed porte son identifiant externe ou le nom
+        // de son calendrier : c'est ce qui permet de le marquer comme tel.
+        viaIclosed: !!(rdv.externalId || rdv.calendarSlug),
+      } : null,
     }
   },
 })
