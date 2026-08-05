@@ -22,7 +22,7 @@ function convexClient(): ConvexHttpClient | null {
 // Token Google = source de vérité Convex (table google_accounts), plus Supabase.
 // "global" = premier profil connecté (le calendrier ne lit pas encore par profil).
 // La lecture par profil reste possible via api.googleAccounts.getToken(clerkUserId).
-async function getRefreshToken(): Promise<string | null> {
+export async function getRefreshToken(): Promise<string | null> {
   if (process.env.GOOGLE_REFRESH_TOKEN) return process.env.GOOGLE_REFRESH_TOKEN
   const secret = process.env.INTERNAL_API_SECRET
   const convex = convexClient()
@@ -45,6 +45,33 @@ export async function getCalendarClient() {
   const token = await getRefreshToken()
   const auth  = getOAuth2Client()
   auth.setCredentials({ refresh_token: token ?? undefined })
+  return google.calendar({ version: 'v3', auth })
+}
+
+/**
+ * Calendrier PERSONNEL du profil connecté.
+ *
+ * `getCalendarClient` prend « le premier compte connecté » : c'est bon pour le
+ * calendrier d'entreprise (réservation, round-robin), mais sur l'écran
+ * Calendrier ça faisait voir à chacun l'agenda de quelqu'un d'autre. Ici, un
+ * profil ne voit et n'écrit QUE son propre agenda, et rien du tout s'il n'a
+ * pas connecté le sien : on ne retombe jamais sur le compte d'un collègue.
+ */
+export async function getUserCalendarClient(clerkUserId?: string | null) {
+  if (!clerkUserId) return null
+  if (!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)) return null
+  const secret = process.env.INTERNAL_API_SECRET
+  const convex = convexClient()
+  if (!secret || !convex) return null
+  let token: string | null = null
+  try {
+    token = await convex.query(api.googleAccounts.getToken, { clerkUserId, secret })
+  } catch {
+    return null
+  }
+  if (!token) return null
+  const auth = getOAuth2Client()
+  auth.setCredentials({ refresh_token: token })
   return google.calendar({ version: 'v3', auth })
 }
 

@@ -130,3 +130,52 @@ export const setDeckUrl = mutation({
     return { ok: true }
   },
 })
+
+/**
+ * Rattache en une passe les decks lus dans la feuille de sourcing.
+ *
+ * La feuille est la source de vérité : c'est là qu'un deck est noté quand il
+ * est déployé. Le Data OS, lui, ne le savait que si le script de déploiement
+ * avait pensé à le lui dire. Cette porte réconcilie les deux.
+ *
+ * Trois règles, dans cet ordre :
+ *   • rattachement par EMAIL, sinon par nom + prénom (la feuille et le Data OS
+ *     ne portent pas toujours la même adresse pour la même personne) ;
+ *   • un lead qui a DÉJÀ un deck différent n'est jamais écrasé en silence : il
+ *     est renvoyé dans `divergences`, à trancher à la main ;
+ *   • rien n'est créé : une ligne de la feuille absente du Data OS est comptée,
+ *     pas importée. Importer des leads est une autre décision.
+ */
+export const attachDecksFromSheet = mutation({
+  args: {
+    secret: v.string(),
+    lignes: v.array(v.object({
+      email: v.optional(v.string()), firstName: v.optional(v.string()),
+      lastName: v.optional(v.string()), deckUrl: v.string(),
+    })),
+  },
+  handler: async (ctx, { secret, lignes }) => {
+    if (!process.env.INTERNAL_API_SECRET || secret !== process.env.INTERNAL_API_SECRET) {
+      throw new Error("Non autorisé")
+    }
+    // Accents et casse mis de côté : « Blétry » et « bletry » sont la même personne.
+    const norm = (s?: string) => (s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim()
+    const leads = await ctx.db.query("outbound_leads").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
+    const parEmail = new Map(leads.filter(l => l.email).map(l => [norm(l.email), l]))
+    const parNom = new Map(leads.map(l => [`${norm(l.firstName)}|${norm(l.lastName)}`, l]))
+
+    let rattaches = 0, inchanges = 0, absents = 0
+    const divergences: { email: string | null; actuel: string; feuille: string }[] = []
+    for (const ligne of lignes) {
+      const url = ligne.deckUrl.trim()
+      if (!/^https?:\/\/[\w.-]+\.vividflow\.co\/?$/.test(url)) continue
+      const lead = parEmail.get(norm(ligne.email)) ?? parNom.get(`${norm(ligne.firstName)}|${norm(ligne.lastName)}`)
+      if (!lead) { absents++; continue }
+      if (lead.deckUrl === url) { inchanges++; continue }
+      if (lead.deckUrl) { divergences.push({ email: lead.email ?? null, actuel: lead.deckUrl, feuille: url }); continue }
+      await ctx.db.patch(lead._id, { deckUrl: url })
+      rattaches++
+    }
+    return { rattaches, inchanges, absents, divergences, leads: leads.length }
+  },
+})

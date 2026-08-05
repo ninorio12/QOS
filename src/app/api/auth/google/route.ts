@@ -29,7 +29,13 @@ export async function GET(req: NextRequest) {
   const url = oauth2.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
-    scope: ['https://www.googleapis.com/auth/calendar'],
+    // Agenda (réservation, disponibilités) + lecture seule des feuilles : la
+    // feuille de sourcing outbound porte les liens des decks, que le Data OS
+    // rapatrie tout seul (voir /api/outbound/sync-decks).
+    scope: [
+      'https://www.googleapis.com/auth/calendar',
+      'https://www.googleapis.com/auth/spreadsheets.readonly',
+    ],
     redirect_uri: redirectUri, // explicite — évite "Missing required parameter: redirect_uri"
   })
   return NextResponse.redirect(url)
