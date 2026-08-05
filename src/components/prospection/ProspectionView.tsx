@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation } from 'convex/react'
-import { QUIZ_DIAGNOSTIC, QUIZ_CONFIRMATION, normQ } from '@/lib/quizQuestions'
+import { QUIZ_DIAGNOSTIC, QUIZ_CONFIRMATION, normQ, scoreMaturite, NIVEAUX_MATURITE } from '@/lib/quizQuestions'
 import dynamic from 'next/dynamic'
 import { api } from '../../../convex/_generated/api'
 import { type Id } from '../../../convex/_generated/dataModel'
@@ -417,6 +417,50 @@ function QuizDeroulant({ titre, couleur, questions, reponses, chapeau }: {
   )
 }
 
+/**
+ * Le résultat du diagnostic, resserré pour tenir dans la fiche.
+ *
+ * C'est le chiffre que le prospect a vu en fin de quiz, dans son cercle : même
+ * barème, mêmes paliers, même vocabulaire. Le montrer ici évite au setter de
+ * rouvrir la page du diagnostic pour savoir à qui il parle.
+ *
+ * Rien ne s'affiche tant qu'aucune réponse notée n'est arrivée : un cercle à
+ * 0 % dirait « entreprise en retard » alors qu'il ne dit que « quiz pas fait ».
+ */
+function Diagnostic({ reponses }: { reponses: { id: string; value: string }[] }) {
+  const m = scoreMaturite(reponses)
+  if (!m) return null
+  const N = NIVEAUX_MATURITE[m.niveau]
+  // Le cercle : un arc de conique, comme sur la page du diagnostic.
+  const arc = `conic-gradient(${N.couleur} ${m.pct * 3.6}deg, #E9E9E6 0deg)`
+  return (
+    <div className="rounded-xl border border-soren-border overflow-hidden bg-soren-card">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-soren-border">
+        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: N.couleur }} />
+        <span className="text-[11.5px] font-semibold text-soren-text flex-1">Diagnostic</span>
+        <span className="text-[10px] font-semibold flex-none px-2 py-[2px] rounded-full"
+          style={{ background: N.fond, color: N.couleur }}>{N.label}</span>
+      </div>
+      <div className="flex items-center gap-3 px-3 py-3">
+        <span className="relative flex-none w-[52px] h-[52px] rounded-full" style={{ background: arc }}>
+          <span className="absolute inset-[5px] rounded-full bg-soren-card flex items-center justify-center">
+            <span className="text-[13px] font-bold tabular-nums" style={{ color: N.couleur }}>{m.pct}%</span>
+          </span>
+        </span>
+        <div className="min-w-0">
+          <p className="text-[10.5px] text-soren-muted leading-snug">{N.phrase}</p>
+          <p className="text-[9.5px] text-soren-subtle mt-1">Maturité IA · {m.points} points sur {m.max}</p>
+        </div>
+      </div>
+      <div className="px-3 pb-3 flex flex-wrap gap-1">
+        {N.recos.map(r => (
+          <span key={r} className="text-[9px] font-medium px-[6px] py-[2px] rounded-full border border-soren-border bg-soren-elevated text-soren-muted">{r}</span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function PanneauQualification({ contactId, email }: { contactId: string; email?: string }) {
   const q = useQuery(api.quizIngest.qualification, { contactId, email }) as {
     metaForm: { q: string; a: string }[]
@@ -425,6 +469,7 @@ function PanneauQualification({ contactId, email }: { contactId: string; email?:
     source: string
     metaFormAt: string | null
     quiz: { q: string; a: string }[]
+    quizBrut: { id: string; value: string }[]
     quizStatut: string | null
     quizProgression: { atteinte: number; total: number } | null
     quizScore: number | null
@@ -460,6 +505,7 @@ function PanneauQualification({ contactId, email }: { contactId: string; email?:
           )}
           <QuizDeroulant titre="Quiz diagnostic" couleur="#FF4D00"
             questions={QUIZ_DIAGNOSTIC} reponses={q?.quiz ?? []} chapeau={chapeauQuiz} />
+          <Diagnostic reponses={q?.quizBrut ?? []} />
           <QuizDeroulant titre="Formulaire confirmation" couleur="#10B981"
             questions={QUIZ_CONFIRMATION} reponses={q?.confirmation ?? []} />
         </div>
