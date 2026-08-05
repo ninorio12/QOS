@@ -1,4 +1,4 @@
-import { action, mutation } from "./_generated/server"
+import { action, mutation, internalMutation } from "./_generated/server"
 import { v } from "convex/values"
 import { api } from "./_generated/api"
 import { PROJECT_START_DATE } from "./osLib"
@@ -161,5 +161,17 @@ export const syncKickoffs = action({
       }
     }
     return { ok: true, scanned, synced }
+  },
+})
+
+/** Garde la dernière charge utile reçue, pour pouvoir diagnostiquer un RDV manquant. */
+export const _trace = internalMutation({
+  args: { source: v.string(), payload: v.string(), lu: v.optional(v.string()) },
+  handler: async (ctx, a) => {
+    await ctx.db.insert("webhook_traces", { source: a.source, payload: a.payload.slice(0, 4000), lu: a.lu, createdAt: new Date().toISOString() })
+    // On ne garde que les 20 dernières : c'est un outil de diagnostic, pas une archive.
+    const toutes = await ctx.db.query("webhook_traces").withIndex("by_source", q => q.eq("source", a.source)).collect()
+    const trop = toutes.sort((x, y) => (x.createdAt < y.createdAt ? 1 : -1)).slice(20)
+    for (const t of trop) await ctx.db.delete(t._id)
   },
 })

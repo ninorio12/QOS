@@ -130,6 +130,10 @@ http.route({
     // vraiment le temps réel ou si seul le filet périodique fait le travail.
     try { await ctx.runMutation(api.iclosed.recordWebhookPing, {}) } catch { /* la trace ne doit rien bloquer */ }
     try {
+      const brut = await request.clone().text()
+      await ctx.runMutation(internal.iclosed._trace, { source: "iclosed", payload: brut })
+    } catch { /* le diagnostic ne doit rien bloquer non plus */ }
+    try {
       // 1) Ingestion DIRECTE du payload du webhook : le RDV est créé même si la clé API
       //    iClosed est révoquée (vécu le 28/07/2026 : plus aucun RDV ne remontait alors que
       //    les bookings continuaient). Le webhook porte déjà tout ce dont on a besoin.

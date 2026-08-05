@@ -1241,6 +1241,19 @@ export default defineSchema({
     .index("by_workspace",      ["workspaceId"])
     .index("by_ws_level_date",  ["workspaceId", "level", "date"]),
 
+  // Dernières charges utiles reçues des webhooks, pour diagnostic.
+  //
+  // Sans elles, un rendez-vous qui n'arrive pas est indébuggable : on ne sait
+  // pas si le fournisseur n'a rien envoyé, ou s'il a envoyé une forme qu'on ne
+  // sait pas lire (cas vécu le 05/08 avec iClosed). Table volontairement
+  // minuscule : on ne garde que les 20 dernières.
+  webhook_traces: defineTable({
+    source:    v.string(),          // 'iclosed' | ...
+    payload:   v.string(),          // JSON brut, tronqué
+    lu:        v.optional(v.string()), // ce qu'on a réussi à en extraire
+    createdAt: v.string(),
+  }).index("by_source", ["source", "createdAt"]),
+
   // Remise à zéro d'une campagne : la date à partir de laquelle on la compte.
   // Rien n'est effacé, on déplace le point de départ. Relancer des créas sur une
   // campagne qui a déjà dépensé, c'est repartir d'une page blanche pour juger,

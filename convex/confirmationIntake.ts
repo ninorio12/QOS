@@ -1,5 +1,6 @@
 import { v } from "convex/values"
-import { mutation, query } from "./_generated/server"
+import { internalMutation, mutation, query } from "./_generated/server"
+import { internal } from "./_generated/api"
 import { WORKSPACE } from "./osLib"
 
 // Réponses du formulaire de confirmation (page /confirmation, post-booking R1).
@@ -25,6 +26,8 @@ export const create = mutation({
     raw:               v.optional(v.any()),
     addedToCalendar:   v.optional(v.boolean()),
     iclosedExternalId: v.optional(v.string()),
+    phone:             v.optional(v.string()),
+    metaEventId:       v.optional(v.string()),
   },
   handler: async (ctx, a) => {
     // ── Cascade de rattachement à la fiche contact ────────────────────────────
@@ -76,6 +79,29 @@ export const create = mutation({
       const match = contacts.find((c: any) => norm([c.firstName, c.lastName].filter(Boolean).join(" ")) === who)
       if (match) { contactId = match._id; matchedBy = "nom" }
     }
+    // Le formulaire envoie maintenant à CHAQUE réponse pour ne rien perdre quand
+    // quelqu'un abandonne en route. Sans ce remplacement, une personne qui
+    // répond à huit questions laissait huit fiches empilées. On garde UNE ligne
+    // par personne : la dernière version écrase la précédente, elle contient
+    // déjà toutes les réponses données jusque-là.
+    const dejaLa = contactId
+      ? (await ctx.db.query("confirmation_intake").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect())
+          .find(r => String(r.contactId ?? "") === String(contactId) && (r.source ?? "confirmation-form") === "confirmation-form")
+      : null
+    if (dejaLa) {
+      await ctx.db.patch(dejaLa._id, {
+        email: a.email ?? dejaLa.email, fullName: a.fullName || dejaLa.fullName,
+        company: a.company ?? dejaLa.company, companyType: a.companyType ?? dejaLa.companyType,
+        headcount: a.headcount ?? dejaLa.headcount, monthlyRevenue: a.monthlyRevenue ?? dejaLa.monthlyRevenue,
+        costliestFunction: a.costliestFunction ?? dejaLa.costliestFunction,
+        repetitiveCost: a.repetitiveCost ?? dejaLa.repetitiveCost, whyNow: a.whyNow ?? dejaLa.whyNow,
+        timing: a.timing ?? dejaLa.timing, budget: a.budget ?? dejaLa.budget,
+        answersJson: a.answersJson ?? dejaLa.answersJson,
+        addedToCalendar: a.addedToCalendar ?? dejaLa.addedToCalendar,
+      })
+      return { ok: true, id: dejaLa._id, contactId, matchedBy, remplace: true }
+    }
+
     const id = await ctx.db.insert("confirmation_intake", {
       workspaceId: WORKSPACE,
       contactId: contactId as any,
@@ -98,6 +124,19 @@ export const create = mutation({
       matchedBy,
       createdAt: new Date().toISOString(),
     })
+    // Le questionnaire est allé au bout. On le dit à Meta par la voie serveur,
+    // avec l'identifiant construit par la page : Meta fusionne les deux signaux
+    // au lieu de compter deux fois, et la conversion survit aux bloqueurs de pub.
+    if (a.metaEventId && (a.email || a.phone)) {
+      await ctx.scheduler.runAfter(0, internal.metaCapi.sendEvent, {
+        eventName: "SubmitApplication",
+        eventId: a.metaEventId,
+        email: a.email,
+        phone: a.phone,
+        name: a.fullName,
+        eventSourceUrl: "https://go.vividflow.co/confirmation",
+      })
+    }
     return { ok: true, id, linked: !!contactId, matchedBy: matchedBy ?? null }
   },
 })
@@ -123,5 +162,19 @@ export const linkToContact = mutation({
   handler: async (ctx, { id, contactId }) => {
     await ctx.db.patch(id, { contactId })
     return { ok: true }
+  },
+})
+
+// Nettoyage : retire les soumissions d'un email donné (tests de bout en bout).
+export const purgeByEmail = internalMutation({
+  args: { email: v.string(), confirm: v.boolean() },
+  handler: async (ctx, { email, confirm }) => {
+    if (!confirm) return { deleted: 0 }
+    const rows = await ctx.db
+      .query("confirmation_intake")
+      .withIndex("by_email", q => q.eq("workspaceId", WORKSPACE).eq("email", norm(email)))
+      .collect()
+    for (const r of rows) await ctx.db.delete(r._id)
+    return { deleted: rows.length }
   },
 })
