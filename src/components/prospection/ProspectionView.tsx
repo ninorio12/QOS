@@ -209,7 +209,7 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
         <div className="flex flex-wrap items-center gap-1">
           {r.notes.map(n => (
             <span key={n.id} title={`${n.text} · ${new Date(n.createdAt).toLocaleDateString('fr-FR')}`}
-              className="max-w-full inline-flex items-center gap-1 text-[9px] font-semibold px-[5px] py-[1px] rounded-full leading-tight bg-[#FFF1EA] text-[#B23B00] dark:bg-orange-500/15 dark:text-orange-300">
+              className="max-w-full inline-flex items-center gap-1 text-[9px] font-medium px-[6px] py-[1px] rounded-full leading-tight border border-soren-border bg-soren-elevated text-soren-muted">
               <span className="truncate">{n.text}</span>
             </span>
           ))}
@@ -512,7 +512,7 @@ function ZoneNotes({ recordId }: { recordId: string }) {
         <div className="flex flex-wrap gap-1.5 mt-2">
           {notes.map(n => (
             <span key={n.id} title={`${n.text} · ${new Date(n.createdAt).toLocaleDateString('fr-FR')}`}
-              className="group inline-flex items-center gap-1 max-w-full text-[10px] font-medium px-2 py-[3px] rounded-full bg-[#FFF1EA] text-[#B23B00] dark:bg-orange-500/15 dark:text-orange-300">
+              className="group inline-flex items-center gap-1 max-w-full text-[10px] font-medium px-2 py-[3px] rounded-full border border-soren-border bg-soren-elevated text-soren-muted">
               <span className="truncate">{n.text}</span>
               <button onClick={() => removeNote({ id: n.id as Id<'prospection_events'> })}
                 title="Supprimer la note"
