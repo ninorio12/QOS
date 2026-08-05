@@ -16,9 +16,11 @@ export const NRP_COLUMNS = ["nrp1", "nrp2", "nrp3", "nrp4"]
 // Sens Prospection → Leads : une colonne = un stage.
 export const LEAD_STAGE_FOR_COLUMN: Record<string, string> = {
   leads_a_traiter: "nouveau-lead",
-  leads_interne: "nouveau-lead",   // entrée du board (contacts poussés manuellement depuis la fiche)
+  leads_interne: "nouveau-lead",   // ancienne colonne, conservée pour les enregistrements d'avant la fusion
   nrp1: "conversation", nrp2: "conversation", nrp3: "conversation", nrp4: "conversation",
-  rdv_booke: "r1",
+  // Un rendez-vous booké laisse le lead EN CONVERSATION : il ne passe en R1 que
+  // lorsque le setter valide par l'appel de clarté (voir clarityDone).
+  rdv_booke: "conversation",
   a_suivre: "conversation",   // lead parqué (à reprendre plus tard) → reste ouvert en conversation
   perdu: "conversation",
 }

@@ -196,7 +196,15 @@ const CALL_STAGE_RANK: Record<string, number> = { "nouveau-lead": 0, "conversati
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function advanceForCall(ctx: any, contactId: string | undefined, stage: string) {
   if (!contactId || (stage !== "R1" && stage !== "R2")) return
-  const target = stage === "R2" ? "r2" : "r1"
+  // ⚠️ Un rendez-vous pris ne vaut PAS un R1.
+  //
+  // Le lead a réservé, il n'est pas encore qualifié : c'est l'appel de clarté du
+  // setter qui le valide. Tant qu'il n'a pas eu lieu, le lead reste EN
+  // CONVERSATION dans le pipeline, et il passe en R1 quand le setter clique
+  // « Appel de clarté fait ». Compter le R1 dès la réservation gonflait le haut
+  // du funnel de rendez-vous jamais qualifiés (règle Thomas, 06/08).
+  // Un R2, lui, arrive après un R1 déjà tenu : il avance normalement.
+  const target = stage === "R2" ? "r2" : "conversation"
   // 1) Lead pipeline → r1/r2 (source unique du funnel). Jamais de régression.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const lead = await ctx.db.query("crm_leads").withIndex("by_contact", (q: any) => q.eq("contactId", contactId)).first()
@@ -217,9 +225,9 @@ export async function advanceForCall(ctx: any, contactId: string | undefined, st
   //    Décision produit (Thomas, 28/07) : un lead qui a booké n'est plus à convertir, il est à
   //    CADRER avant le rendez-vous. Il rejoint donc les internes, mais la chip « Cadrage » le
   //    distingue de ceux qu'on envoie à la main depuis leur fiche.
-  //    Côté PIPELINE, il est déjà passé en « RDV booké » au point 1 (stageId = r1).
+  //    Côté PIPELINE il reste EN CONVERSATION jusqu'à l'appel de clarté.
   //    R2 = post-handoff, pas de changement côté prospection.
-  if (target === "r1") {
+  if (stage === "R1") {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rec = (await ctx.db.query("prospection_records").withIndex("by_workspace", (q: any) => q.eq("workspaceId", WORKSPACE)).collect())
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
