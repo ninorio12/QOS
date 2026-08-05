@@ -153,7 +153,31 @@ http.route({
           if (c?.cancelReason) {
             ingested = await ctx.runMutation(api.closing.cancelCallByExternalId, { externalId })
           } else if (!evName.includes("kick") && !evSlug.includes("kick") && startRaw) {
+            // Un rendez-vous pris DEPUIS LE SITE n'est passé par aucun formulaire :
+            // personne ne l'a jamais créé dans le Data OS. Il existait donc un appel
+            // dans Closing sans aucune fiche derrière. On crée le lead ici, en
+            // INBOUND, avant de poser le rendez-vous. Idempotent par l'identifiant
+            // iClosed, et dédoublonné : quelqu'un venu du quiz garde sa fiche.
+            const versSite = /d-mo|demo|d\u00e9mo/.test(`${evSlug} ${evName}`)
+            try {
+              const cree = await ctx.runMutation(internal.leadIngest.fromLeadForm, {
+                leadgenId: `iclosed:${externalId}`,
+                formName: `Rendez-vous iClosed · ${ev?.name ?? "sans nom"}`,
+                isOrganic: true,
+                fields: {
+                  full_name: c?.inviteeName ?? undefined,
+                  email: email ?? undefined,
+                  phone_number: c?.inviteePhone ?? c?.phone ?? undefined,
+                },
+                funnel: versSite ? "site" : "quiz",
+                origin: versSite ? "site" : "direct",
+              })
+              if (cree?.contactId) c.__contactId = cree.contactId
+            } catch (e) {
+              console.error("[iClosed] création du lead impossible:", e)
+            }
             ingested = await ctx.runMutation(api.closing.scheduleCall, {
+              contactId: c.__contactId ?? undefined,
               title: `R1 · ${c?.inviteeName ?? email}`,
               email: email ?? undefined,
               stage: "R1",
@@ -172,6 +196,32 @@ http.route({
       // 2) Puis le sync complet en filet (rattrape les kickoffs, annulations, reschedules).
       //    S'il échoue (clé révoquée), l'ingestion directe a déjà fait le travail.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // 1 bis) Meta : le rendez-vous est RÉELLEMENT pris. La page de confirmation
+      //   l'envoie déjà côté navigateur, mais elle n'est pas toujours atteinte
+      //   (fermeture immédiate, bloqueur de pub). Même `eventId` des deux côtés
+      //   — préfixe, email et heure du RDV — pour que Meta n'en compte qu'un.
+      if (ingested?.created) {
+        try {
+          const body2: any = await request.clone().json()
+          const c2 = body2?.data?.eventCall ?? body2?.eventCall ?? body2?.data ?? body2
+          const mail = String(c2?.inviteeEmail ?? c2?.invitee?.email ?? "").trim().toLowerCase()
+          const debut = c2?.dateTimeUTC ?? c2?.dateTime ?? c2?.startTime
+          if (mail && debut) {
+            const quand = new Date(String(debut)).toISOString()
+            await ctx.scheduler.runAfter(0, internal.metaCapi.sendEvent, {
+              eventName: "Schedule",
+              // Reproduit à l'identique la règle de la page : le préfixe reste
+              // HORS du nettoyage, sinon un email contenant « _ » donnerait deux
+              // identifiants différents et la conversion compterait double.
+              eventId: "rdv_" + (mail + "|" + quand).replace(/[^a-zA-Z0-9|:@.-]/g, ""),
+              email: mail,
+              phone: c2?.inviteePhone ?? c2?.invitee?.phone ?? undefined,
+              name: c2?.inviteeName ?? undefined,
+              eventSourceUrl: "https://go.vividflow.co/confirmation",
+            })
+          }
+        } catch (e) { console.error("[iClosed] relais Meta impossible:", e) }
+      }
       let sync: any = null
       try { sync = await ctx.runAction(api.iclosed.syncRecent, {}) } catch (e) { sync = { ok: false, error: String(e).slice(0, 200) } }
       return new Response(JSON.stringify({ ingested, sync }), { status: 200, headers: { "content-type": "application/json" } })
@@ -191,6 +241,56 @@ http.route({
  * validation : un 500 ferait retenter Zernio et, au bout de dix échecs, il
  * désactiverait le webhook.
  */
+// Pont VPS -> Data OS : haut d'entonnoir LinkedIn (lemlist) + creation des leads
+// issus des conversations. Protege par LINKEDIN_INGEST_SECRET.
+http.route({
+  path: "/linkedin/ingest",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const secret = process.env.LINKEDIN_INGEST_SECRET
+    const donne = request.headers.get("x-linkedin-secret") ?? ""
+    if (!secret || donne !== secret) return new Response("unauthorized", { status: 401 })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let body: any
+    try { body = await request.json() } catch { return new Response("Bad payload", { status: 400 }) }
+
+    const res: Record<string, unknown> = {}
+    if (body?.daily?.day) {
+      const d = body.daily
+      res.daily = await ctx.runMutation(internal.linkedinOutbound.ingest, {
+        day: String(d.day),
+        connexions: Number(d.connexions ?? 0),
+        dmsEnvoyes: Number(d.dmsEnvoyes ?? 0),
+        conversations: Number(d.conversations ?? 0),
+        invitations: Number(d.invitations ?? 0),
+        campaignId: d.campaignId ? String(d.campaignId) : undefined,
+      })
+    }
+    if (Array.isArray(body?.conversations)) {
+      const faits = []
+      for (const c of body.conversations) {
+        if (!c?.firstName || !c?.linkedinUrl) continue
+        faits.push(await ctx.runMutation(internal.linkedinOutbound.contactFromConversation, {
+          firstName: String(c.firstName),
+          lastName: c.lastName ? String(c.lastName) : undefined,
+          companyName: c.companyName ? String(c.companyName) : undefined,
+          linkedinUrl: String(c.linkedinUrl),
+          jobTitle: c.jobTitle ? String(c.jobTitle) : undefined,
+          city: c.city ? String(c.city) : undefined,
+          website: c.website ? String(c.website) : undefined,
+          niche: c.niche ? String(c.niche) : undefined,
+          repliedAt: c.repliedAt ? String(c.repliedAt) : undefined,
+        }))
+      }
+      res.conversations = faits
+    }
+    return new Response(JSON.stringify({ ok: true, ...res }), {
+      status: 200, headers: { "Content-Type": "application/json" },
+    })
+  }),
+})
+
 http.route({
   path: "/zernio/leads",
   method: "POST",
@@ -306,6 +406,144 @@ http.route({
       await ctx.runMutation(internal.leadIngest.markStep, { token: vf, step })
     }
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...journeyCors, "Content-Type": "application/json" } })
+  }),
+})
+
+/**
+ * Réponses du quiz de qualification (quiz.vividflow.co).
+ *
+ * Appelée SERVEUR À SERVEUR par les fonctions du projet quiz (`/api/lead-progress`
+ * et `/api/ghl-webhook`), jamais par le navigateur : d'où le secret partagé et
+ * l'absence de CORS. Deux formes de charge utile acceptées, celle de la capture
+ * progressive et celle de la soumission finale, parce que la page publique les
+ * envoie déjà telles quelles et qu'on ne touche pas à son code.
+ */
+http.route({
+  path: "/quiz/progress",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const secret = process.env.INTERNAL_API_SECRET
+    const provided = request.headers.get("x-vf-secret") ?? ""
+    if (!secret || provided !== secret) return new Response("Non autorisé", { status: 401 })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let b: any
+    try { b = await request.json() } catch { return new Response("Bad payload", { status: 400 }) }
+
+    const email = typeof b?.email === "string" ? b.email : ""
+    const sid = typeof b?.sid === "string" ? b.sid : ""
+    // Une réponse compte dès la première question, avant toute identité : la
+    // session (`sid`) suffit. L'email, quand il arrive, recolle le tout.
+    if (!email.includes("@") && !sid) {
+      return new Response(JSON.stringify({ ok: false, reason: "email ou session requis" }), { status: 200, headers: { "Content-Type": "application/json" } })
+    }
+
+    // « submit » = la personne a atteint son diagnostic (soumission finale ou
+    // capture progressive marquée qualifiée). Tout le reste est du progrès.
+    const kind = b.kind === "submit" || b.reason === "qualified" || b.qualified !== undefined || b.answersText
+      ? "submit"
+      : "progress"
+
+    const str = (x: unknown) => (typeof x === "string" && x.trim() ? x.trim() : undefined)
+    const asJson = (x: unknown) => {
+      if (x === undefined || x === null) return undefined
+      if (typeof x === "string") return x.trim() || undefined
+      try { return JSON.stringify(x) } catch { return undefined }
+    }
+
+    const r = await ctx.runMutation(internal.quizIngest.record, {
+      kind,
+      email,
+      sid,
+      qi: typeof b.qi === "number" ? b.qi : undefined,
+      qTotal: typeof b.qTotal === "number" ? b.qTotal : undefined,
+      ecran: str(b.screen) ?? str(b.ecran),
+      vf: str(b.vf),
+      name: str(b.name) ?? str(b.fullName),
+      phone: str(b.phone),
+      company: str(b.company),
+      metier: str(b.metier),
+      secteur: str(b.secteur),
+      qualified: typeof b.qualified === "boolean" ? b.qualified : undefined,
+      score: typeof b.score === "number" ? b.score : undefined,
+      tier: str(b.tier),
+      answersJson: asJson(b.answers),
+      answersText: str(b.answersText),
+      attributionJson: asJson(b.attribution),
+      pageUrl: str(b.pageUrl),
+      variant: str(b.variant),
+    })
+    return new Response(JSON.stringify(r), { status: 200, headers: { "Content-Type": "application/json" } })
+  }),
+})
+
+/**
+ * Page 1 du quiz : identité du prospect (nom, prénom, téléphone, entreprise).
+ *
+ * C'est le NOUVEAU point d'entrée des leads : la publicité Meta n'a plus de
+ * formulaire instantané, elle envoie directement sur le quiz. Dès que cette
+ * page est validée, la fiche existe dans le Data OS, même si la personne
+ * n'ouvre jamais le diagnostic derrière.
+ *
+ * On réutilise volontairement l'ingestion du formulaire Meta : contact, lead,
+ * carte de prospection et parcours sortent identiques, avec les mêmes règles de
+ * dédoublonnage. L'identifiant de soumission est fabriqué à partir de la
+ * session ou de l'email, ce qui rend l'appel idempotent.
+ */
+http.route({
+  path: "/quiz/lead",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const secret = process.env.INTERNAL_API_SECRET
+    if (!secret || (request.headers.get("x-vf-secret") ?? "") !== secret) {
+      return new Response("Non autorisé", { status: 401 })
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let b: any
+    try { b = await request.json() } catch { return new Response("Bad payload", { status: 400 }) }
+
+    const str = (x: unknown) => (typeof x === "string" && x.trim() ? x.trim() : undefined)
+    const email = (str(b.email) ?? "").toLowerCase()
+    const prenom = str(b.prenom) ?? str(b.firstName)
+    const nom = str(b.nom) ?? str(b.lastName)
+    const complet = str(b.fullName) ?? [prenom, nom].filter(Boolean).join(" ")
+    const phone = str(b.telephone) ?? str(b.phone)
+    const company = str(b.entreprise) ?? str(b.company)
+    const sid = str(b.sid)
+
+    // Sans aucun moyen de reconnaître la personne, on n'écrit rien.
+    if (!email && !phone) {
+      return new Response(JSON.stringify({ ok: false, reason: "email ou téléphone requis" }), { status: 200, headers: { "Content-Type": "application/json" } })
+    }
+
+    const adId = str(b.adId) ?? str(b.ad_id)
+    const r = await ctx.runMutation(internal.leadIngest.fromLeadForm, {
+      // Clé stable : deux envois de la même page ne créent qu'une fiche.
+      leadgenId: `quiz:${sid || email || phone}`,
+      formName: "Quiz VividFlow · identité",
+      adId,
+      adsetId: str(b.adsetId) ?? str(b.adset_id),
+      campaignId: str(b.campaignId) ?? str(b.campaign_id),
+      isOrganic: !adId,
+      fields: {
+        full_name: complet || undefined,
+        first_name: prenom,
+        last_name: nom,
+        email: email || undefined,
+        phone_number: phone,
+        company,
+      },
+      funnel: "quiz",
+      origin: adId || str(b.utm_source) === "meta" ? "facebook" : "direct",
+    })
+
+    if (r?.contactId) {
+      await ctx.runMutation(internal.quizIngest.attachLead, {
+        contactId: r.contactId, leadId: r.leadId ?? undefined, token: r.token ?? undefined,
+        email: email || undefined, sid, company,
+      })
+    }
+    return new Response(JSON.stringify(r), { status: 200, headers: { "Content-Type": "application/json" } })
   }),
 })
 
