@@ -361,8 +361,8 @@ function BlocQuestionnaire({ titre, couleur, paires, vide, chapeau }: {
         <div className="divide-y divide-soren-border/70">
           {paires.map((p, i) => (
             <div key={i} className="flex gap-3 px-3 py-2">
-              <span className="text-[11px] text-soren-muted w-[45%] flex-none">{p.q}</span>
-              <span className="text-[11px] text-soren-text font-medium min-w-0">{p.a}</span>
+              <span className="text-[11px] text-soren-subtle w-[45%] flex-none">{p.q}</span>
+              <span className="text-[11px] text-soren-text font-semibold min-w-0">{p.a}</span>
             </div>
           ))}
         </div>
@@ -406,8 +406,8 @@ function QuizDeroulant({ titre, couleur, questions, reponses, chapeau }: {
         <div className="px-3 pb-3 pt-1 flex flex-col gap-1.5">
           {[...questions.map(q => ({ q, a: carte.get(normQ(q)) })), ...autres.map(r => ({ q: r.q, a: r.a }))].map((item, i) => (
             <div key={i} className={`rounded-lg border p-2 ${item.a ? 'bg-soren-card border-soren-border' : 'bg-soren-elevated/30 border-soren-border/60'}`}>
-              <p className={`text-[10px] leading-snug ${item.a ? 'text-soren-text font-medium' : 'text-soren-subtle'}`}>{item.q}</p>
-              <p className="text-[11px] text-soren-text font-medium mt-1 pt-1 border-t border-soren-border/60 min-h-[16px]">{item.a ?? '\u00a0'}</p>
+              <p className={`text-[10px] leading-snug ${item.a ? 'text-soren-muted' : 'text-soren-subtle'}`}>{item.q}</p>
+              <p className="text-[11px] text-soren-text font-semibold mt-1 pt-1 border-t border-soren-border/60 min-h-[16px]">{item.a ?? '\u00a0'}</p>
             </div>
           ))}
         </div>
