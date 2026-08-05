@@ -11,11 +11,14 @@ import {
 } from 'lucide-react'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import MetaLogo from './MetaLogo'
+// Fenêtre petite et ouverte souvent : elle voyage avec la page. Le chargement à
+// la demande n'a de sens que pour du lourd, ici il ajoutait un temps d'attente
+// visible au clic (le flou qui « arrive »).
+import MetaLeadsModal from './MetaLeadsModal'
 
 const MetaCplChart = dynamic(() => import('./MetaCplChart'), { ssr: false })
 const MetaLeadsChart = dynamic(() => import('./MetaLeadsChart'), { ssr: false })
 const MetaConnectModal = dynamic(() => import('./MetaConnectModal'), { ssr: false })
-const MetaLeadsModal = dynamic(() => import('./MetaLeadsModal'), { ssr: false })
 const MetaGuide = dynamic(() => import('./MetaGuide'), { ssr: false })
 const CreativeIntelligence = dynamic(() => import('./CreativeIntelligence'), { ssr: false })
 const CardDrop = dynamic(() => import('./CardDrop'), { ssr: false })

@@ -31,10 +31,10 @@ export default function MetaLeadsModal({ onClose }: { onClose: () => void }) {
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
       onClick={onClose}
-      style={{ animation: 'fadeSlideUp 160ms ease-out both' }}
     >
       <div
         className="relative w-full max-w-[680px] max-h-[88vh] flex flex-col overflow-hidden rounded-3xl bg-soren-card shadow-[0_30px_80px_-20px_rgba(0,0,0,0.5)]"
+        style={{ animation: 'fadeSlideUp 120ms ease-out both' }}
         onClick={e => e.stopPropagation()}
       >
         {/* header */}
