@@ -48,10 +48,9 @@ const PAGE_LABELS: Record<string, string> = {
   '/bibliotheque/projets':    'Projets',
 }
 
-const SUB_LABELS: Record<string, string> = {
-  '/pipeline':           'Leads',
-  '/pipeline/clients':   'Clients',
-}
+// Le module Pipeline n'a plus de sous-pages : Leads et Clients sont deux
+// rangées du même écran.
+const SUB_LABELS: Record<string, string> = {}
 
 export default function Header() {
   const pathname = usePathname()

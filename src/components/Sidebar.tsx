@@ -189,64 +189,20 @@ function BibliothequeNav({ pathname }: { pathname: string }) {
 function PipelineNav({ pathname }: { pathname: string }) {
   const router = useRouter()
   const onPipeline = pathname.startsWith('/pipeline')
-  const leadsActive   = onPipeline && !pathname.startsWith('/pipeline/clients')
-  const clientsActive = pathname.startsWith('/pipeline/clients')
-  const [open, setOpen] = useState(onPipeline)
-
-  useEffect(() => { if (onPipeline) setOpen(true); else setOpen(false) }, [onPipeline])
-
+  // Un seul module : Leads et Clients ne sont plus deux entrées, c'est le MÊME
+  // parcours. Les colonnes vont du premier contact au consulting, sans rupture.
   return (
-    <>
-      <button
-        onClick={() => { if (!onPipeline) router.push('/pipeline'); else setOpen(v => !v) }}
-        className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-150 ${
-          onPipeline
-            ? 'bg-[#FF4D00] text-white shadow-sm'
-            : 'text-white/50 hover:text-white/90 hover:bg-soren-card/8'
-        }`}
-      >
-        <GitMerge size={13} strokeWidth={onPipeline ? 2.5 : 1.8} className="flex-shrink-0" />
-        <span className="text-[12px] truncate flex-1 text-left font-medium">Pipeline</span>
-        <ChevronDown
-          size={10}
-          className="flex-shrink-0 transition-transform duration-300"
-          style={{ transform: open ? 'rotate(0deg)' : 'rotate(-90deg)' }}
-        />
-      </button>
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateRows: open ? '1fr' : '0fr',
-          transition: 'grid-template-rows 280ms cubic-bezier(0.4,0,0.2,1)',
-        }}
-      >
-        <div style={{ overflow: 'hidden' }}>
-        <div className="flex flex-col gap-0.5 mt-0.5 pb-0.5">
-          <Link
-            href="/pipeline"
-            className={`flex items-center px-3 py-1.5 rounded-xl text-[11px] transition-all duration-150 ${
-              leadsActive
-                ? 'bg-white/10 text-white font-medium'
-                : 'text-white/40 font-medium hover:text-white/70 hover:bg-white/5'
-            }`}
-          >
-            <span className="pl-[23px]">Leads</span>
-          </Link>
-          <Link
-            href="/pipeline/clients"
-            className={`flex items-center px-3 py-1.5 rounded-xl text-[11px] transition-all duration-150 ${
-              clientsActive
-                ? 'bg-white/10 text-white font-medium'
-                : 'text-white/40 font-medium hover:text-white/70 hover:bg-white/5'
-            }`}
-          >
-            <span className="pl-[23px]">Clients</span>
-          </Link>
-        </div>
-        </div>
-      </div>
-    </>
+    <button
+      onClick={() => router.push('/pipeline')}
+      className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-150 ${
+        onPipeline
+          ? 'bg-[#FF4D00] text-white shadow-sm'
+          : 'text-white/50 hover:text-white/90 hover:bg-soren-card/8'
+      }`}
+    >
+      <GitMerge size={13} strokeWidth={onPipeline ? 2.5 : 1.8} className="flex-shrink-0" />
+      <span className="text-[12px] truncate flex-1 text-left font-medium">Pipeline</span>
+    </button>
   )
 }
 
@@ -330,8 +286,8 @@ export default function Sidebar() {
       <nav ref={navRef} className="flex flex-col flex-1 gap-2 px-2 pt-1 pb-8 overflow-y-auto sidebar-nav">
         {showAcquisition && <SectionLabel label="Acquisition" collapsed={collapsed} />}
         {acquisitionPre.map(item => <NavLink key={item.href} item={item} pathname={pathname} collapsed={collapsed} />)}
-        {canSee('/pipeline') && <NavLink item={{ href: '/pipeline', icon: GitMerge, label: 'Pipeline Leads', exclude: ['/pipeline/clients'] }} pathname={pathname} collapsed={collapsed} />}
-        {canSee('/pipeline') && <NavLink item={{ href: '/pipeline/clients', icon: Building2, label: 'Pipeline Clients' }} pathname={pathname} collapsed={collapsed} />}
+        {/* Une seule entrée : Leads et Clients sont deux rangées du même écran. */}
+        {canSee('/pipeline') && <NavLink item={{ href: '/pipeline', icon: GitMerge, label: 'Pipeline' }} pathname={pathname} collapsed={collapsed} />}
         {acquisitionPost.map(item => <NavLink key={item.href} item={item} pathname={pathname} collapsed={collapsed} />)}
 
         {pilotage.length > 0 && <>

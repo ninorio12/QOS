@@ -1,4 +1,5 @@
 import KanbanBoard from '@/components/pipeline/KanbanBoard'
+import ClientsBoard from '@/components/pipeline/ClientsBoard'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from '../../../convex/_generated/api'
 import { stageColor } from '@/components/pipeline/types'
@@ -27,7 +28,8 @@ export default async function PipelinePage() {
   if (!url) {
     return (
       <div className="flex-1 md:h-[calc(100vh-3rem)] flex flex-col overflow-hidden min-h-0">
-        <KanbanBoard initialPipelines={[DEFAULT_PIPELINE]} initialOpportunities={[]} />
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden"><KanbanBoard initialPipelines={[DEFAULT_PIPELINE]} initialOpportunities={[]} /></div>
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden border-t border-soren-border"><ClientsBoard /></div>
       </div>
     )
   }
@@ -58,14 +60,23 @@ export default async function PipelinePage() {
     // garde de ModuleGuard (un compte sans /pipeline est redirigé). Cf. backlog auth pré-prod.
     return (
       <div className="flex-1 md:h-[calc(100vh-3rem)] flex flex-col overflow-hidden min-h-0">
-        <KanbanBoard initialPipelines={pipelines} initialOpportunities={[]} />
+        {/* Un seul module : le parcours ne s'arrête plus à « Nouveau client ».
+            La rangée du haut va du premier contact à la signature, celle du bas
+            reprend au client signé et va jusqu'au consulting. */}
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <KanbanBoard initialPipelines={pipelines} initialOpportunities={[]} />
+        </div>
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden border-t border-soren-border">
+          <ClientsBoard />
+        </div>
       </div>
     )
   } catch {
     // Convex error → show empty default pipeline (don't block the user)
     return (
       <div className="flex-1 md:h-[calc(100vh-3rem)] flex flex-col overflow-hidden min-h-0">
-        <KanbanBoard initialPipelines={[DEFAULT_PIPELINE]} initialOpportunities={[]} />
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden"><KanbanBoard initialPipelines={[DEFAULT_PIPELINE]} initialOpportunities={[]} /></div>
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden border-t border-soren-border"><ClientsBoard /></div>
       </div>
     )
   }

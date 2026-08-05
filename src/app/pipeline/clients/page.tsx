@@ -1,10 +1,7 @@
-export const dynamic = 'force-dynamic'
-import ClientsBoard from '@/components/pipeline/ClientsBoard'
+import { redirect } from 'next/navigation'
 
+// Les deux pipelines n'en font plus qu'un : l'ancienne adresse mène au module
+// fusionné, pour que les liens et les favoris existants continuent de marcher.
 export default function ClientsPipelinePage() {
-  return (
-    <div className="flex-1 md:h-[calc(100vh-3rem)] flex flex-col overflow-hidden min-h-0">
-      <ClientsBoard />
-    </div>
-  )
+  redirect('/pipeline')
 }

@@ -10,8 +10,7 @@ export type ModuleDef = { href: string; label: string; icon: LucideIcon; group: 
 // Utilisé par la bottom-nav (favoris), la page « Tout » et la personnalisation.
 export const MODULES: ModuleDef[] = [
   { href: '/dashboard',          label: 'Tableau de bord',      icon: LayoutDashboard,  group: 'Acquisition' },
-  { href: '/pipeline',           label: 'Pipeline Leads',       icon: GitMerge,         group: 'Acquisition' },
-  { href: '/pipeline/clients',   label: 'Pipeline Clients',     icon: Building2,        group: 'Acquisition' },
+  { href: '/pipeline',           label: 'Pipeline',             icon: GitMerge,         group: 'Acquisition' },
   { href: '/contacts',           label: 'Contacts',             icon: Users,            group: 'Acquisition' },
   { href: '/prospection',        label: 'Prospection',          icon: PhoneCall,        group: 'Acquisition' },
   { href: '/closing',            label: 'Closing',              icon: CheckSquare,      group: 'Acquisition' },
