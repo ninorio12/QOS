@@ -7,7 +7,7 @@ import { useQuery, useMutation, useAction } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import {
   DollarSign, Eye, MousePointerClick, Users, Percent, Gauge,
-  RefreshCw, CalendarDays, ArrowUpRight, Play, X, Info,
+  RefreshCw, CalendarDays, ArrowUpRight, Play, X, Info, ClipboardList,
 } from 'lucide-react'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import MetaLogo from './MetaLogo'
@@ -16,6 +16,7 @@ const MetaCplChart = dynamic(() => import('./MetaCplChart'), { ssr: false })
 const MetaLeadsChart = dynamic(() => import('./MetaLeadsChart'), { ssr: false })
 const MetaConnectModal = dynamic(() => import('./MetaConnectModal'), { ssr: false })
 const MetaLeadsModal = dynamic(() => import('./MetaLeadsModal'), { ssr: false })
+const QuizSessionsModal = dynamic(() => import('./QuizSessionsModal'), { ssr: false })
 const MetaGuide = dynamic(() => import('./MetaGuide'), { ssr: false })
 const CreativeIntelligence = dynamic(() => import('./CreativeIntelligence'), { ssr: false })
 const CardDrop = dynamic(() => import('./CardDrop'), { ssr: false })
@@ -28,6 +29,7 @@ type Row = {
   id: string; name: string; campaign: string | null; adset: string | null
   spend: number; impressions: number; clicks: number; leads: number
   cpl: number; ctr: number; cr: number; perf: 'excellent' | 'moyen' | 'optimiser'
+  premiereDiffusion?: string; derniereDiffusion?: string; statut?: string | null; enCours?: boolean
   imageUrl?: string | null; thumbnailUrl?: string | null; videoSource?: string | null; videoThumb?: string | null; videoLien?: string | null
 }
 type MediaView = { src: string; isVideo: boolean; name: string; integre?: boolean }
@@ -40,7 +42,11 @@ type Dash = {
 const LEVELS = [{ k: 'campaign', label: 'Campagne' }, { k: 'adset', label: 'Adset' }, { k: 'creative', label: 'Publicité' }]
 const isoDay = (dt: Date) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
 function defaultRange() { const to = new Date(); const from = new Date(); from.setDate(to.getDate() - 6); return { from: isoDay(from), to: isoDay(to) } }
+// Une campagne trop jeune n'est pas mauvaise, elle est en apprentissage : chip
+// neutre, jamais rouge, tant qu'il n'y a pas assez de leads pour juger (seuil
+// côté serveur, mediaBuyer.perfOf).
 const PERF: Record<string, { label: string; cls: string }> = {
+  apprentissage: { label: 'En apprentissage', cls: 'bg-soren-elevated text-soren-muted' },
   excellent: { label: 'Excellent', cls: 'bg-emerald-100 text-emerald-700' },
   moyen:     { label: 'Moyen',     cls: 'bg-amber-100 text-amber-700' },
   optimiser: { label: 'À optimiser', cls: 'bg-red-100 text-red-700' },
@@ -107,10 +113,12 @@ function KpiCard({ icon: Icon, label, value, suffix, delta, color, onClick, drop
 export default function MediaBuyerView() {
   const [range, setRange] = useState(() => defaultRange())
   const [level, setLevel] = useState('adset')
+  const [enCoursSeul, setEnCoursSeul] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [syncErr, setSyncErr] = useState<string | null>(null)
   const [connectOpen, setConnectOpen] = useState(false)
   const [leadsOpen, setLeadsOpen] = useState(false)
+  const [quizOpen, setQuizOpen] = useState(false)
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [tab, setTab] = useState<'perf' | 'guide'>('perf')
   const [rangeLabel, setRangeLabel] = useState('7 derniers jours')
@@ -153,6 +161,11 @@ export default function MediaBuyerView() {
   }, [calendarOpen])
 
   const detailHead = dLvl === 'campaign' ? ['Campagne', 'Adset'] : dLvl === 'creative' ? ['Publicité', 'Adset'] : ['Adset', 'Campagne']
+  // Deux générations de créas cohabitent dès qu'on relance un test : même nom,
+  // deux lignes. Le filtre montre par défaut ce qui tourne AUJOURD'HUI ; les
+  // arrêtées restent à un clic, avec leur dernier jour de diffusion.
+  const detailRows = (d?.detail ?? []).filter(r => dLvl !== 'creative' || !enCoursSeul || r.enCours !== false)
+  const nbArretees = dLvl === 'creative' ? (d?.detail ?? []).filter(r => r.enCours === false).length : 0
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -211,11 +224,18 @@ export default function MediaBuyerView() {
               />
             )}
           </div>
+          {/* Réponses du quiz, abandons compris : la seule vue qui montre ce que
+              les gens répondent avant de partir. */}
+          <button onClick={() => setQuizOpen(true)}
+            className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium text-soren-muted bg-soren-card border border-soren-border rounded-full px-2.5 py-1.5 hover:text-soren-text transition-colors">
+            <ClipboardList size={12} /> Réponses du quiz
+          </button>
           {isAdmin && conn?.connected && <button onClick={syncMeta} disabled={syncing} className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium text-soren-muted bg-soren-card border border-soren-border rounded-full px-2.5 py-1.5 hover:text-soren-text transition-colors disabled:opacity-60"><RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />{syncing ? 'Sync…' : 'Sync Meta'}</button>}
         </div>
       </div>
       {connectOpen && <MetaConnectModal onClose={() => setConnectOpen(false)} />}
       {leadsOpen && <MetaLeadsModal onClose={() => setLeadsOpen(false)} />}
+      {quizOpen && <QuizSessionsModal onClose={() => setQuizOpen(false)} />}
 
       <div className={`flex-1 overflow-y-auto p-7 transition-opacity duration-200 ${refreshing ? 'opacity-70' : 'opacity-100'}`}>
         {tab === 'guide' ? <MetaGuide /> : (<>
@@ -284,7 +304,7 @@ export default function MediaBuyerView() {
                     <td className="px-3 py-3 text-right tabular-nums">{nf(r.leads)}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{cpl(r.cpl)}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{pct(r.ctr)}</td>
-                    <td className="px-5 py-3 text-right"><span className={`inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold px-2.5 py-1 rounded-full ${PERF[r.perf].cls}`}><span className="w-[6px] h-[6px] rounded-full bg-current" />{PERF[r.perf].label}</span></td>
+                    <td className="px-5 py-3 text-right"><span className={`inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold px-2.5 py-1 rounded-full ${(PERF[r.perf] ?? PERF.apprentissage).cls}`}><span className="w-[6px] h-[6px] rounded-full bg-current" />{(PERF[r.perf] ?? PERF.apprentissage).label}</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -297,8 +317,18 @@ export default function MediaBuyerView() {
         <div className="bg-soren-card border border-soren-border rounded-2xl overflow-hidden">
           <div className="px-5 pt-4 pb-3 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-[13px] font-semibold text-soren-text tracking-tight whitespace-nowrap">Détail par {level === 'campaign' ? 'campagne' : level === 'creative' ? 'publicité' : 'adset'}</h3>
-            <div className="flex bg-soren-elevated border border-soren-border rounded-full p-[3px] text-[11px] font-medium">
-              {LEVELS.map(l => <button key={l.k} onClick={() => setLevel(l.k)} className={`px-2.5 py-1 rounded-full transition-colors ${level === l.k ? 'bg-soren-accent text-white' : 'text-soren-muted hover:text-soren-text'}`}>{l.label}</button>)}
+            <div className="flex items-center gap-2">
+              {dLvl === 'creative' && nbArretees > 0 && (
+                <button
+                  onClick={() => setEnCoursSeul(s => !s)}
+                  className={`px-2.5 py-1 rounded-full border text-[11px] font-medium transition-colors ${enCoursSeul ? 'bg-soren-elevated border-soren-border text-soren-muted hover:text-soren-text' : 'bg-soren-accent border-soren-accent text-white'}`}
+                >
+                  {enCoursSeul ? `Voir les ${nbArretees} arrêtée${nbArretees > 1 ? 's' : ''}` : 'En diffusion seulement'}
+                </button>
+              )}
+              <div className="flex bg-soren-elevated border border-soren-border rounded-full p-[3px] text-[11px] font-medium">
+                {LEVELS.map(l => <button key={l.k} onClick={() => setLevel(l.k)} className={`px-2.5 py-1 rounded-full transition-colors ${level === l.k ? 'bg-soren-accent text-white' : 'text-soren-muted hover:text-soren-text'}`}>{l.label}</button>)}
+              </div>
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -309,13 +339,19 @@ export default function MediaBuyerView() {
                 {['Dépense', 'Impressions', 'Clics', 'Leads', 'CPL', 'CTR', 'CR'].map(h => <th key={h} className="text-right px-3 py-2.5 border-y border-soren-border last:px-5">{h}</th>)}
               </tr></thead>
               <tbody>
-                {loading ? null : d!.detail.length === 0 ? (
+                {loading ? null : detailRows.length === 0 ? (
                   <tr><td colSpan={9} className="text-center text-soren-muted text-[13px] py-10">Aucune donnée</td></tr>
-                ) : d!.detail.map(r => (
+                ) : detailRows.map(r => (
                   <tr key={r.id} className="text-[11.5px] font-normal border-b border-soren-border last:border-0">
                     <td className="px-5 py-3 font-medium text-soren-text">
                       {dLvl === 'creative'
-                        ? <div className="flex items-center gap-3"><CreaThumb r={r} onOpen={setMedia} /><span className="min-w-0">{r.name}</span></div>
+                        ? <div className="flex items-center gap-3">
+                            <CreaThumb r={r} onOpen={setMedia} />
+                            <span className="min-w-0">
+                              {r.name}
+                              <Diffusion r={r} />
+                            </span>
+                          </div>
                         : r.name}
                     </td>
                     <td className="px-3 py-3 text-soren-muted">{(dLvl === 'adset' ? r.campaign : r.adset) ?? '—'}</td>
@@ -364,6 +400,23 @@ export default function MediaBuyerView() {
         document.body,
       )}
     </div>
+  )
+}
+
+// Statut de diffusion d'une publicité, sous son nom : deux créas peuvent porter
+// le même nom (« Quiz 1 » relancé), seul ce repère les distingue.
+function Diffusion({ r }: { r: Row }) {
+  if (r.enCours === undefined) return null
+  const jour = (iso?: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : null)
+  return (
+    <span className="flex items-center gap-1.5 mt-0.5 text-[10px] font-medium">
+      <span className={`w-[5px] h-[5px] rounded-full ${r.enCours ? 'bg-emerald-500' : 'bg-soren-subtle'}`} />
+      <span className={r.enCours ? 'text-emerald-600' : 'text-soren-subtle'}>
+        {r.enCours
+          ? `En diffusion${jour(r.premiereDiffusion) ? ` depuis le ${jour(r.premiereDiffusion)}` : ''}`
+          : `Arrêtée${jour(r.derniereDiffusion) ? ` : dernière diffusion le ${jour(r.derniereDiffusion)}` : ''}`}
+      </span>
+    </span>
   )
 }
 

@@ -8,7 +8,10 @@ crons.interval("meta insights sync", { hours: 1 }, api.zernioAds.syncDaily, { da
 
 // Synchronisation horaire des créas Meta (visuels + KPI) → alimente le board live
 // de décision (media_buyer_board) et la galerie de créas. No-op si non connecté.
-crons.interval("meta creatives sync", { hours: 1 }, api.metaAds.syncCreatives, { datePreset: "last_14d" })
+// La limite compte : à 25 publicités, le compte VividFlow (100+) ne renvoyait
+// jamais les dernières créées, dont les nouvelles générations de créas — leur
+// statut restait figé à celui de leur mise en ligne.
+crons.interval("meta creatives sync", { hours: 1 }, api.metaAds.syncCreatives, { datePreset: "last_14d", limit: 200 })
 
 // Snapshot quotidien du Score Santé Business (cockpit Prospection) → Évolution 7j/30j.
 crons.daily("prospection health snapshot", { hourUTC: 2, minuteUTC: 0 }, internal.prospectionCockpit.snapshotHealth, {})

@@ -39,11 +39,24 @@ export const creatives = action({
     const limit = Math.min(wanted, 10)
     const fields = [
       "name", "effective_status", "preview_shareable_link",
-      "campaign{name}", "adset{name}",
+      // Statut des étages du dessus : `effective_status` d'une publicité reste
+      // ACTIVE quand son adset est mis en pause. Sans ces deux champs, une pub
+      // coupée la veille passe pour « en diffusion » et le board mélange deux
+      // générations de créas qui portent le même nom.
+      "campaign{name,effective_status}", "adset{name,effective_status}",
       "creative{id,image_url,thumbnail_url,video_id,image_hash,object_story_spec,asset_feed_spec}",
       `insights.date_preset(${preset}){spend,impressions,reach,clicks,ctr,cpc,cpm,frequency,inline_link_clicks,actions,action_values,video_play_actions,video_thruplay_watched_actions,video_avg_time_watched_actions,video_p100_watched_actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}`,
     ].join(",")
-    let url: string | null = `${GRAPH}/${META_API_VERSION}/${act}/ads?fields=${encodeURIComponent(fields)}&limit=${limit}&access_token=${encodeURIComponent(token)}`
+    // L'edge /ads d'un compte MASQUE les publicités archivées par défaut. Une
+    // créa coupée puis archivée disparaissait donc de la synchro : sa ligne en
+    // base gardait le statut « ACTIVE » de sa mise en ligne et le board la
+    // présentait comme en diffusion, à côté de la créa qui l'a remplacée et qui
+    // porte le même nom. On demande explicitement tous les statuts.
+    const tousStatuts = JSON.stringify([{
+      field: "ad.effective_status", operator: "IN",
+      value: ["ACTIVE", "PAUSED", "ADSET_PAUSED", "CAMPAIGN_PAUSED", "ARCHIVED", "IN_PROCESS", "WITH_ISSUES", "PENDING_REVIEW", "DISAPPROVED", "PREAPPROVED", "PENDING_BILLING_INFO"],
+    }])
+    let url: string | null = `${GRAPH}/${META_API_VERSION}/${act}/ads?fields=${encodeURIComponent(fields)}&filtering=${encodeURIComponent(tousStatuts)}&limit=${limit}&access_token=${encodeURIComponent(token)}`
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ads: any[] = []
     for (let i = 0; i < 25 && url && ads.length < wanted; i++) {
@@ -96,8 +109,17 @@ export const creatives = action({
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const out: any[] = []
+    // Statut EFFECTIF d'une publicité : elle ne diffuse que si les trois étages
+    // diffusent. Meta laisse la pub à ACTIVE quand seul l'adset est coupé.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const statutReel = (ad: any): string => {
+      if (ad.effective_status && ad.effective_status !== "ACTIVE") return ad.effective_status
+      if (ad.adset?.effective_status && ad.adset.effective_status !== "ACTIVE") return "ADSET_PAUSED"
+      if (ad.campaign?.effective_status && ad.campaign.effective_status !== "ACTIVE") return "CAMPAIGN_PAUSED"
+      return ad.effective_status ?? "ACTIVE"
+    }
     for (const ad of ads) {
-      if (a.activeOnly === true && ad.effective_status !== "ACTIVE") continue
+      if (a.activeOnly === true && statutReel(ad) !== "ACTIVE") continue
       const cr = ad.creative ?? {}
       const crea = creasParAd.get(cr.id)
       let videoSource: string | null = null, videoThumb: string | null = null, videoLien: string | null = null
@@ -140,7 +162,7 @@ export const creatives = action({
       // Résultat = achats si funnel achat, sinon leads (lead-gen). CPA cohérent avec ce dénominateur.
       const results = purchases > 0 ? purchases : leads
       out.push({
-        adId: ad.id, name: ad.name, status: ad.effective_status,
+        adId: ad.id, name: ad.name, status: statutReel(ad),
         campaign: ad.campaign?.name ?? null, adset: ad.adset?.name ?? null,
         // imageUrl = le visuel qu'on ouvre en grand ; thumbnailUrl = la vignette du tableau.
         imageUrl: (hashOf(cr) ? urlParHash.get(hashOf(cr)!) : null) ?? cr.image_url ?? cr.thumbnail_url ?? crea?.image_url ?? crea?.thumbnail_url ?? null,

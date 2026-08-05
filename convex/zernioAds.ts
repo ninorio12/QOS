@@ -79,6 +79,54 @@ async function resolveMetaAds(): Promise<{ fbAccountId: string; adAccountId: str
   return { fbAccountId: fb._id, adAccountId: String(chosen.id) }
 }
 
+/**
+ * Statut réel + visuels des publicités, via /v1/ads/tree.
+ *
+ * La liste /v1/ads ne renvoie plus rien depuis le 04/08 (0 ligne quels que
+ * soient les paramètres) : le board héritait donc de statuts figés et ne savait
+ * plus distinguer une pub coupée d'une pub en cours. L'arbre, lui, descend
+ * campagne → adset → publicité avec le statut de chaque étage et le bloc
+ * `creative`. Une pub n'est EN DIFFUSION que si les trois étages le sont : un
+ * adset en pause laisse ses pubs à « active » côté Meta alors qu'elles ne
+ * tournent plus (le cas exact des trois « Quiz » du 03/08).
+ *
+ * L'arbre ignore le filtre objectId : on garde nous-mêmes les campagnes de
+ * l'ad account visé, sinon les campagnes d'autres comptes du Business
+ * s'inviteraient dans le board.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchAdTree(target: { fbAccountId: string; adAccountId: string }): Promise<Map<string, any>> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const byId = new Map<string, any>()
+  const tree = await zgetRetry("/ads/tree", { accountId: target.fbAccountId, objectId: target.adAccountId })
+  const on = (s: unknown) => String(s ?? "").toLowerCase() === "active"
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const c of (tree?.campaigns ?? []) as any[]) {
+    if (c.platformAdAccountId && c.platformAdAccountId !== target.adAccountId) continue
+    const campOn = on(c.status ?? c.platformCampaignStatus)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const s of (c.adSets ?? []) as any[]) {
+      const setOn = on(s.status)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const ad of (s.ads ?? []) as any[]) {
+        const adOn = on(ad.status ?? ad.configuredStatus)
+        const pid = ad.platformAdId ?? ad._id
+        if (!pid) continue
+        byId.set(String(pid), {
+          name: ad.name,
+          // Statut EFFECTIF, dans le vocabulaire déjà stocké en base.
+          status: adOn ? (setOn ? (campOn ? "ACTIVE" : "CAMPAIGN_PAUSED") : "ADSET_PAUSED") : "PAUSED",
+          creative: ad.creative ?? {},
+          effectiveObjectStoryId: (ad.creative ?? {}).effectiveObjectStoryId,
+          campaign: c.campaignName, adset: s.adSetName,
+          createdAt: ad.platformCreatedAt ?? ad.createdAt ?? null,
+        })
+      }
+    }
+  }
+  return byId
+}
+
 function presetToRange(preset: string): { fromDate: string; toDate: string } {
   // Forme generique last_Nd : le board envoie 7/14/30, un backfill peut demander
   // 365. Inconnu = 14 jours, le defaut historique du module.
@@ -119,20 +167,26 @@ export const creatives = internalAction({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows: any[] = ins?.data ?? ins?.rows ?? []
 
-    // 2. Visuels + statut : liste normalisée Zernio, indexée par id d'ad Meta.
-    const adsList = await zget("/ads", {
-      accountId: target.fbAccountId,
-      adAccountId: target.adAccountId,
-      source: "all",
-      fromDate,
-      toDate,
-      limit: String(Math.min(a.limit ?? 100, 200)),
-    })
+    // 2. Visuels + statut EFFECTIF : arbre Zernio (campagne → adset → pub),
+    //    indexé par id d'ad Meta. Repli sur l'ancienne liste /ads si l'arbre
+    //    ne répond pas, pour ne jamais perdre les visuels.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const byPlatformId = new Map<string, any>()
-    for (const ad of adsList?.ads ?? adsList?.data ?? []) {
-      const pid = ad.platformAdId ?? ad.platform_ad_id ?? ad.id
-      if (pid) byPlatformId.set(String(pid), ad)
+    let byPlatformId = await fetchAdTree(target)
+    if (byPlatformId.size === 0) {
+      const adsList = await zget("/ads", {
+        accountId: target.fbAccountId,
+        adAccountId: target.adAccountId,
+        source: "all",
+        fromDate,
+        toDate,
+        limit: String(Math.min(a.limit ?? 100, 200)),
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      byPlatformId = new Map<string, any>()
+      for (const ad of adsList?.ads ?? adsList?.data ?? []) {
+        const pid = ad.platformAdId ?? ad.platform_ad_id ?? ad.id
+        if (pid) byPlatformId.set(String(pid), ad)
+      }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -168,7 +222,7 @@ export const creatives = internalAction({
             ? `https://www.facebook.com/${cr.pageId ?? cr.page_id}/videos/${cr.videoId ?? cr.video_id}`
             : meta?.effectiveObjectStoryId
               ? `https://www.facebook.com/${String(meta.effectiveObjectStoryId).replace("_", "/posts/")}`
-              : cr.permalinkUrl ?? cr.permalink_url ?? null,
+              : cr.permalinkUrl ?? cr.permalink_url ?? cr.instagramPermalinkUrl ?? cr.videoUrl ?? null,
         spend: r2(spend), impressions: imp,
         reach: parseFloat(r.reach ?? "0") || 0,
         ctr: parseFloat(r.ctr ?? "0") || 0,
@@ -293,6 +347,7 @@ export const syncDaily = action({
     for (let i = 0; i < objects.length; i += CHUNK) {
       await ctx.runMutation(internal.mediaBuyer._insertBatch, { daily: [], objects: objects.slice(i, i + CHUNK) })
     }
+    await ctx.runMutation(internal.mediaBuyer._touchSync, {})
     return { ok: true, source: "zernio", account: target.adAccountId, since, until, days: ok.length, missed: failed.length, daily: daily.length, objects: objects.length }
   },
 })

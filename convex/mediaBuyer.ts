@@ -170,7 +170,24 @@ function spanDaysISO(from: string, to: string) {
   return Math.round((Date.parse(to + "T00:00:00Z") - Date.parse(from + "T00:00:00Z")) / 86400000) + 1
 }
 
-const perfOf = (cpl: number) => cpl > 0 && cpl <= 25 ? "excellent" : cpl > 0 && cpl <= 35 ? "moyen" : "optimiser"
+// Verdict de performance.
+//
+// Règle d'abord : on ne juge pas ce qu'on ne peut pas juger. Sous 5 leads, un
+// CPL ne veut rien dire (un premier lead à 12 CHF ne prouve pas plus qu'un
+// premier à 80), et l'ancien seuil nu envoyait toute campagne fraîche dans
+// « À optimiser » puisqu'un CPL de 0 ne passait aucune borne. Une campagne qui
+// démarre est donc EN APPRENTISSAGE, sans note.
+//
+// La suite (CPL cible dérivé de la valeur réelle d'un lead, verdict « à couper »
+// quand la dépense dépasse plusieurs fois ce CPL sans un seul lead) est en
+// attente : elle demande de fixer ce CPL cible. Les bornes 25/35 restent donc
+// telles quelles au-delà du seuil d'apprentissage.
+const MIN_LEADS_POUR_JUGER = 5
+const perfOf = (cpl: number, leads: number) =>
+  leads < MIN_LEADS_POUR_JUGER ? "apprentissage"
+  : cpl > 0 && cpl <= 25 ? "excellent"
+  : cpl > 0 && cpl <= 35 ? "moyen"
+  : "optimiser"
 
 // Parcours d'une campagne : la table os_campaign_funnels prime, sinon le nom
 // décide (même philosophie que les formulaires Meta). Pas de correspondance =
@@ -320,15 +337,21 @@ export const dashboard = query({
         // Vue parcours : mêmes JOURS que les KPI (niveau campagne), pour que le
         // détail ne dépasse jamais le total affiché juste au-dessus.
         .filter(r => !funnelDates || funnelDates.has(r.date))
-      const byId = new Map<string, { id: string; name: string; campaign: string | null; adset: string | null; spend: number; impressions: number; clicks: number; leads: number }>()
+      // Première et dernière journée de diffusion : deux publicités peuvent
+      // porter le MÊME nom (« Quiz 1 » relancé dans un nouvel adset). Sans ces
+      // dates, le tableau affiche deux lignes jumelles et rien ne dit laquelle
+      // tourne encore.
+      const byId = new Map<string, { id: string; name: string; campaign: string | null; adset: string | null; spend: number; impressions: number; clicks: number; leads: number; premiereDiffusion: string; derniereDiffusion: string }>()
       for (const r of rows) {
-        const g = byId.get(r.objectId) ?? { id: r.objectId, name: r.name, campaign: r.campaign ?? null, adset: r.adset ?? null, spend: 0, impressions: 0, clicks: 0, leads: 0 }
+        const g = byId.get(r.objectId) ?? { id: r.objectId, name: r.name, campaign: r.campaign ?? null, adset: r.adset ?? null, spend: 0, impressions: 0, clicks: 0, leads: 0, premiereDiffusion: r.date, derniereDiffusion: r.date }
         g.spend += r.spend; g.impressions += r.impressions; g.clicks += r.clicks; g.leads += r.leads; g.name = r.name
+        if (r.date < g.premiereDiffusion) g.premiereDiffusion = r.date
+        if (r.date > g.derniereDiffusion) g.derniereDiffusion = r.date
         byId.set(r.objectId, g)
       }
       return [...byId.values()].map(g => {
         const m = derive(g)
-        return { id: g.id, name: g.name, campaign: g.campaign, adset: g.adset, ...m, perf: perfOf(m.cpl) }
+        return { id: g.id, name: g.name, campaign: g.campaign, adset: g.adset, ...m, perf: perfOf(m.cpl, g.leads), premiereDiffusion: g.premiereDiffusion, derniereDiffusion: g.derniereDiffusion }
       }).sort((a, b) => b.spend - a.spend)
     }
 
@@ -337,6 +360,7 @@ export const dashboard = query({
     // meta_creatives par adId. Avant : on lisait meta_creatives (snapshot figé 14j) sans filtre date
     // → le tableau « Publicité » montrait une autre fenêtre que les KPI et ne réconciliait jamais (bug C3).
     const creativeDetail = async () => {
+      const dernierJourDonnees = dailyAll[dailyAll.length - 1]?.date ?? null
       const metrics = await aggObjects("creative")   // période-correct, déjà agrégé + dérivé + trié par spend
       const creatives = await ctx.db.query("meta_creatives")
         .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
@@ -345,6 +369,12 @@ export const dashboard = query({
         const v = visById.get(m.id)
         return {
           ...m,
+          // Statut de diffusion : le statut effectif Meta quand on l'a (il tient
+          // compte de l'adset et de la campagne), sinon la dernière journée de
+          // diffusion connue. Une pub qui n'a rien dépensé le dernier jour
+          // synchronisé est arrêtée, pas « en cours mais discrète ».
+          statut: v?.status ?? null,
+          enCours: v?.status ? v.status === "ACTIVE" : m.derniereDiffusion >= (dernierJourDonnees ?? m.derniereDiffusion),
           imageUrl: v?.imageUrl ?? null, thumbnailUrl: v?.thumbnailUrl ?? null,
           videoSource: v?.videoSource ?? null, videoThumb: v?.videoThumb ?? null,
         videoLien: v?.videoLien ?? null,
@@ -491,24 +521,55 @@ export const summary = query({
 export const metaInboundContacts = query({
   args: {},
   returns: v.array(v.object({
-    id: v.id("crm_contacts"), name: v.string(),
+    id: v.string(), name: v.string(),
     email: v.union(v.string(), v.null()), phone: v.union(v.string(), v.null()),
     company: v.union(v.string(), v.null()), statut: v.union(v.string(), v.null()),
     createdAt: v.string(),
+    // true = soumission de test conservée pour expliquer l'écart avec le
+    // compteur Meta. Pas de fiche derrière : la ligne n'est pas cliquable.
+    test: v.boolean(),
   })),
   handler: async (ctx) => {
     const all = await ctx.db.query("crm_contacts").collect()
-    return all
-      .filter(c => (c.tags ?? []).includes("Meta Ads"))
-      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
-      .slice(0, 200)
+    // Le tag « Meta Ads » vient de l'ANCIENNE intégration Meta. L'ingestion
+    // actuelle (webhook leadgen via Zernio, convex/leadIngest.ts) étiquette
+    // « origine:facebook », donc ce filtre ne trouvait plus aucun lead : la
+    // liste restait vide alors que les leads arrivaient bien. On accepte les
+    // deux, l'ancien pour l'historique, le nouveau pour ce qui entre aujourd'hui.
+    const contacts = all
+      .filter(c => {
+        const tags = c.tags ?? []
+        return tags.includes("Meta Ads") || tags.includes("origine:facebook")
+      })
       .map(c => ({
-        id: c._id,
+        id: String(c._id),
         name: `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() || "Lead",
         email: c.email ?? null, phone: c.phone ?? null,
         company: c.companyName ?? null, statut: c.statut ?? null,
         createdAt: c.createdAt,
+        test: false,
       }))
+
+    // Soumissions de TEST : gardées hors CRM (aucun contact, aucun lead) mais
+    // affichées ici, marquées, pour que la liste raconte la même histoire que
+    // le compteur Meta. Voir la règle « marquer plutôt que supprimer ».
+    const tests = (await ctx.db
+      .query("os_lead_journey")
+      .withIndex("by_ws", q => q.eq("workspaceId", WORKSPACE))
+      .collect())
+      .filter(j => j.isTest)
+      .map(j => ({
+        id: String(j._id),
+        name: j.name ?? "Lead",
+        email: j.email ?? null, phone: j.phone ?? null,
+        company: null, statut: null,
+        createdAt: j.createdAt,
+        test: true,
+      }))
+
+    return [...contacts, ...tests]
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+      .slice(0, 200)
   },
 })
 
@@ -557,6 +618,23 @@ async function fetchInsights(act: string, token: string, params: Record<string, 
   }
   return out
 }
+
+/**
+ * Horodate la connexion après une passe Zernio réussie.
+ *
+ * `lastSyncAt` n'était écrit que par l'ancien chemin Meta direct (mort) : le
+ * board annonçait donc une synchro vieille de plusieurs jours alors que les
+ * chiffres du jour étaient déjà là. Le sync Zernio le pose désormais lui-même.
+ */
+export const _touchSync = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const conn = await ctx.db.query("meta_connection")
+      .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).first()
+    if (conn) await ctx.db.patch(conn._id, { lastSyncAt: new Date().toISOString() })
+    return { ok: !!conn }
+  },
+})
 
 // Lecture privée de la connexion (token inclus — jamais exposé au client).
 export const _connection = internalQuery({
