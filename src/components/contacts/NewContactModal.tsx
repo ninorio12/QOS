@@ -726,17 +726,17 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             {/* ── Envoyer en prospection (colonne "Leads interne") — pill discrète, toute fiche non-client. ── */}
             {isEdit && contact?.id && statut !== 'client' && (
               <button type="button" onClick={handleSendToProspection} disabled={prospState !== 'idle'}
-                title="Ajouter ce contact au board Prospection, en tête de « Leads à traiter »"
+                title="Place ce contact en tête de « Leads à traiter » dans la Prospection, prêt à être appelé"
                 className={`self-start inline-flex items-center gap-1.5 h-7 pl-2.5 pr-3 rounded-full border text-[11px] font-semibold transition-colors disabled:cursor-default ${
                   prospState === 'done'
                     ? 'border-[#FF4D00]/40 bg-[#FF4D00]/10 text-[#C2410C]'
                     : 'border-soren-border text-soren-muted hover:border-[#FF4D00]/50 hover:text-[#FF4D00] hover:bg-[#FF4D00]/[0.06]'
                 }`}>
                 {prospState === 'done'
-                  ? <><Check size={13} className="text-[#FF4D00]" /> Ajouté à la prospection</>
+                  ? <><Check size={13} className="text-[#FF4D00]" /> Mis en file d&apos;appel</>
                   : prospState === 'sending'
                     ? <><Send size={13} className="animate-pulse" /> Envoi…</>
-                    : <><Send size={13} /> Envoyer en prospection</>}
+                    : <><Send size={13} /> Mettre en file d&apos;appel</>}
               </button>
             )}
 
