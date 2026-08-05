@@ -392,9 +392,44 @@ export const dashboard = query({
     // variations « vs période précédente » sont toujours vides dès qu'on choisit
     // une période au calendrier (audit tribunal 2026-08-02).
     const floor = args.from ? "0000-00-00" : PROJECT_START_DATE
+    // Remises à zéro : une campagne remise à zéro ne se compte qu'à partir de sa
+    // date. On indexe par id (niveau campagne) ET par nom (niveaux adset et
+    // publicité, où la ligne ne porte que le nom de sa campagne).
+    const resets = await ctx.db.query("meta_campaign_resets")
+      .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
+    const resetParId = new Map(resets.map(r => [r.campaignId, r.resetAt]))
+    const resetParNom = new Map(resets.filter(r => r.campaignName).map(r => [r.campaignName as string, r.resetAt]))
+    // Pubs à ne plus compter, tous niveaux confondus.
+    const pubsExclues = new Set<string>(resets.flatMap(r => r.excludedAdIds ?? []))
+    // Lignes au niveau publicité : base de reconstruction des totaux.
+    const pubsPourTotaux = pubsExclues.size > 0
+      ? await ctx.db.query("meta_object_daily")
+          .withIndex("by_ws_level_date", q => q.eq("workspaceId", WORKSPACE).eq("level", "creative")).collect()
+      : []
+    // Campagnes remises à zéro : leurs totaux se RECONSTRUISENT depuis les
+    // publicités, sinon la ligne agrégée de Meta réintroduirait la matinée
+    // effacée (une ligne campagne ne se découpe pas par pub).
+    const campagnesRemisesANom = new Set<string>(resets.map(r => r.campaignName ?? "").filter(Boolean))
+
+    // Totaux journaliers du compte. Dès qu'une campagne a été remise à zéro, ils
+    // se RECONSTRUISENT depuis les publicités, exclusions comprises : sinon les
+    // cartes du haut annonceraient 72 CHF pendant que le tableau juste en
+    // dessous afficherait zéro, et personne ne saurait lequel croire.
+    const dailyCompte = pubsExclues.size > 0
+      ? (() => {
+          const parDate = new Map<string, { date: string; spend: number; impressions: number; clicks: number; leads: number }>()
+          for (const r of pubsPourTotaux) {
+            if (pubsExclues.has(r.objectId)) continue
+            const g = parDate.get(r.date) ?? { date: r.date, spend: 0, impressions: 0, clicks: 0, leads: 0 }
+            g.spend += r.spend; g.impressions += r.impressions; g.clicks += r.clicks; g.leads += r.leads
+            parDate.set(r.date, g)
+          }
+          return [...parDate.values()]
+        })()
+      : await ctx.db.query("meta_daily").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
+
     // Vue parcours : les totaux journaliers du parcours remplacent le total compte.
-    const dailyAll = (funnelDaily ?? (await ctx.db.query("meta_daily")
-      .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()))
+    const dailyAll = (funnelDaily ?? dailyCompte)
       .filter(d => d.date >= floor)
       .sort((a, b) => (a.date < b.date ? -1 : 1))
 
@@ -432,20 +467,6 @@ export const dashboard = query({
       cpl: d.leads > 0 ? r2(d.spend / d.leads) : 0,
       leads: Math.round(d.leads),
     }))
-
-    // Remises à zéro : une campagne remise à zéro ne se compte qu'à partir de sa
-    // date. On indexe par id (niveau campagne) ET par nom (niveaux adset et
-    // publicité, où la ligne ne porte que le nom de sa campagne).
-    const resets = await ctx.db.query("meta_campaign_resets")
-      .withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
-    const resetParId = new Map(resets.map(r => [r.campaignId, r.resetAt]))
-    const resetParNom = new Map(resets.filter(r => r.campaignName).map(r => [r.campaignName as string, r.resetAt]))
-    // Pubs à ne plus compter, tous niveaux confondus.
-    const pubsExclues = new Set<string>(resets.flatMap(r => r.excludedAdIds ?? []))
-    // Campagnes remises à zéro : leurs totaux se RECONSTRUISENT depuis les
-    // publicités, sinon la ligne agrégée de Meta réintroduirait la matinée
-    // effacée (une ligne campagne ne se découpe pas par pub).
-    const campagnesRemisesANom = new Set<string>(resets.map(r => r.campaignName ?? "").filter(Boolean))
 
     // agrégation des objets (meta_object_daily) sur la fenêtre, regroupée par objectId
     const aggObjects = async (level: string) => {
