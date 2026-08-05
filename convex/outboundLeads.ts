@@ -88,3 +88,45 @@ export const markRepliedByEmail = mutation({
     return { ok: true, id: lead._id }
   },
 })
+
+/**
+ * Le deck de présentation d'un contact, par son email.
+ *
+ * Chaque lead outbound reçoit une présentation personnalisée déployée sur son
+ * propre sous-domaine (https://<slug>.vividflow.co). Le lien vivait dans le
+ * fichier de sourcing : il fallait le retrouver à la main avant d'appeler. Les
+ * fiches (Contacts et Prospection) le lisent maintenant ici.
+ *
+ * Renvoie null si le contact n'est pas un lead outbound : c'est ce qui permet
+ * aux fiches de n'afficher le bloc que là où il a un sens.
+ */
+export const deckByEmail = query({
+  args: { email: v.optional(v.string()) },
+  handler: async (ctx, { email }) => {
+    const cle = (email ?? "").trim().toLowerCase()
+    if (!cle) return null
+    const lead = (await ctx.db.query("outbound_leads").withIndex("by_email", q => q.eq("email", cle)).collect())
+      .find(r => r.workspaceId === WORKSPACE)
+    if (!lead) return null
+    return {
+      id: lead._id,
+      deckUrl: lead.deckUrl ?? null,
+      etape: lead.etape,
+      company: lead.company ?? null,
+    }
+  },
+})
+
+/**
+ * Pose l'URL du deck sur un lead, sans toucher à son étape.
+ *
+ * `setStage` sait déjà écrire ce champ, mais il déplace aussi l'étape et la
+ * dernière activité : rattacher un deck déjà déployé n'est ni l'un ni l'autre.
+ */
+export const setDeckUrl = mutation({
+  args: { id: v.id("outbound_leads"), deckUrl: v.string() },
+  handler: async (ctx, { id, deckUrl }) => {
+    await ctx.db.patch(id, { deckUrl })
+    return { ok: true }
+  },
+})

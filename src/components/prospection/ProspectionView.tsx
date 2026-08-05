@@ -18,6 +18,7 @@ import { useKanbanSensors } from '@/hooks/useKanbanSensors'
 import { type GHLContact } from '@/lib/ghl'
 import { LOST_REASONS, lostReasonLabel, lostReasonIcon } from '@/lib/lostReasons'
 import { nicheKeyword } from '@/lib/nicheKeyword'
+import { DeckOutbound } from '@/components/shared/DeckOutbound'
 
 // Event iClosed de booking R1 (le widget gère date/heure/closer ; email pré-rempli).
 // iClosed interdit l'iframe (x-frame-options: DENY) → on ouvre dans un nouvel onglet.
@@ -589,6 +590,8 @@ function Fiche({ r, onClose, onEdit, onMove, onClarityDone }: { r: ProspRecord; 
             })}
           </div>
         </div>
+
+        <DeckOutbound email={r.contact.email} />
 
         <ZoneNotes recordId={r.id} />
 

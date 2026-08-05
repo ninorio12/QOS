@@ -14,6 +14,7 @@ import { type ContactPipelineInfo } from '@/app/contacts/page'
 import { fetchJSON } from '@/lib/fetchJSON'
 import Select from '@/components/ui/Select'
 import OriginBadge from './OriginBadge'
+import { DeckOutbound } from '@/components/shared/DeckOutbound'
 
 const inputCls = 'w-full bg-soren-elevated border-0 rounded-xl px-3 py-2 text-[12px] text-soren-text placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#3462EE]/40 transition-all'
 const labelCls = 'block text-[11px] font-medium text-soren-muted mb-1'
@@ -896,6 +897,11 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
               {/* Le canal réel d'arrivée, sous la famille : formulaire Facebook en entrant, emailing en sortant. */}
               <OriginBadge source={inoutbound} contactId={contact?.id} />
             </div>
+
+            {/* Deck de présentation — la page personnalisée envoyée à ce lead
+                outbound. Elle vivait dans le fichier de sourcing : il fallait
+                la retrouver à la main avant d'appeler. */}
+            <DeckOutbound email={form.email} />
           </div>
 
           {error && (

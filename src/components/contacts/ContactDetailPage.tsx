@@ -10,6 +10,7 @@ import { regionConfig, regionDisplay, COUNTRIES } from '@/lib/regions'
 import { getAvatarColor, type ContactAttribution } from './types'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
+import { DeckOutbound } from '@/components/shared/DeckOutbound'
 
 const BOT_COLORS: Record<string, string> = {
   Mia: '#8B5CF6', Kai: '#3462EE', Luc: '#F97316', Eva: '#EC4899',
@@ -567,6 +568,9 @@ export default function ContactDetailPage({
             </div>
           )}
         </div>
+
+        {/* Deck outbound — la présentation personnalisée envoyée à ce lead. */}
+        <DeckOutbound email={fields.email} variante="page" />
 
         {/* Adresse & Infos */}
         <div className="bg-soren-card rounded-2xl px-6 pt-4 pb-2 mb-4">
