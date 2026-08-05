@@ -274,7 +274,9 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
   // Étape commerciale (agrégée Convex : prospection + pipeline + onboarding).
   const commercialStage = useQuery(api.crm_contacts.commercialStage, contact?.id ? { contactId: contact.id as never } : 'skip') as { lost: boolean; key: string; label: string } | null | undefined
 
-  // ── Envoyer en prospection (colonne "Leads interne") — n'importe quelle fiche, sauf les clients. ──
+  // ── Envoyer en prospection — n'importe quelle fiche, sauf les clients.
+  //    La colonne « Leads interne » n'existe plus : la carte arrive en TÊTE de
+  //    « Leads à traiter », en orange, et se travaille comme les autres. ──
   const sendToProspection = useMutation(api.osProspection.sendToInternalLeads)
   const [prospState, setProspState] = useState<'idle' | 'sending' | 'done'>('idle')
   async function handleSendToProspection() {
@@ -724,17 +726,17 @@ export default function NewContactModal({ onClose, onAdd, onSave, onAddOpp, cont
             {/* ── Envoyer en prospection (colonne "Leads interne") — pill discrète, toute fiche non-client. ── */}
             {isEdit && contact?.id && statut !== 'client' && (
               <button type="button" onClick={handleSendToProspection} disabled={prospState !== 'idle'}
-                title="Ajouter ce contact au board Prospection · colonne Leads interne"
+                title="Ajouter ce contact au board Prospection, en tête de « Leads à traiter »"
                 className={`self-start inline-flex items-center gap-1.5 h-7 pl-2.5 pr-3 rounded-full border text-[11px] font-semibold transition-colors disabled:cursor-default ${
                   prospState === 'done'
                     ? 'border-[#FF4D00]/40 bg-[#FF4D00]/10 text-[#C2410C]'
                     : 'border-soren-border text-soren-muted hover:border-[#FF4D00]/50 hover:text-[#FF4D00] hover:bg-[#FF4D00]/[0.06]'
                 }`}>
                 {prospState === 'done'
-                  ? <><Check size={13} className="text-[#FF4D00]" /> Ajouté en leads interne</>
+                  ? <><Check size={13} className="text-[#FF4D00]" /> Ajouté à la prospection</>
                   : prospState === 'sending'
                     ? <><Send size={13} className="animate-pulse" /> Envoi…</>
-                    : <><Send size={13} /> Envoyer en leads interne</>}
+                    : <><Send size={13} /> Envoyer en prospection</>}
               </button>
             )}
 

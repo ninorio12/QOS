@@ -343,7 +343,7 @@ const ETAPES_CLIENT: { id: string; name: string; color: string }[] = [
   { id: 'onboarding-complet', name: 'Onboarding complété', color: '#3B82F6' },
   { id: 'kickoff-booke',      name: 'Kickoff booké',       color: '#8B5CF6' },
   { id: 'setup-cree',         name: 'Setup créé',          color: '#EC4899' },
-  { id: 'consulting',         name: 'Consulting',          color: '#10B981' },
+  { id: 'consulting',         name: 'Consulting',          color: '#0EA5E9' },
 ]
 const ID_ETAPES_CLIENT = new Set(['nouveau-client', ...ETAPES_CLIENT.map(e => e.id)])
 
@@ -730,8 +730,7 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
     if (!overOpp) return
 
     // If target card is in last stage → conversion popup
-    const overStageIdx = stages.findIndex(s => s.id === overOpp.stageId)
-    if (overStageIdx === stages.length - 1 && activeOpp.stageId !== overOpp.stageId) {
+    if (overOpp.stageId === 'nouveau-client' && activeOpp.stageId !== overOpp.stageId && !ID_ETAPES_CLIENT.has(activeOpp.stageId)) {
       setOpps(prev => prev.filter(o => o.id !== activeId))
       setPendingConversion(activeOpp)
       setDealValue('')
@@ -982,12 +981,12 @@ export default function KanbanBoard({ initialPipelines, initialOpportunities }: 
                 key={stage.id}
                 stage={stage}
                 opps={getColOpps(stage.id)}
-                isOver={!showLost && (overId === stage.id || (i === stages.length - 1 && opps.some(o => o.id === overId && o.stageId === stage.id)))}
+                isOver={!showLost && (overId === stage.id || (stage.id === 'nouveau-client' && opps.some(o => o.id === overId && o.stageId === stage.id)))}
                 onCardClick={opp => openContactEdit(opp)}
                 wasDragged={wasDragged}
                 showLost={showLost}
                 isLostOver={overId === `${LOST_PREFIX}${stage.id}`}
-                isLastStage={i === stages.length - 1}
+                isLastStage={stage.id === 'nouveau-client'}
                 onReopen={reopenLead}
                 mobileActive={stage.id === activeMobileStage}
                 stageIndex={i}

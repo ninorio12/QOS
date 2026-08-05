@@ -423,9 +423,9 @@ export const sendToInternalLeads = mutation({
     await ctx.db.patch(contactId, { statut: "lead", leadStatus: "active", lostStage: undefined, lostReason: undefined, lostObjection: undefined, updatedAt: now() })
     // Crée/réutilise lead Pipeline + prospection_record (chemin canonique).
     const res = await linkInternal(ctx, contactId, { temperature: contact.temperature ?? "froid", by })
-    // Force la colonne "Leads interne" (entrée du board) + marque le lead comme interne
-    // (flag persistant : la card garde sa couleur teal et reste interdite de retour en "Leads à traiter"
-    //  même après s'être baladée dans les NRP / RDV booké). phase/tracker inchangés.
+    // Entrée du board : « Leads à traiter », où la carte remonte EN TÊTE grâce à
+    // son marquage interne. Ce marquage est persistant : la carte garde sa
+    // couleur orange et sa priorité même après être passée par les NRP ou le RDV.
     // Envoyé depuis une fiche : la carte arrive dans « Leads à traiter », en tête,
     // et garde son marquage interne (couleur orange et remontée en haut).
     await ctx.db.patch(res.recordId as Id<"prospection_records">, { boardColumn: "leads_a_traiter", internalLead: true, status: "active", updatedAt: now() })
