@@ -1,5 +1,5 @@
 import { v } from "convex/values"
-import { mutation, query } from "./_generated/server"
+import { internalMutation, mutation, query } from "./_generated/server"
 import { type Id } from "./_generated/dataModel"
 import { WORKSPACE, logActivity } from "./osLib"
 import { findDuplicateContact } from "./contactDedup"
@@ -99,13 +99,37 @@ export const list = query({
     // doit savoir où en est la personne avant de décrocher son téléphone.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const journeys = await ctx.db.query("os_lead_journey").withIndex("by_ws", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
+    // ⚠️ Un contact peut avoir PLUSIEURS parcours (pendant la transition, le
+    // formulaire instantané Meta et la page 1 du quiz en créent chacun un). On
+    // retient l'étape la PLUS AVANCÉE, jamais la dernière ligne rencontrée :
+    // sinon quelqu'un qui a fini le quiz s'affichait « Quiz non commencé ».
+    const RANG: Record<string, number> = {
+      formulaire: 1, quiz_ouvert: 2, quiz_termine: 3, rdv_pris: 4, rdv_annule: 5,
+    }
     const stepByContact = new Map<string, string>()
     for (const j of journeys) {
       if (!j.contactId) continue
-      const last = j.steps[j.steps.length - 1]
-      if (last) stepByContact.set(j.contactId, last.step)
+      for (const st of j.steps) {
+        const actuel = stepByContact.get(j.contactId)
+        if (!actuel || (RANG[st.step] ?? 0) > (RANG[actuel] ?? 0)) stepByContact.set(j.contactId, st.step)
+      }
     }
-    const out = rows.map(r => ({ ...r, id: r._id, column: boardColumnOf(r), journeyStep: stepByContact.get(String(r.contactId)) ?? undefined, contact: cardOf(r.contactId) }))
+    // Notes des cartes : UNE lecture pour tout le board, jamais une par carte
+    // (même raison que les contacts juste au-dessus). Les plus récentes d'abord.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tousEvents: any[] = await ctx.db.query("prospection_events")
+      .withIndex("by_workspace_created", (q: any) => q.eq("workspaceId", WORKSPACE)).collect()
+    const notesParRecord = new Map<string, { id: string; text: string; createdAt: string }[]>()
+    for (const e of tousEvents) {
+      if (e.eventType !== "note" || !e.notes) continue
+      const cle = String(e.prospectionRecordId)
+      const liste = notesParRecord.get(cle) ?? []
+      liste.push({ id: String(e._id), text: e.notes, createdAt: e.createdAt })
+      notesParRecord.set(cle, liste)
+    }
+    for (const liste of notesParRecord.values()) liste.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+
+    const out = rows.map(r => ({ ...r, id: r._id, column: boardColumnOf(r), journeyStep: stepByContact.get(String(r.contactId)) ?? undefined, contact: cardOf(r.contactId), notes: notesParRecord.get(String(r._id)) ?? [] }))
     // Un lead converti en client (statut contact = "client") quitte la prospection :
     // il ne doit plus apparaître dans RDV booké (ni ailleurs), comme il quitte R1 du pipeline.
     const visible = out.filter(o => o.contact.statut !== "client")
@@ -148,6 +172,26 @@ export const clarityDone = mutation({
       if (c) await ctx.db.patch(c._id, { leadStatus: "handoff", updatedAt: now() })
     }
     return { ok: true }
+  },
+})
+
+/**
+ * Rend un lead interne au flux normal.
+ *
+ * « Leads interne » est réservé aux contacts poussés depuis leur fiche, et
+ * `setColumn` interdit de les renvoyer dans « Leads à traiter ». Quand la
+ * décision est prise à la main de traiter un de ces contacts comme un lead
+ * ordinaire, on retire le marqueur ici, puis `setColumn` fait le déplacement
+ * avec toute sa synchronisation habituelle (étape du lead, historique, KPI).
+ */
+export const clearInternalFlag = internalMutation({
+  args: { id: v.id("prospection_records") },
+  handler: async (ctx, { id }) => {
+    const rec = await ctx.db.get(id)
+    if (!rec) throw new Error("record introuvable")
+    if (!rec.internalLead) return { changed: false }
+    await ctx.db.patch(id, { internalLead: false, updatedAt: now() })
+    return { changed: true }
   },
 })
 
@@ -220,6 +264,34 @@ export const setColumn = mutation({
 export const events = query({
   args: { recordId: v.string() },
   handler: async (ctx, { recordId }) => (await ctx.db.query("prospection_events").withIndex("by_record", q => q.eq("prospectionRecordId", recordId)).collect()).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)),
+})
+
+/* ─────────────────────────── Notes de carte ───────────────────────────
+ * Ce que le setter retient d'un appel, écrit sur la fiche et lisible sur la
+ * carte sans l'ouvrir. Rangées dans prospection_events (eventType « note »),
+ * là où vit déjà l'histoire de la carte : une note est un événement daté de
+ * plus, pas une table de plus.
+ * ───────────────────────────────────────────────────────────────────── */
+export const removeNote = mutation({
+  args: { id: v.id("prospection_events") },
+  handler: async (ctx, { id }) => {
+    const ev = await ctx.db.get(id)
+    // Garde-fou : cette porte n'efface QUE des notes. Elle ne doit jamais
+    // servir à effacer un événement d'historique (déplacement, perte, RDV).
+    if (!ev || ev.eventType !== "note") throw new Error("note introuvable")
+    await ctx.db.delete(id)
+    return { ok: true }
+  },
+})
+
+/** Notes d'une carte, de la plus récente à la plus ancienne. */
+export const notes = query({
+  args: { recordId: v.string() },
+  handler: async (ctx, { recordId }) => (await ctx.db.query("prospection_events")
+    .withIndex("by_record", q => q.eq("prospectionRecordId", recordId)).collect())
+    .filter(e => e.eventType === "note")
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    .map(e => ({ id: e._id, text: e.notes ?? "", createdAt: e.createdAt })),
 })
 
 // Backfill one-shot : crée les événements r1_booke / perdu manquants pour les cartes déjà en

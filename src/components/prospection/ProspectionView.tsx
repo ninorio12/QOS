@@ -3,15 +3,17 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation } from 'convex/react'
+import { QUIZ_DIAGNOSTIC, QUIZ_CONFIRMATION, normQ } from '@/lib/quizQuestions'
 import dynamic from 'next/dynamic'
 import { api } from '../../../convex/_generated/api'
+import { type Id } from '../../../convex/_generated/dataModel'
 import {
   DndContext, DragOverlay, closestCenter, pointerWithin, defaultDropAnimationSideEffects,
   useDroppable, MeasuringStrategy, type DragStartEvent, type DragEndEvent, type DropAnimation, type CollisionDetection,
 } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Search, Plus, X, Phone, Mail, Building2, ExternalLink, CalendarCheck, UserMinus, ChevronLeft, ChevronRight, Tag, Bookmark, ClipboardCheck, Headphones } from 'lucide-react'
+import { Search, Plus, X, Phone, Mail, Building2, ExternalLink, CalendarCheck, UserMinus, ChevronLeft, ChevronRight, Tag, Bookmark, ClipboardCheck, Headphones, ChevronUp, ChevronDown, FileText, StickyNote } from 'lucide-react'
 import { useKanbanSensors } from '@/hooks/useKanbanSensors'
 import { type GHLContact } from '@/lib/ghl'
 import { LOST_REASONS, lostReasonLabel, lostReasonIcon } from '@/lib/lostReasons'
@@ -30,7 +32,8 @@ const dropAnimation: DropAnimation = {
 const NewContactModal = dynamic(() => import('../contacts/NewContactModal'), { ssr: false })
 
 type Contact = { contactId: string; fullName: string; companyName?: string; phone?: string; email?: string; source?: string; niche?: string }
-type ProspRecord = { id: string; contactId: string; column: string; shortNote?: string; status: string; updatedAt: string; lostReason?: string; followUpReason?: string; followUpAt?: string; internalLead?: boolean; cadrage?: boolean; origin?: string; journeyStep?: string; contact: Contact }
+type ProspRecord = { id: string; contactId: string; column: string; shortNote?: string; status: string; updatedAt: string; lostReason?: string; followUpReason?: string; followUpAt?: string; internalLead?: boolean; cadrage?: boolean; origin?: string; journeyStep?: string; contact: Contact; notes?: ProspNote[] }
+type ProspNote = { id: string; text: string; createdAt: string }
 const fmtFollowUp = (iso?: string) => { if (!iso) return ''; const d = new Date(iso); return isNaN(d.getTime()) ? '' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) }
 
 // Règles métier de déplacement :
@@ -89,6 +92,19 @@ const telHref = (p?: string) => (p ? `tel:${p.replace(/[^+0-9]/g, '')}` : undefi
 const initialsOf = (n?: string) => (n?.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2) || '?').toUpperCase()
 
 // ─── Carte ────────────────────────────────────────────────────
+/** Logo Gmail officiel, tracé en SVG : aucune image externe à charger. */
+function GmailMark({ size = 10 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" className="flex-shrink-0">
+      <path fill="#4caf50" d="M45,16.2l-5,2.75l-5,4.75L35,40h7c1.657,0,3-1.343,3-3V16.2z" />
+      <path fill="#1e88e5" d="M3,16.2l3.614,1.71L13,23.7V40H6c-1.657,0-3-1.343-3-3V16.2z" />
+      <polygon fill="#e53935" points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17" />
+      <path fill="#c62828" d="M3,12.298V16.2l10,7.5V11.2L9.876,8.859C9.132,8.301,8.228,8,7.298,8h0C4.924,8,3,9.924,3,12.298z" />
+      <path fill="#fbc02d" d="M45,12.298V16.2l-10,7.5V11.2l3.124-2.341C38.868,8.301,39.772,8,40.702,8h0C43.076,8,45,9.924,45,12.298z" />
+    </svg>
+  )
+}
+
 function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean }) {
   const tel = telHref(r.contact.phone)
   const ReasonIcon = r.column === 'perdu' && r.lostReason ? lostReasonIcon(r.lostReason) : null
@@ -122,11 +138,24 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
               <Phone size={9} className="text-[#FF4D00] flex-shrink-0" /><span>{r.contact.phone}</span>
             </a>
           : <span className="flex-none text-[9.5px] md:text-[10.5px] text-soren-subtle">Pas de n°</span>}
+        {/* Leads à traiter = outbound : ces leads se travaillent d'abord à
+            l'écrit. La puce ouvre directement la rédaction dans Gmail. */}
+        {r.column === 'leads_a_traiter' && r.contact.email && (
+          <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(r.contact.email)}`}
+            target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}
+            title={`Écrire à ${r.contact.email}`}
+            className="flex-none inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-[2px] leading-tight rounded-full border border-soren-border bg-soren-card text-soren-muted hover:text-soren-text hover:border-[#C8CBD0] transition-colors">
+            {/* L'adresse n'apporte rien sur la carte : seule compte la présence
+                d'un canal écrit. Elle reste dans l'infobulle au survol. */}
+            <GmailMark size={9} /><span>Email</span>
+          </a>
+        )}
+        {/* L'entreprise est poussée À DROITE de la ligne : le téléphone reste
+            accroché à gauche, la colonne se lit en deux points d'ancrage. */}
         {r.contact.companyName && (
-          <>
-            <span className="flex-none w-[3px] h-[3px] rounded-full bg-soren-border" />
-            <span className="flex items-center gap-1 min-w-0 text-[9.5px] md:text-[10.5px] text-soren-subtle"><Building2 size={8} className="flex-shrink-0 md:w-[9px] md:h-[9px]" /><span className="truncate">{r.contact.companyName}</span></span>
-          </>
+          <span className="ml-auto flex items-center gap-1 min-w-0 text-[9.5px] md:text-[10.5px] text-soren-subtle" title={r.contact.companyName}>
+            <Building2 size={8} className="flex-shrink-0 md:w-[9px] md:h-[9px]" /><span className="truncate">{r.contact.companyName}</span>
+          </span>
         )}
       </div>
       {/* Raison de perte — uniquement en colonne « Perdu » */}
@@ -172,6 +201,18 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
               <span>Emailing</span>
             </span>
           )}
+        </div>
+      )}
+      {/* Notes laissées depuis la fiche : ce que le setter doit se rappeler
+          avant de rappeler, lisible sans ouvrir la carte. */}
+      {r.notes && r.notes.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1">
+          {r.notes.map(n => (
+            <span key={n.id} title={`${n.text} · ${new Date(n.createdAt).toLocaleDateString('fr-FR')}`}
+              className="max-w-full inline-flex items-center gap-1 text-[9px] font-semibold px-[5px] py-[1px] rounded-full leading-tight bg-[#FFF1EA] text-[#B23B00] dark:bg-orange-500/15 dark:text-orange-300">
+              <StickyNote size={9} className="flex-shrink-0" /><span className="truncate">{n.text}</span>
+            </span>
+          ))}
         </div>
       )}
       {/* « À suivre » — raison (texte libre) + date d'entrée dans la colonne */}
@@ -251,8 +292,10 @@ function Column({ col, records, onOpen, wasDragged, onMove, colIndex = 0, colCou
   // Colonne SURVOLÉE mais interdite pour la card en cours (ex. lead normal → Leads interne) :
   // AUCUNE surbrillance — elle reste dans son état normal (juste un curseur « interdit »).
   const accent = blocked ? { label: baseAccent.label, zone: `${baseAccent.zone} cursor-not-allowed` } : baseAccent
+  // Colonnes élargies (demande Thomas, 04/08) : à 260 px, le nom du contact, sa
+  // société et ses puces se tassaient et se coupaient.
   return (
-    <div className="flex flex-col w-[82vw] max-w-[300px] md:w-[260px] flex-shrink-0 h-full">
+    <div className="flex flex-col w-[82vw] max-w-[340px] md:w-[320px] flex-shrink-0 h-full">
       <div className="flex items-center gap-2 px-1 pb-2 flex-shrink-0">
         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: col.color }} />
         <span className={`text-[11px] font-semibold truncate flex-1 ${accent.label}`}>{col.label}</span>
@@ -294,7 +337,194 @@ function Overlay({ children, onClose }: { children: React.ReactNode; onClose?: (
   return createPortal(children, document.body)
 }
 
+/**
+ * Ce que le prospect a rempli, dans l'ordre où il l'a rempli.
+ *
+ * Trois sources distinctes : le formulaire de la publicité Meta, le quiz de
+ * diagnostic (même abandonné en cours de route) et le formulaire de
+ * confirmation d'après réservation. Un bloc vide se dit, il ne se cache pas :
+ * savoir que la personne n'a pas répondu est une information.
+ */
+function BlocQuestionnaire({ titre, couleur, paires, vide, chapeau }: {
+  titre: string; couleur: string; paires: { q: string; a: string }[]; vide: string; chapeau?: string | null
+}) {
+  return (
+    <div className="rounded-xl border border-soren-border overflow-hidden bg-soren-card">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-soren-border">
+        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: couleur }} />
+        <span className="text-[11.5px] font-semibold text-soren-text flex-1 truncate">{titre}</span>
+        {chapeau && <span className="text-[10px] text-soren-subtle flex-none">{chapeau}</span>}
+      </div>
+      {paires.length === 0 ? (
+        <p className="px-3 py-2.5 text-[11px] text-soren-subtle">{vide}</p>
+      ) : (
+        <div className="divide-y divide-soren-border/70">
+          {paires.map((p, i) => (
+            <div key={i} className="flex gap-3 px-3 py-2">
+              <span className="text-[11px] text-soren-muted w-[45%] flex-none">{p.q}</span>
+              <span className="text-[11px] text-soren-text font-medium min-w-0">{p.a}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Questionnaire en accordéon, même lecture que le module Closing : TOUTES les
+ * questions du quiz sont listées, avec la réponse quand elle a été captée et un
+ * champ vide sinon. On voit donc aussi ce à quoi la personne n'a pas répondu.
+ */
+function QuizDeroulant({ titre, couleur, questions, reponses, chapeau }: {
+  titre: string; couleur: string; questions: string[]; reponses: { q: string; a: string }[]; chapeau?: string | null
+}) {
+  const [ouvert, setOuvert] = useState(false)
+  const carte = new Map<string, string>()
+  for (const r of reponses) if (r.q && r.a) carte.set(normQ(r.q), r.a)
+  // Réponses captées dont la question n'est dans aucune liste canonique : on les
+  // montre quand même, sinon un libellé modifié sur la page les ferait disparaître.
+  const connues = new Set(questions.map(normQ))
+  const autres = reponses.filter(r => r.q && r.a && !connues.has(normQ(r.q)))
+  const repondu = questions.filter(q => carte.get(normQ(q))).length + autres.length
+  const total = questions.length + autres.length
+
+  return (
+    <div className={`rounded-xl border overflow-hidden ${repondu ? 'bg-soren-card border-soren-border' : 'bg-transparent border-soren-border/60'}`}>
+      <button onClick={() => setOuvert(o => !o)}
+        className="w-full flex items-center justify-between gap-2 px-3 py-2 hover:bg-soren-elevated/60 transition-colors">
+        <span className="flex items-center gap-2 min-w-0">
+          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: couleur }} />
+          <span className="text-[11.5px] font-semibold text-soren-text truncate">{titre}</span>
+        </span>
+        <span className={`flex items-center gap-1.5 text-[10px] flex-none ${repondu ? 'text-soren-muted font-semibold' : 'text-soren-subtle'}`}>
+          {chapeau ?? `${repondu}/${total} répondu${repondu > 1 ? 's' : ''}`}
+          {ouvert ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        </span>
+      </button>
+      {ouvert && (
+        <div className="px-3 pb-3 pt-1 flex flex-col gap-1.5">
+          {[...questions.map(q => ({ q, a: carte.get(normQ(q)) })), ...autres.map(r => ({ q: r.q, a: r.a }))].map((item, i) => (
+            <div key={i} className={`rounded-lg border p-2 ${item.a ? 'bg-soren-card border-soren-border' : 'bg-soren-elevated/30 border-soren-border/60'}`}>
+              <p className={`text-[10px] leading-snug ${item.a ? 'text-soren-text font-medium' : 'text-soren-subtle'}`}>{item.q}</p>
+              <p className="text-[11px] text-soren-text font-medium mt-1 pt-1 border-t border-soren-border/60 min-h-[16px]">{item.a ?? '\u00a0'}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PanneauQualification({ contactId, email }: { contactId: string; email?: string }) {
+  const q = useQuery(api.quizIngest.qualification, { contactId, email }) as {
+    metaForm: { q: string; a: string }[]
+    formulaires: { source: string; champs: { q: string; a: string }[]; at: string | null }[]
+    sources: string[]
+    source: string
+    metaFormAt: string | null
+    quiz: { q: string; a: string }[]
+    quizStatut: string | null
+    quizProgression: { atteinte: number; total: number } | null
+    quizScore: number | null
+    confirmation: { q: string; a: string }[]
+  } | null | undefined
+
+  const chapeauQuiz = !q ? null
+    : q.quizStatut === 'termine' ? 'terminé'
+    : q.quizProgression ? `arrêté à la question ${Math.min(q.quizProgression.atteinte, q.quizProgression.total)}/${q.quizProgression.total}`
+    : q.quizStatut ? 'en cours' : null
+
+  return (
+    <div className="w-full md:flex-1 md:min-w-0 min-h-0 bg-soren-app md:border-l border-soren-border p-4 md:p-5 overflow-y-auto">
+      <p className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-soren-subtle mb-3">Ce qu&apos;il a rempli</p>
+      {q === undefined ? (
+        <p className="text-[11px] text-soren-subtle">Chargement…</p>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {/* Un bloc par formulaire réellement rempli : quelqu'un passé par les
+              deux portes a bien rempli les deux, on ne le réécrit pas. */}
+          {(q?.formulaires ?? []).length === 0 ? (
+            <BlocQuestionnaire titre="Formulaire VividFlow" couleur="#FF4D00" paires={[]}
+              vide="Ce contact n'est passé par aucun formulaire d'identité." />
+          ) : (
+            (q?.formulaires ?? []).map((f) => (
+              <BlocQuestionnaire
+                key={f.source}
+                titre={f.source === 'meta' ? 'Formulaire Meta' : 'Formulaire VividFlow'}
+                couleur={f.source === 'meta' ? '#1877F2' : '#FF4D00'}
+                paires={f.champs}
+                vide="Aucun champ enregistré." />
+            ))
+          )}
+          <QuizDeroulant titre="Quiz diagnostic" couleur="#FF4D00"
+            questions={QUIZ_DIAGNOSTIC} reponses={q?.quiz ?? []} chapeau={chapeauQuiz} />
+          <QuizDeroulant titre="Formulaire confirmation" couleur="#10B981"
+            questions={QUIZ_CONFIRMATION} reponses={q?.confirmation ?? []} />
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Fiche (clic sur carte) — sobre, coordonnées + déplacement ────────────────
+/**
+ * Notes de la carte, sous « Déplacer vers ».
+ *
+ * Une note est courte par construction (140 signes) : ce qui compte est de
+ * pouvoir le lire SUR la carte, sans l'ouvrir. Entrée valide, croix supprime.
+ */
+function ZoneNotes({ recordId }: { recordId: string }) {
+  const notes = useQuery(api.osProspection.notes, { recordId }) as ProspNote[] | undefined
+  const addNote = useMutation(api.osProspection.addNote)
+  const removeNote = useMutation(api.osProspection.removeNote)
+  const [texte, setTexte] = useState('')
+  const [envoi, setEnvoi] = useState(false)
+
+  async function ajouter() {
+    const t = texte.trim()
+    if (!t || envoi) return
+    setEnvoi(true)
+    // Le champ se vide tout de suite : le setter enchaîne les notes pendant
+    // qu'il a la personne au téléphone, il n'attend pas le serveur.
+    setTexte('')
+    try { await addNote({ id: recordId as Id<'prospection_records'>, note: t }) }
+    finally { setEnvoi(false) }
+  }
+
+  return (
+    <div className="px-4 md:px-5 pb-3 md:pb-4">
+      <p className="text-[9.5px] md:text-[10px] font-semibold uppercase tracking-[0.08em] text-soren-subtle mb-2">Notes</p>
+      <div className="flex items-center gap-1.5">
+        <input
+          value={texte}
+          onChange={e => setTexte(e.target.value.slice(0, 140))}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); ajouter() } }}
+          placeholder="Rappeler jeudi, budget serré…"
+          className="flex-1 min-w-0 text-[11.5px] px-2.5 py-1.5 rounded-lg border border-soren-border bg-soren-card text-soren-text placeholder:text-soren-subtle focus:outline-none focus:border-[#C8CBD0]"
+        />
+        <button onClick={ajouter} disabled={!texte.trim()}
+          className="flex-none inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#FF4D00] text-white disabled:opacity-35 disabled:cursor-not-allowed hover:opacity-90 transition-opacity">
+          <Plus size={12} /> Noter
+        </button>
+      </div>
+      {notes && notes.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {notes.map(n => (
+            <span key={n.id} title={`${n.text} · ${new Date(n.createdAt).toLocaleDateString('fr-FR')}`}
+              className="group inline-flex items-center gap-1 max-w-full text-[10px] font-medium px-2 py-[3px] rounded-full bg-[#FFF1EA] text-[#B23B00] dark:bg-orange-500/15 dark:text-orange-300">
+              <span className="truncate">{n.text}</span>
+              <button onClick={() => removeNote({ id: n.id as Id<'prospection_events'> })}
+                title="Supprimer la note"
+                className="flex-none opacity-40 hover:opacity-100 transition-opacity"><X size={10} /></button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Fiche({ r, onClose, onEdit, onMove, onClarityDone }: { r: ProspRecord; onClose: () => void; onEdit: () => void; onMove: (col: string) => void; onClarityDone: () => void }) {
   const tel = telHref(r.contact.phone)
   const ini = initialsOf(r.contact.fullName)
@@ -302,7 +532,8 @@ function Fiche({ r, onClose, onEdit, onMove, onClarityDone }: { r: ProspRecord; 
     <Overlay onClose={onClose}>
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/45 backdrop-blur-md" onClick={onClose} />
-      <div className="relative w-full max-w-[380px] bg-soren-card rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <div className="relative w-full max-w-[760px] h-[86vh] md:h-[600px] bg-soren-card rounded-2xl shadow-2xl flex flex-col md:flex-row overflow-hidden">
+        <div className="flex flex-col md:w-[380px] flex-none min-h-0 overflow-y-auto">
         {/* Header — avatar discret, nom, société, statut courant */}
         <div className="flex items-start gap-3 md:gap-3.5 px-4 md:px-5 pt-4 md:pt-5 pb-3 md:pb-4">
           <span className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-soren-elevated text-soren-muted flex items-center justify-center text-[12px] md:text-[13px] font-semibold flex-shrink-0 ring-1 ring-soren-border">{ini}</span>
@@ -359,6 +590,8 @@ function Fiche({ r, onClose, onEdit, onMove, onClarityDone }: { r: ProspRecord; 
           </div>
         </div>
 
+        <ZoneNotes recordId={r.id} />
+
         {/* Appel de clarté terminé : la carte sort du board, le lead passe en R1. */}
         {r.cadrage && (
           <div className="px-4 md:px-5 pb-3">
@@ -371,15 +604,19 @@ function Fiche({ r, onClose, onEdit, onMove, onClarityDone }: { r: ProspRecord; 
         )}
 
         {/* Footer — fiche complète et, pour un lead à rappeler, sa fiche de closing */}
-        <div className="flex border-t border-soren-border divide-x divide-soren-border">
-          <button onClick={onEdit} className="flex-1 flex items-center justify-center gap-1 px-3 py-2.5 md:py-3 text-[11px] md:text-[12px] font-medium text-soren-muted hover:text-soren-text hover:bg-soren-elevated transition-colors">
-            Fiche complète <ChevronRight size={13} />
+        {/* Pied collé en bas de la colonne : sans mt-auto, il flottait au milieu
+            avec du vide dessous dès que la fenêtre a eu une hauteur fixe. */}
+        <div className="mt-auto flex border-t border-soren-border divide-x divide-soren-border">
+          <button onClick={onEdit} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 md:py-3 text-[11px] md:text-[12px] font-medium text-soren-muted hover:text-soren-text hover:bg-soren-elevated transition-colors">
+            <FileText size={13} /> Fiche complète
           </button>
           <a href={`/closing?contact=${r.contactId}`}
             className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 md:py-3 text-[11px] md:text-[12px] font-semibold text-[#FF4D00] hover:bg-[#FF4D00]/[0.06] transition-colors">
             <Headphones size={13} /> Fiche closing
           </a>
         </div>
+        </div>
+        <PanneauQualification contactId={r.contactId} email={r.contact.email} />
       </div>
     </div>
     </Overlay>
@@ -736,7 +973,7 @@ export default function ProspectionView() {
                 rogné par le bord du conteneur scrollable (le padding-right n'y est pas respecté). */}
             <div aria-hidden className="w-2 flex-shrink-0" />
           </div>
-          <DragOverlay dropAnimation={dropAnimation}>{activeRec ? <div className="w-[230px]"><ProspCard r={activeRec} dragging /></div> : null}</DragOverlay>
+          <DragOverlay dropAnimation={dropAnimation}>{activeRec ? <div className="w-[300px]"><ProspCard r={activeRec} dragging /></div> : null}</DragOverlay>
         </DndContext>
       </div>
 
