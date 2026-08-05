@@ -401,6 +401,11 @@ export const dashboard = query({
     const resetParNom = new Map(resets.filter(r => r.campaignName).map(r => [r.campaignName as string, r.resetAt]))
     // Pubs à ne plus compter, tous niveaux confondus.
     const pubsExclues = new Set<string>(resets.flatMap(r => r.excludedAdIds ?? []))
+    // Objets Meta connus (campagnes, adsets, publicités) : ils permettent de
+    // garder à l'écran, à zéro, ce qui existe mais n'a encore rien diffusé.
+    const objetsMeta = resets.length > 0
+      ? await ctx.db.query("meta_objects").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
+      : []
     // Lignes au niveau publicité : base de reconstruction des totaux.
     const pubsPourTotaux = pubsExclues.size > 0
       ? await ctx.db.query("meta_object_daily")
@@ -508,6 +513,32 @@ export const dashboard = query({
         if (r.date < g.premiereDiffusion) g.premiereDiffusion = r.date
         if (r.date > g.derniereDiffusion) g.derniereDiffusion = r.date
         byId.set(r.objectId, g)
+      }
+      // Après une remise à zéro, la campagne et ses pubs restent VISIBLES, à
+      // zéro, au lieu de disparaître de l'écran : un tableau vide se lit comme
+      // une panne, une ligne à zéro se lit comme un départ. On ne ressuscite
+      // que ce qui peut encore diffuser : les archivées et les supprimées
+      // restent dehors.
+      if (pubsExclues.size > 0) {
+        const vivant = (st?: string) => !!st && !["ARCHIVED", "DELETED", "SUPPRIMEE"].includes(st)
+        const parAdset = new Map(objetsMeta.filter(o => o.level === "adset").map(o => [o.objectId, o]))
+        for (const o of objetsMeta) {
+          if (o.level !== level) continue
+          if (!vivant(o.statut)) continue
+          if (byId.has(o.objectId)) continue
+          // Rattachement à la campagne, pour ne rappeler que les objets des
+          // campagnes effectivement remises à zéro.
+          const campId = o.level === "campaign" ? o.objectId
+            : o.level === "adset" ? o.parentId
+            : parAdset.get(o.parentId ?? "")?.parentId
+          if (!campId || !resetParId.has(campId)) continue
+          const jour = todayISO()
+          byId.set(o.objectId, {
+            id: o.objectId, name: o.name, campaign: null, adset: null,
+            spend: 0, impressions: 0, clicks: 0, leads: 0,
+            premiereDiffusion: jour, derniereDiffusion: jour,
+          })
+        }
       }
       return [...byId.values()].map(g => {
         const m = derive(g)
