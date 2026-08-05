@@ -474,6 +474,14 @@ export const dashboard = query({
     }))
 
     // agrégation des objets (meta_object_daily) sur la fenêtre, regroupée par objectId
+    // Un objet reconstruit depuis ses publicités ne connaît que le NOM de sa
+    // campagne et de son adset. Sans cette correspondance, la ligne reconstruite
+    // et la ligne « à zéro » vivaient sous deux clés différentes : la campagne
+    // apparaissait DEUX FOIS, une fois avec ses chiffres et « statut inconnu »,
+    // une fois vide et « en diffusion » (constaté au lancement du 05/08).
+    const idParNom = new Map<string, string>()
+    for (const o of objetsMeta) if (o.level === "campaign" || o.level === "adset") idParNom.set(`${o.level}:${o.name}`, o.objectId)
+
     const aggObjects = async (level: string) => {
       const niveauLu = (level === "campaign" || level === "adset") && campagnesRemisesANom.size > 0 ? "creative" : level
       const rows = (await ctx.db.query("meta_object_daily")
@@ -502,9 +510,10 @@ export const dashboard = query({
         // Lecture reconstruite : la ligne de pub porte les totaux de son adset
         // ou de sa campagne, regroupés par leur NOM (seule clé dont on dispose
         // à ce niveau-là).
+        const nomParent = (level === "adset" ? brut.adset : brut.campaign) ?? "?"
         const r = niveauLu === level ? brut : {
           ...brut,
-          objectId: level === "adset" ? (brut.adset ?? "?") : (brut.campaign ?? "?"),
+          objectId: idParNom.get(`${level}:${nomParent}`) ?? nomParent,
           name: (level === "adset" ? brut.adset : brut.campaign) ?? "(sans nom)",
           adset: level === "adset" ? undefined : brut.adset,
         }
