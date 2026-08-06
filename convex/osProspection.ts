@@ -232,8 +232,13 @@ export const setColumn = mutation({
       await ctx.db.patch(rec.contactId as Id<"crm_contacts">, { statut: "perdu", lostStage, lostReason: lostReason ?? rec.lostReason ?? undefined, updatedAt: now() })
     } else {
       if (lead) {
-        const stageChanged = lead.stageId !== stageId
-        await ctx.db.patch(lead._id, { stageId, status: "open" })
+        // « RDV booké » ne touche PAS à l'étape du pipeline. Le rendez-vous ne
+        // valide rien (c'est l'appel de clarté qui le fait), et il ne doit pas
+        // non plus faire redescendre quelqu'un que le setter a déjà eu au
+        // téléphone : un lead passé par les NRP reste en conversation.
+        const gardeEtape = col === "rdv_booke"
+        const stageChanged = !gardeEtape && lead.stageId !== stageId
+        await ctx.db.patch(lead._id, gardeEtape ? { status: "open" } : { stageId, status: "open" })
         if (stageChanged) await ctx.db.insert("lead_stage_history", { leadId: lead._id, stageId, stageName: stageId, enteredAt: today() })
       }
       if (wasLost) await ctx.db.patch(rec.contactId as Id<"crm_contacts">, { statut: "lead", lostStage: undefined, lostReason: undefined, lostObjection: undefined, updatedAt: now() })

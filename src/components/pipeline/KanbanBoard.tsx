@@ -29,7 +29,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, X, ArrowLeft, Search } from 'lucide-react'
+import { Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, X, ArrowLeft, Search, ArrowUpRight } from 'lucide-react'
 import { type GHLPipelineData, type GHLStage, type Opportunity, type Lead } from './types'
 import { NONVENTE_REASONS, NONVENTE_OBJECTIONS } from '@/lib/lostReasons'
 import dynamic from 'next/dynamic'
@@ -198,6 +198,20 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
           <span className="text-[9px] font-bold bg-soren-card border border-soren-border text-soren-muted px-1.5 py-0.5 rounded-full min-w-[16px] text-center shadow-sm">
             {opps.length}
           </span>
+          {/* Raccourci vers le module où se travaille cette étape : la file
+              d'appels pour les nouveaux leads, la préparation d'appel pour les
+              R1 et R2. Le pipeline dit OÙ EN EST le lead, l'autre module dit
+              QUOI EN FAIRE. */}
+          {MODULE_DE_LETAPE[stage.id] && (
+            <a
+              href={MODULE_DE_LETAPE[stage.id].href}
+              title={MODULE_DE_LETAPE[stage.id].titre}
+              onClick={e => e.stopPropagation()}
+              className="w-[18px] h-[18px] rounded-md border border-soren-border bg-soren-card grid place-items-center text-soren-subtle hover:text-soren-text hover:border-[#C8CBD0] transition-colors flex-shrink-0"
+            >
+              <ArrowUpRight size={11} />
+            </a>
+          )}
         </div>
       </div>
 
@@ -346,6 +360,13 @@ const ETAPES_CLIENT: { id: string; name: string; color: string }[] = [
   { id: 'consulting',         name: 'Consulting',          color: '#0EA5E9' },
 ]
 const ID_ETAPES_CLIENT = new Set(['nouveau-client', ...ETAPES_CLIENT.map(e => e.id)])
+
+/** Le module où se travaille concrètement chaque étape. */
+const MODULE_DE_LETAPE: Record<string, { href: string; titre: string }> = {
+  'nouveau-lead': { href: '/prospection', titre: 'Ouvrir la Prospection' },
+  r1:             { href: '/closing',     titre: 'Ouvrir le Closing' },
+  r2:             { href: '/closing',     titre: 'Ouvrir le Closing' },
+}
 
 export default function KanbanBoard({ initialPipelines, initialOpportunities }: KanbanBoardProps) {
   const [opps,           setOpps]           = useState<Opportunity[]>(initialOpportunities.filter(o => o.status !== 'lost'))

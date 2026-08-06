@@ -18,9 +18,10 @@ export const LEAD_STAGE_FOR_COLUMN: Record<string, string> = {
   leads_a_traiter: "nouveau-lead",
   leads_interne: "nouveau-lead",   // ancienne colonne, conservée pour les enregistrements d'avant la fusion
   nrp1: "conversation", nrp2: "conversation", nrp3: "conversation", nrp4: "conversation",
-  // Un rendez-vous booké laisse le lead EN CONVERSATION : il ne passe en R1 que
-  // lorsque le setter valide par l'appel de clarté (voir clarityDone).
-  rdv_booke: "conversation",
+  // Un rendez-vous booké ne fait PAS avancer le lead : il a réservé, personne ne
+  // lui a encore parlé. Il reste donc en « Nouveaux leads », et c'est l'appel de
+  // clarté du setter qui le fait entrer en R1 (voir clarityDone).
+  rdv_booke: "nouveau-lead",
   a_suivre: "conversation",   // lead parqué (à reprendre plus tard) → reste ouvert en conversation
   perdu: "conversation",
 }
@@ -29,11 +30,17 @@ export const LEAD_STAGE_FOR_COLUMN: Record<string, string> = {
 // R1/R2 → RDV booké (post-handoff). nouveau-client/inconnu → null = ne pas déplacer la colonne.
 export function columnForLeadStage(stageId: string, currentCol?: string): string | null {
   // Les deux colonnes d'entrée n'en font plus qu'une.
-  if (stageId === "nouveau-lead") return "leads_a_traiter"
+  if (stageId === "nouveau-lead") {
+    if (currentCol && (currentCol === "rdv_booke" || currentCol === "a_suivre" || NRP_COLUMNS.includes(currentCol))) return currentCol
+    return "leads_a_traiter"
+  }
   if (stageId === "conversation") {
     if (currentCol && (NRP_COLUMNS.includes(currentCol) || currentCol === "rdv_booke" || currentCol === "a_suivre")) return currentCol
     return "nrp1"
   }
+  // Un lead ramené en « Nouveaux leads » alors que sa carte est déjà au
+  // rendez-vous ou en suivi ne redescend pas : la colonne dit ce qui s'est
+  // passé, l'étape du pipeline dit ce qui est validé.
   if (stageId === "r1" || stageId === "r2") return "rdv_booke"
   return null
 }

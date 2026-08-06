@@ -196,15 +196,12 @@ const CALL_STAGE_RANK: Record<string, number> = { "nouveau-lead": 0, "conversati
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function advanceForCall(ctx: any, contactId: string | undefined, stage: string) {
   if (!contactId || (stage !== "R1" && stage !== "R2")) return
-  // ⚠️ Un rendez-vous pris ne vaut PAS un R1.
-  //
-  // Le lead a réservé, il n'est pas encore qualifié : c'est l'appel de clarté du
-  // setter qui le valide. Tant qu'il n'a pas eu lieu, le lead reste EN
-  // CONVERSATION dans le pipeline, et il passe en R1 quand le setter clique
-  // « Appel de clarté fait ». Compter le R1 dès la réservation gonflait le haut
-  // du funnel de rendez-vous jamais qualifiés (règle Thomas, 06/08).
+  // ⚠️ Un rendez-vous pris ne vaut PAS un R1, et ne vaut pas non plus une
+  // conversation : personne n'a encore parlé à cette personne. Le lead reste
+  // donc EN L'ÉTAT, en « Nouveaux leads » s'il n'a jamais été appelé, et c'est
+  // l'appel de clarté du setter qui le fait entrer en R1 (voir clarityDone).
   // Un R2, lui, arrive après un R1 déjà tenu : il avance normalement.
-  const target = stage === "R2" ? "r2" : "conversation"
+  const target = stage === "R2" ? "r2" : "nouveau-lead"
   // 1) Lead pipeline → r1/r2 (source unique du funnel). Jamais de régression.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const lead = await ctx.db.query("crm_leads").withIndex("by_contact", (q: any) => q.eq("contactId", contactId)).first()
