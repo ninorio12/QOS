@@ -11,7 +11,10 @@ export const list = query({
     // Sans ce signal, le pipeline laisse croire que tout est cadré.
     const recs = await ctx.db.query("prospection_records").collect()
     const pending = new Set(
-      recs.filter((r) => r.cadrage && r.status !== "archived" && r.boardColumn === "leads_interne")
+      // ⚠️ Plus de filtre sur la colonne : depuis la fusion, une carte en attente
+      // de cadrage vit dans « Leads à traiter » et peut être déplacée ailleurs.
+      // C'est le marqueur `cadrage` et le statut qui font foi, pas l'endroit.
+      recs.filter((r) => r.cadrage && r.status !== "archived")
           .map((r) => String(r.contactId)),
     )
     const done = new Set(

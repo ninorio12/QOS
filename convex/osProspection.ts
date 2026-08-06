@@ -725,3 +725,35 @@ export const cleanupProspectionDemo = mutation({
     return { removed }
   },
 })
+
+/**
+ * Retire une carte du board SANS toucher au lead.
+ *
+ * `remove` ferme le lead en « perdu » : c'est juste quand on abandonne un lead,
+ * faux quand on veut seulement sortir une carte du board (une carte posée par
+ * erreur, par exemple). Ici le lead garde son étape et son statut.
+ */
+export const _retirerCarteSeule = internalMutation({
+  args: { id: v.id("prospection_records") },
+  handler: async (ctx, { id }) => {
+    const evs = await ctx.db.query("prospection_events").withIndex("by_record", q => q.eq("prospectionRecordId", id)).collect()
+    for (const e of evs) await ctx.db.delete(e._id)
+    await ctx.db.delete(id)
+    return { ok: true }
+  },
+})
+
+/** Rapatrie les cartes restées dans l'ancienne colonne « Leads interne ». */
+export const _migrerLeadsInterne = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("prospection_records").withIndex("by_workspace", q => q.eq("workspaceId", WORKSPACE)).collect()
+    let migrees = 0
+    for (const r of rows) {
+      if (r.boardColumn !== "leads_interne") continue
+      await ctx.db.patch(r._id, { boardColumn: "leads_a_traiter", internalLead: true, updatedAt: now() })
+      migrees++
+    }
+    return { migrees }
+  },
+})

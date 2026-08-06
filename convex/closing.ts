@@ -238,9 +238,9 @@ export async function advanceForCall(ctx: any, contactId: string | undefined, st
     // l'appel de clarté n'a aucun sens. On ne touche donc pas à sa carte.
     const decrocheParUnHumain = rec?.status === "handoff" || rec?.boardColumn === "rdv_booke"
     if (rec && !decrocheParUnHumain) {
-      if (rec.boardColumn !== "leads_interne") {
+      if (rec.boardColumn !== "leads_a_traiter" || !rec.cadrage) {
         await ctx.db.patch(rec._id, {
-          boardColumn: "leads_interne", internalLead: true, cadrage: true,
+          boardColumn: "leads_a_traiter", internalLead: true, cadrage: true,
           status: "active", updatedAt: now2,
         })
       }
@@ -255,7 +255,7 @@ export async function advanceForCall(ctx: any, contactId: string | undefined, st
         workspaceId: WORKSPACE,
         contactId: String(contactId),
         leadId: lead ? String(lead._id) : undefined,
-        boardColumn: "leads_interne",
+        boardColumn: "leads_a_traiter",
         phase: "phase1",
         internalLead: true,
         cadrage: true,
@@ -443,7 +443,7 @@ export const cancelCallByExternalId = mutation({
           // Lead spontané (formulaire, emailing…) : retour en file de clarté,
           // marqueur conservé — l'appel sert maintenant à re-booker.
           await ctx.db.patch(rec._id, {
-            boardColumn: "leads_interne", internalLead: true, cadrage: true,
+            boardColumn: "leads_a_traiter", internalLead: true, cadrage: true,
             status: "active", updatedAt: new Date().toISOString(),
           })
         } else {

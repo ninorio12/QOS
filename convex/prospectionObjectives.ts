@@ -37,6 +37,10 @@ export const get = query({
       tauxSetting:   doc?.tauxSetting   ?? DEFAULTS.tauxSetting,
       cpl:           doc?.cpl           ?? DEFAULTS.cpl,
       ca:            base?.ca           ?? doc?.ca ?? DEFAULTS.ca,
+      // Part de ce parcours dans l'objectif global. `null` = pas encore
+      // répartie : l'écran affiche alors la barre globale seule plutôt qu'une
+      // cible inventée.
+      caSection:     a.funnel ? (doc?.caSection ?? null) : null,
       roi:           doc?.roi           ?? DEFAULTS.roi,
       coutParVente:  doc?.coutParVente  ?? DEFAULTS.coutParVente,
       ventes:        doc?.ventes        ?? DEFAULTS.ventes,
@@ -62,6 +66,7 @@ export const set = mutation({
     tauxSetting:   v.optional(v.number()),
     cpl:           v.optional(v.number()),
     ca:            v.optional(v.number()),
+    caSection:     v.optional(v.number()),
     roi:           v.optional(v.number()),
     coutParVente:  v.optional(v.number()),
     ventes:        v.optional(v.number()),

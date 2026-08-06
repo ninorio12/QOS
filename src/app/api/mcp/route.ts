@@ -293,7 +293,7 @@ const TOOLS: Tool[] = [
   },
 
   // ───────────── Prospection (cockpit caller, Nouveau lead → R1) ─────────────
-  { name: 'prospection_list', description: 'Liste les cartes de prospection (jointes au contact). Board = colonnes leads_a_traiter|leads_interne|nrp1|nrp2|nrp3|nrp4|rdv_booke|a_suivre|perdu (filtre column ; alias anciens tolérés). Phase 1/2/3 internes. Filtres: column, phase, temperature, channel, status, search.', inputSchema: obj({ column: Sx.string, phase: Sx.string, temperature: Sx.string, channel: Sx.string, status: Sx.string, search: Sx.string }), run: (a) => cx().query(api.osProspection.list, a) },
+  { name: 'prospection_list', description: 'Liste les cartes de prospection (jointes au contact). Board = colonnes leads_a_traiter|nrp1|nrp2|nrp3|nrp4|rdv_booke|a_suivre|perdu (filtre column ; l ancien leads_interne reste toléré et redirigé vers leads_a_traiter). Phase 1/2/3 internes. Filtres: column, phase, temperature, channel, status, search.', inputSchema: obj({ column: Sx.string, phase: Sx.string, temperature: Sx.string, channel: Sx.string, status: Sx.string, search: Sx.string }), run: (a) => cx().query(api.osProspection.list, a) },
   {
     name: 'prospection_create_or_link_contact', description: "Crée un lead de prospection. Déduplique le contact (phone/email/linkedin/nom+entreprise), crée/lie le Contact (statut lead, stage Nouveau lead), crée la carte prospection + le lead Pipeline. fullName requis.",
     inputSchema: obj({ fullName: Sx.string, companyName: Sx.string, phone: Sx.string, email: Sx.string, linkedinUrl: Sx.string, source: Sx.string, niche: Sx.string, canton: Sx.string, channel: Sx.string, temperature: Sx.string }, ['fullName']),

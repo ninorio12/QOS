@@ -28,9 +28,12 @@ export const LEAD_STAGE_FOR_COLUMN: Record<string, string> = {
 // "conversation" garde la NRP courante si déjà en NRP, sinon NRP 1 (1ʳᵉ relance).
 // R1/R2 → RDV booké (post-handoff). nouveau-client/inconnu → null = ne pas déplacer la colonne.
 export function columnForLeadStage(stageId: string, currentCol?: string): string | null {
-  // "Leads interne" est collante : un re-sync au stage nouveau-lead ne ré-aspire pas la card vers "Leads à traiter".
-  if (stageId === "nouveau-lead") return currentCol === "leads_interne" ? "leads_interne" : "leads_a_traiter"
-  if (stageId === "conversation") return currentCol && NRP_COLUMNS.includes(currentCol) ? currentCol : "nrp1"
+  // Les deux colonnes d'entrée n'en font plus qu'une.
+  if (stageId === "nouveau-lead") return "leads_a_traiter"
+  if (stageId === "conversation") {
+    if (currentCol && (NRP_COLUMNS.includes(currentCol) || currentCol === "rdv_booke" || currentCol === "a_suivre")) return currentCol
+    return "nrp1"
+  }
   if (stageId === "r1" || stageId === "r2") return "rdv_booke"
   return null
 }

@@ -91,8 +91,20 @@ export const fromLeadForm = internalMutation({
     const token = makeToken(a.leadgenId)
 
     // Contact : on complète l'existant plutôt que d'en créer un doublon.
+    // Rapprochement par EMAIL d'abord, puis par TÉLÉPHONE : depuis que la page
+    // d'identité du quiz ne demande plus d'adresse, le numéro est souvent la
+    // seule clé. Sans ce second filet, la même personne revenue depuis un autre
+    // appareil créait une deuxième fiche, donc un deuxième appel à passer.
+    // Comparaison sur les 9 derniers chiffres : +41 79…, 0041 79… et 079… sont
+    // le même numéro.
     const contacts = await ctx.db.query("crm_contacts").collect()
-    const dup = email ? contacts.find((c) => c.email?.toLowerCase() === email) : undefined
+    const cle = (t?: string | null) => {
+      const chiffres = (t ?? "").replace(/\D/g, "")
+      return chiffres.length >= 9 ? chiffres.slice(-9) : ""
+    }
+    const cleTel = cle(phone)
+    const dup = (email ? contacts.find((c) => c.email?.toLowerCase() === email) : undefined)
+      ?? (cleTel ? contacts.find((c) => cle(c.phone) === cleTel) : undefined)
     let contactRef: typeof contacts[number]["_id"]
     let contactId: string
     if (dup) {
@@ -106,6 +118,7 @@ export const fromLeadForm = internalMutation({
       const tags = [...new Set([...(dup.tags ?? []), `origine:${origin}`, ...(hasFunnel ? [] : [`funnel:${funnel}`])])]
       await ctx.db.patch(dup._id, {
         tags,
+        email: dup.email ?? email,
         phone: dup.phone ?? phone,
         firstName: dup.firstName || first,
         lastName: dup.lastName ?? last,
@@ -138,7 +151,7 @@ export const fromLeadForm = internalMutation({
       if (!activeRec) {
         await ctx.db.insert("prospection_records", {
           workspaceId: WORKSPACE, contactId: String(dup!._id), leadId: String(openLead._id),
-          boardColumn: "leads_interne", phase: "phase1", internalLead: true, cadrage: true,
+          boardColumn: "leads_a_traiter", phase: "phase1", internalLead: true, cadrage: true,
           origin, temperature: "tiede", status: "active", createdAt: now(), updatedAt: now(),
         })
       }
@@ -174,7 +187,7 @@ export const fromLeadForm = internalMutation({
       workspaceId: WORKSPACE,
       contactId,
       leadId,
-      boardColumn: "leads_interne",
+      boardColumn: "leads_a_traiter",
       phase: "phase1",
       internalLead: true,
       cadrage: true,
