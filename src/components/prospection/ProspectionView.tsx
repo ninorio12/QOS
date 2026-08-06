@@ -202,11 +202,11 @@ function ProspCard({ r, dragging = false }: { r: ProspRecord; dragging?: boolean
       {/* Notes laissées depuis la fiche : ce que le setter doit se rappeler
           avant de rappeler, lisible sans ouvrir la carte. */}
       {r.notes && r.notes.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1">
+        <div className="flex flex-col gap-1">
           {r.notes.map(n => (
-            <span key={n.id} title={`${n.text} · ${new Date(n.createdAt).toLocaleDateString('fr-FR')}`}
-              className="max-w-full inline-flex items-center gap-1 text-[9px] font-medium px-[6px] py-[1px] rounded-full leading-tight border border-soren-border bg-soren-elevated text-soren-muted">
-              <span className="truncate">{n.text}</span>
+            <span key={n.id} title={new Date(n.createdAt).toLocaleDateString('fr-FR')}
+              className="w-full text-[9px] font-medium px-[6px] py-[2px] rounded-md leading-snug border border-soren-border bg-soren-elevated text-soren-muted break-words whitespace-pre-wrap">
+              {n.text}
             </span>
           ))}
         </div>
@@ -600,15 +600,15 @@ function ZoneNotes({ recordId }: { recordId: string }) {
         </button>
       </div>
       {notes && notes.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-2">
+        <div className="flex flex-col gap-1.5 mt-2">
           {notes.map(n => (
-            <span key={n.id} title={`${n.text} · ${new Date(n.createdAt).toLocaleDateString('fr-FR')}`}
-              className="group inline-flex items-center gap-1 max-w-full text-[10px] font-medium px-2 py-[3px] rounded-full border border-soren-border bg-soren-elevated text-soren-muted">
-              <span className="truncate">{n.text}</span>
+            <div key={n.id} title={new Date(n.createdAt).toLocaleDateString('fr-FR')}
+              className="group flex items-start gap-1.5 w-full text-[10.5px] font-medium px-2.5 py-[5px] rounded-lg border border-soren-border bg-soren-elevated text-soren-muted">
+              <span className="flex-1 min-w-0 break-words whitespace-pre-wrap leading-snug">{n.text}</span>
               <button onClick={() => removeNote({ id: n.id as Id<'prospection_events'> })}
                 title="Supprimer la note"
-                className="flex-none opacity-40 hover:opacity-100 transition-opacity"><X size={10} /></button>
-            </span>
+                className="flex-none mt-[1px] opacity-40 hover:opacity-100 transition-opacity"><X size={10} /></button>
+            </div>
           ))}
         </div>
       )}
