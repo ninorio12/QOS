@@ -198,23 +198,21 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
           <span className="text-[9px] font-bold bg-soren-card border border-soren-border text-soren-muted px-1.5 py-0.5 rounded-full min-w-[16px] text-center shadow-sm">
             {opps.length}
           </span>
-          {/* Raccourci vers le module où se travaille cette étape : la file
-              d'appels pour les nouveaux leads, la préparation d'appel pour les
-              R1 et R2. Le pipeline dit OÙ EN EST le lead, l'autre module dit
-              QUOI EN FAIRE. */}
-          {MODULE_DE_LETAPE[stage.id] && (
-            <a
-              href={MODULE_DE_LETAPE[stage.id].href}
-              title={MODULE_DE_LETAPE[stage.id].titre}
-              onClick={e => e.stopPropagation()}
-              // Carré orange en contour, jamais plein : le raccourci se remarque
-              // sans venir concurrencer les pastilles de statut des cartes.
-              className="w-[18px] h-[18px] rounded-md border border-[#FF4D00]/60 bg-transparent grid place-items-center text-[#FF4D00] hover:border-[#FF4D00] hover:bg-[#FF4D00]/10 transition-colors flex-shrink-0"
-            >
-              <ArrowUpRight size={11} />
-            </a>
-          )}
         </div>
+        {/* Raccourci vers le module où se travaille cette étape : la file
+            d'appels pour les nouveaux leads, la préparation d'appel pour les R1
+            et R2. Calé À DROITE de l'en-tête, loin du nom et du compteur, pour
+            qu'il se voie sans se mêler à la lecture de la colonne. */}
+        {MODULE_DE_LETAPE[stage.id] && (
+          <a
+            href={MODULE_DE_LETAPE[stage.id].href}
+            title={MODULE_DE_LETAPE[stage.id].titre}
+            onClick={e => e.stopPropagation()}
+            className="w-[18px] h-[18px] rounded-md border border-[#FF4D00]/60 bg-transparent grid place-items-center text-[#FF4D00] hover:border-[#FF4D00] hover:bg-[#FF4D00]/10 transition-colors flex-shrink-0"
+          >
+            <ArrowUpRight size={11} />
+          </a>
+        )}
       </div>
 
       <div
@@ -365,9 +363,11 @@ const ID_ETAPES_CLIENT = new Set(['nouveau-client', ...ETAPES_CLIENT.map(e => e.
 
 /** Le module où se travaille concrètement chaque étape. */
 const MODULE_DE_LETAPE: Record<string, { href: string; titre: string }> = {
-  'nouveau-lead': { href: '/prospection', titre: 'Ouvrir la Prospection' },
-  r1:             { href: '/closing',     titre: 'Ouvrir le Closing' },
-  r2:             { href: '/closing',     titre: 'Ouvrir le Closing' },
+  'nouveau-lead':       { href: '/prospection', titre: 'Ouvrir la Prospection' },
+  r1:                   { href: '/closing',     titre: 'Ouvrir le Closing' },
+  r2:                   { href: '/closing',     titre: 'Ouvrir le Closing' },
+  'onboarding-envoye':  { href: '/onboarding',  titre: "Ouvrir l'Onboarding" },
+  'onboarding-complet': { href: '/onboarding',  titre: "Ouvrir l'Onboarding" },
 }
 
 export default function KanbanBoard({ initialPipelines, initialOpportunities }: KanbanBoardProps) {
