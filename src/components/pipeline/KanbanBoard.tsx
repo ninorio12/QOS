@@ -207,7 +207,9 @@ function KanbanColumn({ stage, opps, isOver, onCardClick, wasDragged, showLost, 
               href={MODULE_DE_LETAPE[stage.id].href}
               title={MODULE_DE_LETAPE[stage.id].titre}
               onClick={e => e.stopPropagation()}
-              className="w-[18px] h-[18px] rounded-md border border-soren-border bg-soren-card grid place-items-center text-soren-subtle hover:text-soren-text hover:border-[#C8CBD0] transition-colors flex-shrink-0"
+              // Carré orange en contour, jamais plein : le raccourci se remarque
+              // sans venir concurrencer les pastilles de statut des cartes.
+              className="w-[18px] h-[18px] rounded-md border border-[#FF4D00]/60 bg-transparent grid place-items-center text-[#FF4D00] hover:border-[#FF4D00] hover:bg-[#FF4D00]/10 transition-colors flex-shrink-0"
             >
               <ArrowUpRight size={11} />
             </a>
